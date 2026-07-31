@@ -10,6 +10,7 @@ This directory defines QuadletLens's architecture and version-aware behavior.
 - [Testing strategy](testing.md) — syntax, rendering, catalogue, and real-generator tests
 - [Fixture format](fixture-format.md) — shared metadata, provenance, and secrets contract
 - [Dependency and license policy](dependency-policy.md) — dependency selection, allowed sources, and license checks
+- [Implementation plan](implementation-plan.md) — synchronized cross-repository tasks T1–T7
 - [Roadmap](roadmap.md) — implementation order
 - [Architecture decisions](decisions/README.md) — durable design choices
 

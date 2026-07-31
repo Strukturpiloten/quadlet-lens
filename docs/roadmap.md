@@ -2,6 +2,8 @@
 
 The roadmap is ordered by dependencies rather than dates.
 
+Cross-repository delivery uses the stable task numbers in the [implementation plan](implementation-plan.md). This roadmap remains the detailed internal phase order for QuadletLens.
+
 ## Phase 0: foundation
 
 - Accept architecture and origin ADR.
