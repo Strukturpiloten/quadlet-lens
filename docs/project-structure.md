@@ -32,17 +32,16 @@ quadlet-lens/
 │   │   ├── 5.5.toml
 │   │   └── ...
 │   └── systemd/
-├── tests/                  # planned with the first implemented behavior
-│   ├── syntax/
-│   ├── roundtrip/
-│   ├── capabilities/
-│   ├── generators/
-│   └── real-world/
-├── fixtures/               # planned with the first external fixture
-│   └── README.md
+├── tests/
+│   ├── README.md           # suite ownership and introduction rules
+│   ├── repository_policy.rs # fixture and workflow-pin enforcement
+│   └── support/            # private repository-test helpers
+├── fixtures/
+│   └── README.md           # fixture location and safety rules
 ├── tools/                  # planned when catalogue automation is justified
 │   └── catalogue/          # extraction/diff helpers; never sole source of truth
 ├── docs/
+│   └── fixture-format.md   # versioned fixture manifest contract
 └── .github/
     ├── renovate.json
     └── workflows/

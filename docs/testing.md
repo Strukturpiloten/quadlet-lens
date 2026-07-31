@@ -41,6 +41,10 @@ Systemd-dependent fixtures record the systemd version and rootless/rootful conte
 
 Fixtures require source provenance, redistribution permission, version assumptions, secret review, and an explanation of the protected behavior.
 
+## Test organization
+
+Cargo-discovered integration tests live in [`../tests/`](../tests/README.md), with private helpers in `tests/support/`. Fixtures live in [`../fixtures/`](../fixtures/README.md) and are validated against the versioned [fixture manifest contract](fixture-format.md). Product suites are added only with implemented behavior and meaningful assertions.
+
 ## Regression rule
 
 Every compatibility fix adds a version-specific regression fixture. Catalogue corrections include a test demonstrating why the earlier claim was wrong or an explicit note explaining why automation is not currently possible.
@@ -52,11 +56,13 @@ The crate uses Rust 2024 with an MSRV of 1.85.0. `rust-toolchain.toml` pins the 
 ```shell
 cargo fmt --all -- --check
 cargo ci-check
+cargo ci-policy
 cargo ci-clippy
 cargo ci-test
 cargo ci-doctest
 RUSTDOCFLAGS="-D warnings" cargo ci-doc
 cargo +1.85.0 ci-check
+cargo +1.85.0 ci-policy
 cargo deny check
 ```
 
