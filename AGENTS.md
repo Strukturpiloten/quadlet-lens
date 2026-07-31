@@ -11,7 +11,8 @@ Read these documents in order:
 3. `docs/project-structure.md`
 4. `docs/capability-model.md`
 5. `docs/testing.md`
-6. `docs/decisions/README.md` and all accepted ADRs
+6. `docs/dependency-policy.md`
+7. `docs/decisions/README.md` and all accepted ADRs
 
 Architectural changes require documentation and an ADR update in the same change.
 
@@ -47,5 +48,21 @@ External fixtures and behavior-oracle results must record source, version, comma
 - Add parser, renderer, capability-boundary, and real-generator tests with behavior changes.
 - Record Podman tag/commit, documentation source, and observed generator behavior for capability updates.
 - Update documentation and compatibility claims in the same change.
+- Pin every GitHub Action to its full commit SHA and append its exact release tag as a comment. Verify new pins upstream; Renovate must preserve and update both values.
 
-No Rust crate exists yet. Once scaffolded, add canonical formatting, linting, testing, documentation, catalogue-validation, and compatibility commands here and in `docs/testing.md`.
+## Canonical development commands
+
+The crate uses Rust 2024, supports Rust 1.85.0 and newer, and pins the normal development toolchain in `rust-toolchain.toml`.
+
+```shell
+cargo fmt --all -- --check
+cargo ci-check
+cargo ci-clippy
+cargo ci-test
+cargo ci-doctest
+RUSTDOCFLAGS="-D warnings" cargo ci-doc
+cargo +1.85.0 ci-check
+cargo deny check
+```
+
+The `ci-*` aliases in `.cargo/config.toml` use locked resolution and all workspace features and targets where applicable. Catalogue validation and real-generator matrix commands must be added here when their harnesses are introduced.

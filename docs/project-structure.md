@@ -1,46 +1,52 @@
-# Target project structure
+# Project structure
 
-QuadletLens begins as one public crate with a versioned data catalogue and clear module boundaries.
+QuadletLens is one library crate with clear module boundaries. The crate foundation exists; entries marked `planned` are created with their first behavior and tests. The versioned data catalogue begins with the capability-schema milestone.
 
 ```text
 quadlet-lens/
 ├── Cargo.toml
 ├── Cargo.lock
 ├── rust-toolchain.toml
+├── rustfmt.toml
+├── clippy.toml
+├── deny.toml
+├── .cargo/
+│   └── config.toml        # canonical Cargo aliases
 ├── AGENTS.md
 ├── README.md
 ├── LICENSE
 ├── src/
 │   ├── lib.rs
-│   ├── source/             # source identifiers, spans, and diagnostics
-│   ├── syntax/             # ordered systemd-style unit syntax
-│   ├── model/              # typed native Quadlet documents and values
-│   ├── document_set/       # references and dependency graph
-│   ├── capability/         # catalogue schema, loading, and range evaluation
-│   ├── validation/         # native and target-aware validation
-│   ├── render/             # preservation and canonical rendering
-│   └── diagnostic/         # stable structured diagnostics
-├── capabilities/
+│   ├── source/             # planned: source identifiers, spans, and diagnostics
+│   ├── syntax/             # planned: ordered systemd-style unit syntax
+│   ├── model/              # planned: typed native Quadlet documents and values
+│   ├── document_set/       # planned: references and dependency graph
+│   ├── capability/         # planned: catalogue loading and range evaluation
+│   ├── validation/         # planned: native and target-aware validation
+│   ├── render/             # planned: preservation and canonical rendering
+│   └── diagnostic/         # planned: stable structured diagnostics
+├── capabilities/           # planned with the capability-schema milestone
 │   ├── schema.json
 │   ├── podman/
 │   │   ├── 5.4.toml
 │   │   ├── 5.5.toml
 │   │   └── ...
 │   └── systemd/
-├── tests/
+├── tests/                  # planned with the first implemented behavior
 │   ├── syntax/
 │   ├── roundtrip/
 │   ├── capabilities/
 │   ├── generators/
 │   └── real-world/
-├── fixtures/
+├── fixtures/               # planned with the first external fixture
 │   └── README.md
-├── tools/
+├── tools/                  # planned when catalogue automation is justified
 │   └── catalogue/          # extraction/diff helpers; never sole source of truth
 ├── docs/
 └── .github/
-    ├── workflows/
-    └── ISSUE_TEMPLATE/
+    ├── renovate.json
+    └── workflows/
+        └── ci.yml
 ```
 
 ## Module placement rules

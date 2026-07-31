@@ -47,4 +47,17 @@ Every compatibility fix adds a version-specific regression fixture. Catalogue co
 
 ## Canonical commands
 
-The crate has not been scaffolded yet. Once it exists, document exact CI commands for formatting, linting, unit tests, catalogue validation, generator matrices, documentation, fuzz/property tests, dependency policy, and minimum-supported-Rust-version checks.
+The crate uses Rust 2024 with an MSRV of 1.85.0. `rust-toolchain.toml` pins the normal development toolchain; the explicit MSRV command prevents that pin from hiding accidental use of newer language or library features.
+
+```shell
+cargo fmt --all -- --check
+cargo ci-check
+cargo ci-clippy
+cargo ci-test
+cargo ci-doctest
+RUSTDOCFLAGS="-D warnings" cargo ci-doc
+cargo +1.85.0 ci-check
+cargo deny check
+```
+
+The `ci-*` aliases use `--locked`, all workspace features, and all targets where the Cargo command supports them. CI also runs markdownlint and lychee over the documentation. Add exact catalogue-validation, property/fuzz, and real-generator matrix commands here before those harnesses become required checks.
