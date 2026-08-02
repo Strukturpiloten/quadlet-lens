@@ -1,0 +1,18 @@
+schema = 1
+id = "podman-5-4-floor"
+suite = "version-boundaries"
+description = "Protects fail-closed evaluation immediately below and above the finite Podman 5.4 catalogue baseline."
+secrets_reviewed = true
+files = ["expected.txt"]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "Pure catalogue evaluation; no Podman runtime or generator is invoked."
+
+[expectations]
+summary = "Only the exact documented 5.4 baseline is native; uncovered versions remain unknown."

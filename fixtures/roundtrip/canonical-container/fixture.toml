@@ -1,0 +1,18 @@
+schema = 1
+id = "canonical-container"
+suite = "roundtrip"
+description = "Protects deterministic canonical rendering without collapsing repeats, comments, continuations, quotes, or specifiers."
+secrets_reviewed = true
+files = ["authored.container", "canonical.container"]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "No Podman generator or systemd process is executed; raw value and continuation semantics remain syntax-level evidence."
+
+[expectations]
+summary = "Canonical output uses LF and structural whitespace while retaining every ordered semantic source fragment."

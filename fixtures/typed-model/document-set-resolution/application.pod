@@ -1,0 +1,4 @@
+[Pod]
+PodName=quadlet-lens-application
+Network=frontend.network
+Volume=cache.volume:/srv/cache:Z

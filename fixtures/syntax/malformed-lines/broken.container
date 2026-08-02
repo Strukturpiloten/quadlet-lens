@@ -1,0 +1,7 @@
+Image=example.invalid/before-section
+[]
+[Container
+not-an-entry
+[Container]
+=empty-key
+PodmanArgs=--log-level=debug \

@@ -1,0 +1,12 @@
+[Unit]
+Description=Example application pod
+
+[Pod]
+PodName=example-application
+PublishPort=127.0.0.1:8081:81
+Network=frontend.network
+Volume=cache.volume:/var/cache/example:Z
+FuturePodKey=future-value
+
+[Service]
+Restart=on-failure

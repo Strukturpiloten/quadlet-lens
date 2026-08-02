@@ -1,0 +1,4 @@
+[Container]
+Image=registry.example.invalid/app:1.0@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+Volume=cache.volume:/var/cache/application:Z
+Pod=application.pod

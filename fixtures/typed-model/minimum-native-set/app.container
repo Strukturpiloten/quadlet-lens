@@ -1,0 +1,27 @@
+[Unit]
+Description=Example application
+After=network-online.target
+After=frontend.network
+
+[Container]
+Image=registry.example.invalid/app:1.2@sha256:abcdef
+Exec=/bin/sh -c "php vendor/bin/example"
+Environment=APP_ENV=production
+Environment=APP_HOME=%h/example
+EnvironmentFile=-%h/example/app.env
+PublishPort=127.0.0.1:8080:80
+Volume=cache.volume:/var/cache/example:Z
+Volume=./config:/etc/example:ro,Z
+Network=frontend.network
+Pod=application.pod
+HealthCmd=/usr/bin/curl --fail http://127.0.0.1/health
+PodmanArgs=--label first=value \
+# This comment must not become part of the command line.
+  --label second=value
+FutureContainerKey=future-value
+
+[Service]
+Restart=on-failure
+
+[Install]
+WantedBy=default.target

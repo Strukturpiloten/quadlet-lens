@@ -1,0 +1,18 @@
+schema = 1
+id = "ordered-container"
+suite = "syntax"
+description = "Protects ordered sections, repeated keys, comments, continuations, and systemd specifiers."
+secrets_reviewed = true
+files = ["example.container"]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "No specifier expansion, Podman generator, systemd process, or runtime environment is provided."
+
+[expectations]
+summary = "Every physical line and spelling remains available in source order, including repeated keys and %h."

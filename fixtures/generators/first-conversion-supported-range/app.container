@@ -1,0 +1,22 @@
+[Unit]
+Description=Generator matrix application
+
+[Container]
+Image=registry.example.invalid/application:1.0@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+Exec=/usr/bin/true
+Environment=APP_HOME=%h/application
+PublishPort=8080
+PublishPort=18081:8081
+PublishPort=127.0.0.1:18080:8080
+PublishPort=20000-20002:30000-30002
+Volume=data.volume:/var/lib/application:Z
+Volume=./config:/etc/application:ro,Z
+Volume=/var/lib/application-anonymous
+Network=app.network
+Network=quadlet-lens-external
+PodmanArgs=--label first=value \
+# Comments in a continuation are not command arguments.
+  --label second=value
+
+[Service]
+Restart=on-failure

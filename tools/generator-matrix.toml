@@ -1,0 +1,92 @@
+schema = 1
+support_minimum = "5.4.0"
+# renovate: datasource=github-releases depName=podman-container-tools/podman
+tracked_current = "6.0.2"
+checked_on = "2026-08-02"
+official_image_maximum = "5.8.2"
+source_repository = "https://github.com/containers/podman.git"
+# renovate: datasource=docker depName=docker.io/library/golang
+builder_reference = "docker.io/library/golang:1.25.6-bookworm@sha256:f4490d7b261d73af4543c46ac6597d7d101b6e1755bcdd8c5159fda7046b6b3e"
+
+[[image]]
+version = "5.4.0"
+reference = "quay.io/podman/stable:v5.4.0-immutable@sha256:431d4c23c8651e7517a443ee8d5a8da14955a6ddb77f896ee344f29b63508e41"
+smoke = true
+
+[[image]]
+version = "5.4.1"
+reference = "quay.io/podman/stable:v5.4.1-immutable@sha256:3e687c43c9bb746186aa04af32b7939d834f3c1a8e18439e89fd4aa8ec1d8452"
+
+[[image]]
+version = "5.4.2"
+reference = "quay.io/podman/stable:v5.4.2-immutable@sha256:642704dd0bcd909b722a06e0dbe199bc74163047886c3d5c869fe2c0d8e3d4d5"
+
+[[image]]
+version = "5.5.0"
+reference = "quay.io/podman/stable:v5.5.0-immutable@sha256:6e8a66f786a892cdaf09588b3aac9f0198e186dba8a87a14dd05306302fbdd1e"
+
+[[image]]
+version = "5.5.1"
+reference = "quay.io/podman/stable:v5.5.1-immutable@sha256:592b30d671d04a883c4e4d04c71422fe2764c1838da164daff4b1437c4e8af57"
+
+[[image]]
+version = "5.5.2"
+reference = "quay.io/podman/stable:v5.5.2-immutable@sha256:866bbcac26adb7ff238145405fa0ade33bd7e9c7bb77a5c05f819dce8a753063"
+
+[[image]]
+version = "5.6.0"
+reference = "quay.io/podman/stable:v5.6.0-immutable@sha256:263a676eed12e08c4bfbc2761e98e1536c7a3ee65815d14c6b652996ea90fb73"
+
+[[image]]
+version = "5.6.1"
+reference = "quay.io/podman/stable:v5.6.1-immutable@sha256:e18670977ab9cf94be3dec34f6118bf309da233d3258b4623471309c7c95d31d"
+
+[[image]]
+version = "5.6.2"
+reference = "quay.io/podman/stable:v5.6.2-immutable@sha256:19a01f447d5787609087c9f0996e8fdad9061a946fda7aed94272ae153575964"
+
+[[image]]
+version = "5.7.0"
+reference = "quay.io/podman/stable:v5.7.0-immutable@sha256:e373092f93d45249cb4409d4bff2d71f26d808a1dae18ed78d3f7c18f82c5fea"
+
+[[image]]
+version = "5.7.1"
+reference = "quay.io/podman/stable:v5.7.1-immutable@sha256:2c5155a0516a5fa5ae8ee277514c7d3e96dcdfc6b7ed7a41506ea185733767be"
+
+[[image]]
+version = "5.8.0"
+reference = "quay.io/podman/stable:v5.8.0-immutable@sha256:588dec098b0a710f2457739c7e67f5726b43a281079417ddf629b8ef58a4719b"
+
+[[image]]
+version = "5.8.1"
+reference = "quay.io/podman/stable:v5.8.1-immutable@sha256:42d8b3d789333f07e631305325a02b4ab33c3f107413e04b612973a72f1d7deb"
+
+[[image]]
+version = "5.8.2"
+reference = "quay.io/podman/stable:v5.8.2-immutable@sha256:766815d247ce0edfd8774770371d293728b0b500a219f35de98b408100f5d412"
+smoke = true
+
+[[source]]
+version = "5.8.3"
+commit = "93dbfd0d86ee57f8f91801f61ce57dd880a4725f"
+
+[[source]]
+version = "5.8.4"
+commit = "5431df23c742e5edea35bef34eed696f4db0106b"
+
+[[source]]
+version = "5.8.5"
+commit = "6d48b6f12f793176f3f6bc808b5a440984c14eb2"
+
+[[source]]
+version = "6.0.0"
+commit = "a8ed4b6dd12992decf659cadfdfb3d0cb1937748"
+
+[[source]]
+version = "6.0.1"
+commit = "4cabbe61fa3a27fafc4a3ee1226e38ae1664ae57"
+
+[[source]]
+version = "6.0.2"
+commit = "b28edb9ad70ce4317dc762ee9ce0a6d081d154e9"
+smoke = true

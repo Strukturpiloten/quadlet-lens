@@ -1,0 +1,9 @@
+[Unit]
+Description=Example frontend network
+
+[Network]
+NetworkName=example-frontend
+FutureNetworkKey=future-value
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,273 @@
+schema = 1
+id = "podman-supported-range"
+
+[coverage]
+minimum = "5.4.0"
+maximum = "6.0.2"
+
+[[evidence]]
+id = "podman-5-4-general"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html"
+target = "5.4.0"
+claim = "Quadlet accepts regular systemd sections and documents container, pod, network, and volume unit files."
+test = "capabilities::supported_range_has_the_reviewed_first_conversion_surface"
+gap = "The current generator fixture does not exercise every generic systemd key."
+
+[[evidence]]
+id = "podman-5-4-container"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#container-units-container"
+target = "5.4.0"
+claim = "The Container section documents Image, Exec, Environment, EnvironmentFile, PublishPort, Volume, Network, Pod, HealthCmd, and PodmanArgs."
+test = "capabilities::supported_range_has_the_reviewed_first_conversion_surface"
+gap = "Referenced .image/.build units and the remaining container-only keys still need exact patch-matrix fixtures."
+
+[[evidence]]
+id = "podman-5-4-container-paths"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#volume"
+target = "5.4.0"
+claim = "Container Volume sources beginning with a dot resolve relative to the unit file, and .volume references create dependencies."
+test = "capabilities::supported_range_records_paths_references_and_repetition"
+gap = "Rootless and SELinux generator/runtime behavior is not yet automated."
+
+[[evidence]]
+id = "podman-5-4-pod"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#pod-units-pod"
+target = "5.4.0"
+claim = "The Pod section documents PodName, PublishPort, Network, and Volume, including .network and .volume references."
+test = "capabilities::supported_range_has_the_reviewed_first_conversion_surface"
+gap = "Pod generation is covered through 6.0.2; rootless and rootful runtime behavior is not yet automated."
+
+[[evidence]]
+id = "podman-5-4-network"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#network-units-network"
+target = "5.4.0"
+claim = "The Network section and NetworkName key are documented for .network files."
+test = "capabilities::supported_range_has_the_reviewed_first_conversion_surface"
+gap = "Generated network creation is covered through 6.0.2; rootless and rootful runtime behavior is not yet automated."
+
+[[evidence]]
+id = "podman-5-4-volume"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#volume-units-volume"
+target = "5.4.0"
+claim = "The Volume section and VolumeName key are documented for .volume files."
+test = "capabilities::supported_range_has_the_reviewed_first_conversion_surface"
+gap = "Generated volume creation is covered through 6.0.2; rootless, rootful, and SELinux runtime behavior is not yet automated."
+
+[[evidence]]
+id = "podman-5-4-through-current-first-conversion-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every Podman patch release from 5.4.0 through 6.0.2 generates the expected container, pod, network, volume, systemd, image, command, environment, environment-file, port, mount, resource-reference, health-command, restart, and PodmanArgs fragments. The harness uses digest-pinned official immutable images through 5.8.2 and builds later exact release commits with a digest-pinned builder."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+
+[[capability]]
+id = "systemd.section.pass-through"
+description = "Ordinary systemd sections pass through the Quadlet generator."
+unit_types = ["*"]
+sections = ["Unit", "Service", "Install"]
+repeatable = true
+value_forms = ["systemd-unit-syntax"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-general", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
+id = "systemd.service.restart"
+description = "Service restart policy remains a generic systemd Service-section responsibility."
+unit_types = ["*"]
+sections = ["Service"]
+value_forms = ["systemd-restart-policy"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-general", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
+id = "quadlet.unit-type.container"
+description = "Container unit file with a Container section."
+unit_types = ["container"]
+sections = ["Container"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
+id = "quadlet.unit-type.pod"
+description = "Pod unit file with a Pod section."
+unit_types = ["pod"]
+sections = ["Pod"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-pod", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
+id = "quadlet.unit-type.network"
+description = "Network unit file with a Network section."
+unit_types = ["network"]
+sections = ["Network"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-network", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
+id = "quadlet.unit-type.volume"
+description = "Volume unit file with a Volume section."
+unit_types = ["volume"]
+sections = ["Volume"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-volume", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
+id = "quadlet.container.image"
+description = "Registry container image reference."
+unit_types = ["container"]
+sections = ["Container"]
+required = true
+value_forms = ["image-reference"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
+id = "quadlet.container.exec"
+description = "Arguments passed after the image using systemd command-line syntax."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["systemd-command-line"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
+id = "quadlet.container.environment"
+description = "Container environment assignments using systemd environment syntax."
+unit_types = ["container"]
+sections = ["Container"]
+repeatable = true
+value_forms = ["systemd-environment-assignment-list"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
+id = "quadlet.container.environment-file"
+description = "Environment file with absolute or unit-file-relative path handling."
+unit_types = ["container"]
+sections = ["Container"]
+repeatable = true
+value_forms = ["absolute-path", "unit-relative-path"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container", "podman-5-4-container-paths", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
+id = "quadlet.container.publish-port"
+description = "Single port or equal-length range published through Podman."
+unit_types = ["container"]
+sections = ["Container"]
+repeatable = true
+value_forms = ["container-port", "host-container-port", "ip-host-container-port", "port-range"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
+id = "quadlet.container.volume"
+description = "Bind, named, anonymous, relative-path, or .volume-reference mount."
+unit_types = ["container"]
+sections = ["Container"]
+repeatable = true
+value_forms = ["podman-volume", "unit-relative-path", "volume-unit-reference"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-paths", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
+id = "quadlet.container.network"
+description = "Podman network argument or .network unit reference."
+unit_types = ["container"]
+sections = ["Container"]
+repeatable = true
+value_forms = ["podman-network", "network-unit-reference"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
+id = "quadlet.container.pod"
+description = "Reference to an existing Quadlet .pod unit."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["pod-unit-reference"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container", "podman-5-4-pod", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
+id = "quadlet.container.health-command"
+description = "Regular container healthcheck command or explicit none value."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["command", "none"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
+id = "quadlet.container.podman-args"
+description = "Ordered raw arguments appended before the container image as an explicit escape hatch."
+unit_types = ["container"]
+sections = ["Container"]
+repeatable = true
+value_forms = ["systemd-command-line"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
+id = "quadlet.pod.name"
+description = "Override the generated Podman pod name."
+unit_types = ["pod"]
+sections = ["Pod"]
+value_forms = ["podman-pod-name"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-pod", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
+id = "quadlet.pod.publish-port"
+description = "Port publication owned by a Pod unit."
+unit_types = ["pod"]
+sections = ["Pod"]
+repeatable = true
+value_forms = ["podman-publish"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-pod", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
+id = "quadlet.pod.network"
+description = "Pod network argument or .network unit reference."
+unit_types = ["pod"]
+sections = ["Pod"]
+repeatable = true
+value_forms = ["podman-network", "network-unit-reference"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-pod", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
+id = "quadlet.pod.volume"
+description = "Pod volume argument, relative bind source, or .volume unit reference."
+unit_types = ["pod"]
+sections = ["Pod"]
+repeatable = true
+value_forms = ["podman-volume", "unit-relative-path", "volume-unit-reference"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-pod", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
+id = "quadlet.network.name"
+description = "Override the generated Podman network name."
+unit_types = ["network"]
+sections = ["Network"]
+value_forms = ["podman-network-name"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-network", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
+id = "quadlet.volume.name"
+description = "Override the generated Podman volume name."
+unit_types = ["volume"]
+sections = ["Volume"]
+value_forms = ["podman-volume-name"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-volume", "podman-5-4-through-current-first-conversion-generators"]

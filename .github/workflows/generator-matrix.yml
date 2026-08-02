@@ -1,0 +1,33 @@
+name: Podman generator matrix
+
+on:
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: generator-matrix-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  QUADLET_LENS_CONTAINER_ENGINE: docker
+  QUADLET_LENS_GENERATOR_LANE: full
+
+jobs:
+  supported-generators:
+    name: Podman 5.4.0 through rolling current
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install configured Rust toolchain
+        run: rustup show active-toolchain
+      - name: Run every pinned supported generator
+        run: cargo ci-generators
