@@ -1,0 +1,11 @@
+  ; authored comment
+[Unit]
+ After = network-online.target
+After=database.container
+
+ [Container]
+ Image = "example.invalid/application:1.0@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+Environment = HOME=%h
+PodmanArgs = --label first=value \
+   # ignored continuation comment
+     --label second=value

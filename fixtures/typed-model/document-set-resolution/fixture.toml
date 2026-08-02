@@ -1,0 +1,18 @@
+schema = 1
+id = "document-set-resolution"
+suite = "typed-model"
+description = "Protects exact cross-file resolution for container, pod, network, and volume Quadlet documents."
+secrets_reviewed = true
+files = ["app.container", "application.pod", "cache.volume", "frontend.network", "proxy.container"]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "References are resolved by exact unit-file basename without invoking Podman, systemd, or a filesystem search path."
+
+[expectations]
+summary = "Every native reference creates one deterministic dependency edge while missing, ambiguous, and duplicate identities fail closed."

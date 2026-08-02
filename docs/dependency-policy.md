@@ -12,6 +12,13 @@ Dependencies are design decisions, not incidental implementation details. Prefer
 - Record dependencies that constrain unit representation, capability data, version ranges, or public APIs in an ADR.
 - Commit `Cargo.lock` and use locked dependency resolution in CI.
 
+## Catalogue dependencies
+
+ADR 0004 approves `serde` 1.0 with derives and `toml` 1.1 for the strict versioned capability
+catalogue. `serde` defines the closed schema boundary and `toml` decodes authored catalogue data;
+neither participates in syntax parsing or native Quadlet value interpretation. Renovate and locked
+CI resolution maintain their compatible versions.
+
 ## License allowlist
 
 `deny.toml` is the machine-readable source of truth. The initial allowlist is deliberately narrow: Apache-2.0, Apache-2.0 with LLVM exception, BSD-2-Clause, BSD-3-Clause, ISC, MIT, MPL-2.0, Unicode-3.0, Unicode-DFS-2016, and Zlib.

@@ -1,0 +1,45 @@
+---app.service---
+SourcePath=/fixtures/app.container
+Restart=on-failure
+--env APP_HOME=%h/application
+--network quadlet-lens-network
+-v quadlet-lens-data:/var/lib/application:Z
+--publish 127.0.0.1:18080:8080
+--publish 8080
+--publish 18081:8081
+--publish 20000-20002:30000-30002
+--label first=value --label second=value
+-v /fixtures/config:/etc/application:ro,Z
+-v /var/lib/application-anonymous
+--network quadlet-lens-external
+registry.example.invalid/application:1.0@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa /usr/bin/true
+---app-network.service---
+SourcePath=/fixtures/app.network
+quadlet-lens-network
+---data-volume.service---
+SourcePath=/fixtures/data.volume
+quadlet-lens-data
+---worker.service---
+SourcePath=/fixtures/worker.container
+BindsTo=application-pod.service
+After=application-pod.service
+--env-file /fixtures/worker.env
+--env-file /etc/quadlet-lens/worker.env
+--health-cmd /usr/bin/true
+---no-health.service---
+SourcePath=/fixtures/no-health.container
+--health-cmd none
+---application-pod.service---
+SourcePath=/fixtures/application.pod
+Wants=worker.service
+Before=worker.service
+Requires=app-network.service
+Requires=data-volume.service
+--publish 127.0.0.1:19090:9090
+--network quadlet-lens-network
+--network quadlet-lens-pod-external
+-v quadlet-lens-data:/srv/shared:Z
+-v quadlet-lens-pod-data:/srv/named:ro
+-v /fixtures/pod-data:/srv/local:ro,Z
+-v /srv/anonymous
+--name quadlet-lens-pod

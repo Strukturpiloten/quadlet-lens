@@ -1,0 +1,16 @@
+# Authored QuadletLens syntax fixture
+[Unit]
+Description=Grüße from an ordered container
+After=network-online.target
+After=database.container
+
+[Container]
+Image=example.invalid/application:1.0@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+Environment=HOME=%h
+Volume=%h/data:/var/lib/application:Z
+PodmanArgs=--label first=value \
+# systemd ignores comment blocks inside a continuation
+  --label second=value
+
+[Install]
+WantedBy=default.target

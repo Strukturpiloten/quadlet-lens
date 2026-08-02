@@ -1,0 +1,9 @@
+[Unit]
+Description=Example cache volume
+
+[Volume]
+VolumeName=example-cache
+FutureVolumeKey=future-value
+
+[Install]
+WantedBy=default.target

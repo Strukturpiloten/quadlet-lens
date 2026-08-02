@@ -1,0 +1,18 @@
+schema = 1
+id = "malformed-lines"
+suite = "syntax"
+description = "Protects structured recovery for entries before sections, malformed headers, invalid lines, and dangling continuations."
+secrets_reviewed = true
+files = ["broken.container"]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "No Podman generator or systemd environment is provided."
+
+[expectations]
+summary = "Parsing returns a renderable document and stable QLS diagnostics without panicking."

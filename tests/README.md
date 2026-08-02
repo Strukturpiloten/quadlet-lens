@@ -5,8 +5,9 @@ Executable integration-test entry points live directly in this directory so Carg
 Suites are introduced with the behavior they verify:
 
 - `repository-policy` — fixture metadata and repository security invariants
+- `public-api` — supported external Rust consumer path for the current release line
 - `syntax` — systemd-style source syntax, malformed input, spans, and recovery
-- `typed-model` — native Quadlet unit types, sections, keys, and value forms
+- `typed-model` — native Quadlet unit types, sections, keys, value forms, and document-set graphs
 - `roundtrip` — preservation and deterministic canonical rendering
 - `capabilities` — catalogue schema and coherent version evidence
 - `version-boundaries` — behavior immediately around supported version changes

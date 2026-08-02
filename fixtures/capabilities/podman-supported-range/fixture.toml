@@ -1,0 +1,18 @@
+schema = 1
+id = "podman-supported-range"
+suite = "capabilities"
+description = "Protects the reviewed first-conversion capability surface in the rolling Podman supported-range catalogue."
+secrets_reviewed = true
+files = ["expected-capabilities.txt"]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "Primary Podman 5.4 documentation and the exact 5.4.0 through current 6.0.2 generator matrix are available; capabilities outside the protected fixture retain explicit evidence gaps."
+
+[expectations]
+summary = "The supported range cannot silently lose a capability required by the first Compose-to-Quadlet conversion."

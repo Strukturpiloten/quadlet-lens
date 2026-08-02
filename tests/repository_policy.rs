@@ -2,7 +2,7 @@
 
 mod support;
 
-use std::path::PathBuf;
+use std::{fs, path::PathBuf};
 
 const FIXTURE_SUITES: &[&str] = &[
     "syntax",
@@ -22,6 +22,91 @@ fn github_actions_are_immutable_and_versioned() -> Result<(), String> {
 #[test]
 fn repository_supply_chain_has_single_sources_and_immutable_pins() -> Result<(), String> {
     support::validate_repository_supply_chain(&repository_root())
+}
+
+#[test]
+fn release_workflow_uses_the_create_response_as_its_draft_identity() -> Result<(), String> {
+    let workflow_path = repository_root().join(".github/workflows/release.yml");
+    let workflow = fs::read_to_string(&workflow_path)
+        .map_err(|error| format!("failed to read {}: {error}", workflow_path.display()))?;
+
+    if workflow.contains("/releases/tags/") {
+        return Err("release workflow must not use the published-release-by-tag endpoint for drafts".to_owned());
+    }
+    if workflow.contains("databaseId") {
+        return Err("release workflow must use stable REST release fields instead of CLI JSON fields".to_owned());
+    }
+    if workflow.contains("gh release create") || workflow.contains("gh release list") {
+        return Err(
+            "release workflow must not rediscover a newly created draft through high-level CLI commands".to_owned(),
+        );
+    }
+
+    for required in [
+        "RELEASE_GITHUB_API_VERSION: \"2026-03-10\"",
+        "repos/${GITHUB_REPOSITORY}/releases?per_page=100",
+        "gh api --method POST",
+        "target_commitish: $target",
+        "'.upload_url | sub(",
+        "steps.release.outputs.upload_url",
+        "--data-binary \"@${asset_path}\"",
+        "steps.release.outputs.release_id",
+    ] {
+        if !workflow.contains(required) {
+            return Err(format!(
+                "release workflow is missing the draft release-ID guard `{required}`"
+            ));
+        }
+    }
+
+    let release_list_endpoint = "repos/${GITHUB_REPOSITORY}/releases?per_page=100";
+    if workflow.matches(release_list_endpoint).count() != 1 {
+        return Err(
+            "release workflow must list releases only before creation and never rediscover the new draft".to_owned(),
+        );
+    }
+
+    Ok(())
+}
+
+#[test]
+fn release_workflow_uses_only_trusted_publishing() -> Result<(), String> {
+    let workflow_path = repository_root().join(".github/workflows/release.yml");
+    let workflow = fs::read_to_string(&workflow_path)
+        .map_err(|error| format!("failed to read {}: {error}", workflow_path.display()))?;
+
+    for forbidden in [
+        "CRATES_IO_API_TOKEN",
+        "CRATES_IO_BOOTSTRAP_TOKEN",
+        "cargo login",
+        "--token",
+        "secrets.",
+    ] {
+        if workflow.contains(forbidden) {
+            return Err(format!(
+                "release workflow contains the forbidden long-lived credential path `{forbidden}`"
+            ));
+        }
+    }
+
+    for required in [
+        "id-token: write",
+        "rust-lang/crates-io-auth-action@",
+        "CARGO_REGISTRY_TOKEN: ${{ steps.crates-auth.outputs.token }}",
+        "cargo publish --locked",
+    ] {
+        if !workflow.contains(required) {
+            return Err(format!(
+                "release workflow is missing the trusted-publishing guard `{required}`"
+            ));
+        }
+    }
+
+    if workflow.matches("cargo publish --locked").count() != 1 {
+        return Err("release workflow must contain exactly one publication command".to_owned());
+    }
+
+    Ok(())
 }
 
 #[test]

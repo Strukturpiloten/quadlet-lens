@@ -38,7 +38,9 @@ A record can include:
 - documentation and source evidence
 - automated-test evidence and known gaps
 
-Catalogue files are validated against a versioned schema.
+Catalogue files are validated against a strict versioned TOML schema. Unknown fields, duplicate
+identifiers, inverted or uncovered ranges, missing evidence, and documentation-only claims without
+an explicit evidence gap are rejected.
 
 ## Support classifications
 
@@ -54,6 +56,11 @@ Catalogue files are validated against a versioned schema.
 
 ## Version ranges
 
+The product support policy and catalogue evidence coverage are different ranges. Podman 5.4.0 is
+the fixed minimum; the upper product target follows the newest stable Podman release. The finite
+catalogue range expands only as documentation and generator evidence are reviewed. See the
+[generator matrix](generator-matrix.md) and [ADR 0006](decisions/0006-rolling-support-window-and-generator-evidence.md).
+
 A requested range contains:
 
 ```text
@@ -63,7 +70,12 @@ podmanMaximumVersion  # optional
 
 Validation succeeds only if the selected representation works throughout the range. A capability introduced after the minimum cannot be selected unless an earlier-compatible fallback covers the rest of the range.
 
-When the maximum is omitted, evaluation extends through the newest catalogue version and reports that later releases are untested assumptions.
+When the maximum is omitted, evaluation extends through the newest catalogue version and reports
+that later releases are untested assumptions. The built-in supported-range catalogue currently has
+finite evidence coverage from Podman 5.4.0 through current Podman 6.0.2. Generator-proven
+first-conversion capabilities span that range; capabilities not protected by the fixture remain
+`unknown` above their narrower evidence boundary. A newer upstream release becomes a tracked target
+before it becomes catalogue evidence.
 
 Exact runtime detection can narrow validation to one version, but generated project files should normally declare their intended portable range.
 
@@ -83,6 +95,12 @@ Target profiles therefore support explicit enable/disable overrides. Overrides a
 6. Record evidence, test result, and remaining uncertainty.
 
 Generated diffs may assist this process, but a generated list of keys is not sufficient evidence of correct semantics.
+
+Evidence records declare either `documentation` or `generator` verification and a finite exact
+version or range. A generator range is valid only when every patch in it is executed.
+Documentation-only records must name the missing generator evidence. A support result can therefore
+be native according to primary documentation while still exposing the exact execution gap to
+callers and maintainers.
 
 ## Fallbacks
 

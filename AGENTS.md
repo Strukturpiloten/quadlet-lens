@@ -58,6 +58,9 @@ The crate uses Rust 2024, supports Rust 1.85.0 and newer, and pins the normal de
 ```shell
 cargo fmt --all -- --check
 cargo ci-check
+cargo ci-catalogue
+cargo ci-generators
+cargo ci-model
 cargo ci-policy
 cargo ci-clippy
 cargo ci-test
@@ -68,4 +71,9 @@ cargo +1.85.0 ci-policy
 cargo deny check
 ```
 
-The `ci-*` aliases in `.cargo/config.toml` use locked resolution and all workspace features and targets where applicable. Catalogue validation and real-generator matrix commands must be added here when their harnesses are introduced.
+The `ci-*` aliases in `.cargo/config.toml` use locked resolution and all workspace features and
+targets where applicable. `cargo ci-catalogue` is the focused strict-schema and version-boundary
+gate, `cargo ci-model` is the native typed-model and document-set gate, and `cargo ci-test` also includes their
+non-network contract tests. `cargo ci-generators` runs the pinned minimum/image-boundary/current
+smoke lane; `QUADLET_LENS_GENERATOR_LANE=full cargo ci-generators` is scheduled/manual and runs
+every recorded official-image or exact-source generator.

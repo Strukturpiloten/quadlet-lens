@@ -5,7 +5,15 @@ QuadletLens is a Rust library for parsing, modeling, validating, and rendering P
 It combines a source-aware Quadlet document model with a data-driven capability catalogue so callers can answer not only “is this valid Quadlet?” but also “for which Podman and systemd environments is this valid?”
 
 > [!IMPORTANT]
-> QuadletLens is in its initial design phase. It does not yet provide a usable crate, capability catalogue, or stable API.
+> [QuadletLens 0.1.x](https://crates.io/crates/quadlet-lens) establishes a documented pre-1.0
+> library contract. It provides loss-aware
+> physical syntax,
+> deterministic structural rendering, source diagnostics, a source-aware typed subset for
+> `.container`, `.pod`, `.network`, and `.volume`, conservative path and unit-reference
+> classification, exact document-set dependency resolution,
+> and capability APIs targeting Podman 5.4 through rolling current, with generator evidence for the
+> first conversion through current Podman 6.0.2. It does not yet provide typed target-aware
+> rendering, a runtime compatibility matrix, or a 1.x-stable API.
 
 ## Goals
 
@@ -43,11 +51,16 @@ source text
 
 - [Documentation index](docs/README.md)
 - [Software architecture](docs/architecture.md)
+- [Native typed model](docs/typed-model.md)
 - [Target project structure](docs/project-structure.md)
 - [Capability model](docs/capability-model.md)
+- [Podman generator matrix](docs/generator-matrix.md)
 - [Testing strategy](docs/testing.md)
 - [Development environment](docs/development-environment.md)
+- [API stability policy](docs/api-stability.md)
+- [0.1.0 release notes](docs/releases/0.1.0.md)
 - [Release policy](docs/releasing.md)
+- [Changelog](CHANGELOG.md)
 - [Cross-repository implementation plan](docs/implementation-plan.md)
 - [Roadmap](docs/roadmap.md)
 - [Architecture decisions](docs/decisions/README.md)
