@@ -21,6 +21,8 @@ Cross-repository delivery uses the stable task numbers in the [implementation pl
 
 - [ ] Parse ordered sections and entries with source locations.
 - [ ] Preserve repeated keys, comments, continuations, and unknown data.
+- [ ] Preserve quote, newline, and command-argument semantics through real-generator fixtures.
+- [ ] Distinguish literal paths, relative paths, and native systemd specifiers such as `%h`.
 - [ ] Implement deterministic canonical rendering.
 - [ ] Establish malformed-input, round-trip, and property tests.
 
@@ -28,6 +30,8 @@ Cross-repository delivery uses the stable task numbers in the [implementation pl
 
 - [ ] Implement shared and unit-specific sections.
 - [ ] Add typed value forms and cross-file references.
+- [ ] Model `.container` relationships with `.pod`, `.network`, and `.volume` resources.
+- [ ] Model health-command forms and generic systemd readiness/ordering dependencies separately.
 - [ ] Build document sets and dependency graphs.
 - [ ] Preserve generic systemd sections and unknown Quadlet keys.
 
@@ -35,6 +39,7 @@ Cross-repository delivery uses the stable task numbers in the [implementation pl
 
 - [ ] Establish the initial capability catalogue for Podman 5.4.
 - [ ] Validate native keys, value forms, fallbacks, and known limitations.
+- [ ] Cover path handling, pod membership, resource references, health commands, restart behavior, and fallback arguments.
 - [ ] Run the real-generator fixture suite in rootless and rootful contexts where relevant.
 
 ## Phase 4: version expansion — open
@@ -50,3 +55,9 @@ Cross-repository delivery uses the stable task numbers in the [implementation pl
 - [ ] Stabilize the public API and catalogue schema.
 - [ ] Publish compatibility documentation and releases.
 - [ ] Provide optional verification tooling for installed Podman generators.
+
+## Issue-derived evidence
+
+The dated [Podlet regression map](research/podlet-regressions-2026-08-01.md) records concrete
+syntax, document-set, capability, and generator cases behind these tasks. Issue closure is not
+compatibility evidence; exact Podman/systemd documentation and observations remain required.

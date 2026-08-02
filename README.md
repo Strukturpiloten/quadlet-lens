@@ -46,6 +46,8 @@ source text
 - [Target project structure](docs/project-structure.md)
 - [Capability model](docs/capability-model.md)
 - [Testing strategy](docs/testing.md)
+- [Development environment](docs/development-environment.md)
+- [Release policy](docs/releasing.md)
 - [Cross-repository implementation plan](docs/implementation-plan.md)
 - [Roadmap](docs/roadmap.md)
 - [Architecture decisions](docs/decisions/README.md)

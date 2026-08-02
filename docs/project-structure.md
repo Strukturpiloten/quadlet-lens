@@ -4,6 +4,7 @@ QuadletLens is one library crate with clear module boundaries. The crate foundat
 
 ```text
 quadlet-lens/
+├── .devcontainer/         # digest-pinned VS Code environment and feature lock
 ├── Cargo.toml
 ├── Cargo.lock
 ├── rust-toolchain.toml
