@@ -136,6 +136,18 @@ pub enum ContainerKey {
     HealthTimeout,
     /// Container startup notification mode, including health-gated readiness.
     Notify,
+    /// Primary user inside the container.
+    User,
+    /// Primary group inside the container.
+    Group,
+    /// User-namespace mode passed to Podman.
+    UserNS,
+    /// Supplementary group assigned to the container process.
+    GroupAdd,
+    /// Working directory inside the container.
+    WorkingDir,
+    /// Whether the container root filesystem is read-only.
+    ReadOnly,
 }
 
 /// Pod keys required by the first Compose-to-Quadlet conversion.
@@ -203,6 +215,7 @@ impl EntryKind {
                         | ContainerKey::Volume
                         | ContainerKey::Network
                         | ContainerKey::PodmanArgs
+                        | ContainerKey::GroupAdd
                 )
                 | Self::Pod(PodKey::AddHost | PodKey::PublishPort | PodKey::Network | PodKey::Volume)
                 | Self::Unknown
@@ -693,6 +706,12 @@ fn classify_entry(section: SectionKind, key: &str) -> EntryKind {
             "HealthStartPeriod" => EntryKind::Container(ContainerKey::HealthStartPeriod),
             "HealthTimeout" => EntryKind::Container(ContainerKey::HealthTimeout),
             "PodmanArgs" => EntryKind::Container(ContainerKey::PodmanArgs),
+            "User" => EntryKind::Container(ContainerKey::User),
+            "Group" => EntryKind::Container(ContainerKey::Group),
+            "UserNS" => EntryKind::Container(ContainerKey::UserNS),
+            "GroupAdd" => EntryKind::Container(ContainerKey::GroupAdd),
+            "WorkingDir" => EntryKind::Container(ContainerKey::WorkingDir),
+            "ReadOnly" => EntryKind::Container(ContainerKey::ReadOnly),
             _ => EntryKind::Unknown,
         },
         SectionKind::Pod => match key {

@@ -23,8 +23,9 @@ document, and complete parse result.
 
 `EntryValue` is exact native semantic text on one physical line. It rejects NUL bytes and line
 endings, but deliberately does not quote or normalize its contents. A caller that writes
-`AddHost=`, `Environment=`, `Exec=`, a health-check or readiness key, a systemd unit dependency,
-`PublishPort=`, or `Volume=` must select the appropriate native systemd/Podman spelling.
+`AddHost=`, `Environment=`, `Exec=`, an identity/context key, a health-check or readiness key, a
+systemd unit dependency, `PublishPort=`, or `Volume=` must select the appropriate native
+systemd/Podman spelling.
 
 This is an explicit boundary, not a claim that all value forms are interchangeable. Future
 key-specific constructors can add stronger guarantees once exact Podman-version behavior and

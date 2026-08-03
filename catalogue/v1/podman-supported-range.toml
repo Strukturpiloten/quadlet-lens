@@ -301,6 +301,61 @@ native = { minimum = "5.4.0", maximum = "6.0.2" }
 evidence = ["podman-5-4-container", "podman-5-4-through-current-first-conversion-generators"]
 
 [[capability]]
+id = "quadlet.container.user"
+description = "Primary user name or UID used inside the container."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["user-name", "numeric-uid"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
+id = "quadlet.container.group"
+description = "Primary numeric GID used inside the container."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["numeric-gid"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
+id = "quadlet.container.userns"
+description = "Podman user-namespace mode for the container."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["podman-userns-mode"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
+id = "quadlet.container.group-add"
+description = "Supplementary group name, numeric GID, or keep-groups flag assigned to the container process."
+unit_types = ["container"]
+sections = ["Container"]
+repeatable = true
+value_forms = ["group-name", "numeric-gid", "keep-groups"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
+id = "quadlet.container.working-dir"
+description = "Working directory selected inside the container."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["container-path"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
+id = "quadlet.container.read-only"
+description = "Read-only container root filesystem."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["boolean"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
 id = "quadlet.pod.add-host"
 description = "Pod hostname-to-address mapping shared by containers in the pod."
 unit_types = ["pod"]

@@ -100,7 +100,7 @@ without a sibling path or Git dependency.
 - [x] Add release notes and validate the Rust 1.85.0 consumer boundary.
 - [x] Publish QuadletLens 0.1.3 through the protected trusted-publishing workflow.
 
-## Additive 0.1.4 dependency-readiness boundary — release candidate
+## Additive 0.1.4 dependency-readiness boundary — completed
 
 - [x] Type the container `Notify` key and evidence the `healthy` readiness form.
 - [x] Add typed programmatic construction for `[Unit]` `Requires`, `Wants`, and `After`.
@@ -108,7 +108,16 @@ without a sibling path or Git dependency.
 - [x] Verify readiness and dependency fragments against every recorded Podman patch generator from
   5.4.0 through current 6.0.2.
 - [x] Add release notes and validate the Rust 1.85.0 consumer boundary.
-- [ ] Publish QuadletLens 0.1.4 through the protected trusted-publishing workflow.
+- [x] Publish QuadletLens 0.1.4 through the protected trusted-publishing workflow.
+
+## Additive 0.1.5 execution-identity boundary — release candidate
+
+- [x] Type container `User`, `Group`, `UserNS`, repeatable `GroupAdd`, `WorkingDir`, and `ReadOnly`.
+- [x] Add capability records from the Podman 5.4.0 floor through current 6.0.2.
+- [x] Verify the generated Podman arguments against every recorded patch generator in that range.
+- [x] Add parser, builder, singleton/repetition, public-consumer, and documentation coverage.
+- [x] Add release notes and validate the Rust 1.85.0 consumer boundary.
+- [ ] Publish QuadletLens 0.1.5 through the protected trusted-publishing workflow.
 
 ## Issue-derived evidence
 

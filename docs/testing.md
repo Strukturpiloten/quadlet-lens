@@ -46,8 +46,9 @@ through 5.8.2 with its manifest digest. For 5.8.3 through current 6.0.2 it build
 generator from an exact release commit in a digest-pinned Go container. The smoke lane covers the
 minimum, the official-image boundary, and current stable; its scheduled/manual full lane covers all
 20 patches. It invokes only the dry-run generator. The fixture covers container and pod
-relationships, ports, environment-file path forms, networks, volume and bind forms, health modes,
-restart behavior, continued raw arguments, and stable generated dependencies. See the
+relationships, ports, environment-file path forms, execution identity and context, networks,
+volume and bind forms, health modes, restart behavior, continued raw arguments, and stable
+generated dependencies. See the
 [matrix documentation](generator-matrix.md).
 
 Systemd-dependent fixtures record the systemd version and rootless/rootful context.

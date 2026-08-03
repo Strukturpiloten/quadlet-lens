@@ -46,6 +46,8 @@ Generic systemd sections and unknown Quadlet entries remain attached to the docu
 The first implemented subset covers `.container`, `.pod`, `.network`, and `.volume`. It classifies the
 native keys needed by the first conversion, keeps repeated section occurrences and entries in
 source order, and owns the authored text plus source span for every typed name and value segment.
+That boundary includes execution identity and container context without resolving host users,
+groups, paths, or namespaces.
 Generic `[Unit]`, `[Service]`, and `[Install]` entries remain open-ended. Unknown sections and keys
 remain explicit entries rather than validation losses.
 

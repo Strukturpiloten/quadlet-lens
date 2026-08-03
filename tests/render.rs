@@ -26,6 +26,13 @@ fn builds_a_deterministic_first_conversion_document_set() -> Result<(), Box<dyn 
     container.push_container(ContainerKey::Image, value("example.invalid/app:1@sha256:abcd")?)?;
     container.push_container(ContainerKey::Exec, value("php -v")?)?;
     container.push_container(ContainerKey::Environment, value("APP_ENV=production")?)?;
+    container.push_container(ContainerKey::User, value("1001")?)?;
+    container.push_container(ContainerKey::Group, value("1002")?)?;
+    container.push_container(ContainerKey::UserNS, value("keep-id")?)?;
+    container.push_container(ContainerKey::GroupAdd, value("audio")?)?;
+    container.push_container(ContainerKey::GroupAdd, value("44")?)?;
+    container.push_container(ContainerKey::WorkingDir, value("/srv/app")?)?;
+    container.push_container(ContainerKey::ReadOnly, value("true")?)?;
     container.push_container(ContainerKey::HealthCmd, value("/usr/bin/true")?)?;
     container.push_container(ContainerKey::Notify, value("healthy")?)?;
     container.push_container(ContainerKey::HealthInterval, value("30s")?)?;
@@ -51,6 +58,13 @@ fn builds_a_deterministic_first_conversion_document_set() -> Result<(), Box<dyn 
             "Image=example.invalid/app:1@sha256:abcd\n",
             "Exec=php -v\n",
             "Environment=APP_ENV=production\n",
+            "User=1001\n",
+            "Group=1002\n",
+            "UserNS=keep-id\n",
+            "GroupAdd=audio\n",
+            "GroupAdd=44\n",
+            "WorkingDir=/srv/app\n",
+            "ReadOnly=true\n",
             "HealthCmd=/usr/bin/true\n",
             "Notify=healthy\n",
             "HealthInterval=30s\n",
@@ -87,6 +101,8 @@ fn preserves_repeated_native_and_generic_entries_in_order() -> Result<(), Box<dy
     builder.push_container(ContainerKey::AddHost, value("second:[::1]")?)?;
     builder.push_container(ContainerKey::Environment, value("FIRST=1")?)?;
     builder.push_container(ContainerKey::Environment, value("SECOND=2")?)?;
+    builder.push_container(ContainerKey::GroupAdd, value("audio")?)?;
+    builder.push_container(ContainerKey::GroupAdd, value("44")?)?;
     let generated = builder.build(SourceId::new(84))?;
 
     assert_eq!(
@@ -102,6 +118,8 @@ fn preserves_repeated_native_and_generic_entries_in_order() -> Result<(), Box<dy
             "AddHost=second:[::1]\n",
             "Environment=FIRST=1\n",
             "Environment=SECOND=2\n",
+            "GroupAdd=audio\n",
+            "GroupAdd=44\n",
         )
     );
     Ok(())
@@ -150,6 +168,11 @@ fn rejects_unsafe_values_wrong_units_and_duplicate_singletons() -> Result<(), Bo
     assert!(matches!(
         container.push_container(ContainerKey::Image, value("example.invalid/other")?),
         Err(RenderError::DuplicateSingleton(key)) if key == "Image"
+    ));
+    container.push_container(ContainerKey::User, value("1001")?)?;
+    assert!(matches!(
+        container.push_container(ContainerKey::User, value("1002")?),
+        Err(RenderError::DuplicateSingleton(key)) if key == "User"
     ));
     assert!(matches!(
         container.push_systemd(SystemdSection::Unit, "Invalid-Key", value("value")?),

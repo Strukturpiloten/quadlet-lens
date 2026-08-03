@@ -11,6 +11,13 @@ Exec=/bin/sh -c "php vendor/bin/example"
 Environment=APP_ENV=production
 Environment=APP_HOME=%h/example
 EnvironmentFile=-%h/example/app.env
+User=1001
+Group=1002
+UserNS=keep-id
+GroupAdd=audio
+GroupAdd=44
+WorkingDir=/srv/app
+ReadOnly=true
 PublishPort=127.0.0.1:8080:80
 Volume=cache.volume:/var/cache/example:Z
 Volume=./config:/etc/example:ro,Z
