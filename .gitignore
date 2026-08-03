@@ -13,6 +13,8 @@
 *.userosscache
 *.sln.docstates
 *.env
+# Authored, secrets-reviewed input required by the generator fixture manifest.
+!fixtures/generators/first-conversion-supported-range/worker.env
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs

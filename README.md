@@ -4,17 +4,6 @@ QuadletLens is a Rust library for parsing, modeling, validating, and rendering P
 
 It combines a source-aware Quadlet document model with a data-driven capability catalogue so callers can answer not only “is this valid Quadlet?” but also “for which Podman and systemd environments is this valid?”
 
-> [!IMPORTANT]
-> [QuadletLens 0.1.x](https://crates.io/crates/quadlet-lens) establishes a documented pre-1.0
-> library contract. It provides loss-aware
-> physical syntax,
-> deterministic structural rendering, source diagnostics, a source-aware typed subset for
-> `.container`, `.pod`, `.network`, and `.volume`, conservative path and unit-reference
-> classification, exact document-set dependency resolution,
-> and capability APIs targeting Podman 5.4 through rolling current, with generator evidence for the
-> first conversion through current Podman 6.0.2. It does not yet provide typed target-aware
-> rendering, a runtime compatibility matrix, or a 1.x-stable API.
-
 ## Goals
 
 - Parse all supported Quadlet unit types and their shared systemd sections.
