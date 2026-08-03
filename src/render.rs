@@ -374,6 +374,10 @@ const fn container_key_name(key: ContainerKey) -> &'static str {
         ContainerKey::Network => "Network",
         ContainerKey::Pod => "Pod",
         ContainerKey::HealthCmd => "HealthCmd",
+        ContainerKey::HealthInterval => "HealthInterval",
+        ContainerKey::HealthRetries => "HealthRetries",
+        ContainerKey::HealthStartPeriod => "HealthStartPeriod",
+        ContainerKey::HealthTimeout => "HealthTimeout",
         ContainerKey::PodmanArgs => "PodmanArgs",
     }
 }

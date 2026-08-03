@@ -1,0 +1,75 @@
+# Native Quadlet coverage
+
+This document distinguishes loss-aware parsing from typed construction and version-evidenced
+generation. It was audited against the current official
+[Quadlet manual](https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html) and the
+supported Podman 5.4 floor on 2026-08-03.
+
+## Coverage layers
+
+| Layer | Contract |
+| --- | --- |
+| Syntax | Ordered sections, repeated keys, continuations, comments, unknown keys, and systemd specifiers are retained. |
+| Native type | A unit, section, or key can be inspected and constructed through a typed public API. |
+| Capability | The data catalogue states support over an explicit Podman version range and cites evidence. |
+| Generator | Repository fixtures have been accepted by the recorded real Quadlet generators. |
+
+Recognition is not a version claim. A key is ready for BoxFerry generation only when the native
+type, capability, and relevant generator evidence agree.
+
+## Unit types
+
+| Quadlet unit | Syntax preservation | Typed document/builder | Current BoxFerry output |
+| --- | --- | --- | --- |
+| `.container` | yes | yes | yes |
+| `.pod` | yes | yes | optional explicit grouping |
+| `.network` | yes | yes | application-owned networks |
+| `.volume` | yes | yes | application-owned volumes |
+| `.image` | yes | no | no |
+| `.build` | yes | no | no |
+| `.kube` | yes | no | no |
+| `.artifact` | yes | no | no; the current manual marks it experimental |
+
+Unsupported native sections remain available through the syntax tree. They are not mislabeled as
+one of the four typed unit types.
+
+## Typed key boundary
+
+| Section | Typed keys |
+| --- | --- |
+| `[Container]` | `AddHost`, `Image`, `Exec`, `Environment`, `EnvironmentFile`, `PublishPort`, `Volume`, `Network`, `Pod`, `HealthCmd`, `HealthInterval`, `HealthRetries`, `HealthStartPeriod`, `HealthTimeout`, `PodmanArgs` |
+| `[Pod]` | `AddHost`, `PodName`, `PublishPort`, `Network`, `Volume` |
+| `[Network]` | `NetworkName` |
+| `[Volume]` | `VolumeName` |
+| `[Unit]`, `[Service]`, `[Install]` | Open-ended generic systemd directives with source/order preservation; `Restart=` has explicit capability evidence. |
+
+All other current manual keys are syntax-preserved but not yet part of the typed builder contract.
+This includes many useful container keys such as identity, DNS, capabilities, entrypoint, health
+timings, hostname, labels, resource limits, mounts, network aliases, read-only mode, secrets,
+security labeling, stop behavior, user namespaces, and working directory. Pod, network, and volume
+sections likewise have broader native surfaces than the first conversion subset.
+
+## Next promotion
+
+The Compose health-check target subset available since the Podman 5.4 floor now includes:
+
+- `HealthInterval=`;
+- `HealthRetries=`;
+- `HealthStartPeriod=`; and
+- `HealthTimeout=`.
+
+`HealthCmd=none` is the explicit disabling form. Compose `start_interval` is not declared
+equivalent to Podman's separate startup-healthcheck feature. The next cohesive promotion evaluates
+`Notify=healthy` together with dependency-related systemd directives so readiness and ordering are
+designed as one contract.
+
+## Promotion checklist
+
+A key or unit type becomes supported only with:
+
+1. parser classification and deterministic rendering;
+2. builder cardinality and section validation;
+3. data-driven minimum/maximum version capability records;
+4. exact documentation or source evidence;
+5. real-generator fixtures across the claimed support range; and
+6. public API and limitation documentation.

@@ -126,6 +126,14 @@ pub enum ContainerKey {
     HealthCmd,
     /// Ordered Podman argument escape hatch.
     PodmanArgs,
+    /// Interval between regular health checks.
+    HealthInterval,
+    /// Failed checks required before the container becomes unhealthy.
+    HealthRetries,
+    /// Startup grace period before failures count.
+    HealthStartPeriod,
+    /// Maximum duration of one regular health check.
+    HealthTimeout,
 }
 
 /// Pod keys required by the first Compose-to-Quadlet conversion.
@@ -677,6 +685,10 @@ fn classify_entry(section: SectionKind, key: &str) -> EntryKind {
             "Network" => EntryKind::Container(ContainerKey::Network),
             "Pod" => EntryKind::Container(ContainerKey::Pod),
             "HealthCmd" => EntryKind::Container(ContainerKey::HealthCmd),
+            "HealthInterval" => EntryKind::Container(ContainerKey::HealthInterval),
+            "HealthRetries" => EntryKind::Container(ContainerKey::HealthRetries),
+            "HealthStartPeriod" => EntryKind::Container(ContainerKey::HealthStartPeriod),
+            "HealthTimeout" => EntryKind::Container(ContainerKey::HealthTimeout),
             "PodmanArgs" => EntryKind::Container(ContainerKey::PodmanArgs),
             _ => EntryKind::Unknown,
         },

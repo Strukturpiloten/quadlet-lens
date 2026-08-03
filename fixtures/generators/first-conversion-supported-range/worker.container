@@ -5,3 +5,7 @@ EnvironmentFile=./worker.env
 EnvironmentFile=/etc/quadlet-lens/worker.env
 Pod=application.pod
 HealthCmd=/usr/bin/true
+HealthInterval=30s
+HealthRetries=3
+HealthStartPeriod=10s
+HealthTimeout=5s

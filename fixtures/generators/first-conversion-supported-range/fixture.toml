@@ -1,7 +1,7 @@
 schema = 1
 id = "first-conversion-supported-range"
 suite = "generators"
-description = "Exercises the first-conversion container, pod, network, volume, add-host, path, reference, health, continuation, and generic systemd surface against exact Podman generators."
+description = "Exercises the first-conversion container, pod, network, volume, add-host, path, reference, health command/timing, continuation, and generic systemd surface against exact Podman generators."
 secrets_reviewed = true
 files = ["app.container", "app.network", "application.pod", "data.volume", "expected-fragments.txt", "no-health.container", "worker.container", "worker.env"]
 

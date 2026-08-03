@@ -24,6 +24,11 @@ fn builds_a_deterministic_first_conversion_document_set() -> Result<(), Box<dyn 
     container.push_container(ContainerKey::Image, value("example.invalid/app:1@sha256:abcd")?)?;
     container.push_container(ContainerKey::Exec, value("php -v")?)?;
     container.push_container(ContainerKey::Environment, value("APP_ENV=production")?)?;
+    container.push_container(ContainerKey::HealthCmd, value("/usr/bin/true")?)?;
+    container.push_container(ContainerKey::HealthInterval, value("30s")?)?;
+    container.push_container(ContainerKey::HealthRetries, value("3")?)?;
+    container.push_container(ContainerKey::HealthStartPeriod, value("10s")?)?;
+    container.push_container(ContainerKey::HealthTimeout, value("5s")?)?;
     container.push_container(ContainerKey::PublishPort, value("127.0.0.1:8080:80/tcp")?)?;
     container.push_container(ContainerKey::Volume, value("data.volume:/srv/data:ro,Z")?)?;
     container.push_container(ContainerKey::Network, value("frontend.network")?)?;
@@ -41,6 +46,11 @@ fn builds_a_deterministic_first_conversion_document_set() -> Result<(), Box<dyn 
             "Image=example.invalid/app:1@sha256:abcd\n",
             "Exec=php -v\n",
             "Environment=APP_ENV=production\n",
+            "HealthCmd=/usr/bin/true\n",
+            "HealthInterval=30s\n",
+            "HealthRetries=3\n",
+            "HealthStartPeriod=10s\n",
+            "HealthTimeout=5s\n",
             "PublishPort=127.0.0.1:8080:80/tcp\n",
             "Volume=data.volume:/srv/data:ro,Z\n",
             "Network=frontend.network\n",

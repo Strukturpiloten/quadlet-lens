@@ -26,6 +26,8 @@ fn supported_public_pipeline_compiles_and_keeps_stages_explicit() -> Result<(), 
     assert_eq!(support.classification(), SupportClassification::Native);
     let host_support = catalogue.evaluate("quadlet.container.add-host", target);
     assert_eq!(host_support.classification(), SupportClassification::Native);
+    let health_support = catalogue.evaluate("quadlet.container.health-timeout", target);
+    assert_eq!(health_support.classification(), SupportClassification::Native);
     assert_eq!(classify_path("%h/application.env"), PathForm::SystemdSpecifier);
 
     let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Container);
@@ -34,6 +36,8 @@ fn supported_public_pipeline_compiles_and_keeps_stages_explicit() -> Result<(), 
         EntryValue::new("host.docker.internal:host-gateway")?,
     )?;
     generated.push_container(ContainerKey::Image, EntryValue::new("example.invalid/generated:1")?)?;
+    generated.push_container(ContainerKey::HealthCmd, EntryValue::new("/usr/bin/true")?)?;
+    generated.push_container(ContainerKey::HealthTimeout, EntryValue::new("5s")?)?;
     let generated = generated.build(SourceId::new(2))?;
     assert_eq!(
         generated.text(),
@@ -41,6 +45,8 @@ fn supported_public_pipeline_compiles_and_keeps_stages_explicit() -> Result<(), 
             "[Container]\n",
             "AddHost=host.docker.internal:host-gateway\n",
             "Image=example.invalid/generated:1\n",
+            "HealthCmd=/usr/bin/true\n",
+            "HealthTimeout=5s\n",
         )
     );
 

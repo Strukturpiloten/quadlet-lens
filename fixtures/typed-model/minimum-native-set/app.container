@@ -17,6 +17,10 @@ Volume=./config:/etc/example:ro,Z
 Network=frontend.network
 Pod=application.pod
 HealthCmd=/usr/bin/curl --fail http://127.0.0.1/health
+HealthInterval=30s
+HealthRetries=3
+HealthStartPeriod=10s
+HealthTimeout=5s
 PodmanArgs=--label first=value \
 # This comment must not become part of the command line.
   --label second=value
