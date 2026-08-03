@@ -12,6 +12,12 @@ Cover sections, ordered and repeated keys, comments, blank lines, continuations,
 
 Cover every supported unit type, section, key, short/long value form, reference type, unknown entry, and generic systemd section.
 
+### Programmatic-generation tests
+
+Cover typed native-key placement, deterministic section order, repeated entries, singleton
+rejection, unsafe physical values, generic systemd directives, parse-back validation, and complete
+multi-document relationships for the first conversion subset.
+
 ### Round-trip and property tests
 
 Verify that parsing never panics, canonical output is deterministic, preservation edits do not rewrite unrelated entries, and supported typed values survive parse-render-parse cycles.
@@ -75,6 +81,10 @@ continuation segments, `%h` and unit-relative paths, native unit references, exp
 suffixes, required fields, singleton diagnostics, foreign native sections, and source labels. Its
 document-set cases protect exact basename resolution, resolved dependency edges, retained missing
 and ambiguous references, duplicate names, unique source identities, and filename/type matching.
+
+The generation suite constructs `.container`, `.network`, and `.volume` documents, verifies exact
+deterministic output, reparses every result, and resolves the generated cross-file graph. It also
+protects repeated native and systemd entries and all document-builder rejection paths.
 
 ## Regression rule
 

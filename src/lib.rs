@@ -4,5 +4,6 @@ pub mod capability;
 pub mod diagnostic;
 pub mod model;
 pub mod path;
+pub mod render;
 pub mod source;
 pub mod syntax;

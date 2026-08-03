@@ -7,19 +7,18 @@ QuadletLens provides a native Quadlet representation and target-aware validation
 ## Layers
 
 ```text
-source files
-     │
-     ▼
-unit syntax documents ──▶ typed Quadlet documents ──▶ document set and graph
-     │                            │                              │
-     ├──▶ comments/order          ├──▶ native value types        ├──▶ references
-     ├──▶ repeated keys           ├──▶ unknown fields            ├──▶ dependencies
-     ├──▶ source spans            │                              │
-     │                            │                              │
-     ├────────────────────────────┼──────────────────────────────┼──▶ renderer
-     │                            │                              │
-     └────────────────────────────┴──────────────────────────────┤
-target profile ──▶ capability catalogue ─────────────────────────┴──▶ validation report
+source files ───────────────────────────────────────────────────┐
+                                                               ▼
+native generated values ──▶ document builder ──▶ unit syntax documents ──▶ typed Quadlet documents ──▶ document set and graph
+                                │                     │                            │                              │
+                                ├──▶ typed keys       ├──▶ comments/order          ├──▶ native value types        ├──▶ references
+                                ├──▶ exact values     ├──▶ repeated keys           ├──▶ unknown fields            ├──▶ dependencies
+                                └──▶ parse-back       ├──▶ source spans            │                              │
+                                                      │                            │                              │
+                                                      ├────────────────────────────┼──────────────────────────────┼──▶ renderer
+                                                      │                            │                              │
+                                                      └────────────────────────────┴──────────────────────────────┤
+target profile ──▶ capability catalogue ─────────────────────────────────────────────────────────────────────────┴──▶ validation report
 ```
 
 ### Unit syntax
@@ -82,7 +81,13 @@ Validation combines documents, a target profile, and catalogue data. It reports 
 
 ### Renderer
 
-The renderer supports:
+The implemented programmatic renderer accepts typed native keys, exact one-line native values, and
+open-ended generic systemd directives. It produces deterministic section order and reparses every
+generated document before returning it. It deliberately does not invent quoting or normalization
+rules for opaque systemd and Podman value grammars. [ADR 0009](decisions/0009-validated-programmatic-generation.md)
+defines this boundary.
+
+The broader renderer direction supports:
 
 - preservation-oriented edits based on syntax documents
 - deterministic canonical files based on typed documents

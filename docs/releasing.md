@@ -1,8 +1,8 @@
 # Release process
 
-QuadletLens 0.1.0 is prepared for its first crates.io publication. Releases are started manually
-through the protected GitHub Actions [release workflow](../.github/workflows/release.yml); the
-workflow has no version input and authenticates to crates.io only through trusted publishing.
+QuadletLens releases are started manually through the protected GitHub Actions
+[release workflow](../.github/workflows/release.yml). The workflow has no version input and
+authenticates to crates.io only through trusted publishing.
 
 ## Version sources
 
@@ -29,11 +29,12 @@ In the QuadletLens repository settings:
 
 The GitHub environment stores no crates.io API token or repository secret.
 
-## First-release bootstrap and trusted publishing
+## Completed first-release bootstrap and trusted publishing
 
 [Crates.io's trusted-publishing guidance](https://crates.io/docs/trusted-publishing) requires a
 crate's first version to be published by an authenticated owner before a trusted publisher can be
-attached. For `0.1.0` only:
+attached. This bootstrap was completed for `0.1.0` using the following process, retained here for
+recovery and audit context:
 
 1. Create a short-lived crates.io token restricted as narrowly as the new-crate bootstrap allows.
 2. From the reviewed, clean default-branch commit, run `cargo publish --locked` locally.

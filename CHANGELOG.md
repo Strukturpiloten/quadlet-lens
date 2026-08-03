@@ -5,6 +5,16 @@ Versioning for its documented pre-1.0 public API.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-08-03
+
+### Added
+
+- Validated programmatic construction for the supported native Quadlet document types.
+- Typed native keys, open-ended generic systemd directives, exact one-line values, deterministic
+  section ordering, repeated-entry preservation, singleton rejection, and parse-back validation.
+- A documented generation boundary and external-consumer API contract for BoxFerry and other
+  library users.
+
 ## [0.1.0] - 2026-08-02
 
 ### Added

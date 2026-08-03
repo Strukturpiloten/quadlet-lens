@@ -66,6 +66,14 @@ exactly resolved reference becomes a `DependencyEdge`. This distinction lets Box
 incomplete application without silently discarding the authored relationship. Duplicate source
 identities are construction errors because source-labelled diagnostics would otherwise be unsafe.
 
+## Programmatic generation
+
+The `render` module can construct the supported native document types with typed native keys and
+open-ended generic systemd directives. It renders deterministic source and reparses it through the
+same syntax and typed-model pipeline before returning a result. Values remain exact native
+one-line text rather than being normalized by an incomplete systemd or Podman value parser. See
+[programmatic generation](generation.md) and [ADR 0009](decisions/0009-validated-programmatic-generation.md).
+
 ## Diagnostics
 
 Initial stable codes are:
@@ -91,4 +99,4 @@ invalid; an error does.
 - dependency-cycle analysis and systemd ordering semantics
 - target-version validation that combines documents with the capability catalogue
 - mutation and preservation-oriented editing APIs
-- deterministic typed-document rendering
+- key-specific typed value constructors and target-aware rendering

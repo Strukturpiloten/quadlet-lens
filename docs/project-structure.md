@@ -23,11 +23,11 @@ quadlet-lens/
 │   ├── syntax.rs           # ordered syntax plus preservation/canonical rendering
 │   ├── path.rs             # lexical literal, relative, and systemd-specifier paths
 │   ├── capability.rs       # strict catalogue loading and target-range evaluation
+│   ├── render.rs           # validated deterministic programmatic construction
 │   ├── model/
 │   │   ├── mod.rs          # source-aware native documents, keys, paths, and references
 │   │   └── document_set.rs # named documents, exact references, and dependency graph
 │   ├── validation/         # planned: native and target-aware validation
-│   ├── render/             # planned: typed target-aware rendering
 │   └── diagnostic.rs       # stable structured syntax diagnostics
 ├── catalogue/
 │   └── v1/
@@ -39,6 +39,7 @@ quadlet-lens/
 │   ├── model.rs            # native typed subset, preservation, and diagnostics
 │   ├── document_sets.rs    # exact cross-file resolution and dependency edges
 │   ├── public_api.rs       # supported external 0.1.x consumer path
+│   ├── render.rs           # programmatic construction and parse-back validation
 │   ├── syntax.rs           # preservation, recovery, canonical, property corpus
 │   ├── repository_policy.rs # fixture and workflow-pin enforcement
 │   └── support/            # private repository-test helpers

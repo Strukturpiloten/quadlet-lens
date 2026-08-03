@@ -31,6 +31,7 @@ evidence beyond reviewed ranges.
 | Source and diagnostics | `source`, `diagnostic` |
 | Loss-aware syntax and rendering | `syntax` |
 | Native typed documents and document sets | `model`, `path` |
+| Validated programmatic generation | `render` |
 | Versioned Podman capability evidence | `capability` |
 
 The compile-and-behavior contract in `tests/public_api.rs` exercises these stages as an external
@@ -53,7 +54,7 @@ matches.
 The 0.1 contract does not claim:
 
 - complete coverage of every Quadlet unit type, key, or systemd value grammar;
-- typed target-aware rendering;
+- key-specific quoting, value parsing, and target-aware value rendering;
 - runtime, rootless/rootful, SELinux, cgroup, network, or systemd activation behavior;
 - support evidence beyond the finite catalogue range or its capability-specific evidence; or
 - long-term 1.x compatibility.
