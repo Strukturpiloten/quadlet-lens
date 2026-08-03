@@ -12,10 +12,6 @@ license.workspace = true
 keywords = ["containers", "podman", "quadlet", "systemd"]
 categories = ["config", "parser-implementations"]
 
-[dependencies]
-serde = { version = "1.0.229", features = ["derive"] }
-toml = "1.1.4"
-
 [package.metadata.strukturpiloten]
 company = "Strukturpiloten OHG"
 github = "https://github.com/TheRealBecks"
@@ -50,6 +46,10 @@ rust_2018_idioms = { level = "warn", priority = -1 }
 unsafe_code = "forbid"
 unused_lifetimes = "warn"
 unused_qualifications = "warn"
+
+[dependencies]
+serde = { version = "1.0.229", features = ["derive"] }
+toml = "1.1.4"
 
 [lints]
 workspace = true
