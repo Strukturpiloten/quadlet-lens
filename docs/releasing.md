@@ -62,12 +62,13 @@ For later versions, update only the workspace package version, changelog, and ma
 `docs/releases/<version>.md` release notes in a reviewed pull request. After CI succeeds, run the
 release workflow from the default branch and approve the `release` environment deployment.
 
-Do not create the tag or GitHub release manually. The workflow re-runs the release gates, verifies
+Do not create the tag or GitHub release manually. The workflow re-runs the release gates,
+including a patch-level public-API comparison with the latest normal crates.io release, verifies
 the locked package, creates a checksum and provenance attestation, creates an annotated tag and
 workflow-owned draft release, publishes the crate, and then publishes the immutable GitHub
-release. The separately scheduled generator matrix remains the exhaustive external conformance
-tier; the release job validates its exact matrix contract without downloading all historical
-generators.
+release. The semver action is pinned by full commit and exact release tag; Renovate maintains both.
+The separately scheduled generator matrix remains the exhaustive external conformance tier; the
+release job validates its exact matrix contract without downloading all historical generators.
 
 ## Recovering a failed workflow
 

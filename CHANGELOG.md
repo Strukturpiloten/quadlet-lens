@@ -5,6 +5,15 @@ Versioning for its documented pre-1.0 public API.
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-08-03
+
+### Added
+
+- Typed container `User`, `Group`, `UserNS`, repeatable `GroupAdd`, `WorkingDir`, and `ReadOnly`
+  keys for execution identity and context.
+- Capability records covering Podman 5.4.0 through 6.0.2 for all six keys.
+- Full 20-patch real-generator evidence for the corresponding Podman arguments.
+
 ## [0.1.4] - 2026-08-03
 
 ### Added

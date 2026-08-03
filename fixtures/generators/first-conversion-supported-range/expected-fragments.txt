@@ -29,6 +29,12 @@ BindsTo=application-pod.service
 After=application-pod.service
 --env-file /fixtures/worker.env
 --env-file /etc/quadlet-lens/worker.env
+--user 1001:1002
+--userns keep-id
+--group-add audio
+--group-add 44
+--workdir /srv/app
+--read-only
 --health-cmd /usr/bin/true
 --sdnotify=healthy
 --health-interval 30s

@@ -44,7 +44,8 @@ official immutable images through 5.8.2 and six exact source builds thereafter. 
 first-conversion container, pod, network, volume, generic systemd, image, command, environment,
 environment-file, port, mount, resource-reference, health-command, health timing,
 `Notify=healthy` readiness, `Requires`/`Wants`/`After` dependency ordering, restart, and
-`PodmanArgs` fragments.
+`PodmanArgs` fragments. It also verifies container user/group, user namespaces, repeated
+supplementary groups, working directories, and read-only root filesystems.
 
 Referenced `.image`/`.build` units, remaining native keys, runtime, rootless/rootful, and SELinux
 semantics retain narrower evidence even inside the generator-covered range.

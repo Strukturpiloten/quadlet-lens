@@ -30,6 +30,19 @@ fn supported_public_pipeline_compiles_and_keeps_stages_explicit() -> Result<(), 
     assert_eq!(health_support.classification(), SupportClassification::Native);
     let readiness_support = catalogue.evaluate("quadlet.container.notify-healthy", target);
     assert_eq!(readiness_support.classification(), SupportClassification::Native);
+    for capability in [
+        "quadlet.container.user",
+        "quadlet.container.group",
+        "quadlet.container.userns",
+        "quadlet.container.group-add",
+        "quadlet.container.working-dir",
+        "quadlet.container.read-only",
+    ] {
+        assert_eq!(
+            catalogue.evaluate(capability, target).classification(),
+            SupportClassification::Native
+        );
+    }
     assert_eq!(classify_path("%h/application.env"), PathForm::SystemdSpecifier);
 
     let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Container);
@@ -40,6 +53,12 @@ fn supported_public_pipeline_compiles_and_keeps_stages_explicit() -> Result<(), 
         EntryValue::new("host.docker.internal:host-gateway")?,
     )?;
     generated.push_container(ContainerKey::Image, EntryValue::new("example.invalid/generated:1")?)?;
+    generated.push_container(ContainerKey::User, EntryValue::new("1001")?)?;
+    generated.push_container(ContainerKey::Group, EntryValue::new("1002")?)?;
+    generated.push_container(ContainerKey::UserNS, EntryValue::new("keep-id")?)?;
+    generated.push_container(ContainerKey::GroupAdd, EntryValue::new("audio")?)?;
+    generated.push_container(ContainerKey::WorkingDir, EntryValue::new("/srv/app")?)?;
+    generated.push_container(ContainerKey::ReadOnly, EntryValue::new("true")?)?;
     generated.push_container(ContainerKey::HealthCmd, EntryValue::new("/usr/bin/true")?)?;
     generated.push_container(ContainerKey::Notify, EntryValue::new("healthy")?)?;
     generated.push_container(ContainerKey::HealthTimeout, EntryValue::new("5s")?)?;
@@ -54,6 +73,12 @@ fn supported_public_pipeline_compiles_and_keeps_stages_explicit() -> Result<(), 
             "[Container]\n",
             "AddHost=host.docker.internal:host-gateway\n",
             "Image=example.invalid/generated:1\n",
+            "User=1001\n",
+            "Group=1002\n",
+            "UserNS=keep-id\n",
+            "GroupAdd=audio\n",
+            "WorkingDir=/srv/app\n",
+            "ReadOnly=true\n",
             "HealthCmd=/usr/bin/true\n",
             "Notify=healthy\n",
             "HealthTimeout=5s\n",

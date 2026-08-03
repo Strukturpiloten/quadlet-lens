@@ -16,9 +16,10 @@ defines its representation boundary.
 | `.volume`    | `[Volume]`       | `VolumeName`                |
 
 Typed container keys are `AddHost`, `Image`, `Exec`, `Environment`, `EnvironmentFile`,
-`PublishPort`, `Volume`, `Network`, `Pod`, `HealthCmd`, `HealthInterval`, `HealthRetries`,
-`HealthStartPeriod`, `HealthTimeout`, `Notify`, and `PodmanArgs`. Typed pod keys are `AddHost`, `PodName`,
-`PublishPort`, `Network`, and `Volume`.
+`User`, `Group`, `UserNS`, `GroupAdd`, `WorkingDir`, `ReadOnly`, `PublishPort`, `Volume`,
+`Network`, `Pod`, `HealthCmd`, `HealthInterval`, `HealthRetries`, `HealthStartPeriod`,
+`HealthTimeout`, `Notify`, and `PodmanArgs`. Typed pod keys are `AddHost`, `PodName`, `PublishPort`,
+`Network`, and `Volume`.
 
 `[Unit]`, `[Service]`, and `[Install]` are recognized as generic systemd sections. Parsed keys are
 not restricted by a closed enum. Programmatic generation additionally offers typed `Requires`,
@@ -60,6 +61,8 @@ command arguments.
 The model does not expand `%h`, `~`, environment variables, or relative paths. It does not yet parse
 systemd quoting, environment assignment lists, port ranges, mount options, health commands, or raw
 Podman arguments. Those forms remain usable as authored text and must not be normalized implicitly.
+Identity keys likewise retain exact values: no user or group lookup is performed, and namespace
+and working-directory values are not validated against a host or container image.
 
 ## Document sets and dependency graph
 

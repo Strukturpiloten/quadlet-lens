@@ -37,21 +37,27 @@ one of the four typed unit types.
 
 | Section | Typed keys |
 | --- | --- |
-| `[Container]` | `AddHost`, `Image`, `Exec`, `Environment`, `EnvironmentFile`, `PublishPort`, `Volume`, `Network`, `Pod`, `HealthCmd`, `Notify`, `HealthInterval`, `HealthRetries`, `HealthStartPeriod`, `HealthTimeout`, `PodmanArgs` |
+| `[Container]` | `AddHost`, `Image`, `Exec`, `Environment`, `EnvironmentFile`, `User`, `Group`, `UserNS`, `GroupAdd`, `WorkingDir`, `ReadOnly`, `PublishPort`, `Volume`, `Network`, `Pod`, `HealthCmd`, `Notify`, `HealthInterval`, `HealthRetries`, `HealthStartPeriod`, `HealthTimeout`, `PodmanArgs` |
 | `[Pod]` | `AddHost`, `PodName`, `PublishPort`, `Network`, `Volume` |
 | `[Network]` | `NetworkName` |
 | `[Volume]` | `VolumeName` |
 | `[Unit]`, `[Service]`, `[Install]` | Open-ended generic systemd directives with source/order preservation; typed generation and explicit capability evidence exist for `[Unit]` `Requires=`, `Wants=`, and `After=`, and `[Service]` `Restart=`. |
 
 All other current manual keys are syntax-preserved but not yet part of the typed builder contract.
-This includes many useful container keys such as identity, DNS, capabilities, entrypoint, health
-timings, hostname, labels, resource limits, mounts, network aliases, read-only mode, secrets,
-security labeling, stop behavior, user namespaces, and working directory. Pod, network, and volume
-sections likewise have broader native surfaces than the first conversion subset.
+This includes many useful container keys such as DNS, capabilities, entrypoint, startup-health
+settings, hostname, labels, resource limits, mounts, network aliases, secrets, security labeling,
+and stop behavior. Pod, network, and volume sections likewise have broader native surfaces than
+the first conversion subset.
 
 ## Next promotion
 
-The dependency-readiness subset available since the Podman 5.4 floor now includes:
+The execution-identity subset available since the Podman 5.4 floor now includes `User`, `Group`,
+`UserNS`, repeatable `GroupAdd`, `WorkingDir`, and `ReadOnly`. The exact generator matrix confirms
+their `--user`, `--userns`, `--group-add`, `--workdir`, and `--read-only` output across all 20
+recorded patch releases through 6.0.2. Values remain exact authored text; QuadletLens does not
+resolve users, groups, paths, or namespace state.
+
+The dependency-readiness subset also includes:
 
 - `Notify=healthy` to delay service readiness until Podman reports a healthy container;
 - `Requires=` and `Wants=` for strong and weak systemd activation dependencies; and
@@ -62,8 +68,8 @@ Typed systemd keys are a programmatic-generation aid, not a complete systemd sem
 Runtime activation, failed-unit propagation, cycles, stop ordering, and restart propagation remain
 outside current generator evidence and require separate systemd-aware validation.
 
-The next cohesive promotion should cover service identity and lifecycle keys required by the
-BoxFerry conversion roadmap.
+The next cohesive promotion should cover lifecycle behavior required by the BoxFerry conversion
+roadmap without conflating Compose restart and entrypoint semantics with systemd or Podman.
 
 ## Promotion checklist
 

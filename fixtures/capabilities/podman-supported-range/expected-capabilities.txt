@@ -2,6 +2,8 @@ quadlet.container.add-host
 quadlet.container.environment
 quadlet.container.environment-file
 quadlet.container.exec
+quadlet.container.group
+quadlet.container.group-add
 quadlet.container.health-command
 quadlet.container.health-interval
 quadlet.container.health-retries
@@ -13,7 +15,11 @@ quadlet.container.notify-healthy
 quadlet.container.pod
 quadlet.container.podman-args
 quadlet.container.publish-port
+quadlet.container.read-only
+quadlet.container.user
+quadlet.container.userns
 quadlet.container.volume
+quadlet.container.working-dir
 quadlet.network.name
 quadlet.pod.add-host
 quadlet.pod.name
