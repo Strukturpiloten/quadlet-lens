@@ -134,6 +134,8 @@ pub enum ContainerKey {
     HealthStartPeriod,
     /// Maximum duration of one regular health check.
     HealthTimeout,
+    /// Container startup notification mode, including health-gated readiness.
+    Notify,
 }
 
 /// Pod keys required by the first Compose-to-Quadlet conversion.
@@ -685,6 +687,7 @@ fn classify_entry(section: SectionKind, key: &str) -> EntryKind {
             "Network" => EntryKind::Container(ContainerKey::Network),
             "Pod" => EntryKind::Container(ContainerKey::Pod),
             "HealthCmd" => EntryKind::Container(ContainerKey::HealthCmd),
+            "Notify" => EntryKind::Container(ContainerKey::Notify),
             "HealthInterval" => EntryKind::Container(ContainerKey::HealthInterval),
             "HealthRetries" => EntryKind::Container(ContainerKey::HealthRetries),
             "HealthStartPeriod" => EntryKind::Container(ContainerKey::HealthStartPeriod),

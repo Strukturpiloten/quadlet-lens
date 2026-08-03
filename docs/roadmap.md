@@ -33,7 +33,8 @@ Cross-repository delivery uses the stable task numbers in the [implementation pl
 - [x] Add conservative path and native unit-reference value forms for the first conversion.
 - [x] Model `.container` relationships with `.pod`, `.network`, and `.volume` resources.
 - [x] Model regular health-command and timing keys separately from startup/readiness behavior.
-- [ ] Model generic systemd readiness/ordering dependencies.
+- [x] Model generic systemd readiness/ordering dependencies for `Requires`, `Wants`, and `After`,
+  plus container `Notify=healthy` readiness.
 - [x] Build document sets and dependency graphs.
 - [x] Preserve generic systemd sections, repeated entries, and unknown Quadlet keys.
 
@@ -90,14 +91,24 @@ without a sibling path or Git dependency.
 - [x] Add release notes and validate the Rust 1.85.0 consumer boundary.
 - [x] Publish QuadletLens 0.1.2 through the protected trusted-publishing workflow.
 
-## Additive 0.1.3 regular-health boundary — release candidate
+## Additive 0.1.3 regular-health boundary — completed
 
 - [x] Type regular health interval, retries, start period, and timeout keys.
 - [x] Add capability records from the Podman 5.4.0 floor through current 6.0.2.
 - [x] Verify all four keys against every recorded Podman patch generator in that range.
 - [x] Keep Compose `start_interval` distinct from Podman's startup-healthcheck mechanism.
 - [x] Add release notes and validate the Rust 1.85.0 consumer boundary.
-- [ ] Publish QuadletLens 0.1.3 through the protected trusted-publishing workflow.
+- [x] Publish QuadletLens 0.1.3 through the protected trusted-publishing workflow.
+
+## Additive 0.1.4 dependency-readiness boundary — release candidate
+
+- [x] Type the container `Notify` key and evidence the `healthy` readiness form.
+- [x] Add typed programmatic construction for `[Unit]` `Requires`, `Wants`, and `After`.
+- [x] Add separate capability records for strong, weak, and ordering dependencies.
+- [x] Verify readiness and dependency fragments against every recorded Podman patch generator from
+  5.4.0 through current 6.0.2.
+- [x] Add release notes and validate the Rust 1.85.0 consumer boundary.
+- [ ] Publish QuadletLens 0.1.4 through the protected trusted-publishing workflow.
 
 ## Issue-derived evidence
 

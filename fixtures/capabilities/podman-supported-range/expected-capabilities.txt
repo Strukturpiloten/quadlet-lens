@@ -9,6 +9,7 @@ quadlet.container.health-start-period
 quadlet.container.health-timeout
 quadlet.container.image
 quadlet.container.network
+quadlet.container.notify-healthy
 quadlet.container.pod
 quadlet.container.podman-args
 quadlet.container.publish-port
@@ -26,3 +27,6 @@ quadlet.unit-type.volume
 quadlet.volume.name
 systemd.section.pass-through
 systemd.service.restart
+systemd.unit.after
+systemd.unit.requires
+systemd.unit.wants

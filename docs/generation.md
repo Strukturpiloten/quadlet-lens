@@ -8,6 +8,8 @@ QuadletLens 0.1.1 adds a validated construction boundary for tools that generate
 `QuadletDocumentBuilder` is created for one `QuadletUnitType`. Typed `push_container`, `push_pod`,
 `push_network`, and `push_volume` methods prevent native keys from being written into the wrong
 section. `push_systemd` adds open-ended directives to `[Unit]`, `[Service]`, or `[Install]`.
+`push_systemd_unit` provides typed `Requires`, `Wants`, and `After` spellings for the dependency
+subset protected by capability and real-generator evidence.
 
 Repeated native keys retain insertion order. Native keys classified as singletons are rejected
 when repeated. Generic systemd directives may repeat because their list and reset semantics are
@@ -21,8 +23,8 @@ document, and complete parse result.
 
 `EntryValue` is exact native semantic text on one physical line. It rejects NUL bytes and line
 endings, but deliberately does not quote or normalize its contents. A caller that writes
-`AddHost=`, `Environment=`, `Exec=`, a health-check key, `PublishPort=`, or `Volume=` must select the appropriate
-native systemd/Podman spelling.
+`AddHost=`, `Environment=`, `Exec=`, a health-check or readiness key, a systemd unit dependency,
+`PublishPort=`, or `Volume=` must select the appropriate native systemd/Podman spelling.
 
 This is an explicit boundary, not a claim that all value forms are interchangeable. Future
 key-specific constructors can add stronger guarantees once exact Podman-version behavior and

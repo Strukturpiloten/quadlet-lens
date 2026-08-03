@@ -57,6 +57,28 @@ pub enum SystemdSection {
     Install,
 }
 
+/// Evidence-backed dependency and ordering directives in a generic systemd `[Unit]` section.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[non_exhaustive]
+pub enum SystemdUnitKey {
+    /// Strong requirement that also pulls the referenced unit into the transaction.
+    Requires,
+    /// Weak requirement that does not fail this unit when the referenced unit fails.
+    Wants,
+    /// Orders this unit after the referenced unit without pulling it into the transaction.
+    After,
+}
+
+impl SystemdUnitKey {
+    const fn name(self) -> &'static str {
+        match self {
+            Self::Requires => "Requires",
+            Self::Wants => "Wants",
+            Self::After => "After",
+        }
+    }
+}
+
 impl SystemdSection {
     const fn kind(self) -> SectionKind {
         match self {
@@ -192,6 +214,19 @@ impl QuadletDocumentBuilder {
             value,
         });
         Ok(())
+    }
+
+    /// Appends an evidence-backed dependency or ordering directive to `[Unit]`.
+    ///
+    /// These entries remain repeatable and retain insertion order. The value is an exact systemd
+    /// unit-list spelling; this method does not resolve unit names or infer relationships between
+    /// Quadlet source files.
+    ///
+    /// # Errors
+    ///
+    /// Returns the same errors as [`Self::push_systemd`].
+    pub fn push_systemd_unit(&mut self, key: SystemdUnitKey, value: EntryValue) -> Result<(), RenderError> {
+        self.push_systemd(SystemdSection::Unit, key.name(), value)
     }
 
     /// Renders, reparses, and validates the complete generated document.
@@ -374,6 +409,7 @@ const fn container_key_name(key: ContainerKey) -> &'static str {
         ContainerKey::Network => "Network",
         ContainerKey::Pod => "Pod",
         ContainerKey::HealthCmd => "HealthCmd",
+        ContainerKey::Notify => "Notify",
         ContainerKey::HealthInterval => "HealthInterval",
         ContainerKey::HealthRetries => "HealthRetries",
         ContainerKey::HealthStartPeriod => "HealthStartPeriod",

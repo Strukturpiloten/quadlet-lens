@@ -68,6 +68,7 @@ fn container_model_retains_order_repetition_unknowns_and_generic_systemd() -> Re
             ContainerKey::Network,
             ContainerKey::Pod,
             ContainerKey::HealthCmd,
+            ContainerKey::Notify,
             ContainerKey::HealthInterval,
             ContainerKey::HealthRetries,
             ContainerKey::HealthStartPeriod,

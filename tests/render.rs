@@ -2,7 +2,7 @@
 
 use quadlet_lens::{
     model::{ContainerKey, NamedQuadletDocument, NetworkKey, QuadletDocumentSet, QuadletUnitType, VolumeKey},
-    render::{EntryValue, QuadletDocumentBuilder, RenderError, SystemdSection},
+    render::{EntryValue, QuadletDocumentBuilder, RenderError, SystemdSection, SystemdUnitKey},
     source::SourceId,
 };
 
@@ -20,11 +20,14 @@ fn builds_a_deterministic_first_conversion_document_set() -> Result<(), Box<dyn 
 
     let mut container = QuadletDocumentBuilder::new(QuadletUnitType::Container);
     container.push_systemd(SystemdSection::Unit, "Description", value("Generated application")?)?;
+    container.push_systemd_unit(SystemdUnitKey::Requires, value("database.service")?)?;
+    container.push_systemd_unit(SystemdUnitKey::After, value("database.service")?)?;
     container.push_container(ContainerKey::AddHost, value("host.docker.internal:host-gateway")?)?;
     container.push_container(ContainerKey::Image, value("example.invalid/app:1@sha256:abcd")?)?;
     container.push_container(ContainerKey::Exec, value("php -v")?)?;
     container.push_container(ContainerKey::Environment, value("APP_ENV=production")?)?;
     container.push_container(ContainerKey::HealthCmd, value("/usr/bin/true")?)?;
+    container.push_container(ContainerKey::Notify, value("healthy")?)?;
     container.push_container(ContainerKey::HealthInterval, value("30s")?)?;
     container.push_container(ContainerKey::HealthRetries, value("3")?)?;
     container.push_container(ContainerKey::HealthStartPeriod, value("10s")?)?;
@@ -40,6 +43,8 @@ fn builds_a_deterministic_first_conversion_document_set() -> Result<(), Box<dyn 
         concat!(
             "[Unit]\n",
             "Description=Generated application\n",
+            "Requires=database.service\n",
+            "After=database.service\n",
             "\n",
             "[Container]\n",
             "AddHost=host.docker.internal:host-gateway\n",
@@ -47,6 +52,7 @@ fn builds_a_deterministic_first_conversion_document_set() -> Result<(), Box<dyn 
             "Exec=php -v\n",
             "Environment=APP_ENV=production\n",
             "HealthCmd=/usr/bin/true\n",
+            "Notify=healthy\n",
             "HealthInterval=30s\n",
             "HealthRetries=3\n",
             "HealthStartPeriod=10s\n",
@@ -96,6 +102,33 @@ fn preserves_repeated_native_and_generic_entries_in_order() -> Result<(), Box<dy
             "AddHost=second:[::1]\n",
             "Environment=FIRST=1\n",
             "Environment=SECOND=2\n",
+        )
+    );
+    Ok(())
+}
+
+#[test]
+fn preserves_typed_optional_dependencies_and_rejects_duplicate_notify() -> Result<(), Box<dyn std::error::Error>> {
+    let mut builder = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    builder.push_systemd_unit(SystemdUnitKey::Wants, value("cache.service")?)?;
+    builder.push_systemd_unit(SystemdUnitKey::After, value("cache.service")?)?;
+    builder.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+    builder.push_container(ContainerKey::Notify, value("healthy")?)?;
+    assert!(matches!(
+        builder.push_container(ContainerKey::Notify, value("true")?),
+        Err(RenderError::DuplicateSingleton(key)) if key == "Notify"
+    ));
+    let generated = builder.build(SourceId::new(87))?;
+    assert_eq!(
+        generated.text(),
+        concat!(
+            "[Unit]\n",
+            "Wants=cache.service\n",
+            "After=cache.service\n",
+            "\n",
+            "[Container]\n",
+            "Image=example.invalid/app\n",
+            "Notify=healthy\n",
         )
     );
     Ok(())

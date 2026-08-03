@@ -42,8 +42,9 @@ rules.
 The full execution covered all 20 Podman patch releases from 5.4.0 through current 6.0.2: 14
 official immutable images through 5.8.2 and six exact source builds thereafter. It verified the
 first-conversion container, pod, network, volume, generic systemd, image, command, environment,
-environment-file, port, mount, resource-reference, health-command, restart, and `PodmanArgs`
-fragments.
+environment-file, port, mount, resource-reference, health-command, health timing,
+`Notify=healthy` readiness, `Requires`/`Wants`/`After` dependency ordering, restart, and
+`PodmanArgs` fragments.
 
 Referenced `.image`/`.build` units, remaining native keys, runtime, rootless/rootful, and SELinux
 semantics retain narrower evidence even inside the generator-covered range.
