@@ -87,8 +87,8 @@ Status: in progress. Each repository owns its native types; BoxFerry owns mappin
   networks, profiles, configs, and secrets.
 - QuadletLens (completed): `.container`, `.pod`, `.volume`, `.network`, required generic systemd
   sections, repeatable container/pod host mappings, and exact document-set relationships.
-- BoxFerry (in progress): Compose-to-neutral mappings and the first Quadlet exporter are
-  implemented; host mappings and broader value encoders remain.
+- BoxFerry (in progress): Compose-to-neutral mappings, the first Quadlet exporter, path policies,
+  pod grouping, and end-to-end host mappings are implemented; broader value encoders remain.
 
 ComposeLens has completed its T5 native subset with source-aware typed resources, tolerant image
 references, deferred values, and representation-preserving command, environment, port, volume,
@@ -96,30 +96,50 @@ network, profile, config, secret, and label forms. QuadletLens has completed its
 with ordered source-aware `.container`, `.pod`, `.network`, and `.volume` documents, generic systemd
 and unknown entry preservation, native key enums, conservative path/reference forms, separate
 syntax/model diagnostics, and exact document-set dependency resolution. BoxFerry consumes
-ComposeLens 0.1.1's native merged-project view through its independent `boxferry-compose` crate and
-QuadletLens 0.1.1 through `boxferry-quadlet`. Its Compose adapter maps images, commands,
-environment, single ports, named volumes, bind mounts, networks, explicit profiles, provenance,
-and short/long SELinux relabel intent. Its Quadlet adapter implements deterministic native
-documents, explicit pod grouping, and caller-supplied bind-source mappings. Source omissions are
-structured outcomes governed by `LossPolicy`, not warning-only side effects.
+ComposeLens 0.1.2's native merged-project view through its independent `boxferry-compose` crate and
+QuadletLens 0.1.2 through `boxferry-quadlet`. Its Compose adapter maps images, commands,
+environment, extra hosts, single ports, named volumes, bind mounts, networks, explicit profiles,
+provenance, and short/long SELinux relabel intent. Its Quadlet adapter implements deterministic
+native documents, explicit pod grouping, caller-supplied bind-source mappings, and native
+container/pod host mappings. Source omissions are structured outcomes governed by `LossPolicy`,
+not warning-only side effects.
 
-ComposeLens 0.1.1 and QuadletLens 0.1.1 are published on crates.io with documented pre-1.0
+ComposeLens 0.1.2 and QuadletLens 0.1.2 are published on crates.io with documented pre-1.0
 compatibility contracts. BoxFerry consumes released Lens crates through compatible crates.io
 requirements and commits its application lockfile. Commit-pinned Git dependencies remain an
 emergency-only fallback.
 
-ComposeLens 0.1.2 and QuadletLens 0.1.2 release candidates add the two native sides of explicit host
-mappings: merged Compose `extra_hosts` with full provenance and repeatable Quadlet `AddHost` keys
-with exact Podman 5.4.0-through-6.0.2 generator evidence. BoxFerry will bridge them after both
-versions are published; it does not use temporary sibling paths or Git dependencies.
+Explicit host mappings are complete across merged Compose `extra_hosts` with full provenance, the
+BoxFerry neutral model, and repeatable Quadlet `AddHost` keys with exact Podman
+5.4.0-through-6.0.2 generator evidence. Separate containers retain service scope; single-pod
+grouping requires identical ordered mappings and moves them to pod scope.
+
+### Coverage guardrail and next health slice
+
+The three repositories now document syntax preservation, native typing, effective project views,
+neutral representation, target capabilities, and end-to-end conversion as separate coverage
+stages. The authoritative cross-format matrix lives in the
+[BoxFerry repository](https://github.com/Strukturpiloten/boxferry), with native details in the
+ComposeLens and QuadletLens coverage documents. A field is not complete
+merely because one Lens recognizes it.
+
+ComposeLens 0.1.3 is prepared with a source-aware merged health-check view and field-level
+provenance. QuadletLens 0.1.3 is prepared with regular health interval, retries, start period, and
+timeout keys plus real-generator evidence across all 20 recorded Podman patches from 5.4.0 through
+6.0.2. BoxFerry remains on released Lens 0.1.2 dependencies until both candidates are published;
+the neutral health model and adapters follow after that release gate. Compose `start_interval` is
+not treated as equivalent to Podman's separate startup-healthcheck mechanism.
 
 ## T6: First end-to-end milestone
 
 Status: in progress. BoxFerry coordinates this task. Compose import and the first Quadlet export
-are implemented; explicit host mappings, broader compatibility reporting, and the TYPO3 showcase
-remain.
+are implemented; explicit host mappings are also complete. Broader compatibility reporting and
+the TYPO3 showcase remain.
 
-Deliver tested Compose-to-Quadlet conversion for images, commands, environment, ports, named volumes, bind mounts, networks, and explicit Compose profile selection. Every conversion emits compatibility and manual-action reports. After synthetic scenarios are stable, use `Strukturpiloten/typo3-container` as the first public real-world showcase and regression corpus.
+Deliver tested Compose-to-Quadlet conversion for images, commands, environment, extra hosts,
+ports, named volumes, bind mounts, networks, and explicit Compose profile selection. Every
+conversion emits compatibility and manual-action reports. After synthetic scenarios are stable,
+use `Strukturpiloten/typo3-container` as the first public real-world showcase and regression corpus.
 
 ## T7: Expanded testing tiers
 

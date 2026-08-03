@@ -32,7 +32,8 @@ Cross-repository delivery uses the stable task numbers in the [implementation pl
 - [x] Implement the first shared and `.container`, `.pod`, `.network`, and `.volume` unit-specific sections.
 - [x] Add conservative path and native unit-reference value forms for the first conversion.
 - [x] Model `.container` relationships with `.pod`, `.network`, and `.volume` resources.
-- [ ] Model health-command forms and generic systemd readiness/ordering dependencies separately.
+- [x] Model regular health-command and timing keys separately from startup/readiness behavior.
+- [ ] Model generic systemd readiness/ordering dependencies.
 - [x] Build document sets and dependency graphs.
 - [x] Preserve generic systemd sections, repeated entries, and unknown Quadlet keys.
 
@@ -42,7 +43,7 @@ Cross-repository delivery uses the stable task numbers in the [implementation pl
 - [x] Run the first-conversion fixture against every official image from Podman 5.4.0 through 5.8.2.
 - [x] Build and run exact generators for Podman 5.8.3 through current 6.0.2.
 - [ ] Validate the remaining native keys, value forms, fallbacks, and known limitations.
-- [x] Cover path handling, pod membership, resource references, health commands, restart behavior, and fallback arguments.
+- [x] Cover path handling, pod membership, resource references, regular health commands/timings, restart behavior, and fallback arguments.
 - [ ] Run the real-generator fixture suite in rootless and rootful contexts where relevant.
 
 ## Phase 4: version expansion — open
@@ -78,7 +79,7 @@ Cross-repository delivery uses the stable task numbers in the [implementation pl
 Follow the exact [release process](releasing.md). BoxFerry can consume the released 0.1.1 API
 without a sibling path or Git dependency.
 
-## Additive 0.1.2 host-mapping boundary — release candidate
+## Additive 0.1.2 host-mapping boundary — completed
 
 - [x] Type repeatable `AddHost` entries in `.container` and `.pod` documents.
 - [x] Preserve ordinary addresses and the runtime-specific `host-gateway` value without
@@ -87,7 +88,16 @@ without a sibling path or Git dependency.
 - [x] Verify generated `--add-host` arguments across every Podman patch release from 5.4.0 through
   current 6.0.2.
 - [x] Add release notes and validate the Rust 1.85.0 consumer boundary.
-- [ ] Publish QuadletLens 0.1.2 through the protected trusted-publishing workflow.
+- [x] Publish QuadletLens 0.1.2 through the protected trusted-publishing workflow.
+
+## Additive 0.1.3 regular-health boundary — release candidate
+
+- [x] Type regular health interval, retries, start period, and timeout keys.
+- [x] Add capability records from the Podman 5.4.0 floor through current 6.0.2.
+- [x] Verify all four keys against every recorded Podman patch generator in that range.
+- [x] Keep Compose `start_interval` distinct from Podman's startup-healthcheck mechanism.
+- [x] Add release notes and validate the Rust 1.85.0 consumer boundary.
+- [ ] Publish QuadletLens 0.1.3 through the protected trusted-publishing workflow.
 
 ## Issue-derived evidence
 

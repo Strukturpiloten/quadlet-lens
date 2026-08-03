@@ -19,7 +19,7 @@ id = "podman-5-4-container"
 verification = "documentation"
 url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#container-units-container"
 target = "5.4.0"
-claim = "The Container section documents AddHost, Image, Exec, Environment, EnvironmentFile, PublishPort, Volume, Network, Pod, HealthCmd, and PodmanArgs."
+claim = "The Container section documents AddHost, Image, Exec, Environment, EnvironmentFile, PublishPort, Volume, Network, Pod, HealthCmd, HealthInterval, HealthRetries, HealthStartPeriod, HealthTimeout, and PodmanArgs."
 test = "capabilities::supported_range_has_the_reviewed_first_conversion_surface"
 gap = "Referenced .image/.build units and the remaining container-only keys still need exact patch-matrix fixtures."
 
@@ -64,7 +64,7 @@ id = "podman-5-4-through-current-first-conversion-generators"
 verification = "generator"
 url = "https://github.com/containers/podman/releases"
 versions = { minimum = "5.4.0", maximum = "6.0.2" }
-claim = "Every Podman patch release from 5.4.0 through 6.0.2 generates the expected container, pod, network, volume, systemd, add-host, image, command, environment, environment-file, port, mount, resource-reference, health-command, restart, and PodmanArgs fragments. The harness uses digest-pinned official immutable images through 5.8.2 and builds later exact release commits with a digest-pinned builder."
+claim = "Every Podman patch release from 5.4.0 through 6.0.2 generates the expected container, pod, network, volume, systemd, add-host, image, command, environment, environment-file, port, mount, resource-reference, health-command, health-timing, restart, and PodmanArgs fragments. The harness uses digest-pinned official immutable images through 5.8.2 and builds later exact release commits with a digest-pinned builder."
 test = "generators::supported_generators_match_the_first_conversion_fixture"
 
 [[capability]]
@@ -212,6 +212,42 @@ description = "Regular container healthcheck command or explicit none value."
 unit_types = ["container"]
 sections = ["Container"]
 value_forms = ["command", "none"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
+id = "quadlet.container.health-interval"
+description = "Interval between regular container healthchecks."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["podman-duration"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
+id = "quadlet.container.health-retries"
+description = "Failed regular healthchecks required before unhealthy state."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["non-negative-integer"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
+id = "quadlet.container.health-start-period"
+description = "Startup grace period before regular healthcheck failures count."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["podman-duration"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
+id = "quadlet.container.health-timeout"
+description = "Maximum duration of one regular container healthcheck."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["podman-duration"]
 native = { minimum = "5.4.0", maximum = "6.0.2" }
 evidence = ["podman-5-4-container", "podman-5-4-through-current-first-conversion-generators"]
 

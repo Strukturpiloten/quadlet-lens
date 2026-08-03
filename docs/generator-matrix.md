@@ -52,7 +52,8 @@ The first-conversion fixture covers registry images including `name:tag@digest`,
 environment and systemd specifiers, absolute and unit-relative environment files, repeatable
 container and pod host mappings including `host-gateway`, container and pod membership, the
 supported port spellings, native and external networks, named/anonymous/relative and `.volume`
-mounts, SELinux mount-option spelling, health commands including `none`, generic systemd restart
+mounts, SELinux mount-option spelling, health commands including `none`, regular health timings,
+generic systemd restart
 behavior, continued `PodmanArgs`, and generated cross-unit dependencies. These are generator
 claims; actual rootless/rootful and SELinux enforcement remains runtime evidence.
 

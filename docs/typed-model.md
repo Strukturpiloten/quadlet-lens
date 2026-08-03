@@ -8,12 +8,17 @@ defines its representation boundary.
 
 `QuadletUnitType` currently accepts only these lowercase suffixes:
 
-| Suffix       | Required section | Typed native keys                                                                                                                  |
-| ------------ | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `.container` | `[Container]`    | `AddHost`, `Image`, `Exec`, `Environment`, `EnvironmentFile`, `PublishPort`, `Volume`, `Network`, `Pod`, `HealthCmd`, `PodmanArgs` |
-| `.pod`       | `[Pod]`          | `AddHost`, `PodName`, `PublishPort`, `Network`, `Volume`                                                                           |
-| `.network`   | `[Network]`      | `NetworkName`                                                                                                                      |
-| `.volume`    | `[Volume]`       | `VolumeName`                                                                                                                       |
+| Suffix       | Required section | Typed native boundary       |
+| ------------ | ---------------- | --------------------------- |
+| `.container` | `[Container]`    | Container keys listed below |
+| `.pod`       | `[Pod]`          | Pod keys listed below       |
+| `.network`   | `[Network]`      | `NetworkName`               |
+| `.volume`    | `[Volume]`       | `VolumeName`                |
+
+Typed container keys are `AddHost`, `Image`, `Exec`, `Environment`, `EnvironmentFile`,
+`PublishPort`, `Volume`, `Network`, `Pod`, `HealthCmd`, `HealthInterval`, `HealthRetries`,
+`HealthStartPeriod`, `HealthTimeout`, and `PodmanArgs`. Typed pod keys are `AddHost`, `PodName`,
+`PublishPort`, `Network`, and `Volume`.
 
 `[Unit]`, `[Service]`, and `[Install]` are recognized as generic systemd sections. Their keys are
 not restricted by a closed enum. Other sections and keys remain explicit `Unknown` entries.

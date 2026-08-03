@@ -5,6 +5,14 @@ Versioning for its documented pre-1.0 public API.
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-08-03
+
+### Added
+
+- Typed `HealthInterval`, `HealthRetries`, `HealthStartPeriod`, and `HealthTimeout` container keys.
+- Capability records and full 20-patch real-generator evidence for regular health-check timing
+  from Podman 5.4.0 through 6.0.2.
+
 ## [0.1.2] - 2026-08-03
 
 ### Added

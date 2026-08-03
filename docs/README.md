@@ -7,6 +7,7 @@ This directory defines QuadletLens's architecture and version-aware behavior.
 - [Architecture](architecture.md) — syntax, typed models, document sets, and validation flow
 - [Project structure](project-structure.md) — intended crate, modules, catalogue, and fixtures
 - [Native typed model](typed-model.md) — supported units, source retention, value boundary, and diagnostics
+- [Native coverage](coverage.md) — syntax, typed-builder, capability, and generator coverage
 - [Programmatic generation](generation.md) — typed document builder, exact-value boundary, and validation
 - [Capability model](capability-model.md) — version ranges, evidence, fallbacks, and known issues
 - [Podman generator matrix](generator-matrix.md) — support window, exact images, commands, and evidence gaps
@@ -19,7 +20,7 @@ This directory defines QuadletLens's architecture and version-aware behavior.
 - [Dependency and license policy](dependency-policy.md) — dependency selection, allowed sources, and license checks
 - [Implementation plan](implementation-plan.md) — synchronized cross-repository tasks T1–T7
 - [Roadmap](roadmap.md) — implementation order
-- [0.1.2 release notes](releases/0.1.2.md) — native host mappings and generator evidence
+- [0.1.3 release notes](releases/0.1.3.md) — regular health-check timing and generator evidence
 - [0.1.0 release notes](releases/0.1.0.md) — initial public-delivery scope and known limits
 - [Architecture decisions](decisions/README.md) — durable design choices
 
