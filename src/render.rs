@@ -364,6 +364,7 @@ impl Error for RenderError {
 
 const fn container_key_name(key: ContainerKey) -> &'static str {
     match key {
+        ContainerKey::AddHost => "AddHost",
         ContainerKey::Image => "Image",
         ContainerKey::Exec => "Exec",
         ContainerKey::Environment => "Environment",
@@ -379,6 +380,7 @@ const fn container_key_name(key: ContainerKey) -> &'static str {
 
 const fn pod_key_name(key: PodKey) -> &'static str {
     match key {
+        PodKey::AddHost => "AddHost",
         PodKey::PodName => "PodName",
         PodKey::PublishPort => "PublishPort",
         PodKey::Network => "Network",

@@ -2,6 +2,7 @@
 Description=Example application pod
 
 [Pod]
+AddHost=pod-gateway:host-gateway
 PodName=example-application
 PublishPort=127.0.0.1:8081:81
 Network=frontend.network

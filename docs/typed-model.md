@@ -8,12 +8,12 @@ defines its representation boundary.
 
 `QuadletUnitType` currently accepts only these lowercase suffixes:
 
-| Suffix       | Required section | Typed native keys                                                                                                       |
-| ------------ | ---------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `.container` | `[Container]`    | `Image`, `Exec`, `Environment`, `EnvironmentFile`, `PublishPort`, `Volume`, `Network`, `Pod`, `HealthCmd`, `PodmanArgs` |
-| `.pod`       | `[Pod]`          | `PodName`, `PublishPort`, `Network`, `Volume`                                                                           |
-| `.network`   | `[Network]`      | `NetworkName`                                                                                                           |
-| `.volume`    | `[Volume]`       | `VolumeName`                                                                                                            |
+| Suffix       | Required section | Typed native keys                                                                                                                  |
+| ------------ | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `.container` | `[Container]`    | `AddHost`, `Image`, `Exec`, `Environment`, `EnvironmentFile`, `PublishPort`, `Volume`, `Network`, `Pod`, `HealthCmd`, `PodmanArgs` |
+| `.pod`       | `[Pod]`          | `AddHost`, `PodName`, `PublishPort`, `Network`, `Volume`                                                                           |
+| `.network`   | `[Network]`      | `NetworkName`                                                                                                                      |
+| `.volume`    | `[Volume]`       | `VolumeName`                                                                                                                       |
 
 `[Unit]`, `[Service]`, and `[Install]` are recognized as generic systemd sections. Their keys are
 not restricted by a closed enum. Other sections and keys remain explicit `Unknown` entries.

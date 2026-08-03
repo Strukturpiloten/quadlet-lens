@@ -4,6 +4,8 @@ After=network-online.target
 After=frontend.network
 
 [Container]
+AddHost=host.docker.internal:host-gateway
+AddHost=database:192.0.2.10
 Image=registry.example.invalid/app:1.2@sha256:abcdef
 Exec=/bin/sh -c "php vendor/bin/example"
 Environment=APP_ENV=production

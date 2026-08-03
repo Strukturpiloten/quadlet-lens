@@ -104,6 +104,8 @@ impl SectionKind {
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 #[non_exhaustive]
 pub enum ContainerKey {
+    /// Hostname-to-address mapping added to the container hosts file.
+    AddHost,
     /// Container image or `.image`/`.build` reference.
     Image,
     /// Command arguments following the image.
@@ -130,6 +132,8 @@ pub enum ContainerKey {
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 #[non_exhaustive]
 pub enum PodKey {
+    /// Hostname-to-address mapping shared by the pod.
+    AddHost,
     /// Runtime name assigned to the generated Podman pod.
     PodName,
     /// Published port owned by the pod.
@@ -182,14 +186,15 @@ impl EntryKind {
             self,
             Self::GenericSystemd
                 | Self::Container(
-                    ContainerKey::Environment
+                    ContainerKey::AddHost
+                        | ContainerKey::Environment
                         | ContainerKey::EnvironmentFile
                         | ContainerKey::PublishPort
                         | ContainerKey::Volume
                         | ContainerKey::Network
                         | ContainerKey::PodmanArgs
                 )
-                | Self::Pod(PodKey::PublishPort | PodKey::Network | PodKey::Volume)
+                | Self::Pod(PodKey::AddHost | PodKey::PublishPort | PodKey::Network | PodKey::Volume)
                 | Self::Unknown
         )
     }
@@ -662,6 +667,7 @@ fn classify_entry(section: SectionKind, key: &str) -> EntryKind {
     match section {
         SectionKind::Unit | SectionKind::Service | SectionKind::Install => EntryKind::GenericSystemd,
         SectionKind::Container => match key {
+            "AddHost" => EntryKind::Container(ContainerKey::AddHost),
             "Image" => EntryKind::Container(ContainerKey::Image),
             "Exec" => EntryKind::Container(ContainerKey::Exec),
             "Environment" => EntryKind::Container(ContainerKey::Environment),
@@ -675,6 +681,7 @@ fn classify_entry(section: SectionKind, key: &str) -> EntryKind {
             _ => EntryKind::Unknown,
         },
         SectionKind::Pod => match key {
+            "AddHost" => EntryKind::Pod(PodKey::AddHost),
             "PodName" => EntryKind::Pod(PodKey::PodName),
             "PublishPort" => EntryKind::Pod(PodKey::PublishPort),
             "Network" => EntryKind::Pod(PodKey::Network),

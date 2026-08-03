@@ -19,7 +19,7 @@ id = "podman-5-4-container"
 verification = "documentation"
 url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#container-units-container"
 target = "5.4.0"
-claim = "The Container section documents Image, Exec, Environment, EnvironmentFile, PublishPort, Volume, Network, Pod, HealthCmd, and PodmanArgs."
+claim = "The Container section documents AddHost, Image, Exec, Environment, EnvironmentFile, PublishPort, Volume, Network, Pod, HealthCmd, and PodmanArgs."
 test = "capabilities::supported_range_has_the_reviewed_first_conversion_surface"
 gap = "Referenced .image/.build units and the remaining container-only keys still need exact patch-matrix fixtures."
 
@@ -37,7 +37,7 @@ id = "podman-5-4-pod"
 verification = "documentation"
 url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#pod-units-pod"
 target = "5.4.0"
-claim = "The Pod section documents PodName, PublishPort, Network, and Volume, including .network and .volume references."
+claim = "The Pod section documents AddHost, PodName, PublishPort, Network, and Volume, including .network and .volume references."
 test = "capabilities::supported_range_has_the_reviewed_first_conversion_surface"
 gap = "Pod generation is covered through 6.0.2; rootless and rootful runtime behavior is not yet automated."
 
@@ -64,7 +64,7 @@ id = "podman-5-4-through-current-first-conversion-generators"
 verification = "generator"
 url = "https://github.com/containers/podman/releases"
 versions = { minimum = "5.4.0", maximum = "6.0.2" }
-claim = "Every Podman patch release from 5.4.0 through 6.0.2 generates the expected container, pod, network, volume, systemd, image, command, environment, environment-file, port, mount, resource-reference, health-command, restart, and PodmanArgs fragments. The harness uses digest-pinned official immutable images through 5.8.2 and builds later exact release commits with a digest-pinned builder."
+claim = "Every Podman patch release from 5.4.0 through 6.0.2 generates the expected container, pod, network, volume, systemd, add-host, image, command, environment, environment-file, port, mount, resource-reference, health-command, restart, and PodmanArgs fragments. The harness uses digest-pinned official immutable images through 5.8.2 and builds later exact release commits with a digest-pinned builder."
 test = "generators::supported_generators_match_the_first_conversion_fixture"
 
 [[capability]]
@@ -117,6 +117,16 @@ unit_types = ["volume"]
 sections = ["Volume"]
 native = { minimum = "5.4.0", maximum = "6.0.2" }
 evidence = ["podman-5-4-volume", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
+id = "quadlet.container.add-host"
+description = "Container hostname-to-address mapping, including the host-gateway implementation token."
+unit_types = ["container"]
+sections = ["Container"]
+repeatable = true
+value_forms = ["hostname-ip", "hostname-host-gateway"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container", "podman-5-4-through-current-first-conversion-generators"]
 
 [[capability]]
 id = "quadlet.container.image"
@@ -214,6 +224,16 @@ repeatable = true
 value_forms = ["systemd-command-line"]
 native = { minimum = "5.4.0", maximum = "6.0.2" }
 evidence = ["podman-5-4-container", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
+id = "quadlet.pod.add-host"
+description = "Pod hostname-to-address mapping shared by containers in the pod."
+unit_types = ["pod"]
+sections = ["Pod"]
+repeatable = true
+value_forms = ["hostname-ip", "hostname-host-gateway"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-pod", "podman-5-4-through-current-first-conversion-generators"]
 
 [[capability]]
 id = "quadlet.pod.name"

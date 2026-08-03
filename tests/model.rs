@@ -55,6 +55,8 @@ fn container_model_retains_order_repetition_unknowns_and_generic_systemd() -> Re
     assert_eq!(
         known,
         [
+            ContainerKey::AddHost,
+            ContainerKey::AddHost,
             ContainerKey::Image,
             ContainerKey::Exec,
             ContainerKey::Environment,
@@ -153,7 +155,13 @@ fn network_and_volume_models_retain_known_and_future_fields() -> Result<(), Stri
                 _ => None,
             })
             .collect::<Vec<_>>(),
-        [PodKey::PodName, PodKey::PublishPort, PodKey::Network, PodKey::Volume]
+        [
+            PodKey::AddHost,
+            PodKey::PodName,
+            PodKey::PublishPort,
+            PodKey::Network,
+            PodKey::Volume
+        ]
     );
     assert!(pod.document().entries().any(|entry| {
         entry.kind() == EntryKind::Pod(PodKey::Network)

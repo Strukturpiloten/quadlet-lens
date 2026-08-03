@@ -5,7 +5,7 @@
 QuadletLens has a fixed minimum Podman version and a rolling upper target:
 
 - minimum supported version: Podman 5.4.0;
-- current upstream target checked on 2026-08-02: Podman 6.0.2;
+- current upstream target checked on 2026-08-03: Podman 6.0.2;
 - current generator-verified first-conversion range: Podman 5.4.0 through 6.0.2.
 
 “Supported target,” “catalogue evidence,” and “generator verified” are deliberately separate. A
@@ -49,11 +49,12 @@ invoke systemctl, or start generated services. Runtime, rootless/rootful, cgroup
 SELinux behavior remain separate test tiers.
 
 The first-conversion fixture covers registry images including `name:tag@digest`, commands,
-environment and systemd specifiers, absolute and unit-relative environment files, container and pod
-membership, the supported port spellings, native and external networks, named/anonymous/relative
-and `.volume` mounts, SELinux mount-option spelling, health commands including `none`, generic
-systemd restart behavior, continued `PodmanArgs`, and generated cross-unit dependencies. These are
-generator claims; actual rootless/rootful and SELinux enforcement remains runtime evidence.
+environment and systemd specifiers, absolute and unit-relative environment files, repeatable
+container and pod host mappings including `host-gateway`, container and pod membership, the
+supported port spellings, native and external networks, named/anonymous/relative and `.volume`
+mounts, SELinux mount-option spelling, health commands including `none`, generic systemd restart
+behavior, continued `PodmanArgs`, and generated cross-unit dependencies. These are generator
+claims; actual rootless/rootful and SELinux enforcement remains runtime evidence.
 
 ## Commands
 
