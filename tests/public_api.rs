@@ -3,7 +3,7 @@
 use quadlet_lens::capability::{CapabilityCatalogue, PodmanTarget, PodmanVersion, SupportClassification};
 use quadlet_lens::model::{ContainerKey, NamedQuadletDocument, QuadletDocument, QuadletDocumentSet, QuadletUnitType};
 use quadlet_lens::path::{PathForm, classify_path};
-use quadlet_lens::render::{EntryValue, QuadletDocumentBuilder};
+use quadlet_lens::render::{EntryValue, QuadletDocumentBuilder, SystemdUnitKey};
 use quadlet_lens::source::SourceId;
 
 #[test]
@@ -28,24 +28,34 @@ fn supported_public_pipeline_compiles_and_keeps_stages_explicit() -> Result<(), 
     assert_eq!(host_support.classification(), SupportClassification::Native);
     let health_support = catalogue.evaluate("quadlet.container.health-timeout", target);
     assert_eq!(health_support.classification(), SupportClassification::Native);
+    let readiness_support = catalogue.evaluate("quadlet.container.notify-healthy", target);
+    assert_eq!(readiness_support.classification(), SupportClassification::Native);
     assert_eq!(classify_path("%h/application.env"), PathForm::SystemdSpecifier);
 
     let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    generated.push_systemd_unit(SystemdUnitKey::Requires, EntryValue::new("database.service")?)?;
+    generated.push_systemd_unit(SystemdUnitKey::After, EntryValue::new("database.service")?)?;
     generated.push_container(
         ContainerKey::AddHost,
         EntryValue::new("host.docker.internal:host-gateway")?,
     )?;
     generated.push_container(ContainerKey::Image, EntryValue::new("example.invalid/generated:1")?)?;
     generated.push_container(ContainerKey::HealthCmd, EntryValue::new("/usr/bin/true")?)?;
+    generated.push_container(ContainerKey::Notify, EntryValue::new("healthy")?)?;
     generated.push_container(ContainerKey::HealthTimeout, EntryValue::new("5s")?)?;
     let generated = generated.build(SourceId::new(2))?;
     assert_eq!(
         generated.text(),
         concat!(
+            "[Unit]\n",
+            "Requires=database.service\n",
+            "After=database.service\n",
+            "\n",
             "[Container]\n",
             "AddHost=host.docker.internal:host-gateway\n",
             "Image=example.invalid/generated:1\n",
             "HealthCmd=/usr/bin/true\n",
+            "Notify=healthy\n",
             "HealthTimeout=5s\n",
         )
     );

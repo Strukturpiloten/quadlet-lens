@@ -19,7 +19,7 @@ id = "podman-5-4-container"
 verification = "documentation"
 url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#container-units-container"
 target = "5.4.0"
-claim = "The Container section documents AddHost, Image, Exec, Environment, EnvironmentFile, PublishPort, Volume, Network, Pod, HealthCmd, HealthInterval, HealthRetries, HealthStartPeriod, HealthTimeout, and PodmanArgs."
+claim = "The Container section documents AddHost, Image, Exec, Environment, EnvironmentFile, PublishPort, Volume, Network, Pod, HealthCmd, Notify including healthy readiness, HealthInterval, HealthRetries, HealthStartPeriod, HealthTimeout, and PodmanArgs."
 test = "capabilities::supported_range_has_the_reviewed_first_conversion_surface"
 gap = "Referenced .image/.build units and the remaining container-only keys still need exact patch-matrix fixtures."
 
@@ -64,7 +64,7 @@ id = "podman-5-4-through-current-first-conversion-generators"
 verification = "generator"
 url = "https://github.com/containers/podman/releases"
 versions = { minimum = "5.4.0", maximum = "6.0.2" }
-claim = "Every Podman patch release from 5.4.0 through 6.0.2 generates the expected container, pod, network, volume, systemd, add-host, image, command, environment, environment-file, port, mount, resource-reference, health-command, health-timing, restart, and PodmanArgs fragments. The harness uses digest-pinned official immutable images through 5.8.2 and builds later exact release commits with a digest-pinned builder."
+claim = "Every Podman patch release from 5.4.0 through 6.0.2 generates the expected container, pod, network, volume, systemd dependency-ordering, add-host, image, command, environment, environment-file, port, mount, resource-reference, health-command, health-timing, health-readiness, restart, and PodmanArgs fragments. The harness uses digest-pinned official immutable images through 5.8.2 and builds later exact release commits with a digest-pinned builder."
 test = "generators::supported_generators_match_the_first_conversion_fixture"
 
 [[capability]]
@@ -83,6 +83,36 @@ description = "Service restart policy remains a generic systemd Service-section 
 unit_types = ["*"]
 sections = ["Service"]
 value_forms = ["systemd-restart-policy"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-general", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
+id = "systemd.unit.requires"
+description = "Strong systemd unit requirement passed through from a Quadlet Unit section."
+unit_types = ["*"]
+sections = ["Unit"]
+repeatable = true
+value_forms = ["systemd-unit-list"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-general", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
+id = "systemd.unit.wants"
+description = "Weak systemd unit requirement passed through from a Quadlet Unit section."
+unit_types = ["*"]
+sections = ["Unit"]
+repeatable = true
+value_forms = ["systemd-unit-list"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-general", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
+id = "systemd.unit.after"
+description = "Systemd startup ordering passed through from a Quadlet Unit section."
+unit_types = ["*"]
+sections = ["Unit"]
+repeatable = true
+value_forms = ["systemd-unit-list"]
 native = { minimum = "5.4.0", maximum = "6.0.2" }
 evidence = ["podman-5-4-general", "podman-5-4-through-current-first-conversion-generators"]
 
@@ -212,6 +242,15 @@ description = "Regular container healthcheck command or explicit none value."
 unit_types = ["container"]
 sections = ["Container"]
 value_forms = ["command", "none"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
+id = "quadlet.container.notify-healthy"
+description = "Delay the generated service startup notification until Podman marks the container healthy."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["healthy"]
 native = { minimum = "5.4.0", maximum = "6.0.2" }
 evidence = ["podman-5-4-container", "podman-5-4-through-current-first-conversion-generators"]
 

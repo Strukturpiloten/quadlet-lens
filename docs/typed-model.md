@@ -17,11 +17,13 @@ defines its representation boundary.
 
 Typed container keys are `AddHost`, `Image`, `Exec`, `Environment`, `EnvironmentFile`,
 `PublishPort`, `Volume`, `Network`, `Pod`, `HealthCmd`, `HealthInterval`, `HealthRetries`,
-`HealthStartPeriod`, `HealthTimeout`, and `PodmanArgs`. Typed pod keys are `AddHost`, `PodName`,
+`HealthStartPeriod`, `HealthTimeout`, `Notify`, and `PodmanArgs`. Typed pod keys are `AddHost`, `PodName`,
 `PublishPort`, `Network`, and `Volume`.
 
-`[Unit]`, `[Service]`, and `[Install]` are recognized as generic systemd sections. Their keys are
-not restricted by a closed enum. Other sections and keys remain explicit `Unknown` entries.
+`[Unit]`, `[Service]`, and `[Install]` are recognized as generic systemd sections. Parsed keys are
+not restricted by a closed enum. Programmatic generation additionally offers typed `Requires`,
+`Wants`, and `After` `[Unit]` directives for the evidence-backed dependency subset. Other sections
+and keys remain explicit `Unknown` entries.
 Unsupported suffixes, including `.image` and `.build`, currently fail closed rather than implying
 complete typed support.
 
@@ -73,8 +75,8 @@ identities are construction errors because source-labelled diagnostics would oth
 
 ## Programmatic generation
 
-The `render` module can construct the supported native document types with typed native keys and
-open-ended generic systemd directives. It renders deterministic source and reparses it through the
+The `render` module can construct the supported native document types with typed native keys,
+typed dependency-ordering `[Unit]` directives, and open-ended generic systemd directives. It renders deterministic source and reparses it through the
 same syntax and typed-model pipeline before returning a result. Values remain exact native
 one-line text rather than being normalized by an incomplete systemd or Podman value parser. See
 [programmatic generation](generation.md) and [ADR 0009](decisions/0009-validated-programmatic-generation.md).
@@ -101,7 +103,7 @@ invalid; an error does.
 
 - typed `.image`, `.build`, and later Quadlet unit types
 - parsing and canonical rendering of individual systemd/Podman value grammars
-- dependency-cycle analysis and systemd ordering semantics
+- dependency-cycle analysis and systemd runtime activation semantics
 - target-version validation that combines documents with the capability catalogue
 - mutation and preservation-oriented editing APIs
 - key-specific typed value constructors and target-aware rendering

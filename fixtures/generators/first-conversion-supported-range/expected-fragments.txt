@@ -23,11 +23,14 @@ SourcePath=/fixtures/data.volume
 quadlet-lens-data
 ---worker.service---
 SourcePath=/fixtures/worker.container
+Requires=app.service
+After=app.service
 BindsTo=application-pod.service
 After=application-pod.service
 --env-file /fixtures/worker.env
 --env-file /etc/quadlet-lens/worker.env
 --health-cmd /usr/bin/true
+--sdnotify=healthy
 --health-interval 30s
 --health-retries 3
 --health-start-period 10s

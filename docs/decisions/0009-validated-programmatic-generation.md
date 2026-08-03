@@ -2,6 +2,7 @@
 
 - Status: accepted
 - Date: 2026-08-03
+- Additive amendment: 2026-08-03
 
 ## Context
 
@@ -20,6 +21,8 @@ QuadletLens provides a programmatic document builder that:
 
 - selects one supported native unit type;
 - accepts typed native keys and open-ended generic systemd directives;
+- accepts typed `Requires`, `Wants`, and `After` `[Unit]` directives for the evidence-backed
+  dependency subset while retaining open-ended generic systemd construction;
 - rejects native keys from the wrong unit type and repeated singleton keys;
 - retains repeatable entries in insertion order;
 - emits sections in deterministic `[Unit]`, native, `[Service]`, `[Install]` order;

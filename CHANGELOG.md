@@ -5,6 +5,16 @@ Versioning for its documented pre-1.0 public API.
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-08-03
+
+### Added
+
+- Typed `Notify` container readiness signaling and a `notify-healthy` capability record.
+- Typed `Requires`, `Wants`, and `After` programmatic `[Unit]` construction with separate
+  capability records.
+- Full 20-patch real-generator evidence for health-gated readiness and dependency ordering from
+  Podman 5.4.0 through 6.0.2.
+
 ## [0.1.3] - 2026-08-03
 
 ### Added

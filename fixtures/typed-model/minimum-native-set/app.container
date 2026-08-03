@@ -17,6 +17,7 @@ Volume=./config:/etc/example:ro,Z
 Network=frontend.network
 Pod=application.pod
 HealthCmd=/usr/bin/curl --fail http://127.0.0.1/health
+Notify=healthy
 HealthInterval=30s
 HealthRetries=3
 HealthStartPeriod=10s

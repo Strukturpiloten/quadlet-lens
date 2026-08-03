@@ -64,6 +64,14 @@ fn supported_range_records_paths_references_and_repetition() -> Result<(), Strin
         .ok_or_else(|| "generic systemd restart capability must exist".to_owned())?;
     assert_eq!(restart.sections(), ["Service"]);
 
+    for capability in ["systemd.unit.requires", "systemd.unit.wants", "systemd.unit.after"] {
+        let record = catalogue
+            .capability(capability)
+            .ok_or_else(|| format!("{capability} capability must exist"))?;
+        assert_eq!(record.sections(), ["Unit"]);
+        assert!(record.is_repeatable());
+    }
+
     let current = PodmanTarget::new(version(6, 0, 2), Some(version(6, 0, 2))).map_err(|error| error.to_string())?;
     for capability in [
         "quadlet.unit-type.pod",
@@ -75,6 +83,10 @@ fn supported_range_records_paths_references_and_repetition() -> Result<(), Strin
         "quadlet.container.health-retries",
         "quadlet.container.health-start-period",
         "quadlet.container.health-timeout",
+        "quadlet.container.notify-healthy",
+        "systemd.unit.requires",
+        "systemd.unit.wants",
+        "systemd.unit.after",
         "quadlet.pod.add-host",
         "quadlet.pod.name",
         "quadlet.pod.publish-port",

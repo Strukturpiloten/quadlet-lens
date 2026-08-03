@@ -1,3 +1,7 @@
+[Unit]
+Requires=app.service
+After=app.service
+
 [Container]
 Image=registry.example.invalid/worker:1.0@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 Exec=/usr/bin/true
@@ -5,6 +9,7 @@ EnvironmentFile=./worker.env
 EnvironmentFile=/etc/quadlet-lens/worker.env
 Pod=application.pod
 HealthCmd=/usr/bin/true
+Notify=healthy
 HealthInterval=30s
 HealthRetries=3
 HealthStartPeriod=10s

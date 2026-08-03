@@ -37,11 +37,11 @@ one of the four typed unit types.
 
 | Section | Typed keys |
 | --- | --- |
-| `[Container]` | `AddHost`, `Image`, `Exec`, `Environment`, `EnvironmentFile`, `PublishPort`, `Volume`, `Network`, `Pod`, `HealthCmd`, `HealthInterval`, `HealthRetries`, `HealthStartPeriod`, `HealthTimeout`, `PodmanArgs` |
+| `[Container]` | `AddHost`, `Image`, `Exec`, `Environment`, `EnvironmentFile`, `PublishPort`, `Volume`, `Network`, `Pod`, `HealthCmd`, `Notify`, `HealthInterval`, `HealthRetries`, `HealthStartPeriod`, `HealthTimeout`, `PodmanArgs` |
 | `[Pod]` | `AddHost`, `PodName`, `PublishPort`, `Network`, `Volume` |
 | `[Network]` | `NetworkName` |
 | `[Volume]` | `VolumeName` |
-| `[Unit]`, `[Service]`, `[Install]` | Open-ended generic systemd directives with source/order preservation; `Restart=` has explicit capability evidence. |
+| `[Unit]`, `[Service]`, `[Install]` | Open-ended generic systemd directives with source/order preservation; typed generation and explicit capability evidence exist for `[Unit]` `Requires=`, `Wants=`, and `After=`, and `[Service]` `Restart=`. |
 
 All other current manual keys are syntax-preserved but not yet part of the typed builder contract.
 This includes many useful container keys such as identity, DNS, capabilities, entrypoint, health
@@ -51,17 +51,19 @@ sections likewise have broader native surfaces than the first conversion subset.
 
 ## Next promotion
 
-The Compose health-check target subset available since the Podman 5.4 floor now includes:
+The dependency-readiness subset available since the Podman 5.4 floor now includes:
 
-- `HealthInterval=`;
-- `HealthRetries=`;
-- `HealthStartPeriod=`; and
-- `HealthTimeout=`.
+- `Notify=healthy` to delay service readiness until Podman reports a healthy container;
+- `Requires=` and `Wants=` for strong and weak systemd activation dependencies; and
+- `After=` for independent startup ordering.
 
-`HealthCmd=none` is the explicit disabling form. Compose `start_interval` is not declared
-equivalent to Podman's separate startup-healthcheck feature. The next cohesive promotion evaluates
-`Notify=healthy` together with dependency-related systemd directives so readiness and ordering are
-designed as one contract.
+The parser still retains every generic systemd directive without forcing it into a closed enum.
+Typed systemd keys are a programmatic-generation aid, not a complete systemd semantic model.
+Runtime activation, failed-unit propagation, cycles, stop ordering, and restart propagation remain
+outside current generator evidence and require separate systemd-aware validation.
+
+The next cohesive promotion should cover service identity and lifecycle keys required by the
+BoxFerry conversion roadmap.
 
 ## Promotion checklist
 
