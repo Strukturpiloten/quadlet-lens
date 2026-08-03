@@ -76,15 +76,17 @@ the lower and rolling upper coverage boundaries, and uses synthetic evidence to 
 and known-bug precedence. Capabilities outside the generator fixture retain explicit evidence gaps.
 
 The typed-model suite protects the initial `.container`, `.pod`, `.network`, and `.volume` surface.
-It checks native key classification, generic systemd sections, repeated and unknown entries,
-continuation segments, `%h` and unit-relative paths, native unit references, explicit supported
-suffixes, required fields, singleton diagnostics, foreign native sections, and source labels. Its
-document-set cases protect exact basename resolution, resolved dependency edges, retained missing
-and ambiguous references, duplicate names, unique source identities, and filename/type matching.
+It checks native key classification, repeated container/pod `AddHost` entries, generic systemd
+sections, repeated and unknown entries, continuation segments, `%h` and unit-relative paths, native
+unit references, explicit supported suffixes, required fields, singleton diagnostics, foreign
+native sections, and source labels. Its document-set cases protect exact basename resolution,
+resolved dependency edges, retained missing and ambiguous references, duplicate names, unique
+source identities, and filename/type matching.
 
 The generation suite constructs `.container`, `.network`, and `.volume` documents, verifies exact
 deterministic output, reparses every result, and resolves the generated cross-file graph. It also
-protects repeated native and systemd entries and all document-builder rejection paths.
+protects repeated AddHost, environment, and systemd entries and all document-builder rejection
+paths.
 
 ## Regression rule
 

@@ -20,6 +20,7 @@ fn builds_a_deterministic_first_conversion_document_set() -> Result<(), Box<dyn 
 
     let mut container = QuadletDocumentBuilder::new(QuadletUnitType::Container);
     container.push_systemd(SystemdSection::Unit, "Description", value("Generated application")?)?;
+    container.push_container(ContainerKey::AddHost, value("host.docker.internal:host-gateway")?)?;
     container.push_container(ContainerKey::Image, value("example.invalid/app:1@sha256:abcd")?)?;
     container.push_container(ContainerKey::Exec, value("php -v")?)?;
     container.push_container(ContainerKey::Environment, value("APP_ENV=production")?)?;
@@ -36,6 +37,7 @@ fn builds_a_deterministic_first_conversion_document_set() -> Result<(), Box<dyn 
             "Description=Generated application\n",
             "\n",
             "[Container]\n",
+            "AddHost=host.docker.internal:host-gateway\n",
             "Image=example.invalid/app:1@sha256:abcd\n",
             "Exec=php -v\n",
             "Environment=APP_ENV=production\n",
@@ -65,6 +67,8 @@ fn preserves_repeated_native_and_generic_entries_in_order() -> Result<(), Box<dy
     builder.push_systemd(SystemdSection::Unit, "After", value("network-online.target")?)?;
     builder.push_systemd(SystemdSection::Unit, "After", value("database.container")?)?;
     builder.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+    builder.push_container(ContainerKey::AddHost, value("first:192.0.2.10")?)?;
+    builder.push_container(ContainerKey::AddHost, value("second:[::1]")?)?;
     builder.push_container(ContainerKey::Environment, value("FIRST=1")?)?;
     builder.push_container(ContainerKey::Environment, value("SECOND=2")?)?;
     let generated = builder.build(SourceId::new(84))?;
@@ -78,6 +82,8 @@ fn preserves_repeated_native_and_generic_entries_in_order() -> Result<(), Box<dy
             "\n",
             "[Container]\n",
             "Image=example.invalid/app\n",
+            "AddHost=first:192.0.2.10\n",
+            "AddHost=second:[::1]\n",
             "Environment=FIRST=1\n",
             "Environment=SECOND=2\n",
         )

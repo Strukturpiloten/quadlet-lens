@@ -5,6 +5,15 @@ Versioning for its documented pre-1.0 public API.
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-08-03
+
+### Added
+
+- Repeatable typed `AddHost` keys for container and pod units, including the `host-gateway` value
+  form and capability evidence across Podman 5.4.0 through 6.0.2.
+- Real-generator coverage for container and pod host mappings across every supported Podman patch
+  release.
+
 ## [0.1.1] - 2026-08-03
 
 ### Added

@@ -24,12 +24,25 @@ fn supported_public_pipeline_compiles_and_keeps_stages_explicit() -> Result<(), 
     let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
     let support = catalogue.evaluate("quadlet.container.image", target);
     assert_eq!(support.classification(), SupportClassification::Native);
+    let host_support = catalogue.evaluate("quadlet.container.add-host", target);
+    assert_eq!(host_support.classification(), SupportClassification::Native);
     assert_eq!(classify_path("%h/application.env"), PathForm::SystemdSpecifier);
 
     let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    generated.push_container(
+        ContainerKey::AddHost,
+        EntryValue::new("host.docker.internal:host-gateway")?,
+    )?;
     generated.push_container(ContainerKey::Image, EntryValue::new("example.invalid/generated:1")?)?;
     let generated = generated.build(SourceId::new(2))?;
-    assert_eq!(generated.text(), "[Container]\nImage=example.invalid/generated:1\n");
+    assert_eq!(
+        generated.text(),
+        concat!(
+            "[Container]\n",
+            "AddHost=host.docker.internal:host-gateway\n",
+            "Image=example.invalid/generated:1\n",
+        )
+    );
 
     Ok(())
 }

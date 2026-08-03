@@ -67,9 +67,11 @@ fn supported_range_records_paths_references_and_repetition() -> Result<(), Strin
     let current = PodmanTarget::new(version(6, 0, 2), Some(version(6, 0, 2))).map_err(|error| error.to_string())?;
     for capability in [
         "quadlet.unit-type.pod",
+        "quadlet.container.add-host",
         "quadlet.container.environment-file",
         "quadlet.container.pod",
         "quadlet.container.health-command",
+        "quadlet.pod.add-host",
         "quadlet.pod.name",
         "quadlet.pod.publish-port",
         "quadlet.pod.network",

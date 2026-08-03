@@ -1,6 +1,8 @@
 ---app.service---
 SourcePath=/fixtures/app.container
 Restart=on-failure
+--add-host host.docker.internal:host-gateway
+--add-host database:192.0.2.10
 --env APP_HOME=%h/application
 --network quadlet-lens-network
 -v quadlet-lens-data:/var/lib/application:Z
@@ -35,6 +37,7 @@ Wants=worker.service
 Before=worker.service
 Requires=app-network.service
 Requires=data-volume.service
+--add-host pod-database:192.0.2.20
 --publish 127.0.0.1:19090:9090
 --network quadlet-lens-network
 --network quadlet-lens-pod-external

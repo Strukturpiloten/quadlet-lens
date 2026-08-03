@@ -1,4 +1,5 @@
 [Pod]
+AddHost=pod-database:192.0.2.20
 PodName=quadlet-lens-pod
 PublishPort=127.0.0.1:19090:9090
 Network=app.network

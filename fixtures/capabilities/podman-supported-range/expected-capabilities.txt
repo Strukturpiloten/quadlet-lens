@@ -1,3 +1,4 @@
+quadlet.container.add-host
 quadlet.container.environment
 quadlet.container.environment-file
 quadlet.container.exec
@@ -9,6 +10,7 @@ quadlet.container.podman-args
 quadlet.container.publish-port
 quadlet.container.volume
 quadlet.network.name
+quadlet.pod.add-host
 quadlet.pod.name
 quadlet.pod.network
 quadlet.pod.publish-port

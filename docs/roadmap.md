@@ -66,17 +66,28 @@ Cross-repository delivery uses the stable task numbers in the [implementation pl
 - [x] Revoke the bootstrap token, configure trusted publishing, and run the protected release
   workflow from the same commit to create the tag, attestation, and GitHub release.
 
-## Additive 0.1.1 generation boundary — release candidate
+## Additive 0.1.1 generation boundary — completed
 
 - [x] Add typed native document construction without exposing parser internals.
 - [x] Reject wrong-section keys, duplicate singleton keys, line endings, and NUL bytes.
 - [x] Preserve repeatable native and generic systemd entries deterministically.
 - [x] Parse and validate every generated document before returning it.
 - [x] Add consumer, document-set, rejection-path, MSRV, and documentation coverage.
-- [ ] Publish QuadletLens 0.1.1 through the protected trusted-publishing workflow.
+- [x] Publish QuadletLens 0.1.1 through the protected trusted-publishing workflow.
 
 Follow the exact [release process](releasing.md). BoxFerry can consume the released 0.1.1 API
 without a sibling path or Git dependency.
+
+## Additive 0.1.2 host-mapping boundary — release candidate
+
+- [x] Type repeatable `AddHost` entries in `.container` and `.pod` documents.
+- [x] Preserve ordinary addresses and the runtime-specific `host-gateway` value without
+  normalization.
+- [x] Add finite capability entries for container and pod host mappings.
+- [x] Verify generated `--add-host` arguments across every Podman patch release from 5.4.0 through
+  current 6.0.2.
+- [x] Add release notes and validate the Rust 1.85.0 consumer boundary.
+- [ ] Publish QuadletLens 0.1.2 through the protected trusted-publishing workflow.
 
 ## Issue-derived evidence
 

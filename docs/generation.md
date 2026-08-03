@@ -21,8 +21,8 @@ document, and complete parse result.
 
 `EntryValue` is exact native semantic text on one physical line. It rejects NUL bytes and line
 endings, but deliberately does not quote or normalize its contents. A caller that writes
-`Environment=`, `Exec=`, `PublishPort=`, or `Volume=` must select the appropriate native
-systemd/Podman spelling.
+`AddHost=`, `Environment=`, `Exec=`, `PublishPort=`, or `Volume=` must select the appropriate
+native systemd/Podman spelling.
 
 This is an explicit boundary, not a claim that all value forms are interchangeable. Future
 key-specific constructors can add stronger guarantees once exact Podman-version behavior and
@@ -40,6 +40,10 @@ use quadlet_lens::{
 # fn main() -> Result<(), Box<dyn std::error::Error>> {
 let mut builder = QuadletDocumentBuilder::new(QuadletUnitType::Container);
 builder.push_container(
+    ContainerKey::AddHost,
+    EntryValue::new("host.docker.internal:host-gateway")?,
+)?;
+builder.push_container(
     ContainerKey::Image,
     EntryValue::new("example.invalid/application:1")?,
 )?;
@@ -51,7 +55,12 @@ builder.push_container(
 let generated = builder.build(SourceId::new(1))?;
 assert_eq!(
     generated.text(),
-    "[Container]\nImage=example.invalid/application:1\nEnvironment=APP_ENV=production\n",
+    concat!(
+        "[Container]\n",
+        "AddHost=host.docker.internal:host-gateway\n",
+        "Image=example.invalid/application:1\n",
+        "Environment=APP_ENV=production\n",
+    ),
 );
 # Ok(())
 # }
