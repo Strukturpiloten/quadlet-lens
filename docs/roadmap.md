@@ -24,6 +24,7 @@ Cross-repository delivery uses the stable task numbers in the [implementation pl
 - [ ] Preserve quote, newline, and command-argument semantics through real-generator fixtures.
 - [x] Distinguish literal paths, relative paths, and native systemd specifiers such as `%h`.
 - [x] Implement deterministic canonical rendering.
+- [x] Provide validated programmatic construction for the supported native document types.
 - [x] Establish malformed-input, round-trip, and property tests.
 
 ## Phase 2: typed Quadlet documents — in progress
@@ -58,15 +59,24 @@ Cross-repository delivery uses the stable task numbers in the [implementation pl
 - [x] Prepare and validate compatibility documentation and the QuadletLens 0.1.0 release candidate.
 - [ ] Provide optional verification tooling for installed Podman generators.
 
-## Maintainer-controlled 0.1.0 release operation — ready
+## Maintainer-controlled 0.1.0 release operation — completed
 
-- [ ] Publish QuadletLens 0.1.0 from the reviewed clean default-branch commit using the documented
+- [x] Publish QuadletLens 0.1.0 from the reviewed clean default-branch commit using the documented
   one-time crates.io bootstrap.
-- [ ] Revoke the bootstrap token, configure trusted publishing, and run the protected release
+- [x] Revoke the bootstrap token, configure trusted publishing, and run the protected release
   workflow from the same commit to create the tag, attestation, and GitHub release.
 
-The local package and CI gates pass. Credentialed publication remains deliberately separate from
-completed implementation work; follow the exact [release process](releasing.md).
+## Additive 0.1.1 generation boundary — release candidate
+
+- [x] Add typed native document construction without exposing parser internals.
+- [x] Reject wrong-section keys, duplicate singleton keys, line endings, and NUL bytes.
+- [x] Preserve repeatable native and generic systemd entries deterministically.
+- [x] Parse and validate every generated document before returning it.
+- [x] Add consumer, document-set, rejection-path, MSRV, and documentation coverage.
+- [ ] Publish QuadletLens 0.1.1 through the protected trusted-publishing workflow.
+
+Follow the exact [release process](releasing.md). BoxFerry can consume the released 0.1.1 API
+without a sibling path or Git dependency.
 
 ## Issue-derived evidence
 

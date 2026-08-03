@@ -2,7 +2,7 @@
 
 This plan gives BoxFerry, ComposeLens, and QuadletLens one stable task numbering scheme. Repository roadmaps describe internal phases; this document describes delivery order across repositories.
 
-Last synchronized: 2026-08-02.
+Last synchronized: 2026-08-03.
 
 ## Status convention
 
@@ -103,10 +103,11 @@ ComposeLens 0.1.1 is published on crates.io with a documented pre-1.0 compatibil
 BoxFerry will consume released Lens crates through compatible crates.io requirements and commit its
 application lockfile. Commit-pinned Git dependencies remain an emergency-only fallback.
 
-QuadletLens's first crates.io release is now the dependency gate for `boxferry-quadlet`; BoxFerry
-does not use a temporary sibling path or Git dependency. QuadletLens 0.1.0 now has a documented
-public API, consumer contract test, verified package, and trusted-publishing release workflow. Its
-one-time crates.io bootstrap and first GitHub release remain external maintainer actions.
+QuadletLens 0.1.0 is published on crates.io. Its additive 0.1.1 release candidate adds the validated
+programmatic generation boundary required by `boxferry-quadlet`: typed native keys, exact one-line
+values, deterministic section order, repeated-entry preservation, singleton rejection, and
+parse-back validation. BoxFerry will consume 0.1.1 from crates.io and does not use a temporary
+sibling path or Git dependency.
 
 ## T6: First end-to-end milestone
 

@@ -1,8 +1,9 @@
 //! Consumer-facing compile and behavior contract for the supported 0.1.x API.
 
 use quadlet_lens::capability::{CapabilityCatalogue, PodmanTarget, PodmanVersion, SupportClassification};
-use quadlet_lens::model::{NamedQuadletDocument, QuadletDocument, QuadletDocumentSet, QuadletUnitType};
+use quadlet_lens::model::{ContainerKey, NamedQuadletDocument, QuadletDocument, QuadletDocumentSet, QuadletUnitType};
 use quadlet_lens::path::{PathForm, classify_path};
+use quadlet_lens::render::{EntryValue, QuadletDocumentBuilder};
 use quadlet_lens::source::SourceId;
 
 #[test]
@@ -24,6 +25,11 @@ fn supported_public_pipeline_compiles_and_keeps_stages_explicit() -> Result<(), 
     let support = catalogue.evaluate("quadlet.container.image", target);
     assert_eq!(support.classification(), SupportClassification::Native);
     assert_eq!(classify_path("%h/application.env"), PathForm::SystemdSpecifier);
+
+    let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    generated.push_container(ContainerKey::Image, EntryValue::new("example.invalid/generated:1")?)?;
+    let generated = generated.build(SourceId::new(2))?;
+    assert_eq!(generated.text(), "[Container]\nImage=example.invalid/generated:1\n");
 
     Ok(())
 }
