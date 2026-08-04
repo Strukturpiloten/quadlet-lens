@@ -9,6 +9,51 @@ use quadlet_lens::render::{EntryValue, QuadletDocumentBuilder, SystemdUnitKey};
 use quadlet_lens::source::SourceId;
 
 #[test]
+fn growing_public_key_enums_preserve_published_discriminants() {
+    assert_eq!(
+        [
+            ContainerKey::AddHost as isize,
+            ContainerKey::Image as isize,
+            ContainerKey::Exec as isize,
+            ContainerKey::Environment as isize,
+            ContainerKey::EnvironmentFile as isize,
+            ContainerKey::PublishPort as isize,
+            ContainerKey::Volume as isize,
+            ContainerKey::Network as isize,
+            ContainerKey::Pod as isize,
+            ContainerKey::HealthCmd as isize,
+            ContainerKey::PodmanArgs as isize,
+            ContainerKey::HealthInterval as isize,
+            ContainerKey::HealthRetries as isize,
+            ContainerKey::HealthStartPeriod as isize,
+            ContainerKey::HealthTimeout as isize,
+            ContainerKey::Notify as isize,
+            ContainerKey::User as isize,
+            ContainerKey::Group as isize,
+            ContainerKey::UserNS as isize,
+            ContainerKey::GroupAdd as isize,
+            ContainerKey::WorkingDir as isize,
+            ContainerKey::ReadOnly as isize,
+            ContainerKey::Secret as isize,
+        ],
+        [
+            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
+        ]
+    );
+    assert_eq!(
+        [
+            PodKey::AddHost as isize,
+            PodKey::PodName as isize,
+            PodKey::PublishPort as isize,
+            PodKey::Network as isize,
+            PodKey::Volume as isize,
+            PodKey::UserNS as isize,
+        ],
+        [0, 1, 2, 3, 4, 5]
+    );
+}
+
+#[test]
 fn supported_public_pipeline_compiles_and_keeps_stages_explicit() -> Result<(), Box<dyn std::error::Error>> {
     let source = "[Container]\nImage=example.invalid/app:1@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n";
     let parsed = QuadletDocument::parse(QuadletUnitType::Container, SourceId::new(1), source)?;
