@@ -25,6 +25,8 @@ QuadletLens provides a programmatic document builder that:
   dependency subset while retaining open-ended generic systemd construction;
 - retains repeated supplementary-group entries while keeping the other execution-identity keys
   singleton;
+- retains repeated container secret entries for distinct mounted-file and environment exposures;
+- retains pod `UserNS` as a singleton distinct from container-level namespace selection;
 - rejects native keys from the wrong unit type and repeated singleton keys;
 - retains repeatable entries in insertion order;
 - emits sections in deterministic `[Unit]`, native, `[Service]`, `[Install]` order;

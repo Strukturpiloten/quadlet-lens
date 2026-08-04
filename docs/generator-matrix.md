@@ -49,10 +49,11 @@ invoke systemctl, or start generated services. Runtime, rootless/rootful, cgroup
 SELinux behavior remain separate test tiers.
 
 The first-conversion fixture covers registry images including `name:tag@digest`, commands,
-environment and systemd specifiers, absolute and unit-relative environment files, repeatable
-container and pod host mappings including `host-gateway`, container and pod membership, the
-container user/group, user namespace, supplementary groups, working directory, read-only root
-filesystem, supported port spellings, native and external networks, named/anonymous/relative and `.volume`
+environment and systemd specifiers, absolute and unit-relative environment files, repeated mounted
+and environment-variable secrets with options, repeatable container and pod host mappings
+including `host-gateway`, container and pod membership, the container user/group and user
+namespace, the pod's shared user namespace, supplementary groups, working directory, read-only
+root filesystem, supported port spellings, native and external networks, named/anonymous/relative and `.volume`
 mounts, SELinux mount-option spelling, health commands including `none`, regular health timings,
 `Notify=healthy` readiness, generic systemd `Requires`/`Wants`/`After` dependency ordering and
 restart behavior, continued `PodmanArgs`, and generated cross-unit dependencies. These are

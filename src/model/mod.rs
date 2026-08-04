@@ -114,6 +114,8 @@ pub enum ContainerKey {
     Environment,
     /// Environment-file path.
     EnvironmentFile,
+    /// Podman secret reference and optional mount or environment exposure options.
+    Secret,
     /// Published port.
     PublishPort,
     /// Bind, named, anonymous, or `.volume` mount.
@@ -164,6 +166,8 @@ pub enum PodKey {
     Network,
     /// Bind, named, anonymous, or `.volume` mount.
     Volume,
+    /// User-namespace mode shared by containers in the pod.
+    UserNS,
 }
 
 /// Network keys required by the first conversion.
@@ -211,6 +215,7 @@ impl EntryKind {
                     ContainerKey::AddHost
                         | ContainerKey::Environment
                         | ContainerKey::EnvironmentFile
+                        | ContainerKey::Secret
                         | ContainerKey::PublishPort
                         | ContainerKey::Volume
                         | ContainerKey::Network
@@ -695,6 +700,7 @@ fn classify_entry(section: SectionKind, key: &str) -> EntryKind {
             "Exec" => EntryKind::Container(ContainerKey::Exec),
             "Environment" => EntryKind::Container(ContainerKey::Environment),
             "EnvironmentFile" => EntryKind::Container(ContainerKey::EnvironmentFile),
+            "Secret" => EntryKind::Container(ContainerKey::Secret),
             "PublishPort" => EntryKind::Container(ContainerKey::PublishPort),
             "Volume" => EntryKind::Container(ContainerKey::Volume),
             "Network" => EntryKind::Container(ContainerKey::Network),
@@ -720,6 +726,7 @@ fn classify_entry(section: SectionKind, key: &str) -> EntryKind {
             "PublishPort" => EntryKind::Pod(PodKey::PublishPort),
             "Network" => EntryKind::Pod(PodKey::Network),
             "Volume" => EntryKind::Pod(PodKey::Volume),
+            "UserNS" => EntryKind::Pod(PodKey::UserNS),
             _ => EntryKind::Unknown,
         },
         SectionKind::Network => match key {

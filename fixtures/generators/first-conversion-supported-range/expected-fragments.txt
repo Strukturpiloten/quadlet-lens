@@ -29,6 +29,8 @@ BindsTo=application-pod.service
 After=application-pod.service
 --env-file /fixtures/worker.env
 --env-file /etc/quadlet-lens/worker.env
+--secret worker-password,target=password,uid=1001,gid=1002,mode=0440
+--secret worker-token,type=env,target=WORKER_TOKEN
 --user 1001:1002
 --userns keep-id
 --group-add audio
@@ -59,3 +61,4 @@ Requires=data-volume.service
 -v /fixtures/pod-data:/srv/local:ro,Z
 -v /srv/anonymous
 --name quadlet-lens-pod
+--userns auto:size=8192

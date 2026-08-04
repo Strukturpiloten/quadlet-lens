@@ -134,11 +134,14 @@ optional startup edges map to `Requires`/`Wants` plus `After`; healthy edges sel
 completion semantics remain policy-controlled losses, while missing required services and cycles
 are invalid. Golden tests cover separate containers and explicitly grouped pods.
 
-QuadletLens 0.1.5 is a release candidate for execution identity and container context. Typed
-`User`, `Group`, `UserNS`, repeatable `GroupAdd`, `WorkingDir`, and `ReadOnly` keys have capability
-records and generated-command evidence on every recorded Podman patch from 5.4.0 through 6.0.2.
-BoxFerry integration remains gated on publication of compatible ComposeLens and QuadletLens
-releases.
+QuadletLens 0.1.5 is published and consumed by BoxFerry for execution identity and container
+context. Typed container `User`, `Group`, `UserNS`, repeatable `GroupAdd`, `WorkingDir`, and
+`ReadOnly` keys have capability records and generated-command evidence on every recorded Podman
+patch from 5.4.0 through 6.0.2. QuadletLens 0.1.6 adds the distinct pod-level `UserNS` key required
+to preserve a compatible namespace choice when BoxFerry explicitly groups services into a pod,
+plus repeatable container `Secret` entries for the next config/secret conversion slice.
+ComposeLens 0.1.6 is the coordinated source-side candidate with effective short/long grants and
+field-level multi-file provenance; BoxFerry integration remains gated on publication of both.
 
 ## T6: First end-to-end milestone
 

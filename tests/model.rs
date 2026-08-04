@@ -62,6 +62,8 @@ fn container_model_retains_order_repetition_unknowns_and_generic_systemd() -> Re
             ContainerKey::Environment,
             ContainerKey::Environment,
             ContainerKey::EnvironmentFile,
+            ContainerKey::Secret,
+            ContainerKey::Secret,
             ContainerKey::User,
             ContainerKey::Group,
             ContainerKey::UserNS,
@@ -172,7 +174,8 @@ fn network_and_volume_models_retain_known_and_future_fields() -> Result<(), Stri
             PodKey::PodName,
             PodKey::PublishPort,
             PodKey::Network,
-            PodKey::Volume
+            PodKey::Volume,
+            PodKey::UserNS
         ]
     );
     assert!(pod.document().entries().any(|entry| {

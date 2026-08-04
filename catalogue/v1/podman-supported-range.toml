@@ -19,7 +19,7 @@ id = "podman-5-4-container"
 verification = "documentation"
 url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#container-units-container"
 target = "5.4.0"
-claim = "The Container section documents AddHost, Image, Exec, Environment, EnvironmentFile, PublishPort, Volume, Network, Pod, HealthCmd, Notify including healthy readiness, HealthInterval, HealthRetries, HealthStartPeriod, HealthTimeout, and PodmanArgs."
+claim = "The Container section documents AddHost, Image, Exec, Environment, EnvironmentFile, repeatable Secret references and options, PublishPort, Volume, Network, Pod, HealthCmd, Notify including healthy readiness, HealthInterval, HealthRetries, HealthStartPeriod, HealthTimeout, and PodmanArgs."
 test = "capabilities::supported_range_has_the_reviewed_first_conversion_surface"
 gap = "Referenced .image/.build units and the remaining container-only keys still need exact patch-matrix fixtures."
 
@@ -37,7 +37,7 @@ id = "podman-5-4-pod"
 verification = "documentation"
 url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#pod-units-pod"
 target = "5.4.0"
-claim = "The Pod section documents AddHost, PodName, PublishPort, Network, and Volume, including .network and .volume references."
+claim = "The Pod section documents AddHost, PodName, PublishPort, Network, Volume, and UserNS, including .network and .volume references."
 test = "capabilities::supported_range_has_the_reviewed_first_conversion_surface"
 gap = "Pod generation is covered through 6.0.2; rootless and rootful runtime behavior is not yet automated."
 
@@ -64,7 +64,7 @@ id = "podman-5-4-through-current-first-conversion-generators"
 verification = "generator"
 url = "https://github.com/containers/podman/releases"
 versions = { minimum = "5.4.0", maximum = "6.0.2" }
-claim = "Every Podman patch release from 5.4.0 through 6.0.2 generates the expected container, pod, network, volume, systemd dependency-ordering, add-host, image, command, environment, environment-file, port, mount, resource-reference, health-command, health-timing, health-readiness, restart, and PodmanArgs fragments. The harness uses digest-pinned official immutable images through 5.8.2 and builds later exact release commits with a digest-pinned builder."
+claim = "Every Podman patch release from 5.4.0 through 6.0.2 generates the expected container, pod, network, volume, systemd dependency-ordering, add-host, image, command, environment, environment-file, secret mount/environment options, port, mount, resource-reference, container and pod user-namespace, health-command, health-timing, health-readiness, restart, and PodmanArgs fragments. The harness uses digest-pinned official immutable images through 5.8.2 and builds later exact release commits with a digest-pinned builder."
 test = "generators::supported_generators_match_the_first_conversion_fixture"
 
 [[capability]]
@@ -196,6 +196,16 @@ repeatable = true
 value_forms = ["absolute-path", "unit-relative-path"]
 native = { minimum = "5.4.0", maximum = "6.0.2" }
 evidence = ["podman-5-4-container", "podman-5-4-container-paths", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
+id = "quadlet.container.secret"
+description = "Podman secret exposed as a mounted file or container environment variable."
+unit_types = ["container"]
+sections = ["Container"]
+repeatable = true
+value_forms = ["podman-secret-reference", "podman-secret-mount-options", "podman-secret-environment-options"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container", "podman-5-4-through-current-first-conversion-generators"]
 
 [[capability]]
 id = "quadlet.container.publish-port"
@@ -401,6 +411,15 @@ unit_types = ["pod"]
 sections = ["Pod"]
 repeatable = true
 value_forms = ["podman-volume", "unit-relative-path", "volume-unit-reference"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-pod", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
+id = "quadlet.pod.userns"
+description = "Podman user-namespace mode shared by containers in the pod."
+unit_types = ["pod"]
+sections = ["Pod"]
+value_forms = ["podman-userns-mode"]
 native = { minimum = "5.4.0", maximum = "6.0.2" }
 evidence = ["podman-5-4-pod", "podman-5-4-through-current-first-conversion-generators"]
 

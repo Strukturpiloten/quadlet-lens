@@ -1,7 +1,7 @@
 schema = 1
 id = "minimum-native-set"
 suite = "typed-model"
-description = "Protects the first-conversion container, pod, network, volume, execution-identity, reference, path, and generic systemd model surface."
+description = "Protects the first-conversion container, pod, network, volume, secret, container/pod user-namespace, execution-identity, reference, path, and generic systemd model surface."
 secrets_reviewed = true
 files = ["app.container", "application.pod", "cache.volume", "frontend.network"]
 
@@ -15,4 +15,4 @@ modifications = "none"
 description = "No systemd specifiers are expanded and no Podman generator or runtime is invoked."
 
 [expectations]
-summary = "Known fields, including repeated supplementary groups and execution context, are typed while generic systemd sections, unknown keys, continuations, references, and paths remain source-aware."
+summary = "Known fields, including repeated secrets, container/pod user namespaces, repeated supplementary groups, and execution context, are typed while generic systemd sections, unknown keys, continuations, references, and paths remain source-aware."

@@ -16,6 +16,7 @@ quadlet.container.pod
 quadlet.container.podman-args
 quadlet.container.publish-port
 quadlet.container.read-only
+quadlet.container.secret
 quadlet.container.user
 quadlet.container.userns
 quadlet.container.volume
@@ -26,6 +27,7 @@ quadlet.pod.name
 quadlet.pod.network
 quadlet.pod.publish-port
 quadlet.pod.volume
+quadlet.pod.userns
 quadlet.unit-type.container
 quadlet.unit-type.network
 quadlet.unit-type.pod
