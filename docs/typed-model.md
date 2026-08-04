@@ -15,11 +15,11 @@ defines its representation boundary.
 | `.network`   | `[Network]`      | `NetworkName`               |
 | `.volume`    | `[Volume]`       | `VolumeName`                |
 
-Typed container keys are `AddHost`, `Image`, `Exec`, `Environment`, `EnvironmentFile`,
+Typed container keys are `AddHost`, `Image`, `Exec`, `Environment`, `EnvironmentFile`, `Secret`,
 `User`, `Group`, `UserNS`, `GroupAdd`, `WorkingDir`, `ReadOnly`, `PublishPort`, `Volume`,
 `Network`, `Pod`, `HealthCmd`, `HealthInterval`, `HealthRetries`, `HealthStartPeriod`,
 `HealthTimeout`, `Notify`, and `PodmanArgs`. Typed pod keys are `AddHost`, `PodName`, `PublishPort`,
-`Network`, and `Volume`.
+`Network`, `Volume`, and `UserNS`.
 
 `[Unit]`, `[Service]`, and `[Install]` are recognized as generic systemd sections. Parsed keys are
 not restricted by a closed enum. Programmatic generation additionally offers typed `Requires`,
@@ -62,7 +62,8 @@ The model does not expand `%h`, `~`, environment variables, or relative paths. I
 systemd quoting, environment assignment lists, port ranges, mount options, health commands, or raw
 Podman arguments. Those forms remain usable as authored text and must not be normalized implicitly.
 Identity keys likewise retain exact values: no user or group lookup is performed, and namespace
-and working-directory values are not validated against a host or container image.
+and working-directory values are not validated against a host or container image. Secret values
+remain exact Podman text; the model does not read secret contents or verify runtime existence.
 
 ## Document sets and dependency graph
 

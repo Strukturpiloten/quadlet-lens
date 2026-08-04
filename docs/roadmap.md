@@ -110,14 +110,29 @@ without a sibling path or Git dependency.
 - [x] Add release notes and validate the Rust 1.85.0 consumer boundary.
 - [x] Publish QuadletLens 0.1.4 through the protected trusted-publishing workflow.
 
-## Additive 0.1.5 execution-identity boundary — release candidate
+## Additive 0.1.5 execution-identity boundary — completed
 
 - [x] Type container `User`, `Group`, `UserNS`, repeatable `GroupAdd`, `WorkingDir`, and `ReadOnly`.
 - [x] Add capability records from the Podman 5.4.0 floor through current 6.0.2.
 - [x] Verify the generated Podman arguments against every recorded patch generator in that range.
 - [x] Add parser, builder, singleton/repetition, public-consumer, and documentation coverage.
 - [x] Add release notes and validate the Rust 1.85.0 consumer boundary.
-- [ ] Publish QuadletLens 0.1.5 through the protected trusted-publishing workflow.
+- [x] Publish QuadletLens 0.1.5 through the protected trusted-publishing workflow.
+
+## Additive 0.1.6 pod user-namespace and secret boundary — release candidate
+
+- [x] Type singleton pod `UserNS` parsing and programmatic construction.
+- [x] Add a separate `quadlet.pod.userns` capability record from Podman 5.4.0 through 6.0.2.
+- [x] Verify a pod-specific `--userns auto:size=8192` fragment at the support floor, image
+  boundary, and current ceiling.
+- [x] Add parser, builder, duplicate-singleton, catalogue, and public-consumer coverage.
+- [x] Type repeatable container `Secret` parsing and programmatic construction.
+- [x] Add `quadlet.container.secret` capability evidence for mounted-file and environment-variable
+  option forms from Podman 5.4.0 through 6.0.2.
+- [x] Verify both secret forms in the complete real-generator matrix.
+- [x] Run the complete 20-patch generator matrix.
+- [x] Add release notes and validate the Rust 1.85.0 consumer boundary.
+- [ ] Publish QuadletLens 0.1.6 through the protected trusted-publishing workflow.
 
 ## Issue-derived evidence
 

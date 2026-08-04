@@ -54,6 +54,23 @@ fn supported_range_records_paths_references_and_repetition() -> Result<(), Strin
     assert!(volume.value_forms().iter().any(|form| form == "unit-relative-path"));
     assert!(volume.value_forms().iter().any(|form| form == "volume-unit-reference"));
 
+    let secret = catalogue
+        .capability("quadlet.container.secret")
+        .ok_or_else(|| "container secret capability must exist".to_owned())?;
+    assert!(secret.is_repeatable());
+    assert!(
+        secret
+            .value_forms()
+            .iter()
+            .any(|form| form == "podman-secret-mount-options")
+    );
+    assert!(
+        secret
+            .value_forms()
+            .iter()
+            .any(|form| form == "podman-secret-environment-options")
+    );
+
     let image = catalogue
         .capability("quadlet.container.image")
         .ok_or_else(|| "container image capability must exist".to_owned())?;
@@ -83,6 +100,7 @@ fn supported_range_records_paths_references_and_repetition() -> Result<(), Strin
         "quadlet.container.group-add",
         "quadlet.container.working-dir",
         "quadlet.container.read-only",
+        "quadlet.container.secret",
         "quadlet.container.pod",
         "quadlet.container.health-command",
         "quadlet.container.health-interval",
@@ -98,6 +116,7 @@ fn supported_range_records_paths_references_and_repetition() -> Result<(), Strin
         "quadlet.pod.publish-port",
         "quadlet.pod.network",
         "quadlet.pod.volume",
+        "quadlet.pod.userns",
     ] {
         assert_eq!(
             catalogue.evaluate(capability, current).classification(),

@@ -1,7 +1,9 @@
 //! Consumer-facing compile and behavior contract for the supported 0.1.x API.
 
 use quadlet_lens::capability::{CapabilityCatalogue, PodmanTarget, PodmanVersion, SupportClassification};
-use quadlet_lens::model::{ContainerKey, NamedQuadletDocument, QuadletDocument, QuadletDocumentSet, QuadletUnitType};
+use quadlet_lens::model::{
+    ContainerKey, NamedQuadletDocument, PodKey, QuadletDocument, QuadletDocumentSet, QuadletUnitType,
+};
 use quadlet_lens::path::{PathForm, classify_path};
 use quadlet_lens::render::{EntryValue, QuadletDocumentBuilder, SystemdUnitKey};
 use quadlet_lens::source::SourceId;
@@ -37,6 +39,8 @@ fn supported_public_pipeline_compiles_and_keeps_stages_explicit() -> Result<(), 
         "quadlet.container.group-add",
         "quadlet.container.working-dir",
         "quadlet.container.read-only",
+        "quadlet.container.secret",
+        "quadlet.pod.userns",
     ] {
         assert_eq!(
             catalogue.evaluate(capability, target).classification(),
@@ -53,6 +57,10 @@ fn supported_public_pipeline_compiles_and_keeps_stages_explicit() -> Result<(), 
         EntryValue::new("host.docker.internal:host-gateway")?,
     )?;
     generated.push_container(ContainerKey::Image, EntryValue::new("example.invalid/generated:1")?)?;
+    generated.push_container(
+        ContainerKey::Secret,
+        EntryValue::new("database-password,target=password,mode=0440")?,
+    )?;
     generated.push_container(ContainerKey::User, EntryValue::new("1001")?)?;
     generated.push_container(ContainerKey::Group, EntryValue::new("1002")?)?;
     generated.push_container(ContainerKey::UserNS, EntryValue::new("keep-id")?)?;
@@ -73,6 +81,7 @@ fn supported_public_pipeline_compiles_and_keeps_stages_explicit() -> Result<(), 
             "[Container]\n",
             "AddHost=host.docker.internal:host-gateway\n",
             "Image=example.invalid/generated:1\n",
+            "Secret=database-password,target=password,mode=0440\n",
             "User=1001\n",
             "Group=1002\n",
             "UserNS=keep-id\n",
@@ -83,6 +92,14 @@ fn supported_public_pipeline_compiles_and_keeps_stages_explicit() -> Result<(), 
             "Notify=healthy\n",
             "HealthTimeout=5s\n",
         )
+    );
+
+    let mut generated_pod = QuadletDocumentBuilder::new(QuadletUnitType::Pod);
+    generated_pod.push_pod(PodKey::PodName, EntryValue::new("generated-pod")?)?;
+    generated_pod.push_pod(PodKey::UserNS, EntryValue::new("auto:size=8192")?)?;
+    assert_eq!(
+        generated_pod.build(SourceId::new(3))?.text(),
+        "[Pod]\nPodName=generated-pod\nUserNS=auto:size=8192\n"
     );
 
     Ok(())

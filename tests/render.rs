@@ -1,7 +1,7 @@
 //! Programmatic Quadlet construction and parse-back validation.
 
 use quadlet_lens::{
-    model::{ContainerKey, NamedQuadletDocument, NetworkKey, QuadletDocumentSet, QuadletUnitType, VolumeKey},
+    model::{ContainerKey, NamedQuadletDocument, NetworkKey, PodKey, QuadletDocumentSet, QuadletUnitType, VolumeKey},
     render::{EntryValue, QuadletDocumentBuilder, RenderError, SystemdSection, SystemdUnitKey},
     source::SourceId,
 };
@@ -26,6 +26,11 @@ fn builds_a_deterministic_first_conversion_document_set() -> Result<(), Box<dyn 
     container.push_container(ContainerKey::Image, value("example.invalid/app:1@sha256:abcd")?)?;
     container.push_container(ContainerKey::Exec, value("php -v")?)?;
     container.push_container(ContainerKey::Environment, value("APP_ENV=production")?)?;
+    container.push_container(
+        ContainerKey::Secret,
+        value("database-password,target=password,uid=1001,gid=1002,mode=0440")?,
+    )?;
+    container.push_container(ContainerKey::Secret, value("api-token,type=env,target=API_TOKEN")?)?;
     container.push_container(ContainerKey::User, value("1001")?)?;
     container.push_container(ContainerKey::Group, value("1002")?)?;
     container.push_container(ContainerKey::UserNS, value("keep-id")?)?;
@@ -58,6 +63,8 @@ fn builds_a_deterministic_first_conversion_document_set() -> Result<(), Box<dyn 
             "Image=example.invalid/app:1@sha256:abcd\n",
             "Exec=php -v\n",
             "Environment=APP_ENV=production\n",
+            "Secret=database-password,target=password,uid=1001,gid=1002,mode=0440\n",
+            "Secret=api-token,type=env,target=API_TOKEN\n",
             "User=1001\n",
             "Group=1002\n",
             "UserNS=keep-id\n",
@@ -101,6 +108,11 @@ fn preserves_repeated_native_and_generic_entries_in_order() -> Result<(), Box<dy
     builder.push_container(ContainerKey::AddHost, value("second:[::1]")?)?;
     builder.push_container(ContainerKey::Environment, value("FIRST=1")?)?;
     builder.push_container(ContainerKey::Environment, value("SECOND=2")?)?;
+    builder.push_container(ContainerKey::Secret, value("first-secret")?)?;
+    builder.push_container(
+        ContainerKey::Secret,
+        value("second-secret,type=env,target=SECOND_SECRET")?,
+    )?;
     builder.push_container(ContainerKey::GroupAdd, value("audio")?)?;
     builder.push_container(ContainerKey::GroupAdd, value("44")?)?;
     let generated = builder.build(SourceId::new(84))?;
@@ -118,10 +130,26 @@ fn preserves_repeated_native_and_generic_entries_in_order() -> Result<(), Box<dy
             "AddHost=second:[::1]\n",
             "Environment=FIRST=1\n",
             "Environment=SECOND=2\n",
+            "Secret=first-secret\n",
+            "Secret=second-secret,type=env,target=SECOND_SECRET\n",
             "GroupAdd=audio\n",
             "GroupAdd=44\n",
         )
     );
+    Ok(())
+}
+
+#[test]
+fn builds_a_singleton_pod_user_namespace() -> Result<(), Box<dyn std::error::Error>> {
+    let mut builder = QuadletDocumentBuilder::new(QuadletUnitType::Pod);
+    builder.push_pod(PodKey::PodName, value("example-pod")?)?;
+    builder.push_pod(PodKey::UserNS, value("auto:size=8192")?)?;
+    assert!(matches!(
+        builder.push_pod(PodKey::UserNS, value("keep-id")?),
+        Err(RenderError::DuplicateSingleton(key)) if key == "UserNS"
+    ));
+    let generated = builder.build(SourceId::new(88))?;
+    assert_eq!(generated.text(), "[Pod]\nPodName=example-pod\nUserNS=auto:size=8192\n");
     Ok(())
 }
 

@@ -5,6 +5,17 @@ Versioning for its documented pre-1.0 public API.
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-08-03
+
+### Added
+
+- Typed singleton pod `UserNS` parsing and programmatic construction.
+- Capability evidence for pod-level user namespaces from Podman 5.4.0 through 6.0.2.
+- A distinct pod `--userns auto:size=8192` assertion in the complete real-generator matrix.
+- Typed repeatable container `Secret` parsing and programmatic construction.
+- Capability and complete real-generator evidence for mounted-file and environment-variable
+  secret option forms from Podman 5.4.0 through 6.0.2.
+
 ## [0.1.5] - 2026-08-03
 
 ### Added

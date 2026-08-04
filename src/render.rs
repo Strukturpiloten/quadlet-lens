@@ -404,6 +404,7 @@ const fn container_key_name(key: ContainerKey) -> &'static str {
         ContainerKey::Exec => "Exec",
         ContainerKey::Environment => "Environment",
         ContainerKey::EnvironmentFile => "EnvironmentFile",
+        ContainerKey::Secret => "Secret",
         ContainerKey::PublishPort => "PublishPort",
         ContainerKey::Volume => "Volume",
         ContainerKey::Network => "Network",
@@ -431,6 +432,7 @@ const fn pod_key_name(key: PodKey) -> &'static str {
         PodKey::PublishPort => "PublishPort",
         PodKey::Network => "Network",
         PodKey::Volume => "Volume",
+        PodKey::UserNS => "UserNS",
     }
 }
 

@@ -8,3 +8,4 @@ Volume=data.volume:/srv/shared:Z
 Volume=quadlet-lens-pod-data:/srv/named:ro
 Volume=./pod-data:/srv/local:ro,Z
 Volume=/srv/anonymous
+UserNS=auto:size=8192

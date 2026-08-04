@@ -15,6 +15,14 @@ Repeated native keys retain insertion order. Native keys classified as singleton
 when repeated. Generic systemd directives may repeat because their list and reset semantics are
 directive-specific.
 
+`ContainerKey::Secret` is repeatable. Its exact value may select mounted-file or environment
+exposure and carry target, UID, GID, and mode options; the builder preserves those options without
+reading the referenced Podman secret.
+
+`PodKey::UserNS` configures the namespace shared by pod members and is a singleton. It is distinct
+from `ContainerKey::UserNS`: Podman ignores container-level namespace selection after a container
+joins a pod.
+
 `build` emits deterministic text, reparses it through the normal syntax and typed-model pipeline,
 and fails if that result contains an error. Successful output exposes the source text, typed
 document, and complete parse result.
@@ -23,7 +31,7 @@ document, and complete parse result.
 
 `EntryValue` is exact native semantic text on one physical line. It rejects NUL bytes and line
 endings, but deliberately does not quote or normalize its contents. A caller that writes
-`AddHost=`, `Environment=`, `Exec=`, an identity/context key, a health-check or readiness key, a
+`AddHost=`, `Environment=`, `Secret=`, `Exec=`, an identity/context key, a health-check or readiness key, a
 systemd unit dependency, `PublishPort=`, or `Volume=` must select the appropriate native
 systemd/Podman spelling.
 
