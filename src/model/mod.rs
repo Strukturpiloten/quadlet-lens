@@ -114,8 +114,6 @@ pub enum ContainerKey {
     Environment,
     /// Environment-file path.
     EnvironmentFile,
-    /// Podman secret reference and optional mount or environment exposure options.
-    Secret,
     /// Published port.
     PublishPort,
     /// Bind, named, anonymous, or `.volume` mount.
@@ -150,6 +148,8 @@ pub enum ContainerKey {
     WorkingDir,
     /// Whether the container root filesystem is read-only.
     ReadOnly,
+    /// Podman secret reference and optional mount or environment exposure options.
+    Secret,
 }
 
 /// Pod keys required by the first Compose-to-Quadlet conversion.

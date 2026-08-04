@@ -49,6 +49,11 @@ Enums intended to grow are marked `#[non_exhaustive]` before the first release. 
 enums without that marker require a breaking release when adding a variant would break exhaustive
 matches.
 
+Public unit-only enums also expose their implicit numeric discriminants through Rust casts. New
+variants are therefore appended; existing variants are never reordered. The public API regression
+test records the published key-enum values, and normal CI compares the candidate API with the
+latest published crate before changes can reach the release workflow.
+
 ## Not promised by 0.1
 
 The 0.1 contract does not claim:
