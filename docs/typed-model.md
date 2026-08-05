@@ -97,12 +97,12 @@ Initial stable codes are:
 | Code      | Severity | Meaning                                                  |
 | --------- | -------- | -------------------------------------------------------- |
 | `QLM0001` | error    | Required native section is missing                       |
-| `QLM0002` | error    | A container has neither `Image=` nor `Rootfs=`            |
+| `QLM0002` | error    | A container has neither `Image=` nor `Rootfs=`           |
 | `QLM0003` | warning  | A native section does not match the selected unit suffix |
 | `QLM0004` | warning  | A first-conversion singleton key is repeated             |
 | `QLM0005` | error    | An `Image=` entry is empty                               |
-| `QLM0006` | error    | `Image=` and `Rootfs=` are both present                   |
-| `QLM0007` | error    | A `Rootfs=` entry is empty                                |
+| `QLM0006` | error    | `Image=` and `Rootfs=` are both present                  |
+| `QLM0007` | error    | A `Rootfs=` entry is empty                               |
 | `QLG0001` | error    | A native unit reference has no matching document         |
 | `QLG0002` | error    | A native unit reference matches duplicate basenames      |
 | `QLG0003` | error    | The document set contains a duplicate basename           |
