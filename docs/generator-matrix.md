@@ -49,7 +49,7 @@ invoke systemctl, or start generated services. Runtime, rootless/rootful, cgroup
 SELinux behavior remain separate test tiers.
 
 The first-conversion fixture covers mutually exclusive registry-image and host-rootfs workload
-sources, including `name:tag@digest` images and absolute `Rootfs` values, commands,
+sources, including `name:tag@digest` images and absolute `Rootfs` values, explicit container names, commands,
 environment and systemd specifiers, absolute and unit-relative environment files, repeated
 container labels, repeated mounted
 and environment-variable secrets with options, repeatable container and pod host mappings

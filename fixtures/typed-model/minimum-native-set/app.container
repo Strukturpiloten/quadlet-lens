@@ -4,6 +4,7 @@ After=network-online.target
 After=frontend.network
 
 [Container]
+ContainerName=quadlet-lens-app
 AddHost=host.docker.internal:host-gateway
 AddHost=database:192.0.2.10
 Image=registry.example.invalid/app:1.2@sha256:abcdef

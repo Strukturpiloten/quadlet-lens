@@ -55,6 +55,7 @@ fn container_model_retains_order_repetition_unknowns_and_generic_systemd() -> Re
     assert_eq!(
         known,
         [
+            ContainerKey::ContainerName,
             ContainerKey::AddHost,
             ContainerKey::AddHost,
             ContainerKey::Image,

@@ -141,10 +141,13 @@ patch from 5.4.0 through 6.0.2. QuadletLens 0.1.6 adds the distinct pod-level `U
 to preserve a compatible namespace choice when BoxFerry explicitly groups services into a pod,
 plus repeatable container `Secret` entries for the next config/secret conversion slice; that release
 is published. QuadletLens 0.1.7 adds ordered repeatable native container labels with exact generator
-evidence across Podman 5.4.0 through 6.0.2. ComposeLens 0.1.9 is published with the coordinated
-source-side label and real-world parsing corrections. QuadletLens 0.1.8 is the release candidate
-for the first pinned real-world Quadlet corpus and typed rootfs-backed containers. BoxFerry can
-consume its additive `Rootfs` key after publication when a neutral rootfs workload source is added.
+evidence across Podman 5.4.0 through 6.0.2. ComposeLens 0.1.9 and QuadletLens 0.1.8 are published
+with real-world parser corrections and the first pinned Quadlet corpus. ComposeLens 0.1.10 and
+QuadletLens 0.1.9 are the coordinated candidates for an explicit Compose `container_name` and
+native Quadlet `ContainerName=` boundary. BoxFerry will consume both published releases before
+promoting the field into its neutral model; sibling path dependencies are not used. Using
+`Rootfs` end to end still requires an explicit neutral rootfs workload source rather than
+substituting it for an image.
 
 ## T6: First end-to-end milestone
 

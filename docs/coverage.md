@@ -37,7 +37,7 @@ one of the four typed unit types.
 
 | Section | Typed keys |
 | --- | --- |
-| `[Container]` | `AddHost`, `Image`, `Rootfs`, `Exec`, `Environment`, `EnvironmentFile`, `Label`, `Secret`, `User`, `Group`, `UserNS`, `GroupAdd`, `WorkingDir`, `ReadOnly`, `PublishPort`, `Volume`, `Network`, `Pod`, `HealthCmd`, `Notify`, `HealthInterval`, `HealthRetries`, `HealthStartPeriod`, `HealthTimeout`, `PodmanArgs` |
+| `[Container]` | `AddHost`, `ContainerName`, `Image`, `Rootfs`, `Exec`, `Environment`, `EnvironmentFile`, `Label`, `Secret`, `User`, `Group`, `UserNS`, `GroupAdd`, `WorkingDir`, `ReadOnly`, `PublishPort`, `Volume`, `Network`, `Pod`, `HealthCmd`, `Notify`, `HealthInterval`, `HealthRetries`, `HealthStartPeriod`, `HealthTimeout`, `PodmanArgs` |
 | `[Pod]` | `AddHost`, `PodName`, `PublishPort`, `Network`, `Volume`, `UserNS` |
 | `[Network]` | `NetworkName` |
 | `[Volume]` | `VolumeName` |
@@ -75,6 +75,10 @@ documented at the Podman 5.4 floor, exercised by the public `containers/qm` unit
 generated `--rootfs` argument through the supported generator matrix. QuadletLens retains its exact
 value and does not inspect the host filesystem, parse overlay-rootfs options, or verify SELinux
 labels.
+
+The container-identity subset includes singleton `ContainerName`. It is documented at the Podman
+5.4 floor and verified as an exact `--name` generator argument through 6.0.2. The value is not
+derived from the unit basename, checked for host collisions, or treated as a systemd unit name.
 
 The dependency-readiness subset also includes:
 
