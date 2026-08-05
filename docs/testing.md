@@ -46,7 +46,7 @@ through 5.8.2 with its manifest digest. For 5.8.3 through current 6.0.2 it build
 generator from an exact release commit in a digest-pinned Go container. The smoke lane covers the
 minimum, the official-image boundary, and current stable; its scheduled/manual full lane covers all
 20 patches. It invokes only the dry-run generator. The fixture covers container and pod
-relationships, ports, environment-file path forms, execution identity and context, networks,
+relationships, ports, environment-file path forms, repeated container labels, execution identity and context, networks,
 volume and bind forms, distinct container/pod user namespaces, health modes, restart behavior, continued raw arguments, and stable
 generated dependencies. See the
 [matrix documentation](generator-matrix.md).
@@ -77,7 +77,7 @@ the lower and rolling upper coverage boundaries, and uses synthetic evidence to 
 and known-bug precedence. Capabilities outside the generator fixture retain explicit evidence gaps.
 
 The typed-model suite protects the initial `.container`, `.pod`, `.network`, and `.volume` surface.
-It checks native key classification, repeated container/pod `AddHost` and container `Secret`
+It checks native key classification, repeated container/pod `AddHost` and container `Label`/`Secret`
 entries, singleton pod `UserNS`, generic systemd
 sections, repeated and unknown entries, continuation segments, `%h` and unit-relative paths, native
 unit references, explicit supported suffixes, required fields, singleton diagnostics, foreign
@@ -87,7 +87,7 @@ source identities, and filename/type matching.
 
 The generation suite constructs `.container`, `.network`, and `.volume` documents, verifies exact
 deterministic output, reparses every result, and resolves the generated cross-file graph. It also
-protects repeated AddHost, environment, secret, and systemd entries and all document-builder rejection
+protects repeated AddHost, environment, label, secret, and systemd entries and all document-builder rejection
 paths.
 
 ## Regression rule

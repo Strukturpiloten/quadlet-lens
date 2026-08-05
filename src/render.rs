@@ -404,6 +404,7 @@ const fn container_key_name(key: ContainerKey) -> &'static str {
         ContainerKey::Exec => "Exec",
         ContainerKey::Environment => "Environment",
         ContainerKey::EnvironmentFile => "EnvironmentFile",
+        ContainerKey::Label => "Label",
         ContainerKey::Secret => "Secret",
         ContainerKey::PublishPort => "PublishPort",
         ContainerKey::Volume => "Volume",

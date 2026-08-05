@@ -11,6 +11,10 @@ Exec=/bin/sh -c "php vendor/bin/example"
 Environment=APP_ENV=production
 Environment=APP_HOME=%h/example
 EnvironmentFile=-%h/example/app.env
+Label=org.example.application=example
+Label=org.example.environment=production
+Label=org.example.empty=
+Label="org.example.metadata={\"channel\": \"stable\"}"
 Secret=database-password,target=password,uid=1001,gid=1002,mode=0440
 Secret=api-token,type=env,target=API_TOKEN
 User=1001

@@ -7,6 +7,10 @@ AddHost=database:192.0.2.10
 Image=registry.example.invalid/application:1.0@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 Exec=/usr/bin/true
 Environment=APP_HOME=%h/application
+Label=io.github.strukturpiloten.quadlet-lens.fixture=app
+Label=io.github.strukturpiloten.quadlet-lens.repeat=second
+Label=io.github.strukturpiloten.quadlet-lens.empty=
+Label="io.github.strukturpiloten.quadlet-lens.metadata={\"channel\": \"stable\"}"
 PublishPort=8080
 PublishPort=18081:8081
 PublishPort=127.0.0.1:18080:8080

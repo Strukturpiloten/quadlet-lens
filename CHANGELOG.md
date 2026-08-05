@@ -5,6 +5,15 @@ Versioning for its documented pre-1.0 public API.
 
 ## [Unreleased]
 
+## [0.1.7] - 2026-08-05
+
+### Added
+
+- Typed repeatable container `Label` parsing and programmatic construction.
+- Capability and complete real-generator evidence for repeated, empty, and quote-bearing OCI label
+  assignments from Podman 5.4.0 through 6.0.2, including their version-specific systemd whitespace
+  spelling.
+
 ## [0.1.6] - 2026-08-03
 
 ### Added

@@ -119,7 +119,7 @@ without a sibling path or Git dependency.
 - [x] Add release notes and validate the Rust 1.85.0 consumer boundary.
 - [x] Publish QuadletLens 0.1.5 through the protected trusted-publishing workflow.
 
-## Additive 0.1.6 pod user-namespace and secret boundary — release candidate
+## Additive 0.1.6 pod user-namespace and secret boundary — completed
 
 - [x] Type singleton pod `UserNS` parsing and programmatic construction.
 - [x] Add a separate `quadlet.pod.userns` capability record from Podman 5.4.0 through 6.0.2.
@@ -132,7 +132,17 @@ without a sibling path or Git dependency.
 - [x] Verify both secret forms in the complete real-generator matrix.
 - [x] Run the complete 20-patch generator matrix.
 - [x] Add release notes and validate the Rust 1.85.0 consumer boundary.
-- [ ] Publish QuadletLens 0.1.6 through the protected trusted-publishing workflow.
+- [x] Publish QuadletLens 0.1.6 through the protected trusted-publishing workflow.
+
+## Additive 0.1.7 container-label boundary — release candidate
+
+- [x] Type repeatable container `Label` parsing and programmatic construction.
+- [x] Add `quadlet.container.label` capability evidence from Podman 5.4.0 through 6.0.2.
+- [x] Verify repeated native label arguments in the complete 20-patch generator matrix.
+- [x] Append the public key-enum variant without changing published discriminants.
+- [x] Add parser, builder, catalogue, public-consumer, and documentation coverage.
+- [x] Add release notes and validate the Rust 1.85.0 consumer boundary.
+- [ ] Publish QuadletLens 0.1.7 through the protected trusted-publishing workflow.
 
 ## Issue-derived evidence
 

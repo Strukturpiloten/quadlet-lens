@@ -159,7 +159,8 @@ target document and should not depend on Podman inspection JSON.
 
 When the matching implementation phase begins, add independently authored fixtures for:
 
-- repeated `Label=` with empty and quote-bearing values;
+- repeated `Label=` with empty and quote-bearing values — implemented and generator-verified in
+  QuadletLens 0.1.7;
 - newline-bearing environment values;
 - command/entrypoint argument boundaries;
 - literal `~`, `%h`, relative, and absolute paths;

@@ -1,7 +1,7 @@
 schema = 1
 id = "first-conversion-supported-range"
 suite = "generators"
-description = "Exercises the first-conversion container, pod, network, volume, add-host, secret, container/pod user namespaces, execution identity, path, reference, health command/timing/readiness, dependency ordering, continuation, and generic systemd surface against exact Podman generators."
+description = "Exercises the first-conversion container, pod, network, volume, add-host, label, secret, container/pod user namespaces, execution identity, path, reference, health command/timing/readiness, dependency ordering, continuation, and generic systemd surface against exact Podman generators."
 secrets_reviewed = true
 files = ["app.container", "app.network", "application.pod", "data.volume", "expected-fragments.txt", "no-health.container", "worker.container", "worker.env"]
 
@@ -15,4 +15,4 @@ modifications = "none"
 description = "The harness mounts this directory read-only with label separation disabled and invokes only the containerized Quadlet generator in dry-run mode. It does not start generated services or container workloads."
 
 [expectations]
-summary = "Every verified generator succeeds and emits stable add-host, secret, container/pod user-namespace, execution-identity, health-readiness, dependency-ordering, and service fragments while preserving Podman 5.4-compatible behavior."
+summary = "Every verified generator succeeds and emits stable add-host, label, secret, container/pod user-namespace, execution-identity, health-readiness, dependency-ordering, and service fragments while preserving Podman 5.4-compatible behavior."

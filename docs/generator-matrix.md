@@ -49,7 +49,8 @@ invoke systemctl, or start generated services. Runtime, rootless/rootful, cgroup
 SELinux behavior remain separate test tiers.
 
 The first-conversion fixture covers registry images including `name:tag@digest`, commands,
-environment and systemd specifiers, absolute and unit-relative environment files, repeated mounted
+environment and systemd specifiers, absolute and unit-relative environment files, repeated
+container labels, repeated mounted
 and environment-variable secrets with options, repeatable container and pod host mappings
 including `host-gateway`, container and pod membership, the container user/group and user
 namespace, the pod's shared user namespace, supplementary groups, working directory, read-only
@@ -59,6 +60,11 @@ mounts, SELinux mount-option spelling, health commands including `none`, regular
 restart behavior, continued `PodmanArgs`, and generated cross-unit dependencies. These are
 generator claims; actual activation, failure propagation, rootless/rootful, and SELinux enforcement
 remain runtime evidence.
+
+The quote-bearing label case also records a generated-service presentation boundary. Podman 5.4.x
+keeps the JSON-like label's space literal inside a quoted argument; every tested release from 5.5.0
+onward writes the equivalent systemd `\x20` escape. The harness requires exactly the observed form
+family and still verifies that the complete label remains one quoted `--label` argument.
 
 ## Commands
 

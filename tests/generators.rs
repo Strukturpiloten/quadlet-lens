@@ -16,6 +16,10 @@ const EXPECTED_IMAGE_VERSIONS: &[&str] = &[
     "5.8.1", "5.8.2",
 ];
 const EXPECTED_SOURCE_VERSIONS: &[&str] = &["5.8.3", "5.8.4", "5.8.5", "6.0.0", "6.0.1", "6.0.2"];
+const QUOTED_LABEL_LITERAL_SPACE: &str =
+    r#"--label "io.github.strukturpiloten.quadlet-lens.metadata={\"channel\": \"stable\"}""#;
+const QUOTED_LABEL_HEX_SPACE: &str =
+    r#"--label "io.github.strukturpiloten.quadlet-lens.metadata={\"channel\":\x20\"stable\"}""#;
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -490,6 +494,26 @@ fn verify_generator_output(version: &str, expected: &[String], output: &Output) 
             ));
         }
     }
+    verify_quoted_label_encoding(version, &generated, output)?;
+    Ok(())
+}
+
+fn verify_quoted_label_encoding(version: &str, generated: &str, output: &Output) -> Result<(), String> {
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    let literal_count = generated.matches(QUOTED_LABEL_LITERAL_SPACE).count();
+    let hex_count = generated.matches(QUOTED_LABEL_HEX_SPACE).count();
+    let (expected_name, expected_count, unexpected_count) = if parsed.major() == 5 && parsed.minor() == 4 {
+        ("literal-space", literal_count, hex_count)
+    } else {
+        ("hex-space", hex_count, literal_count)
+    };
+    if expected_count != 1 || unexpected_count != 0 {
+        return Err(format!(
+            "Podman {version} generator output must contain exactly one {expected_name} quoted-label encoding and no other supported encoding; found literal-space={literal_count}, hex-space={hex_count}\nstdout:\n{generated}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+    eprintln!("Podman {version} quoted-label encoding: {expected_name}");
     Ok(())
 }
 

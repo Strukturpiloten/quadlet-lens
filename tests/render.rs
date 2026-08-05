@@ -26,6 +26,8 @@ fn builds_a_deterministic_first_conversion_document_set() -> Result<(), Box<dyn 
     container.push_container(ContainerKey::Image, value("example.invalid/app:1@sha256:abcd")?)?;
     container.push_container(ContainerKey::Exec, value("php -v")?)?;
     container.push_container(ContainerKey::Environment, value("APP_ENV=production")?)?;
+    container.push_container(ContainerKey::Label, value("org.example.application=example")?)?;
+    container.push_container(ContainerKey::Label, value("org.example.environment=production")?)?;
     container.push_container(
         ContainerKey::Secret,
         value("database-password,target=password,uid=1001,gid=1002,mode=0440")?,
@@ -63,6 +65,8 @@ fn builds_a_deterministic_first_conversion_document_set() -> Result<(), Box<dyn 
             "Image=example.invalid/app:1@sha256:abcd\n",
             "Exec=php -v\n",
             "Environment=APP_ENV=production\n",
+            "Label=org.example.application=example\n",
+            "Label=org.example.environment=production\n",
             "Secret=database-password,target=password,uid=1001,gid=1002,mode=0440\n",
             "Secret=api-token,type=env,target=API_TOKEN\n",
             "User=1001\n",
@@ -108,6 +112,13 @@ fn preserves_repeated_native_and_generic_entries_in_order() -> Result<(), Box<dy
     builder.push_container(ContainerKey::AddHost, value("second:[::1]")?)?;
     builder.push_container(ContainerKey::Environment, value("FIRST=1")?)?;
     builder.push_container(ContainerKey::Environment, value("SECOND=2")?)?;
+    builder.push_container(ContainerKey::Label, value("org.example.first=1")?)?;
+    builder.push_container(ContainerKey::Label, value("org.example.second=2")?)?;
+    builder.push_container(ContainerKey::Label, value("org.example.empty=")?)?;
+    builder.push_container(
+        ContainerKey::Label,
+        value(r#""org.example.metadata={\"channel\": \"stable\"}""#)?,
+    )?;
     builder.push_container(ContainerKey::Secret, value("first-secret")?)?;
     builder.push_container(
         ContainerKey::Secret,
@@ -130,6 +141,10 @@ fn preserves_repeated_native_and_generic_entries_in_order() -> Result<(), Box<dy
             "AddHost=second:[::1]\n",
             "Environment=FIRST=1\n",
             "Environment=SECOND=2\n",
+            "Label=org.example.first=1\n",
+            "Label=org.example.second=2\n",
+            "Label=org.example.empty=\n",
+            "Label=\"org.example.metadata={\\\"channel\\\": \\\"stable\\\"}\"\n",
             "Secret=first-secret\n",
             "Secret=second-secret,type=env,target=SECOND_SECRET\n",
             "GroupAdd=audio\n",

@@ -20,6 +20,7 @@ This directory defines QuadletLens's architecture and version-aware behavior.
 - [Dependency and license policy](dependency-policy.md) — dependency selection, allowed sources, and license checks
 - [Implementation plan](implementation-plan.md) — synchronized cross-repository tasks T1–T7
 - [Roadmap](roadmap.md) — implementation order
+- [0.1.7 release notes](releases/0.1.7.md) — repeatable container labels
 - [0.1.6 release notes](releases/0.1.6.md) — pod user namespaces and container secrets
 - [0.1.5 release notes](releases/0.1.5.md) — container execution identity and context
 - [0.1.0 release notes](releases/0.1.0.md) — initial public-delivery scope and known limits

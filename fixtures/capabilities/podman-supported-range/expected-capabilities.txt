@@ -10,6 +10,7 @@ quadlet.container.health-retries
 quadlet.container.health-start-period
 quadlet.container.health-timeout
 quadlet.container.image
+quadlet.container.label
 quadlet.container.network
 quadlet.container.notify-healthy
 quadlet.container.pod

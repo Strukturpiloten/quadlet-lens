@@ -49,7 +49,7 @@ source text
 - [Testing strategy](docs/testing.md)
 - [Development environment](docs/development-environment.md)
 - [API stability policy](docs/api-stability.md)
-- [0.1.6 release notes](docs/releases/0.1.6.md)
+- [0.1.7 release notes](docs/releases/0.1.7.md)
 - [Release policy](docs/releasing.md)
 - [Changelog](CHANGELOG.md)
 - [Cross-repository implementation plan](docs/implementation-plan.md)
