@@ -4,6 +4,9 @@ Restart=on-failure
 --add-host host.docker.internal:host-gateway
 --add-host database:192.0.2.10
 --env APP_HOME=%h/application
+--label io.github.strukturpiloten.quadlet-lens.fixture=app
+--label io.github.strukturpiloten.quadlet-lens.repeat=second
+--label io.github.strukturpiloten.quadlet-lens.empty=
 --network quadlet-lens-network
 -v quadlet-lens-data:/var/lib/application:Z
 --publish 127.0.0.1:18080:8080

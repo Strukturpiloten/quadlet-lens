@@ -2,7 +2,7 @@
 
 This plan gives BoxFerry, ComposeLens, and QuadletLens one stable task numbering scheme. Repository roadmaps describe internal phases; this document describes delivery order across repositories.
 
-Last synchronized: 2026-08-03.
+Last synchronized: 2026-08-05.
 
 ## Status convention
 
@@ -139,9 +139,11 @@ context. Typed container `User`, `Group`, `UserNS`, repeatable `GroupAdd`, `Work
 `ReadOnly` keys have capability records and generated-command evidence on every recorded Podman
 patch from 5.4.0 through 6.0.2. QuadletLens 0.1.6 adds the distinct pod-level `UserNS` key required
 to preserve a compatible namespace choice when BoxFerry explicitly groups services into a pod,
-plus repeatable container `Secret` entries for the next config/secret conversion slice.
-ComposeLens 0.1.6 is the coordinated source-side candidate with effective short/long grants and
-field-level multi-file provenance; BoxFerry integration remains gated on publication of both.
+plus repeatable container `Secret` entries for the next config/secret conversion slice; that release
+is published. QuadletLens 0.1.7 adds ordered repeatable native container labels with exact generator
+evidence across Podman 5.4.0 through 6.0.2. ComposeLens 0.1.8 is the coordinated source-side label
+candidate with syntax-form and multi-file provenance retention. BoxFerry label integration remains
+gated on publication of these two candidates.
 
 ## T6: First end-to-end milestone
 

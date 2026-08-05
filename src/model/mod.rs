@@ -150,6 +150,8 @@ pub enum ContainerKey {
     ReadOnly,
     /// Podman secret reference and optional mount or environment exposure options.
     Secret,
+    /// OCI label assignment attached to the container.
+    Label,
 }
 
 /// Pod keys required by the first Compose-to-Quadlet conversion.
@@ -215,6 +217,7 @@ impl EntryKind {
                     ContainerKey::AddHost
                         | ContainerKey::Environment
                         | ContainerKey::EnvironmentFile
+                        | ContainerKey::Label
                         | ContainerKey::Secret
                         | ContainerKey::PublishPort
                         | ContainerKey::Volume
@@ -700,6 +703,7 @@ fn classify_entry(section: SectionKind, key: &str) -> EntryKind {
             "Exec" => EntryKind::Container(ContainerKey::Exec),
             "Environment" => EntryKind::Container(ContainerKey::Environment),
             "EnvironmentFile" => EntryKind::Container(ContainerKey::EnvironmentFile),
+            "Label" => EntryKind::Container(ContainerKey::Label),
             "Secret" => EntryKind::Container(ContainerKey::Secret),
             "PublishPort" => EntryKind::Container(ContainerKey::PublishPort),
             "Volume" => EntryKind::Container(ContainerKey::Volume),

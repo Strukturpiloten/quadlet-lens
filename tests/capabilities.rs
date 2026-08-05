@@ -64,6 +64,12 @@ fn supported_range_records_paths_references_and_repetition() -> Result<(), Strin
             .iter()
             .any(|form| form == "podman-secret-mount-options")
     );
+
+    let label = catalogue
+        .capability("quadlet.container.label")
+        .ok_or_else(|| "container label capability must exist".to_owned())?;
+    assert!(label.is_repeatable());
+    assert!(label.value_forms().iter().any(|form| form == "oci-label-assignment"));
     assert!(
         secret
             .value_forms()
@@ -101,6 +107,7 @@ fn supported_range_records_paths_references_and_repetition() -> Result<(), Strin
         "quadlet.container.working-dir",
         "quadlet.container.read-only",
         "quadlet.container.secret",
+        "quadlet.container.label",
         "quadlet.container.pod",
         "quadlet.container.health-command",
         "quadlet.container.health-interval",

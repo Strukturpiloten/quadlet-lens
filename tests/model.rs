@@ -62,6 +62,10 @@ fn container_model_retains_order_repetition_unknowns_and_generic_systemd() -> Re
             ContainerKey::Environment,
             ContainerKey::Environment,
             ContainerKey::EnvironmentFile,
+            ContainerKey::Label,
+            ContainerKey::Label,
+            ContainerKey::Label,
+            ContainerKey::Label,
             ContainerKey::Secret,
             ContainerKey::Secret,
             ContainerKey::User,
@@ -147,6 +151,21 @@ fn container_model_classifies_native_references_paths_and_continuations() -> Res
     assert_eq!(podman_args.value().continuations().len(), 1);
     assert_eq!(podman_args.value().continuations()[0].text(), "--label second=value");
     assert!(podman_args.value().primary().text().ends_with('\\'));
+
+    assert_eq!(
+        container_entry(&result, ContainerKey::Label, 2)?
+            .value()
+            .primary()
+            .text(),
+        "org.example.empty="
+    );
+    assert_eq!(
+        container_entry(&result, ContainerKey::Label, 3)?
+            .value()
+            .primary()
+            .text(),
+        r#""org.example.metadata={\"channel\": \"stable\"}""#
+    );
     Ok(())
 }
 

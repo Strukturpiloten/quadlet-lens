@@ -35,9 +35,10 @@ fn growing_public_key_enums_preserve_published_discriminants() {
             ContainerKey::WorkingDir as isize,
             ContainerKey::ReadOnly as isize,
             ContainerKey::Secret as isize,
+            ContainerKey::Label as isize,
         ],
         [
-            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
+            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
         ]
     );
     assert_eq!(
@@ -85,6 +86,7 @@ fn supported_public_pipeline_compiles_and_keeps_stages_explicit() -> Result<(), 
         "quadlet.container.working-dir",
         "quadlet.container.read-only",
         "quadlet.container.secret",
+        "quadlet.container.label",
         "quadlet.pod.userns",
     ] {
         assert_eq!(
@@ -102,6 +104,11 @@ fn supported_public_pipeline_compiles_and_keeps_stages_explicit() -> Result<(), 
         EntryValue::new("host.docker.internal:host-gateway")?,
     )?;
     generated.push_container(ContainerKey::Image, EntryValue::new("example.invalid/generated:1")?)?;
+    generated.push_container(
+        ContainerKey::Label,
+        EntryValue::new("org.example.application=generated")?,
+    )?;
+    generated.push_container(ContainerKey::Label, EntryValue::new("org.example.stage=test")?)?;
     generated.push_container(
         ContainerKey::Secret,
         EntryValue::new("database-password,target=password,mode=0440")?,
@@ -126,6 +133,8 @@ fn supported_public_pipeline_compiles_and_keeps_stages_explicit() -> Result<(), 
             "[Container]\n",
             "AddHost=host.docker.internal:host-gateway\n",
             "Image=example.invalid/generated:1\n",
+            "Label=org.example.application=generated\n",
+            "Label=org.example.stage=test\n",
             "Secret=database-password,target=password,mode=0440\n",
             "User=1001\n",
             "Group=1002\n",

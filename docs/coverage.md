@@ -3,7 +3,7 @@
 This document distinguishes loss-aware parsing from typed construction and version-evidenced
 generation. It was audited against the current official
 [Quadlet manual](https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html) and the
-supported Podman 5.4 floor on 2026-08-03.
+supported Podman 5.4 floor on 2026-08-05.
 
 ## Coverage layers
 
@@ -37,7 +37,7 @@ one of the four typed unit types.
 
 | Section | Typed keys |
 | --- | --- |
-| `[Container]` | `AddHost`, `Image`, `Exec`, `Environment`, `EnvironmentFile`, `Secret`, `User`, `Group`, `UserNS`, `GroupAdd`, `WorkingDir`, `ReadOnly`, `PublishPort`, `Volume`, `Network`, `Pod`, `HealthCmd`, `Notify`, `HealthInterval`, `HealthRetries`, `HealthStartPeriod`, `HealthTimeout`, `PodmanArgs` |
+| `[Container]` | `AddHost`, `Image`, `Exec`, `Environment`, `EnvironmentFile`, `Label`, `Secret`, `User`, `Group`, `UserNS`, `GroupAdd`, `WorkingDir`, `ReadOnly`, `PublishPort`, `Volume`, `Network`, `Pod`, `HealthCmd`, `Notify`, `HealthInterval`, `HealthRetries`, `HealthStartPeriod`, `HealthTimeout`, `PodmanArgs` |
 | `[Pod]` | `AddHost`, `PodName`, `PublishPort`, `Network`, `Volume`, `UserNS` |
 | `[Network]` | `NetworkName` |
 | `[Volume]` | `VolumeName` |
@@ -45,7 +45,7 @@ one of the four typed unit types.
 
 All other current manual keys are syntax-preserved but not yet part of the typed builder contract.
 This includes many useful container keys such as DNS, capabilities, entrypoint, startup-health
-settings, hostname, labels, resource limits, mounts, network aliases, security labeling,
+settings, hostname, resource limits, mounts, network aliases, security labeling,
 and stop behavior. Pod, network, and volume sections likewise have broader native surfaces than
 the first conversion subset.
 
@@ -62,6 +62,13 @@ The secret subset includes repeatable mounted-file and environment-variable Podm
 references, with target, UID, GID, and mode option spellings retained as exact native text.
 Generator evidence proves the emitted `--secret` arguments; secret creation, content, rotation,
 and runtime availability remain caller-owned concerns.
+
+The label subset includes ordered, repeatable container `Label=key=value` assignments. The full
+generator matrix proves ordinary, empty, and JSON-like quote/whitespace values from Podman 5.4.0
+through 6.0.2. It explicitly accepts the literal-space systemd spelling emitted by 5.4.x and the
+equivalent `\x20` spelling emitted from 5.5.0 onward. Label name conventions, duplicate-name
+semantics, and labels owned by network or volume resources remain caller- or future-model
+responsibilities.
 
 The dependency-readiness subset also includes:
 

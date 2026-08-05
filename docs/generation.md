@@ -19,6 +19,10 @@ directive-specific.
 exposure and carry target, UID, GID, and mode options; the builder preserves those options without
 reading the referenced Podman secret.
 
+`ContainerKey::Label` is repeatable. Each value remains an exact native `key=value` assignment;
+the builder preserves insertion order and does not enforce reverse-DNS naming recommendations or
+merge duplicate label names.
+
 `PodKey::UserNS` configures the namespace shared by pod members and is a singleton. It is distinct
 from `ContainerKey::UserNS`: Podman ignores container-level namespace selection after a container
 joins a pod.
@@ -31,8 +35,8 @@ document, and complete parse result.
 
 `EntryValue` is exact native semantic text on one physical line. It rejects NUL bytes and line
 endings, but deliberately does not quote or normalize its contents. A caller that writes
-`AddHost=`, `Environment=`, `Secret=`, `Exec=`, an identity/context key, a health-check or readiness key, a
-systemd unit dependency, `PublishPort=`, or `Volume=` must select the appropriate native
+`AddHost=`, `Environment=`, `Label=`, `Secret=`, `Exec=`, an identity/context key, a health-check
+or readiness key, a systemd unit dependency, `PublishPort=`, or `Volume=` must select the appropriate native
 systemd/Podman spelling.
 
 This is an explicit boundary, not a claim that all value forms are interchangeable. Future
@@ -62,6 +66,10 @@ builder.push_container(
     ContainerKey::Environment,
     EntryValue::new("APP_ENV=production")?,
 )?;
+builder.push_container(
+    ContainerKey::Label,
+    EntryValue::new("org.example.application=example")?,
+)?;
 
 let generated = builder.build(SourceId::new(1))?;
 assert_eq!(
@@ -71,6 +79,7 @@ assert_eq!(
         "AddHost=host.docker.internal:host-gateway\n",
         "Image=example.invalid/application:1\n",
         "Environment=APP_ENV=production\n",
+        "Label=org.example.application=example\n",
     ),
 );
 # Ok(())
