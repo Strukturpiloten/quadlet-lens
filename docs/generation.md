@@ -19,6 +19,9 @@ A generated container requires exactly one workload source. `ContainerKey::Image
 or native image/build reference; `ContainerKey::Rootfs` selects a Podman root filesystem. Building
 a document with neither or both returns structured typed-model diagnostics.
 
+`ContainerKey::ContainerName` optionally selects the exact Podman runtime name. It is a singleton
+and remains separate from the Quadlet filename and generated service identity.
+
 `ContainerKey::Secret` is repeatable. Its exact value may select mounted-file or environment
 exposure and carry target, UID, GID, and mode options; the builder preserves those options without
 reading the referenced Podman secret.
@@ -59,6 +62,10 @@ use quadlet_lens::{
 # fn main() -> Result<(), Box<dyn std::error::Error>> {
 let mut builder = QuadletDocumentBuilder::new(QuadletUnitType::Container);
 builder.push_container(
+    ContainerKey::ContainerName,
+    EntryValue::new("example-application")?,
+)?;
+builder.push_container(
     ContainerKey::AddHost,
     EntryValue::new("host.docker.internal:host-gateway")?,
 )?;
@@ -80,6 +87,7 @@ assert_eq!(
     generated.text(),
     concat!(
         "[Container]\n",
+        "ContainerName=example-application\n",
         "AddHost=host.docker.internal:host-gateway\n",
         "Image=example.invalid/application:1\n",
         "Environment=APP_ENV=production\n",

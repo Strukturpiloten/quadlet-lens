@@ -19,7 +19,7 @@ id = "podman-5-4-container"
 verification = "documentation"
 url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#container-units-container"
 target = "5.4.0"
-claim = "The Container section documents AddHost, mutually exclusive Image and Rootfs workload sources, Exec, Environment, EnvironmentFile, repeatable Label assignments, repeatable Secret references and options, PublishPort, Volume, Network, Pod, HealthCmd, Notify including healthy readiness, HealthInterval, HealthRetries, HealthStartPeriod, HealthTimeout, and PodmanArgs."
+claim = "The Container section documents AddHost, ContainerName, mutually exclusive Image and Rootfs workload sources, Exec, Environment, EnvironmentFile, repeatable Label assignments, repeatable Secret references and options, PublishPort, Volume, Network, Pod, HealthCmd, Notify including healthy readiness, HealthInterval, HealthRetries, HealthStartPeriod, HealthTimeout, and PodmanArgs."
 test = "capabilities::supported_range_has_the_reviewed_first_conversion_surface"
 gap = "Referenced .image/.build units and the remaining container-only keys still need exact patch-matrix fixtures."
 
@@ -64,7 +64,7 @@ id = "podman-5-4-through-current-first-conversion-generators"
 verification = "generator"
 url = "https://github.com/containers/podman/releases"
 versions = { minimum = "5.4.0", maximum = "6.0.2" }
-claim = "Every Podman patch release from 5.4.0 through 6.0.2 generates the expected container, pod, network, volume, systemd dependency-ordering, add-host, image and rootfs workload sources, command, environment, environment-file, repeated/empty/quote-bearing label, secret mount/environment options, port, mount, resource-reference, container and pod user-namespace, health-command, health-timing, health-readiness, restart, and PodmanArgs fragments. Quote-bearing label whitespace is emitted literally by 5.4.x and as the equivalent systemd \\x20 escape from 5.5.0 onward. The harness uses digest-pinned official immutable images through 5.8.2 and builds later exact release commits with a digest-pinned builder."
+claim = "Every Podman patch release from 5.4.0 through 6.0.2 generates the expected container, pod, network, volume, systemd dependency-ordering, container-name, add-host, image and rootfs workload sources, command, environment, environment-file, repeated/empty/quote-bearing label, secret mount/environment options, port, mount, resource-reference, container and pod user-namespace, health-command, health-timing, health-readiness, restart, and PodmanArgs fragments. Quote-bearing label whitespace is emitted literally by 5.4.x and as the equivalent systemd \\x20 escape from 5.5.0 onward. The harness uses digest-pinned official immutable images through 5.8.2 and builds later exact release commits with a digest-pinned builder."
 test = "generators::supported_generators_match_the_first_conversion_fixture"
 
 [[capability]]
@@ -155,6 +155,15 @@ unit_types = ["container"]
 sections = ["Container"]
 repeatable = true
 value_forms = ["hostname-ip", "hostname-host-gateway"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
+id = "quadlet.container.container-name"
+description = "Explicit runtime name assigned to the generated Podman container."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["podman-container-name"]
 native = { minimum = "5.4.0", maximum = "6.0.2" }
 evidence = ["podman-5-4-container", "podman-5-4-through-current-first-conversion-generators"]
 

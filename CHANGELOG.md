@@ -5,6 +5,14 @@ Versioning for its documented pre-1.0 public API.
 
 ## [Unreleased]
 
+## [0.1.9] - 2026-08-05
+
+### Added
+
+- Typed singleton `ContainerName` parsing and programmatic construction.
+- Capability and real-generator evidence for explicit Podman container names across every
+  supported Podman patch release from 5.4.0 through 6.0.2.
+
 ## [0.1.8] - 2026-08-05
 
 ### Added

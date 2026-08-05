@@ -15,7 +15,7 @@ defines its representation boundary.
 | `.network`   | `[Network]`      | `NetworkName`               |
 | `.volume`    | `[Volume]`       | `VolumeName`                |
 
-Typed container keys are `AddHost`, `Image`, `Rootfs`, `Exec`, `Environment`, `EnvironmentFile`, `Label`, `Secret`,
+Typed container keys are `AddHost`, `ContainerName`, `Image`, `Rootfs`, `Exec`, `Environment`, `EnvironmentFile`, `Label`, `Secret`,
 `User`, `Group`, `UserNS`, `GroupAdd`, `WorkingDir`, `ReadOnly`, `PublishPort`, `Volume`,
 `Network`, `Pod`, `HealthCmd`, `HealthInterval`, `HealthRetries`, `HealthStartPeriod`,
 `HealthTimeout`, `Notify`, and `PodmanArgs`. Typed pod keys are `AddHost`, `PodName`, `PublishPort`,
@@ -69,6 +69,10 @@ Identity keys likewise retain exact values: no user or group lookup is performed
 and working-directory values are not validated against a host or container image. Label and secret
 values remain exact Podman text; the model does not validate label naming conventions, read secret
 contents, or verify runtime existence.
+
+`ContainerName` is a typed singleton distinct from the Quadlet unit-file basename and generated
+systemd service name. Its exact value is retained; QuadletLens does not invent a runtime name or
+probe the host for collisions.
 
 ## Document sets and dependency graph
 

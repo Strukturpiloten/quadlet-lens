@@ -2,6 +2,7 @@
 Description=Generator matrix application
 
 [Container]
+ContainerName=quadlet-lens-app
 AddHost=host.docker.internal:host-gateway
 AddHost=database:192.0.2.10
 Image=registry.example.invalid/application:1.0@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa

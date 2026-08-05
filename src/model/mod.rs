@@ -156,6 +156,8 @@ pub enum ContainerKey {
     Label,
     /// Host root filesystem used instead of a container image.
     Rootfs,
+    /// Runtime name assigned to the generated Podman container.
+    ContainerName,
 }
 
 /// Pod keys required by the first Compose-to-Quadlet conversion.
@@ -769,6 +771,7 @@ fn classify_entry(section: SectionKind, key: &str) -> EntryKind {
             "WorkingDir" => EntryKind::Container(ContainerKey::WorkingDir),
             "ReadOnly" => EntryKind::Container(ContainerKey::ReadOnly),
             "Rootfs" => EntryKind::Container(ContainerKey::Rootfs),
+            "ContainerName" => EntryKind::Container(ContainerKey::ContainerName),
             _ => EntryKind::Unknown,
         },
         SectionKind::Pod => match key {

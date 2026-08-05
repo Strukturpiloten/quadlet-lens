@@ -145,7 +145,7 @@ without a sibling path or Git dependency.
 - [x] Add release notes and validate the Rust 1.85.0 consumer boundary.
 - [x] Publish QuadletLens 0.1.7 through the protected trusted-publishing workflow.
 
-## Additive 0.1.8 real-world corpus and rootfs boundary — release candidate
+## Additive 0.1.8 real-world corpus and rootfs boundary — completed
 
 - [x] Establish the first license-reviewed, immutable real-world Quadlet corpus.
 - [x] Parse and construct `Rootfs` as the mutually exclusive alternative to `Image`.
@@ -155,7 +155,18 @@ without a sibling path or Git dependency.
 - [x] Preserve every published public key-enum discriminant.
 - [x] Validate the patch API, Rust 1.85.0 consumer, package, documentation, dependency-policy,
   complete generator-matrix, and real-world-corpus gates.
-- [ ] Publish QuadletLens 0.1.8 through the protected trusted-publishing workflow.
+- [x] Publish QuadletLens 0.1.8 through the protected trusted-publishing workflow.
+
+## Additive 0.1.9 explicit-container-name boundary — release candidate
+
+- [x] Type singleton `ContainerName` parsing and programmatic construction.
+- [x] Add `quadlet.container.container-name` capability evidence from Podman 5.4.0 through 6.0.2.
+- [x] Verify exact `--name` output at the support floor, image boundary, and current ceiling.
+- [x] Append the public key-enum variant without changing published discriminants.
+- [x] Add parser, builder, catalogue, public-consumer, and documentation coverage.
+- [x] Run the complete 20-patch generator matrix, real-world corpus, patch API, Rust 1.85.0,
+  package, documentation, and dependency-policy release gates.
+- [ ] Publish QuadletLens 0.1.9 through the protected trusted-publishing workflow.
 
 ## Issue-derived evidence
 

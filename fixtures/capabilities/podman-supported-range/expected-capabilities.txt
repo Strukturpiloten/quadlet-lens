@@ -1,4 +1,5 @@
 quadlet.container.add-host
+quadlet.container.container-name
 quadlet.container.environment
 quadlet.container.environment-file
 quadlet.container.exec

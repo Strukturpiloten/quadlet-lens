@@ -37,9 +37,10 @@ fn growing_public_key_enums_preserve_published_discriminants() {
             ContainerKey::Secret as isize,
             ContainerKey::Label as isize,
             ContainerKey::Rootfs as isize,
+            ContainerKey::ContainerName as isize,
         ],
         [
-            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
+            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
         ]
     );
     assert_eq!(
@@ -67,6 +68,18 @@ fn rootfs_can_be_built_through_the_public_api() -> Result<(), Box<dyn std::error
 }
 
 #[test]
+fn container_name_can_be_built_through_the_public_api() -> Result<(), Box<dyn std::error::Error>> {
+    let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    generated.push_container(ContainerKey::Image, EntryValue::new("example.invalid/application:1")?)?;
+    generated.push_container(ContainerKey::ContainerName, EntryValue::new("application-web")?)?;
+    assert_eq!(
+        generated.build(SourceId::new(5))?.text(),
+        "[Container]\nImage=example.invalid/application:1\nContainerName=application-web\n"
+    );
+    Ok(())
+}
+
+#[test]
 fn supported_public_pipeline_compiles_and_keeps_stages_explicit() -> Result<(), Box<dyn std::error::Error>> {
     let source = "[Container]\nImage=example.invalid/app:1@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n";
     let parsed = QuadletDocument::parse(QuadletUnitType::Container, SourceId::new(1), source)?;
@@ -86,6 +99,8 @@ fn supported_public_pipeline_compiles_and_keeps_stages_explicit() -> Result<(), 
     assert_eq!(support.classification(), SupportClassification::Native);
     let rootfs_support = catalogue.evaluate("quadlet.container.rootfs", target);
     assert_eq!(rootfs_support.classification(), SupportClassification::Native);
+    let container_name_support = catalogue.evaluate("quadlet.container.container-name", target);
+    assert_eq!(container_name_support.classification(), SupportClassification::Native);
     let host_support = catalogue.evaluate("quadlet.container.add-host", target);
     assert_eq!(host_support.classification(), SupportClassification::Native);
     let health_support = catalogue.evaluate("quadlet.container.health-timeout", target);

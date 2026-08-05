@@ -104,6 +104,7 @@ fn supported_range_records_paths_references_and_repetition() -> Result<(), Strin
     for capability in [
         "quadlet.unit-type.pod",
         "quadlet.container.add-host",
+        "quadlet.container.container-name",
         "quadlet.container.environment-file",
         "quadlet.container.user",
         "quadlet.container.group",
