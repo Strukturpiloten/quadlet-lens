@@ -19,6 +19,8 @@ const MISSING_IMAGE: DiagnosticCode = DiagnosticCode::new("QLM0002");
 const FOREIGN_NATIVE_SECTION: DiagnosticCode = DiagnosticCode::new("QLM0003");
 const REPEATED_SINGLETON: DiagnosticCode = DiagnosticCode::new("QLM0004");
 const EMPTY_IMAGE: DiagnosticCode = DiagnosticCode::new("QLM0005");
+const CONFLICTING_IMAGE_ROOTFS: DiagnosticCode = DiagnosticCode::new("QLM0006");
+const EMPTY_ROOTFS: DiagnosticCode = DiagnosticCode::new("QLM0007");
 
 /// Native Quadlet unit types supported by the first conversion milestone.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -152,6 +154,8 @@ pub enum ContainerKey {
     Secret,
     /// OCI label assignment attached to the container.
     Label,
+    /// Host root filesystem used instead of a container image.
+    Rootfs,
 }
 
 /// Pod keys required by the first Compose-to-Quadlet conversion.
@@ -581,39 +585,81 @@ impl QuadletDocument {
         }
 
         if self.unit_type == QuadletUnitType::Container {
-            let images: Vec<_> = self
-                .sections
-                .iter()
-                .filter(|section| section.kind == SectionKind::Container)
-                .flat_map(|section| section.entries.iter())
-                .filter(|entry| entry.kind == EntryKind::Container(ContainerKey::Image))
-                .collect();
-            if images.is_empty() {
-                if let Some(section) = first_expected {
-                    diagnostics.push(Diagnostic::new(
-                        MISSING_IMAGE,
-                        Severity::Error,
-                        "container unit is missing its required Image entry",
-                        Label::new(section.name.span(), "add `Image=` to this Container section"),
-                    ));
-                }
-            } else {
-                diagnostics.extend(
-                    images
-                        .iter()
-                        .filter(|entry| entry.value.primary.text.trim().is_empty())
-                        .map(|entry| {
-                            Diagnostic::new(
-                                EMPTY_IMAGE,
-                                Severity::Error,
-                                "container Image entry is empty",
-                                Label::new(entry.value.primary.span(), "provide an image or unit reference"),
-                            )
-                        }),
-                );
-            }
+            diagnostics.extend(self.validate_container_source(first_expected));
         }
 
+        diagnostics
+    }
+
+    fn validate_container_source(&self, container_section: Option<&TypedSection>) -> Vec<Diagnostic> {
+        let container_entries: Vec<_> = self
+            .sections
+            .iter()
+            .filter(|section| section.kind == SectionKind::Container)
+            .flat_map(|section| section.entries.iter())
+            .collect();
+        let images: Vec<_> = container_entries
+            .iter()
+            .copied()
+            .filter(|entry| entry.kind == EntryKind::Container(ContainerKey::Image))
+            .collect();
+        let root_filesystems: Vec<_> = container_entries
+            .iter()
+            .copied()
+            .filter(|entry| entry.kind == EntryKind::Container(ContainerKey::Rootfs))
+            .collect();
+        let mut diagnostics = Vec::new();
+
+        if images.is_empty() && root_filesystems.is_empty() {
+            if let Some(section) = container_section {
+                diagnostics.push(Diagnostic::new(
+                    MISSING_IMAGE,
+                    Severity::Error,
+                    "container unit is missing its required image or root filesystem",
+                    Label::new(
+                        section.name.span(),
+                        "add either `Image=` or `Rootfs=` to this Container section",
+                    ),
+                ));
+            }
+        }
+        if !images.is_empty() && !root_filesystems.is_empty() {
+            diagnostics.push(Diagnostic::new(
+                CONFLICTING_IMAGE_ROOTFS,
+                Severity::Error,
+                "container Image and Rootfs entries conflict",
+                Label::new(
+                    root_filesystems[0].value.primary.span(),
+                    "remove either this Rootfs entry or every Image entry",
+                ),
+            ));
+        }
+        diagnostics.extend(
+            images
+                .iter()
+                .filter(|entry| entry.value.primary.text.trim().is_empty())
+                .map(|entry| {
+                    Diagnostic::new(
+                        EMPTY_IMAGE,
+                        Severity::Error,
+                        "container Image entry is empty",
+                        Label::new(entry.value.primary.span(), "provide an image or unit reference"),
+                    )
+                }),
+        );
+        diagnostics.extend(
+            root_filesystems
+                .iter()
+                .filter(|entry| entry.value.primary.text.trim().is_empty())
+                .map(|entry| {
+                    Diagnostic::new(
+                        EMPTY_ROOTFS,
+                        Severity::Error,
+                        "container Rootfs entry is empty",
+                        Label::new(entry.value.primary.span(), "provide a Podman root filesystem"),
+                    )
+                }),
+        );
         diagnostics
     }
 }
@@ -722,6 +768,7 @@ fn classify_entry(section: SectionKind, key: &str) -> EntryKind {
             "GroupAdd" => EntryKind::Container(ContainerKey::GroupAdd),
             "WorkingDir" => EntryKind::Container(ContainerKey::WorkingDir),
             "ReadOnly" => EntryKind::Container(ContainerKey::ReadOnly),
+            "Rootfs" => EntryKind::Container(ContainerKey::Rootfs),
             _ => EntryKind::Unknown,
         },
         SectionKind::Pod => match key {
@@ -755,6 +802,7 @@ fn classify_value(kind: EntryKind, raw: &str) -> ValueKind {
             let path = value.strip_prefix('-').unwrap_or(value).trim_start();
             ValueKind::Path(classify_path(path))
         }
+        EntryKind::Container(ContainerKey::Rootfs) => ValueKind::Path(classify_path(value)),
         EntryKind::Container(ContainerKey::Volume) => {
             let source = value.split_once(':').map_or(value, |(source, _)| source);
             if reference_by_suffix(source) == Some(UnitReferenceKind::Volume) {

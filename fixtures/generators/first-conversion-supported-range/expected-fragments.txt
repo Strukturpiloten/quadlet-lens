@@ -49,6 +49,9 @@ After=application-pod.service
 ---no-health.service---
 SourcePath=/fixtures/no-health.container
 --health-cmd none
+---rootfs.service---
+SourcePath=/fixtures/rootfs.container
+--rootfs /var/lib/quadlet-lens-rootfs
 ---application-pod.service---
 SourcePath=/fixtures/application.pod
 Wants=worker.service

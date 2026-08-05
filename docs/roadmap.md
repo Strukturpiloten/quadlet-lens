@@ -56,7 +56,8 @@ Cross-repository delivery uses the stable task numbers in the [implementation pl
 
 ## Phase 5: ecosystem hardening — in progress
 
-- [ ] Expand the licensed real-world corpus.
+- [x] Establish the first licensed, immutable real-world corpus across official and community evidence classes.
+- [ ] Expand the corpus as new unit types and typed keys are promoted.
 - [x] Establish the supported 0.1.x public API and versioned catalogue schema.
 - [x] Prepare and validate compatibility documentation and the QuadletLens 0.1.0 release candidate.
 - [ ] Provide optional verification tooling for installed Podman generators.
@@ -134,7 +135,7 @@ without a sibling path or Git dependency.
 - [x] Add release notes and validate the Rust 1.85.0 consumer boundary.
 - [x] Publish QuadletLens 0.1.6 through the protected trusted-publishing workflow.
 
-## Additive 0.1.7 container-label boundary — release candidate
+## Additive 0.1.7 container-label boundary — completed
 
 - [x] Type repeatable container `Label` parsing and programmatic construction.
 - [x] Add `quadlet.container.label` capability evidence from Podman 5.4.0 through 6.0.2.
@@ -142,7 +143,19 @@ without a sibling path or Git dependency.
 - [x] Append the public key-enum variant without changing published discriminants.
 - [x] Add parser, builder, catalogue, public-consumer, and documentation coverage.
 - [x] Add release notes and validate the Rust 1.85.0 consumer boundary.
-- [ ] Publish QuadletLens 0.1.7 through the protected trusted-publishing workflow.
+- [x] Publish QuadletLens 0.1.7 through the protected trusted-publishing workflow.
+
+## Additive 0.1.8 real-world corpus and rootfs boundary — release candidate
+
+- [x] Establish the first license-reviewed, immutable real-world Quadlet corpus.
+- [x] Parse and construct `Rootfs` as the mutually exclusive alternative to `Image`.
+- [x] Add explicit missing, empty, and conflicting workload-source diagnostics.
+- [x] Add `quadlet.container.rootfs` capability evidence from Podman 5.4.0 through 6.0.2.
+- [x] Verify `--rootfs` output in the complete 20-patch generator matrix.
+- [x] Preserve every published public key-enum discriminant.
+- [x] Validate the patch API, Rust 1.85.0 consumer, package, documentation, dependency-policy,
+  complete generator-matrix, and real-world-corpus gates.
+- [ ] Publish QuadletLens 0.1.8 through the protected trusted-publishing workflow.
 
 ## Issue-derived evidence
 

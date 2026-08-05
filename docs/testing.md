@@ -46,8 +46,9 @@ through 5.8.2 with its manifest digest. For 5.8.3 through current 6.0.2 it build
 generator from an exact release commit in a digest-pinned Go container. The smoke lane covers the
 minimum, the official-image boundary, and current stable; its scheduled/manual full lane covers all
 20 patches. It invokes only the dry-run generator. The fixture covers container and pod
-relationships, ports, environment-file path forms, repeated container labels, execution identity and context, networks,
-volume and bind forms, distinct container/pod user namespaces, health modes, restart behavior, continued raw arguments, and stable
+relationships, ports, environment-file path forms, repeated container labels, execution identity
+and context, networks, image and rootfs workload sources, volume and bind forms, distinct
+container/pod user namespaces, health modes, restart behavior, continued raw arguments, and stable
 generated dependencies. See the
 [matrix documentation](generator-matrix.md).
 
@@ -56,6 +57,12 @@ Systemd-dependent fixtures record the systemd version and rootless/rootful conte
 ### Real-world fixtures
 
 Fixtures require source provenance, redistribution permission, version assumptions, secret review, and an explanation of the protected behavior.
+
+The implemented opt-in corpus covers 35 immutable unit files from ten public projects across
+upstream application, vendor, distribution, platform, organization-example, and community evidence
+classes. It verifies Git blobs, required feature markers, syntax validity, byte preservation,
+canonical reparsing, typed-model validation, and native document-set references without starting a
+generator or workload. See the [real-world corpus](real-world-quadlet-corpus.md).
 
 ## Test organization
 
@@ -105,6 +112,7 @@ cargo ci-catalogue
 cargo ci-generators
 cargo ci-model
 cargo ci-policy
+cargo ci-real-world-quadlet
 cargo ci-clippy
 cargo ci-test
 cargo ci-doctest

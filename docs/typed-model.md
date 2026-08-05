@@ -15,7 +15,7 @@ defines its representation boundary.
 | `.network`   | `[Network]`      | `NetworkName`               |
 | `.volume`    | `[Volume]`       | `VolumeName`                |
 
-Typed container keys are `AddHost`, `Image`, `Exec`, `Environment`, `EnvironmentFile`, `Label`, `Secret`,
+Typed container keys are `AddHost`, `Image`, `Rootfs`, `Exec`, `Environment`, `EnvironmentFile`, `Label`, `Secret`,
 `User`, `Group`, `UserNS`, `GroupAdd`, `WorkingDir`, `ReadOnly`, `PublishPort`, `Volume`,
 `Network`, `Pod`, `HealthCmd`, `HealthInterval`, `HealthRetries`, `HealthStartPeriod`,
 `HealthTimeout`, `Notify`, and `PodmanArgs`. Typed pod keys are `AddHost`, `PodName`, `PublishPort`,
@@ -58,6 +58,10 @@ The primary value preserves its authored continuation backslash. Continuation va
 separate and ordered. Comments inside a continuation stay in the syntax document and never become
 command arguments.
 
+Exactly one of `Image` or `Rootfs` supplies a container workload. Both are singleton keys and they
+conflict with each other. `Rootfs` is conservatively classified as a path, but QuadletLens does not
+parse Podman's overlay-rootfs grammar or check the host directory and SELinux label.
+
 The model does not expand `%h`, `~`, environment variables, or relative paths. It does not yet parse
 systemd quoting, environment assignment lists, port ranges, mount options, health commands, or raw
 Podman arguments. Those forms remain usable as authored text and must not be normalized implicitly.
@@ -93,10 +97,12 @@ Initial stable codes are:
 | Code      | Severity | Meaning                                                  |
 | --------- | -------- | -------------------------------------------------------- |
 | `QLM0001` | error    | Required native section is missing                       |
-| `QLM0002` | error    | A container native section has no `Image=` entry         |
+| `QLM0002` | error    | A container has neither `Image=` nor `Rootfs=`            |
 | `QLM0003` | warning  | A native section does not match the selected unit suffix |
 | `QLM0004` | warning  | A first-conversion singleton key is repeated             |
 | `QLM0005` | error    | An `Image=` entry is empty                               |
+| `QLM0006` | error    | `Image=` and `Rootfs=` are both present                   |
+| `QLM0007` | error    | A `Rootfs=` entry is empty                                |
 | `QLG0001` | error    | A native unit reference has no matching document         |
 | `QLG0002` | error    | A native unit reference matches duplicate basenames      |
 | `QLG0003` | error    | The document set contains a duplicate basename           |

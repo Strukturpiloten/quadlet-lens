@@ -2,7 +2,7 @@ schema = 1
 support_minimum = "5.4.0"
 # renovate: datasource=github-releases depName=podman-container-tools/podman
 tracked_current = "6.0.2"
-checked_on = "2026-08-03"
+checked_on = "2026-08-05"
 official_image_maximum = "5.8.2"
 source_repository = "https://github.com/containers/podman.git"
 # renovate: datasource=docker depName=docker.io/library/golang

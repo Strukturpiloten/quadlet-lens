@@ -5,6 +5,20 @@ Versioning for its documented pre-1.0 public API.
 
 ## [Unreleased]
 
+## [0.1.8] - 2026-08-05
+
+### Added
+
+- A license-reviewed, blob-pinned real-world Quadlet corpus spanning 35 files from ten upstream,
+  vendor, distribution, platform, organization-example, and community projects.
+- Typed singleton `Rootfs` parsing and programmatic construction as the mutually exclusive
+  alternative to `Image`, with Podman 5.4.0 through 6.0.2 capability and generator evidence.
+
+### Fixed
+
+- Rootfs-backed `.container` units no longer receive the incorrect missing-`Image` diagnostic;
+  empty sources and conflicting `Image`/`Rootfs` entries remain explicit errors.
+
 ## [0.1.7] - 2026-08-05
 
 ### Added

@@ -423,6 +423,7 @@ const fn container_key_name(key: ContainerKey) -> &'static str {
         ContainerKey::GroupAdd => "GroupAdd",
         ContainerKey::WorkingDir => "WorkingDir",
         ContainerKey::ReadOnly => "ReadOnly",
+        ContainerKey::Rootfs => "Rootfs",
     }
 }
 

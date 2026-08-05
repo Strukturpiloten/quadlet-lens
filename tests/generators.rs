@@ -59,7 +59,7 @@ fn generator_matrix_is_exact_complete_and_digest_pinned() -> Result<(), String> 
     assert_eq!(matrix.schema, 1);
     assert_eq!(matrix.support_minimum, "5.4.0");
     assert_eq!(matrix.tracked_current, "6.0.2");
-    assert_eq!(matrix.checked_on, "2026-08-03");
+    assert_eq!(matrix.checked_on, "2026-08-05");
     assert_eq!(matrix.official_image_maximum, "5.8.2");
 
     assert_eq!(matrix.source_repository, "https://github.com/containers/podman.git");

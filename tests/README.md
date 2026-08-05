@@ -13,6 +13,6 @@ Suites are introduced with the behavior they verify:
 - `capabilities` — catalogue schema and coherent version evidence
 - `version-boundaries` — behavior immediately around supported version changes
 - `generators` — exact released Podman system-generator behavior
-- `real-world` — licensed external projects and regression cases
+- `real-world` — opt-in immutable downloads from the licensed external-project catalogue
 
 Do not add an empty test binary merely to reserve a suite name. Add the entry point, its fixtures, and meaningful assertions together.
