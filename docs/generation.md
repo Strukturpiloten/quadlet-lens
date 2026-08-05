@@ -15,6 +15,10 @@ Repeated native keys retain insertion order. Native keys classified as singleton
 when repeated. Generic systemd directives may repeat because their list and reset semantics are
 directive-specific.
 
+A generated container requires exactly one workload source. `ContainerKey::Image` selects an image
+or native image/build reference; `ContainerKey::Rootfs` selects a Podman root filesystem. Building
+a document with neither or both returns structured typed-model diagnostics.
+
 `ContainerKey::Secret` is repeatable. Its exact value may select mounted-file or environment
 exposure and carry target, UID, GID, and mode options; the builder preserves those options without
 reading the referenced Podman secret.

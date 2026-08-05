@@ -80,7 +80,12 @@ fn supported_range_records_paths_references_and_repetition() -> Result<(), Strin
     let image = catalogue
         .capability("quadlet.container.image")
         .ok_or_else(|| "container image capability must exist".to_owned())?;
-    assert!(image.is_required());
+    let rootfs = catalogue
+        .capability("quadlet.container.rootfs")
+        .ok_or_else(|| "container rootfs capability must exist".to_owned())?;
+    assert!(!image.is_required());
+    assert!(!rootfs.is_required());
+    assert!(rootfs.value_forms().iter().any(|form| form == "podman-rootfs"));
 
     let restart = catalogue
         .capability("systemd.service.restart")
@@ -106,6 +111,7 @@ fn supported_range_records_paths_references_and_repetition() -> Result<(), Strin
         "quadlet.container.group-add",
         "quadlet.container.working-dir",
         "quadlet.container.read-only",
+        "quadlet.container.rootfs",
         "quadlet.container.secret",
         "quadlet.container.label",
         "quadlet.container.pod",

@@ -323,6 +323,51 @@ fn image_unit_references_and_dangling_continuations_stay_explicit() -> Result<()
     Ok(())
 }
 
+#[test]
+fn rootfs_is_a_typed_image_alternative_and_conflicts_remain_explicit() -> Result<(), String> {
+    let rootfs = QuadletDocument::parse(
+        QuadletUnitType::Container,
+        SourceId::new(41),
+        "[Container]\nRootfs=/var/lib/qm/rootfs\n",
+    )
+    .map_err(|error| error.to_string())?;
+    assert!(rootfs.is_valid(), "{:#?}", rootfs.model_diagnostics());
+    assert_value_kind(
+        &rootfs,
+        ContainerKey::Rootfs,
+        0,
+        ValueKind::Path(PathForm::AbsoluteLiteral),
+    )?;
+
+    let conflicting = QuadletDocument::parse(
+        QuadletUnitType::Container,
+        SourceId::new(42),
+        "[Container]\nImage=example.invalid/app\nRootfs=/var/lib/qm/rootfs\n",
+    )
+    .map_err(|error| error.to_string())?;
+    assert!(!conflicting.is_valid());
+    assert_eq!(
+        conflicting
+            .model_diagnostics()
+            .iter()
+            .map(|diagnostic| diagnostic.code().as_str())
+            .collect::<Vec<_>>(),
+        ["QLM0006"]
+    );
+
+    let empty = QuadletDocument::parse(QuadletUnitType::Container, SourceId::new(43), "[Container]\nRootfs=\n")
+        .map_err(|error| error.to_string())?;
+    assert_eq!(
+        empty
+            .model_diagnostics()
+            .iter()
+            .map(|diagnostic| diagnostic.code().as_str())
+            .collect::<Vec<_>>(),
+        ["QLM0007"]
+    );
+    Ok(())
+}
+
 fn assert_value_kind(
     result: &quadlet_lens::model::QuadletParseResult,
     key: ContainerKey,

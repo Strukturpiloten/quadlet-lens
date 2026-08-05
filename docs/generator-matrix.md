@@ -5,7 +5,7 @@
 QuadletLens has a fixed minimum Podman version and a rolling upper target:
 
 - minimum supported version: Podman 5.4.0;
-- current upstream target checked on 2026-08-03: Podman 6.0.2;
+- current upstream target checked on 2026-08-05: Podman 6.0.2;
 - current generator-verified first-conversion range: Podman 5.4.0 through 6.0.2.
 
 “Supported target,” “catalogue evidence,” and “generator verified” are deliberately separate. A
@@ -48,7 +48,8 @@ It does not run nested containers, pull the fixture's declared application image
 invoke systemctl, or start generated services. Runtime, rootless/rootful, cgroup, networking, and
 SELinux behavior remain separate test tiers.
 
-The first-conversion fixture covers registry images including `name:tag@digest`, commands,
+The first-conversion fixture covers mutually exclusive registry-image and host-rootfs workload
+sources, including `name:tag@digest` images and absolute `Rootfs` values, commands,
 environment and systemd specifiers, absolute and unit-relative environment files, repeated
 container labels, repeated mounted
 and environment-variable secrets with options, repeatable container and pod host mappings
@@ -91,5 +92,5 @@ belongs in the scheduled/manual GitHub workflow rather than pull-request CI.
 Running generator containers requires either `podman` or `docker`; source-backed releases also
 require Git. Go itself runs inside the pinned builder and is not a host requirement. Maintaining
 the registry matrix benefits from `skopeo` and `jq`, but the Rust harness does not require them. The
-current development machine already has Podman 5.8.3, Git, Skopeo, and jq, so no additional
+current development machine already has Podman 6.0.2, Git, Skopeo, and jq, so no additional
 installation is needed.

@@ -37,7 +37,7 @@ one of the four typed unit types.
 
 | Section | Typed keys |
 | --- | --- |
-| `[Container]` | `AddHost`, `Image`, `Exec`, `Environment`, `EnvironmentFile`, `Label`, `Secret`, `User`, `Group`, `UserNS`, `GroupAdd`, `WorkingDir`, `ReadOnly`, `PublishPort`, `Volume`, `Network`, `Pod`, `HealthCmd`, `Notify`, `HealthInterval`, `HealthRetries`, `HealthStartPeriod`, `HealthTimeout`, `PodmanArgs` |
+| `[Container]` | `AddHost`, `Image`, `Rootfs`, `Exec`, `Environment`, `EnvironmentFile`, `Label`, `Secret`, `User`, `Group`, `UserNS`, `GroupAdd`, `WorkingDir`, `ReadOnly`, `PublishPort`, `Volume`, `Network`, `Pod`, `HealthCmd`, `Notify`, `HealthInterval`, `HealthRetries`, `HealthStartPeriod`, `HealthTimeout`, `PodmanArgs` |
 | `[Pod]` | `AddHost`, `PodName`, `PublishPort`, `Network`, `Volume`, `UserNS` |
 | `[Network]` | `NetworkName` |
 | `[Volume]` | `VolumeName` |
@@ -69,6 +69,12 @@ through 6.0.2. It explicitly accepts the literal-space systemd spelling emitted 
 equivalent `\x20` spelling emitted from 5.5.0 onward. Label name conventions, duplicate-name
 semantics, and labels owned by network or volume resources remain caller- or future-model
 responsibilities.
+
+The workload-source subset accepts exactly one container `Image` or `Rootfs` entry. `Rootfs` is
+documented at the Podman 5.4 floor, exercised by the public `containers/qm` unit, and verified as a
+generated `--rootfs` argument through the supported generator matrix. QuadletLens retains its exact
+value and does not inspect the host filesystem, parse overlay-rootfs options, or verify SELinux
+labels.
 
 The dependency-readiness subset also includes:
 

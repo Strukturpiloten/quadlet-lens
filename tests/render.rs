@@ -225,7 +225,7 @@ fn rejects_unsafe_values_wrong_units_and_duplicate_singletons() -> Result<(), Bo
 }
 
 #[test]
-fn refuses_a_generated_container_without_an_image() {
+fn refuses_a_generated_container_without_a_workload_source() {
     let builder = QuadletDocumentBuilder::new(QuadletUnitType::Container);
     let result = builder.build(SourceId::new(85));
     assert!(matches!(result, Err(RenderError::InvalidDocument(_))));

@@ -1,0 +1,305 @@
+schema = 1
+reviewed = "2026-08-05"
+
+# Upstream files are not vendored. Each project and file is pinned independently so the
+# opt-in test can verify both the repository commit and the exact Git blob it downloaded.
+
+[[projects]]
+id = "algernon"
+tier = "baseline"
+evidence_class = "upstream-project"
+repository = "xyproto/algernon"
+revision = "2d67bdd445cbe4bbd30ae2ab70ca3e9d82ac5574"
+license = "BSD-3-Clause"
+goals = ["single-service baseline", "systemd ordering and installation", "bind mounts and published ports"]
+
+[[projects.files]]
+path = "containers/algernon.container"
+blob_sha = "2b1f51592d9125995d7455bd1b2b2bc4ea647998"
+required_sections = ["Unit", "Container", "Service", "Install"]
+required_keys = ["Image", "Volume", "PublishPort", "Restart", "WantedBy"]
+
+[[projects]]
+id = "bazzite-cockpit"
+tier = "baseline"
+evidence_class = "distribution-project"
+repository = "ublue-os/bazzite"
+revision = "1b0f180c9fd4cf6dd9cb74c770b937785aba4eea"
+license = "Apache-2.0"
+goals = ["desktop distribution integration", "PodmanArgs escape hatch", "systemd dependency and kill semantics"]
+
+[[projects.files]]
+path = "system_files/desktop/shared/usr/share/containers/systemd/cockpit-container.container"
+blob_sha = "b8405aa7789bd212392f886a88c20c50c2ec1a02"
+required_sections = ["Unit", "Container", "Service"]
+required_keys = ["Image", "ContainerName", "PodmanArgs", "Exec", "Label", "Restart", "KillMode"]
+
+[[projects]]
+id = "ibm-hmc-agent"
+tier = "baseline"
+evidence_class = "vendor-example"
+repository = "IBM/project-pim"
+revision = "9e33beaf34f2788696211dff590d578d0078f962"
+license = "Apache-2.0"
+goals = ["two-service vendor example", "environment-file inputs", "SELinux type and auto-update settings"]
+
+[[projects.files]]
+path = "examples/hmc-agent/hmc_agent.container"
+blob_sha = "45b0b0430e04cee1798c827f66c93abed3fbb618"
+required_sections = ["Unit", "Container", "Service", "Install"]
+required_keys = ["Image", "EnvironmentFile", "Network", "SecurityLabelType", "AutoUpdate"]
+
+[[projects.files]]
+path = "examples/hmc-agent/hmc_server.container"
+blob_sha = "73b8003fd831e36ad35942ff0c15da24a71e0d61"
+required_sections = ["Unit", "Container", "Service", "Install"]
+required_keys = ["Image", "EnvironmentFile", "Network", "PodmanArgs", "AutoUpdate"]
+
+[[projects]]
+id = "redhat-rhproxy"
+tier = "baseline"
+evidence_class = "vendor-project"
+repository = "RedHatInsights/rhproxy"
+revision = "5ec1c573b6da1a0430af1a56a3c9caf72f9a236a"
+license = "GPL-3.0-only"
+goals = ["packaged vendor service", "host and exposed ports", "pre-start lifecycle command"]
+
+[[projects.files]]
+path = "config/rhproxy.container"
+blob_sha = "3935f3d9de626d73cd7fc3a73d66742ac18d2a24"
+required_sections = ["Unit", "Container", "Service", "Install"]
+required_keys = ["Image", "PublishPort", "ExposeHostPort", "EnvironmentFile", "UserNS", "ExecStartPre"]
+
+[[projects]]
+id = "appstore-redpanda"
+tier = "application"
+evidence_class = "organization-example"
+repository = "containers/appstore"
+revision = "6a8826f4bbe4b1a84ff6616c12b5f0a767877b65"
+license = "Apache-2.0"
+goals = ["multi-resource application", "container dependency ordering", "named network and volume references"]
+
+[[projects.files]]
+path = "quadlet/redpanda/redpanda-console.container"
+blob_sha = "0356fbfca0e0ca43e2406833b963489b13b08121"
+required_sections = ["Unit", "Container", "Service", "Install"]
+required_keys = ["Image", "Network", "PublishPort", "Volume"]
+
+[[projects.files]]
+path = "quadlet/redpanda/redpanda-server.container"
+blob_sha = "75566f461e2d794226e07c950b5dcceca953cdfe"
+required_sections = ["Unit", "Container", "Service", "Install"]
+required_keys = ["Image", "Exec", "Network", "Volume", "PublishPort", "UserNS"]
+
+[[projects.files]]
+path = "quadlet/redpanda/redpanda.network"
+blob_sha = "f1ed31c88424eb8f1e27a5f7511387618fe713ba"
+required_sections = ["Network"]
+required_keys = []
+
+[[projects.files]]
+path = "quadlet/redpanda/redpanda.volume"
+blob_sha = "faca4daa8e61270a5f8e2f766d9f5f92a4d2fc7d"
+required_sections = ["Volume"]
+required_keys = []
+
+[[projects]]
+id = "immich-community"
+tier = "application"
+evidence_class = "community-deployment"
+repository = "linux-universe/immich-podman-quadlets"
+revision = "7ea8a1e1f36bd5d5a2f32c1e7fe9ec58c5482b0f"
+license = "GPL-3.0-only"
+goals = ["Compose-to-Quadlet migration example", "pod membership", "shared-memory and health behavior"]
+
+[[projects.files]]
+path = "immich-database.container"
+blob_sha = "69833c40f6c2bc2cdb18f6e12f02d4bb3d74ffd1"
+required_sections = ["Unit", "Container", "Service"]
+required_keys = ["Image", "Pod", "Environment", "Volume"]
+
+[[projects.files]]
+path = "immich-machine-learning.container"
+blob_sha = "ad22e731cdf75d5e1cc8c89be130501efc67fa05"
+required_sections = ["Unit", "Container", "Service"]
+required_keys = ["Image", "Pod", "Volume"]
+
+[[projects.files]]
+path = "immich-redis.container"
+blob_sha = "5ec3f5c0323e312d0b8793069c357539f1ed4828"
+required_sections = ["Unit", "Container", "Service"]
+required_keys = ["Image", "Pod", "HealthCmd"]
+
+[[projects.files]]
+path = "immich-server.container"
+blob_sha = "d6ef9e7b67500323b06eabfaf38f07bfa699612c"
+required_sections = ["Unit", "Container", "Service"]
+required_keys = ["Image", "Pod", "Environment", "Volume"]
+
+[[projects.files]]
+path = "immich.pod"
+blob_sha = "01545cf8379171b6d505fc473d6e4082c24b68a4"
+required_sections = ["Pod", "Install"]
+required_keys = ["PublishPort", "ShmSize"]
+
+[[projects]]
+id = "metron"
+tier = "application"
+evidence_class = "upstream-project"
+repository = "Metron-Project/metron"
+revision = "a97b0bf12a7e35565c5cfcf8420e648c219843ad"
+license = "GPL-3.0-only"
+goals = ["complete upstream deployment", "systemd service dependency graph", "health, logging, and SELinux behavior"]
+
+[[projects.files]]
+path = ".quadlet/metron-anubis.container"
+blob_sha = "cd5fc534dde5cc1350818ef75251258068485204"
+required_sections = ["Unit", "Container", "Service", "Install"]
+required_keys = ["Image", "Network", "Volume", "Environment", "EnvironmentFile", "PublishPort", "LogDriver"]
+
+[[projects.files]]
+path = ".quadlet/metron-anubis.volume"
+blob_sha = "4fd65347844b0d06689e72a5be3adfe6a4c41654"
+required_sections = ["Volume"]
+required_keys = []
+
+[[projects.files]]
+path = ".quadlet/metron-nginx.container"
+blob_sha = "3b5c01cc9ff321f28c668ada68ed9cc3f5ead6c7"
+required_sections = ["Unit", "Container", "Service", "Install"]
+required_keys = ["Image", "Network", "Volume", "LogDriver", "SecurityLabelDisable"]
+
+[[projects.files]]
+path = ".quadlet/metron-postgres.container"
+blob_sha = "f6f3b66ee8822668ef02c4b481abae746cc0105d"
+required_sections = ["Unit", "Container", "Service", "Install"]
+required_keys = ["Image", "EnvironmentFile", "Network", "Volume", "HealthCmd"]
+
+[[projects.files]]
+path = ".quadlet/metron-postgres.volume"
+blob_sha = "4fd65347844b0d06689e72a5be3adfe6a4c41654"
+required_sections = ["Volume"]
+required_keys = []
+
+[[projects.files]]
+path = ".quadlet/metron-redis.container"
+blob_sha = "d727b8fda99572ba7a8c6694152bd21ccab0b7b5"
+required_sections = ["Unit", "Container", "Service", "Install"]
+required_keys = ["Image", "Exec", "Network", "Volume", "PublishPort", "LogDriver"]
+
+[[projects.files]]
+path = ".quadlet/metron-redis.volume"
+blob_sha = "4fd65347844b0d06689e72a5be3adfe6a4c41654"
+required_sections = ["Volume"]
+required_keys = []
+
+[[projects.files]]
+path = ".quadlet/metron-web.container"
+blob_sha = "f6363aaa429f96020d64550b0af4c83af8548945"
+required_sections = ["Unit", "Container", "Service", "Install"]
+required_keys = ["Image", "EnvironmentFile", "Network", "LogDriver"]
+
+[[projects.files]]
+path = ".quadlet/metron.network"
+blob_sha = "7a1fb50d45ea99050a1d73acc3a5a83975e09043"
+required_sections = ["Network"]
+required_keys = ["Driver"]
+
+[[projects]]
+id = "appstore-ai-stack"
+tier = "stress"
+evidence_class = "organization-example"
+repository = "containers/appstore"
+revision = "6a8826f4bbe4b1a84ff6616c12b5f0a767877b65"
+license = "Apache-2.0"
+goals = ["pod-based multi-service topology", "devices and raw Podman arguments", "logging, auto-update, and health settings"]
+
+[[projects.files]]
+path = "quadlet/ai-stack/edgetts.container"
+blob_sha = "51833c53c573dbd676536f2fec57fdec445c12ee"
+required_sections = ["Unit", "Container", "Service", "Install"]
+required_keys = ["Image", "Pod", "Timezone", "AutoUpdate", "LogDriver", "Label", "Restart"]
+
+[[projects.files]]
+path = "quadlet/ai-stack/ollama.container"
+blob_sha = "e095b66fdad0a97180fc20bd87092ed914f82159"
+required_sections = ["Unit", "Container", "Service", "Install"]
+required_keys = ["Image", "Pod", "AddDevice", "PodmanArgs", "EnvironmentFile", "Volume", "HealthCmd"]
+
+[[projects.files]]
+path = "quadlet/ai-stack/ollama.network"
+blob_sha = "edb593a68013fcce6fb4d17d0edee8ab65c24ca3"
+required_sections = ["Network"]
+required_keys = []
+
+[[projects.files]]
+path = "quadlet/ai-stack/ollama.pod"
+blob_sha = "5bd74cc1b132e883905617730cf5760f4ef13595"
+required_sections = ["Unit", "Pod"]
+required_keys = ["PodName", "Network", "PublishPort"]
+
+[[projects.files]]
+path = "quadlet/ai-stack/ollama.volume"
+blob_sha = "eeeb17dd35e9091c58db4a7b0614b3df57b3060c"
+required_sections = ["Volume"]
+required_keys = []
+
+[[projects.files]]
+path = "quadlet/ai-stack/open-webui.container"
+blob_sha = "467232ab90e11fb2f054edc91d7bdf1ee45d939a"
+required_sections = ["Unit", "Container", "Service", "Install"]
+required_keys = ["Image", "Pod", "EnvironmentFile", "Volume", "LogDriver", "AutoUpdate", "Label"]
+
+[[projects.files]]
+path = "quadlet/ai-stack/open-webui.volume"
+blob_sha = "0964849747b7343eac8abab7dad03c15d329889b"
+required_sections = ["Volume"]
+required_keys = []
+
+[[projects.files]]
+path = "quadlet/ai-stack/tika.container"
+blob_sha = "09533bcb8a26ec7f7f19c081936501bc72cc16de"
+required_sections = ["Unit", "Container", "Service", "Install"]
+required_keys = ["Image", "Pod", "Environment", "Label", "Restart"]
+
+[[projects.files]]
+path = "quadlet/ai-stack/valkey.container"
+blob_sha = "29aaa19c4f5423dcf8c5c37a398ff16418b6d7a8"
+required_sections = ["Unit", "Container", "Service", "Install"]
+required_keys = ["Image", "Pod", "Volume", "HealthCmd"]
+
+[[projects.files]]
+path = "quadlet/ai-stack/valkey.volume"
+blob_sha = "1735edb1bf8b3830ee07b1445b4a8b36c734d975"
+required_sections = ["Volume"]
+required_keys = []
+
+[[projects]]
+id = "containers-qm"
+tier = "stress"
+evidence_class = "platform-project"
+repository = "containers/qm"
+revision = "bfe94ccd2f87a6a44317d855fa6e716f2c5b7364"
+license = "GPL-2.0-only"
+goals = ["large platform unit", "systemd resource controls", "rootfs, devices, security, and namespace settings"]
+
+[[projects.files]]
+path = "qm.container"
+blob_sha = "6b4ac4c0e226e3dc12394d6e7c5a288282c77f3c"
+required_sections = ["Install", "Service", "Container"]
+required_keys = ["Rootfs", "AddCapability", "DropCapability", "AddDevice", "SeccompProfile", "Sysctl", "Volume"]
+
+[[projects]]
+id = "ublue-fedora-toolbox"
+tier = "stress"
+evidence_class = "distribution-project"
+repository = "ublue-os/toolboxes"
+revision = "c8809b894cbb6035d5df091db419b7859da9d46d"
+license = "Apache-2.0"
+goals = ["desktop development container", "many host mounts", "user namespace and ulimit settings"]
+
+[[projects.files]]
+path = "quadlets/fedora-toolbox/fedora-distrobox-quadlet.container"
+blob_sha = "9ae3b17e525ba17922283d7e5bba90d35807cc65"
+required_sections = ["Unit", "Container"]
+required_keys = ["Image", "Annotation", "AutoUpdate", "HostName", "PodmanArgs", "Ulimit", "User", "UserNS", "Volume"]

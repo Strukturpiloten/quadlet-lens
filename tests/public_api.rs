@@ -36,9 +36,10 @@ fn growing_public_key_enums_preserve_published_discriminants() {
             ContainerKey::ReadOnly as isize,
             ContainerKey::Secret as isize,
             ContainerKey::Label as isize,
+            ContainerKey::Rootfs as isize,
         ],
         [
-            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
+            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
         ]
     );
     assert_eq!(
@@ -52,6 +53,17 @@ fn growing_public_key_enums_preserve_published_discriminants() {
         ],
         [0, 1, 2, 3, 4, 5]
     );
+}
+
+#[test]
+fn rootfs_can_be_built_through_the_public_api() -> Result<(), Box<dyn std::error::Error>> {
+    let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    generated.push_container(ContainerKey::Rootfs, EntryValue::new("/var/lib/application-rootfs")?)?;
+    assert_eq!(
+        generated.build(SourceId::new(4))?.text(),
+        "[Container]\nRootfs=/var/lib/application-rootfs\n"
+    );
+    Ok(())
 }
 
 #[test]
@@ -72,6 +84,8 @@ fn supported_public_pipeline_compiles_and_keeps_stages_explicit() -> Result<(), 
     let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
     let support = catalogue.evaluate("quadlet.container.image", target);
     assert_eq!(support.classification(), SupportClassification::Native);
+    let rootfs_support = catalogue.evaluate("quadlet.container.rootfs", target);
+    assert_eq!(rootfs_support.classification(), SupportClassification::Native);
     let host_support = catalogue.evaluate("quadlet.container.add-host", target);
     assert_eq!(host_support.classification(), SupportClassification::Native);
     let health_support = catalogue.evaluate("quadlet.container.health-timeout", target);
