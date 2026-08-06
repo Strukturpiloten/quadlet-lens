@@ -47,10 +47,37 @@ generator from an exact release commit in a digest-pinned Go container. The smok
 minimum, the official-image boundary, and current stable; its scheduled/manual full lane covers all
 20 patches. It invokes only the dry-run generator. The fixture covers container and pod
 relationships, ports, environment-file path forms, repeated container labels, execution identity
-and context, networks, image and rootfs workload sources, volume and bind forms, distinct
-container/pod user namespaces, health modes, restart behavior, continued raw arguments, and stable
-generated dependencies. See the
+and context, networks, image and rootfs workload sources, volume and bind forms, explicit true and
+false init selection, distinct container/pod user namespaces, named and numeric stop signals,
+positive and zero stop timeouts, health modes, isolated positive and unlimited process-ID limits,
+an isolated container hostname, positive and zero container shared-memory sizes, a pod-owned
+shared-memory size with a joined container, restart behavior, continued raw arguments, and stable
+generated dependencies. An isolated repeated `DropCapability` fixture requires exactly four
+ordered lowercase `--cap-drop` forms and no `--cap-add` across all 20 patches. A parallel
+`AddCapability` fixture requires exactly four ordered lowercase `--cap-add` forms and no drop; a
+combined fixture requires exactly one drop-all before one specific addition and no other
+capability argument. An isolated `Tmpfs` fixture authors two pre-reset entries, an empty reset, and
+one final entry; every patch must emit exactly one logical final `--tmpfs` argument, no pre-reset
+path, and no duplicate or alternative tmpfs form.
+
+An isolated `Sysctl` fixture likewise authors two pre-reset assignments, an empty reset, and one
+final entry; every patch must emit exactly one final `--sysctl net.ipv4.ip_forward=1`, no other
+sysctl form, and neither pre-reset setting. An isolated `Ulimit` fixture authors pre-reset `core`
+and `nofile` entries, an empty reset, then `nproc=4096:8192` and `stack=-1:-1`; every patch must
+emit exactly those two ordered final `--ulimit` arguments with no pre-reset, duplicate, empty, or
+alternate form. An isolated `AddDevice` fixture authors one pre-reset line containing two mappings,
+an empty reset, then one final line containing two mappings; every patch must emit exactly the two
+ordered final `--device` arguments, exactly two total, and no pre-reset, empty, or alternate form.
+It deliberately authors no leading `-`. All four isolated fixtures exercise generator command construction only and
+never start a container. See the
 [matrix documentation](generator-matrix.md).
+
+`Memory` uses a separate version-scoped fixture because it was introduced in Podman 5.5.0. The
+three 5.4.x generators must reject or exclude it and emit no memory argument. Every one of the 17
+recorded releases from 5.5.0 through 6.0.2 must apply singleton last-value behavior to an earlier
+value and empty assignment, then emit exactly one `--memory 16777216b` argument and no duplicate,
+equals, empty, quoted, or alternate form. This is dry-run command evidence only; no workload,
+cgroup, page-size, swap, host-memory, rootless, runtime, or cross-format behavior is tested.
 
 Systemd-dependent fixtures record the systemd version and rootless/rootful context.
 
@@ -85,8 +112,24 @@ and known-bug precedence. Capabilities outside the generator fixture retain expl
 
 The typed-model suite protects the initial `.container`, `.pod`, `.network`, and `.volume` surface.
 It checks native key classification, repeated container/pod `AddHost` and container `Label`/`Secret`
-entries, singleton container `ContainerName`, singleton pod `UserNS`, generic systemd
-sections, repeated and unknown entries, continuation segments, `%h` and unit-relative paths, native
+entries, singleton container `ContainerName`, `RunInit` omission/true/false/raw preservation,
+`StopSignal`, `StopTimeout` (including authored zero), `Pull`, and `PidsLimit`
+omission/supported/raw-value preservation without semantic validation, plus `HostName`
+omission/raw preservation without hostname validation, opaque singleton container/pod `ShmSize`
+omission/raw preservation, repeatable opaque container `DropCapability` and `AddCapability`
+omission/order/raw-value preservation including empty addition resets and duplicates, repeatable
+opaque container `Tmpfs` omission/order/case/options/reset/duplicate preservation without
+conflation with `Volume`, plus repeatable opaque container `Sysctl`
+omission/order/case/whitespace/quoting/specifier/reset/duplicate preservation without assignment
+parsing or namespace validation, plus repeatable opaque container `Ulimit`
+omission/order/case/quoting/specifier/reset/duplicate preservation without splitting, unquoting,
+or grammar validation, plus repeatable opaque container `AddDevice`
+omission/order/case/quoting/specifier/whitespace/reset/duplicate/leading-dash preservation without
+splitting, unquoting, device validation, or runtime interpretation, singleton container `Memory`
+omission/raw/empty/quoted/specifier/duplicate preservation with ordinary singleton diagnostics
+while pod `Memory` remains unknown, singleton
+pod `UserNS`, generic systemd sections, repeated and unknown
+entries, continuation segments, `%h` and unit-relative paths, native
 unit references, explicit supported suffixes, required fields, singleton diagnostics, foreign
 native sections, and source labels. Its document-set cases protect exact basename resolution,
 resolved dependency edges, retained missing and ambiguous references, duplicate names, unique
@@ -94,8 +137,13 @@ source identities, and filename/type matching.
 
 The generation suite constructs `.container`, `.network`, and `.volume` documents, verifies exact
 deterministic output, reparses every result, and resolves the generated cross-file graph. It also
-protects explicit container names, repeated AddHost, environment, label, secret, and systemd entries and all document-builder rejection
-paths.
+protects explicit container names, repeated AddHost, environment, label, secret, systemd, and exact
+capability-drop/add, tmpfs, sysctl, and ulimit entries, including raw empty native resets, plus all document-builder
+rejection paths, including duplicate stop-lifecycle, pull-policy,
+process-ID-limit, hostname, and container/pod shared-memory singletons. The exact repeatable
+boundary also covers raw host-device mappings and reset assignments. The focused PID-limit,
+shared-memory, and container-memory helpers' ASCII-decimal validation and arbitrary-precision preservation are tested
+separately while the raw boundary preserves authored zero and noncanonical text.
 
 ## Regression rule
 

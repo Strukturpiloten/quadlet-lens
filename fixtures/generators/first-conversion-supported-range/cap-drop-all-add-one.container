@@ -1,0 +1,4 @@
+[Container]
+Image=registry.example.invalid/cap-drop-all-add-one:1
+DropCapability=ALL
+AddCapability=CAP_NET_BIND_SERVICE

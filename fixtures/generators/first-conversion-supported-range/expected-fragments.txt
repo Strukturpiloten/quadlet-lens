@@ -25,6 +25,20 @@ quadlet-lens-network
 ---data-volume.service---
 SourcePath=/fixtures/data.volume
 quadlet-lens-data
+---cap-drop.service---
+SourcePath=/fixtures/cap-drop.container
+---cap-add.service---
+SourcePath=/fixtures/cap-add.container
+---cap-drop-all-add-one.service---
+SourcePath=/fixtures/cap-drop-all-add-one.container
+---tmpfs.service---
+SourcePath=/fixtures/tmpfs.container
+---sysctl.service---
+SourcePath=/fixtures/sysctl.container
+---ulimit.service---
+SourcePath=/fixtures/ulimit.container
+---device.service---
+SourcePath=/fixtures/device.container
 ---worker.service---
 SourcePath=/fixtures/worker.container
 Requires=app.service
@@ -47,6 +61,42 @@ After=application-pod.service
 --health-retries 3
 --health-start-period 10s
 --health-timeout 5s
+--stop-signal SIGUSR1
+--stop-timeout 37
+---numeric-stop-signal.service---
+SourcePath=/fixtures/numeric-stop-signal.container
+--stop-signal 9
+---run-init-false.service---
+SourcePath=/fixtures/run-init-false.container
+---zero-stop-timeout.service---
+SourcePath=/fixtures/zero-stop-timeout.container
+--stop-timeout 0
+---pull-always.service---
+SourcePath=/fixtures/pull-always.container
+---pull-missing.service---
+SourcePath=/fixtures/pull-missing.container
+---pull-never.service---
+SourcePath=/fixtures/pull-never.container
+---pull-newer.service---
+SourcePath=/fixtures/pull-newer.container
+---pids-limit-finite.service---
+SourcePath=/fixtures/pids-limit-finite.container
+--pids-limit 127
+---pids-limit-unlimited.service---
+SourcePath=/fixtures/pids-limit-unlimited.container
+--pids-limit -1
+---hostname.service---
+SourcePath=/fixtures/hostname.container
+---shm-size-container.service---
+SourcePath=/fixtures/shm-size-container.container
+---shm-size-zero.service---
+SourcePath=/fixtures/shm-size-zero.container
+---shm-size-pod.service---
+SourcePath=/fixtures/shm-size.pod
+---shm-size-pod-member.service---
+SourcePath=/fixtures/shm-size-pod-member.container
+BindsTo=shm-size-pod.service
+After=shm-size-pod.service
 ---no-health.service---
 SourcePath=/fixtures/no-health.container
 --health-cmd none

@@ -1,0 +1,3 @@
+[Container]
+Image=registry.example.invalid/pids-limit-finite:1.0
+PidsLimit=127

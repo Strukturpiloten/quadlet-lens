@@ -45,7 +45,54 @@ first-conversion container, pod, network, volume, generic systemd, image, comman
 environment-file, port, mount, resource-reference, health-command, health timing,
 `Notify=healthy` readiness, `Requires`/`Wants`/`After` dependency ordering, restart, and
 `PodmanArgs` fragments. It also verifies repeated container labels, container user/group, distinct container and pod user namespaces, repeated
-supplementary groups, working directories, and read-only root filesystems.
+supplementary groups, working directories, read-only root filesystems, and an isolated container
+hostname argument. Separate positive and zero container shared-memory fixtures and a pod-owned
+shared-memory fixture with a joined container require one matching generated `--shm-size` argument
+per owning unit and no duplicate in the joined container. An isolated three-entry
+`DropCapability` fixture requires four ordered lowercase `--cap-drop` forms and no `--cap-add` form
+in every patch. A separate three-entry `AddCapability` fixture requires four ordered lowercase
+`--cap-add` forms and no `--cap-drop`, while a combined fixture requires one `--cap-drop all`
+before one `--cap-add cap_net_bind_service` and no other capability argument. Tagged 5.4.0 and
+6.0.2 source records empty-list resets, lowercasing, drop-before-add construction, and capability
+merger behavior, including `all`; the Quadlet prose documents only repeatable space-separated
+additions beyond the default set. These generated-command and source observations are distinct
+from runtime privilege behavior. A separate `Tmpfs` fixture contains two pre-reset entries, an
+empty reset, and one final `/data:mode=755,uid=1009,gid=1009` entry. Every patch emits exactly one
+matching final `--tmpfs` argument, no pre-reset path, and no other tmpfs form. Tagged 5.4.0 and
+6.0.2 source maps this key through `LookupAll`, while separate CLI documentation records the Linux
+mount-flag option surface and `rw,noexec,nosuid,nodev` omission default. The generator observation
+does not validate target-only options, create or inspect a mount, enforce defaults, exercise
+copy-up, or establish rootless/runtime behavior.
+A separate `Sysctl` fixture contains two pre-reset assignments, an empty reset, and one final
+`net.ipv4.ip_forward=1` assignment. Every patch emits exactly one matching final `--sysctl`
+argument, neither pre-reset setting, and no other sysctl form. Tagged 5.4.0 and 6.0.2 source records
+`LookupAllStrv` command construction, tokenization, and reset behavior; endpoint manuals and
+Podman-run documentation record the native list and namespace limitations. The generator does not
+execute a container or establish namespace state, rootless behavior, kernel acceptance, runtime
+equivalence, or actual sysctl effects.
+A separate `Ulimit` fixture contains pre-reset `core=0:0` and `nofile=1024:2048` entries, an empty
+reset, then `nproc=4096:8192` and `stack=-1:-1`. Every patch emits exactly those two ordered final
+`--ulimit` arguments, with no pre-reset, duplicate, empty, or alternate form. Endpoint manuals and
+Podman-run documentation record native repetition, grammar, and default caveats; tagged 5.4.0 and
+6.0.2 source maps `Ulimit` through the repeated-string helper using `LookupAll`, not
+`LookupAllStrv`, and records empty-assignment resets. The generator does not execute a container or
+establish runtime enforcement, host inheritance, defaults, cgroups, rootless behavior, or
+acceptance of unverified resource names.
+A separate `AddDevice` fixture contains one pre-reset line with two mappings, an empty reset, then
+one final line with `/dev/null:/dev/final-null:r` and `/dev/zero:/dev/final-zero:w`. Every patch
+emits exactly those two ordered final `--device` arguments and exactly two total, with no pre-reset,
+duplicate, empty, or alternate form. Endpoint manuals and Podman-run caveats record native
+repetition and target context; tagged 5.4.0 and 6.0.2 source records `LookupAllStrv` tokenization,
+empty resets, and conditional leading-minus handling. The fixture deliberately contains no
+leading `-`, executes no workload, and establishes no CDI, runtime-access, rootless, SELinux,
+cgroup, host-device-existence, or symlink behavior.
+A separately mounted `Memory` fixture protects its later introduction without making the existing
+Podman 5.4-compatible fixture conditional. The three 5.4.x generators reject or exclude the
+unsupported key and emit no memory argument. Every one of the 17 recorded patch releases from
+5.5.0 through 6.0.2 applies singleton last-value behavior to earlier duplicate and empty
+assignments and emits exactly one final `--memory 16777216b` argument, with no duplicate, equals,
+empty, quoted, or alternate form. The fixture invokes no workload and establishes no cgroup,
+page-size, swap, host-memory, rootless, runtime-inspection, or cross-format behavior.
 
 Referenced `.image`/`.build` units, remaining native keys, runtime, rootless/rootful, and SELinux
 semantics retain narrower evidence even inside the generator-covered range.

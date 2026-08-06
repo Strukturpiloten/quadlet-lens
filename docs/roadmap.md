@@ -23,8 +23,8 @@ that the syntax parser rejects it.
 
 | Section/unit | Current keys | Typed keys | Syntax-preserved only |
 | --- | ---: | ---: | ---: |
-| `[Container]` / `.container` | 90 | 28 | 62 |
-| `[Pod]` / `.pod` | 25 | 6 | 19 |
+| `[Container]` / `.container` | 90 | 41 | 49 |
+| `[Pod]` / `.pod` | 25 | 7 | 18 |
 | `[Network]` / `.network` | 18 | 1 | 17 |
 | `[Volume]` / `.volume` | 16 | 1 | 15 |
 | `[Build]` / `.build` | 28 | 0 | 28 |
@@ -38,35 +38,37 @@ evidence are separate layers documented in [Native coverage](coverage.md).
 
 ### Missing `[Container]` keys
 
-The following 62 current keys are syntax-preserved but not typed:
+The following 49 current keys are syntax-preserved but not typed:
 
-`AddCapability`, `AddDevice`, `Annotation`, `AppArmor`, `AutoUpdate`, `CgroupsMode`,
-`ContainersConfModule`, `DNS`, `DNSOption`, `DNSSearch`, `DropCapability`, `EnvironmentHost`,
+`Annotation`, `AppArmor`, `AutoUpdate`, `CgroupsMode`,
+`ContainersConfModule`, `DNS`, `DNSOption`, `DNSSearch`, `EnvironmentHost`,
 `ExposeHostPort`, `GIDMap`, `GlobalArgs`, `HealthLogDestination`,
 `HealthMaxLogCount`, `HealthMaxLogSize`, `HealthOnFailure`, `HealthStartupCmd`,
 `HealthStartupInterval`, `HealthStartupRetries`, `HealthStartupSuccess`,
-`HealthStartupTimeout`, `HostName`, `HttpProxy`, `ImageVolume`, `IP`, `IP6`, `LogDriver`,
-`LogOpt`, `Mask`, `Memory`, `Mount`, `NetworkAlias`, `NoNewPrivileges`, `PidsLimit`, `Pull`,
+`HealthStartupTimeout`, `HttpProxy`, `ImageVolume`, `IP`, `IP6`, `LogDriver`,
+`LogOpt`, `Mask`, `Mount`, `NetworkAlias`, `NoNewPrivileges`,
 `ReadOnlyTmpfs`, `ReloadCmd`, `ReloadSignal`, `Retry`, `RetryDelay`,
 `SeccompProfile`, `SecurityLabelDisable`, `SecurityLabelFileType`, `SecurityLabelLevel`,
-`SecurityLabelNested`, `SecurityLabelType`, `ServiceName`, `ShmSize`, `StartWithPod`,
-`StopSignal`, `StopTimeout`, `SubGIDMap`, `SubUIDMap`, `Sysctl`, `Timezone`, `Tmpfs`, `UIDMap`,
-`Ulimit`, and `Unmask`.
+`SecurityLabelNested`, `SecurityLabelType`, `ServiceName`, `StartWithPod`,
+`SubGIDMap`, `SubUIDMap`, `Timezone`, `UIDMap`, and `Unmask`.
 
-The 28 typed keys are `AddHost`, `ContainerName`, `Image`, `Rootfs`, `Entrypoint`, `RunInit`, `Exec`, `Environment`,
-`EnvironmentFile`, `Label`, `Secret`, `User`, `Group`, `UserNS`, `GroupAdd`, `WorkingDir`,
-`ReadOnly`, `PublishPort`, `Volume`, `Network`, `Pod`, `HealthCmd`, `Notify`, `HealthInterval`,
-`HealthRetries`, `HealthStartPeriod`, `HealthTimeout`, and `PodmanArgs`.
+The 41 typed keys are `AddHost`, `ContainerName`, `Image`, `Rootfs`, `Entrypoint`, `RunInit`,
+`StopSignal`, `StopTimeout`, `Pull`, `PidsLimit`, `HostName`, `ShmSize`, `DropCapability`,
+`AddCapability`, `Tmpfs`, `Sysctl`, `Ulimit`, `AddDevice`, `Memory`, `Exec`, `Environment`, `EnvironmentFile`, `Label`, `Secret`, `User`, `Group`,
+`UserNS`, `GroupAdd`, `WorkingDir`, `ReadOnly`, `PublishPort`, `Volume`, `Network`, `Pod`,
+`HealthCmd`, `Notify`, `HealthInterval`, `HealthRetries`, `HealthStartPeriod`, `HealthTimeout`, and
+`PodmanArgs`.
 
 ### Missing `[Pod]` keys
 
-The following 19 current keys are syntax-preserved but not typed:
+The following 18 current keys are syntax-preserved but not typed:
 
 `ContainersConfModule`, `DNS`, `DNSOption`, `DNSSearch`, `ExitPolicy`, `GIDMap`, `GlobalArgs`,
-`HostName`, `IP`, `IP6`, `Label`, `NetworkAlias`, `PodmanArgs`, `ServiceName`, `ShmSize`,
+`HostName`, `IP`, `IP6`, `Label`, `NetworkAlias`, `PodmanArgs`, `ServiceName`,
 `StopTimeout`, `SubGIDMap`, `SubUIDMap`, and `UIDMap`.
 
-The typed pod keys are `AddHost`, `PodName`, `PublishPort`, `Network`, `Volume`, and `UserNS`.
+The typed pod keys are `AddHost`, `PodName`, `PublishPort`, `Network`, `Volume`, `UserNS`, and
+`ShmSize`.
 
 ### Missing `[Network]` keys
 
@@ -121,17 +123,28 @@ only for a concrete consumer scenario and must retain their native ordering/repe
 
 - [x] Type singleton container `Entrypoint` and verify JSON-array argument preservation from Podman
   5.4.0 through 6.0.2.
-- [x] Type singleton container `RunInit` and verify exact `--init` generator output from Podman
-  5.4.0 through 6.0.2.
-- [ ] Type container `StopSignal`, `StopTimeout`, `Pull`, `Retry`, and `RetryDelay` with
-  Podman 5.4-to-current evidence.
+- [x] Type singleton container `RunInit`, preserve omission and explicit true/false/raw values, and
+  verify that true emits one `--init` while false emits one `--init=false` from Podman 5.4.0 through
+  6.0.2.
+- [x] Type singleton container `StopSignal` and `StopTimeout`, preserve native zero, and verify
+  named/numeric signals plus positive/zero timeout generator observations from Podman 5.4.0 through
+  6.0.2.
+- [x] Type singleton container `Pull`, preserve omission and raw values, and verify isolated
+  `always`, `missing`, `never`, and `newer` generator output from Podman 5.4.0 through 6.0.2.
+- [x] Type singleton container `PidsLimit`, preserve omission/zero/raw values, add safe typed
+  `-1`/nonzero ASCII-decimal construction without parsing, and verify isolated positive/unlimited
+  generator output from Podman 5.4.0 through 6.0.2 without claiming runtime cgroup behavior.
+- [ ] Type container `Retry` and `RetryDelay` with Podman 5.4-to-current evidence.
 - [ ] Type `ServiceName`, `ReloadCmd`, and `ReloadSignal` without confusing Podman resource names,
   Quadlet basenames, and generated systemd unit names.
 - [ ] Type pod `ExitPolicy`, `StopTimeout`, and `ServiceName` with explicit restart interactions.
 
 ### Next 2: networking and metadata parity
 
-- [ ] Type shared DNS, hostname, IP, network-alias, label, and module/global-argument concepts for
+- [x] Type singleton container `HostName`, preserve omission/raw values without Compose
+  validation, document private/default/pod-shared UTS behavior, and verify one isolated hostname
+  argument from Podman 5.4.0 through 6.0.2 without claiming runtime behavior.
+- [ ] Type shared DNS, pod hostname, IP, network-alias, label, and module/global-argument concepts for
   container and pod units where their value grammars actually agree.
 - [ ] Complete the `[Network]` key surface, beginning with driver, subnet/gateway/range, internal,
   IPv6, DNS, options, labels, and delete-on-stop lifecycle.
@@ -139,9 +152,37 @@ only for a concrete consumer scenario and must retain their native ordering/repe
 
 ### Next 3: security, resources, health, and storage
 
-- [ ] Type capabilities, devices, AppArmor/seccomp, SELinux label controls, masks/unmasks,
-  no-new-privileges, UID/GID maps, sysctls, and ulimits.
-- [ ] Type memory/PID/shared-memory/tmpfs/image-volume/read-only-tmpfs behavior.
+- [x] Type singleton container and pod `ShmSize`, preserve omission/raw values, add exact native
+  non-negative decimal construction with optional `b`/`k`/`m`/`g`, and verify positive, zero, and
+  pod-owned generator arguments from Podman 5.4.0 through 6.0.2 without runtime claims.
+- [x] Type repeatable container `DropCapability` as opaque ordered native values and verify exact
+  lowercase generator arguments from Podman 5.4.0 through 6.0.2 without runtime privilege claims.
+- [x] Type repeatable container `AddCapability`, including raw empty resets, and verify isolated
+  additions plus drop-all/add-one ordering from Podman 5.4.0 through 6.0.2 without runtime claims.
+- [x] Type repeatable container `Tmpfs`, preserve raw empty resets and opaque destination/options
+  separately from `Volume`, and verify exact post-reset generator output from Podman 5.4.0 through
+  6.0.2 without target-option, rootless, mount, or runtime claims.
+- [x] Type repeatable container `Sysctl`, preserve raw empty resets and exact opaque one-line
+  entries, and verify endpoint manuals, tagged `LookupAllStrv` construction/tokenization/reset,
+  plus exact post-reset generator output from Podman 5.4.0 through 6.0.2 without namespace,
+  rootless, kernel, or runtime-effect claims.
+- [x] Type repeatable container `Ulimit`, preserve raw empty resets and exact opaque one-line
+  entries, and verify endpoint manuals, Podman-run grammar/default caveats, tagged `LookupAll`
+  command/reset construction, plus exactly two ordered post-reset generator arguments from Podman
+  5.4.0 through 6.0.2 without runtime, host-inheritance, default, cgroup, rootless, or
+  unknown-resource-name claims.
+- [x] Type repeatable container `AddDevice`, preserve raw empty resets, duplicates, exact physical
+  values, whitespace, quotes/specifiers, and leading `-`, and verify endpoint manuals, Podman-run
+  caveats, tagged `LookupAllStrv`/conditional/reset construction, plus exactly two ordered final
+  post-reset generator arguments from Podman 5.4.0 through 6.0.2 without CDI, runtime-access,
+  rootless, SELinux, cgroup, existence, or symlink claims.
+- [x] Type singleton container `Memory`, preserve raw values and duplicate diagnostics, add positive
+  arbitrary-precision decimal construction, prove 5.4.x rejection/exclusion, and verify exactly one
+  explicit-byte argument across all 17 Podman 5.5.0-through-6.0.2 patches without runtime claims.
+- [ ] Type remaining capability interactions, AppArmor/seccomp, SELinux
+  label controls, masks/unmasks, no-new-privileges, and UID/GID maps.
+- [ ] Type image-volume and read-only-tmpfs behavior; extend `Tmpfs` only when a concrete
+  target-aware option or runtime contract is defined.
 - [ ] Type health logging, failure actions, and the separate startup-health family.
 - [ ] Type `Mount` independently from `Volume`; retain their different grammars and defaults.
 

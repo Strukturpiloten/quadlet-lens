@@ -1,0 +1,6 @@
+[Container]
+Image=registry.example.invalid/sysctl:1
+Sysctl=net.ipv4.conf.all.rp_filter=2
+Sysctl=net.ipv4.tcp_syncookies=0
+Sysctl=
+Sysctl=net.ipv4.ip_forward=1

@@ -1,0 +1,4 @@
+[Container]
+Image=registry.example.invalid/numeric-stop-signal:1.0@sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+Exec=/usr/bin/true
+StopSignal=9

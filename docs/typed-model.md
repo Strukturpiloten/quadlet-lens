@@ -15,11 +15,11 @@ defines its representation boundary.
 | `.network`   | `[Network]`      | `NetworkName`               |
 | `.volume`    | `[Volume]`       | `VolumeName`                |
 
-Typed container keys are `AddHost`, `ContainerName`, `Image`, `Rootfs`, `Entrypoint`, `RunInit`, `Exec`, `Environment`, `EnvironmentFile`, `Label`, `Secret`,
+Typed container keys are `AddHost`, `ContainerName`, `Image`, `Rootfs`, `Entrypoint`, `RunInit`, `StopSignal`, `StopTimeout`, `Pull`, `PidsLimit`, `HostName`, `ShmSize`, `DropCapability`, `AddCapability`, `Tmpfs`, `Sysctl`, `Ulimit`, `AddDevice`, `Memory`, `Exec`, `Environment`, `EnvironmentFile`, `Label`, `Secret`,
 `User`, `Group`, `UserNS`, `GroupAdd`, `WorkingDir`, `ReadOnly`, `PublishPort`, `Volume`,
 `Network`, `Pod`, `HealthCmd`, `HealthInterval`, `HealthRetries`, `HealthStartPeriod`,
 `HealthTimeout`, `Notify`, and `PodmanArgs`. Typed pod keys are `AddHost`, `PodName`, `PublishPort`,
-`Network`, `Volume`, and `UserNS`.
+`Network`, `Volume`, `UserNS`, and `ShmSize`.
 
 `[Unit]`, `[Service]`, and `[Install]` are recognized as generic systemd sections. Parsed keys are
 not restricted by a closed enum. Programmatic generation additionally offers typed `Requires`,
@@ -77,8 +77,101 @@ probe the host for collisions.
 `Entrypoint` is a typed singleton distinct from `Exec`. Its exact executable or JSON command-array
 text is retained; QuadletLens does not decode or normalize JSON and systemd quoting.
 
-`RunInit` is a typed singleton whose exact boolean spelling remains authored text. QuadletLens
-does not select, mount, or inspect Podman's container-init binary.
+`RunInit` is a typed singleton whose exact authored one-line value remains text. Omission remains
+the absence of a typed entry, while explicit `true` and `false` remain distinct values. The model
+does not interpret raw noncanonical text as a boolean, and it does not select, mount, or inspect
+Podman's container-init binary. The capability catalogue's `literal-true-or-false` form describes
+the evidenced caller values rather than adding parser validation.
+
+`StopSignal` and container `StopTimeout` are typed singletons whose exact one-line values remain
+authored text, including `StopTimeout=0`. Named/numeric signals and non-negative integer seconds are
+the currently evidenced supported caller forms, not parser or builder validation rules. Negative,
+fractional, overflow-sized, or otherwise unusual authored values therefore remain recognized and
+preserved without a claim that Podman accepts them. QuadletLens does not normalize signals, infer a
+timeout from systemd, claim that zero sends a signal, or claim that another format's zero/default
+semantics are equivalent. The separate pod `StopTimeout` key remains syntax-preserved but untyped.
+
+`Pull` is a typed singleton whose exact one-line value remains authored text. Omission remains the
+absence of a typed entry. The catalogue records `always`, `missing`, `never`, and `newer` as
+evidenced caller forms; the model does not interpret or reject other raw values.
+
+`PidsLimit` is a typed singleton whose exact one-line value remains authored text. Omission, `-1`,
+positive integers, zero, overflow-sized text, and noncanonical values remain distinct and opaque;
+the parser does not validate their semantics. The separate generation helper safely constructs
+only documented `-1` unlimited or nonzero ASCII-decimal finite spellings. It preserves leading
+zeros and arbitrary-precision digits without parsing into a machine integer; no portable target
+maximum is claimed. Zero remains raw-preserved but is not capability-evidenced.
+
+`HostName` is a typed singleton whose exact one-line value remains opaque authored text. Omission
+remains omission, and QuadletLens does not apply Compose RFC-1123 validation or normalize native
+values. Podman's documented behavior requires a private UTS namespace; an isolated container uses
+the default private UTS namespace, while a container joining a pod with the default shared UTS
+namespace uses the pod hostname instead. QuadletLens does not change UTS mode, model pod
+`HostName`, or inspect the runtime hostname.
+
+Container and pod `ShmSize` are separate typed singletons whose exact one-line values remain opaque
+authored text. Omission, zero, unit-bearing values, arbitrary-precision amounts, and noncanonical
+raw values stay distinct; parsed native values are not forced through a Compose grammar. The
+focused `ShmSize` constructor accepts only non-negative ASCII-decimal amounts with optional
+lowercase `b`, `k`, `m`, or `g`, preserving exact spelling and leading zeros without parsing.
+`ShmSize::unlimited()` produces explicit `0`, and `is_unlimited` distinguishes a zero amount from
+omission. Podman documents unitless bytes, a `64m` omission default, zero as unlimited IPC memory,
+and a host-IPC conflict. Pod `ShmSize` applies in the pod's default shared-IPC context. QuadletLens
+does not change IPC mode, enforce or inspect shared memory, apply a default, or infer a
+cross-format mapping.
+
+Container `DropCapability` is a typed repeatable key whose exact one-line values remain opaque and
+ordered. Omission remains distinct from one or more entries, and a space-separated authored value
+remains one `EntryValue`: QuadletLens does not split it, deduplicate capability names, lowercase the
+source text, or validate native capability tokens. The catalogue and generator evidence describe
+the supported native forms and observed generated command, not runtime privilege state.
+
+Container `AddCapability` is the corresponding typed repeatable addition key. Omission, an empty
+native reset assignment, duplicates, entry order, case, and space-separated text remain exactly
+authored through parsing and rendering. QuadletLens does not apply the generator's observed list
+splitting or lowercasing and does not interpret `all`. Tagged Podman source and exact generator
+output record that special behavior separately; they do not establish the runtime effective or
+bounding capability sets.
+
+Container `Tmpfs` is a typed repeatable key whose exact one-line values remain opaque. Omission,
+empty native reset assignments, duplicates, order, case, destination spelling, and option spelling
+remain distinct. QuadletLens does not split `CONTAINER-DIR[:OPTIONS]`, normalize paths or option
+case, deduplicate destinations, validate Linux mount options, or reinterpret the entry as
+`Volume`. Tagged Podman source and generator output describe `LookupAll` post-reset command
+construction separately; they do not create or inspect a temporary filesystem.
+`Tmpfs` is container-only; `PodKey` deliberately has no corresponding variant, so authored pod
+`Tmpfs=` remains an unknown preserved entry rather than being assigned container semantics.
+
+Container `Sysctl` is also a typed repeatable key with exact opaque one-line values. Omission,
+empty resets, duplicates, insertion order, case, whitespace, systemd quoting/specifiers, and raw
+text remain distinct. QuadletLens does not parse `name=value`, split space-separated lists,
+normalize settings, validate namespaces, or infer kernel/runtime acceptance. Tagged Podman source
+and generator output describe `LookupAllStrv` tokenization, reset, and command construction
+separately; they do not prove runtime effects. `PodKey` deliberately has no `Sysctl` variant, so
+authored pod `Sysctl=` remains an unknown preserved entry.
+
+Container `Ulimit` is a typed repeatable key with the same opaque one-line boundary. Omission,
+empty resets, duplicates, insertion order, case, systemd quotes/specifiers, and exact authored text
+remain distinct. QuadletLens does not split or unquote values and does not validate
+`TYPE=SOFT[:HARD]`. Tagged source and generator output describe `LookupAll` reset and command
+construction separately; they do not establish runtime resource-limit behavior. `PodKey`
+deliberately has no `Ulimit` variant, so authored pod `Ulimit=` remains an unknown preserved entry.
+
+Container `AddDevice` is a typed repeatable key with the same opaque one-line boundary. Omission,
+empty resets, duplicates, insertion order, case, systemd quotes/specifiers, whitespace-containing
+lines, a leading `-`, and exact authored text remain distinct. QuadletLens does not split or
+unquote values, parse host/container paths or permissions, check devices, or implement conditional
+inclusion. Tagged source and generator output describe `LookupAllStrv` tokenization, reset, and
+leading-minus handling separately; they do not establish runtime device access. `PodKey`
+deliberately has no `AddDevice` variant, so authored pod `AddDevice=` remains unknown and preserved.
+
+Container `Memory` is a typed singleton whose exact one-line value remains opaque. Omission,
+duplicates, empty assignments, quoting, specifiers, zero, and vendor-defined spellings remain
+available to diagnostics and preservation rendering without runtime interpretation. Duplicate
+singletons produce the ordinary model diagnostic, while programmatic construction rejects the
+second assignment. `Memory::new` is an additive safe path for positive ASCII-decimal amounts with
+no suffix or one lowercase `b`, `k`, `m`, or `g`; it preserves leading zeros and arbitrary
+precision without parsing. Pod `Memory` remains an unknown preserved entry.
 
 ## Document sets and dependency graph
 

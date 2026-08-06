@@ -1,0 +1,5 @@
+[Container]
+Image=registry.example.invalid/memory:1
+Memory=32m
+Memory=
+Memory=16777216b

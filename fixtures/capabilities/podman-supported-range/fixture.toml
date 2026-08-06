@@ -1,7 +1,7 @@
 schema = 1
 id = "podman-supported-range"
 suite = "capabilities"
-description = "Protects the reviewed first-conversion capability surface in the rolling Podman supported-range catalogue."
+description = "Protects the reviewed first-conversion capability surface, including repeatable native container capability drops, additions, temporary filesystems, kernel-parameter assignments, resource limits, host-device mappings, and the Podman 5.5-introduced singleton container memory limit, in the rolling Podman supported-range catalogue."
 secrets_reviewed = true
 files = ["expected-capabilities.txt"]
 
@@ -12,7 +12,7 @@ redistribution = "allowed"
 modifications = "none"
 
 [environment]
-description = "Primary Podman 5.4 documentation and the exact 5.4.0 through current 6.0.2 generator matrix are available; capabilities outside the protected fixture retain explicit evidence gaps."
+description = "Primary Podman 5.4.0, 5.5.0, and 6.0.2 Quadlet and CLI documentation, exact tagged capability, Tmpfs, Sysctl, Ulimit, AddDevice, and Memory command/Lookup/LookupAll/LookupAllStrv/reset source behavior, the exact 5.4.0 through current 6.0.2 generator matrix, and the separate 5.5.0-through-current Memory lane are available; capabilities outside the protected fixtures retain explicit evidence gaps."
 
 [expectations]
-summary = "The supported range cannot silently lose a capability required by the first Compose-to-Quadlet conversion."
+summary = "The supported range cannot silently lose a reviewed native capability, repeatability rule, or capability required by the first Compose-to-Quadlet conversion."

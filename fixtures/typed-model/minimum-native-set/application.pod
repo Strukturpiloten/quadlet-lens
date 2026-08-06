@@ -8,6 +8,10 @@ PublishPort=127.0.0.1:8081:81
 Network=frontend.network
 Volume=cache.volume:/var/cache/example:Z
 UserNS=auto:size=8192
+ShmSize=64m
+Ulimit=core=0:0
+AddDevice=/dev/null:/dev/null:r
+Memory=16m
 FuturePodKey=future-value
 
 [Service]

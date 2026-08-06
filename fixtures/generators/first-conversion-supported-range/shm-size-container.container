@@ -1,0 +1,3 @@
+[Container]
+Image=registry.example.invalid/shm-size-container:1.0
+ShmSize=67108864b

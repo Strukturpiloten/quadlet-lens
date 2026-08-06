@@ -1,8 +1,14 @@
 //! Programmatic Quadlet construction and parse-back validation.
 
 use quadlet_lens::{
-    model::{ContainerKey, NamedQuadletDocument, NetworkKey, PodKey, QuadletDocumentSet, QuadletUnitType, VolumeKey},
-    render::{EntryValue, QuadletDocumentBuilder, RenderError, SystemdSection, SystemdUnitKey},
+    model::{
+        ContainerKey, EntryKind, NamedQuadletDocument, NetworkKey, PodKey, QuadletDocumentSet, QuadletUnitType,
+        VolumeKey,
+    },
+    render::{
+        EntryValue, Memory, MemoryError, PidsLimit, PidsLimitError, QuadletDocumentBuilder, RenderError, ShmSize,
+        ShmSizeError, SystemdSection, SystemdUnitKey,
+    },
     source::SourceId,
 };
 
@@ -26,6 +32,10 @@ fn builds_a_deterministic_first_conversion_document_set() -> Result<(), Box<dyn 
     container.push_container(ContainerKey::Image, value("example.invalid/app:1@sha256:abcd")?)?;
     container.push_container(ContainerKey::Entrypoint, value(r#"["/usr/bin/env","php"]"#)?)?;
     container.push_container(ContainerKey::RunInit, value("true")?)?;
+    container.push_container(ContainerKey::StopSignal, value("SIGUSR1")?)?;
+    container.push_container(ContainerKey::StopTimeout, value("37")?)?;
+    container.push_container(ContainerKey::Pull, value("newer")?)?;
+    container.push_container(ContainerKey::PidsLimit, PidsLimit::finite("127")?.into())?;
     container.push_container(ContainerKey::Exec, value("php -v")?)?;
     container.push_container(ContainerKey::Environment, value("APP_ENV=production")?)?;
     container.push_container(ContainerKey::Label, value("org.example.application=example")?)?;
@@ -67,6 +77,10 @@ fn builds_a_deterministic_first_conversion_document_set() -> Result<(), Box<dyn 
             "Image=example.invalid/app:1@sha256:abcd\n",
             "Entrypoint=[\"/usr/bin/env\",\"php\"]\n",
             "RunInit=true\n",
+            "StopSignal=SIGUSR1\n",
+            "StopTimeout=37\n",
+            "Pull=newer\n",
+            "PidsLimit=127\n",
             "Exec=php -v\n",
             "Environment=APP_ENV=production\n",
             "Label=org.example.application=example\n",
@@ -130,6 +144,12 @@ fn preserves_repeated_native_and_generic_entries_in_order() -> Result<(), Box<dy
     )?;
     builder.push_container(ContainerKey::GroupAdd, value("audio")?)?;
     builder.push_container(ContainerKey::GroupAdd, value("44")?)?;
+    builder.push_container(ContainerKey::DropCapability, value("CAP_NET_ADMIN")?)?;
+    builder.push_container(ContainerKey::DropCapability, value("ALL")?)?;
+    builder.push_container(ContainerKey::DropCapability, value("CAP_DAC_OVERRIDE CAP_IPC_OWNER")?)?;
+    builder.push_container(ContainerKey::AddCapability, value("CAP_NET_ADMIN")?)?;
+    builder.push_container(ContainerKey::AddCapability, value("ALL")?)?;
+    builder.push_container(ContainerKey::AddCapability, value("CAP_DAC_OVERRIDE CAP_IPC_OWNER")?)?;
     let generated = builder.build(SourceId::new(84))?;
 
     assert_eq!(
@@ -153,6 +173,12 @@ fn preserves_repeated_native_and_generic_entries_in_order() -> Result<(), Box<dy
             "Secret=second-secret,type=env,target=SECOND_SECRET\n",
             "GroupAdd=audio\n",
             "GroupAdd=44\n",
+            "DropCapability=CAP_NET_ADMIN\n",
+            "DropCapability=ALL\n",
+            "DropCapability=CAP_DAC_OVERRIDE CAP_IPC_OWNER\n",
+            "AddCapability=CAP_NET_ADMIN\n",
+            "AddCapability=ALL\n",
+            "AddCapability=CAP_DAC_OVERRIDE CAP_IPC_OWNER\n",
         )
     );
     Ok(())
@@ -163,12 +189,296 @@ fn builds_a_singleton_pod_user_namespace() -> Result<(), Box<dyn std::error::Err
     let mut builder = QuadletDocumentBuilder::new(QuadletUnitType::Pod);
     builder.push_pod(PodKey::PodName, value("example-pod")?)?;
     builder.push_pod(PodKey::UserNS, value("auto:size=8192")?)?;
+    builder.push_pod(PodKey::ShmSize, ShmSize::new("64m")?.into())?;
     assert!(matches!(
         builder.push_pod(PodKey::UserNS, value("keep-id")?),
         Err(RenderError::DuplicateSingleton(key)) if key == "UserNS"
     ));
+    assert!(matches!(
+        builder.push_pod(PodKey::ShmSize, ShmSize::unlimited().into()),
+        Err(RenderError::DuplicateSingleton(key)) if key == "ShmSize"
+    ));
     let generated = builder.build(SourceId::new(88))?;
-    assert_eq!(generated.text(), "[Pod]\nPodName=example-pod\nUserNS=auto:size=8192\n");
+    assert_eq!(
+        generated.text(),
+        "[Pod]\nPodName=example-pod\nUserNS=auto:size=8192\nShmSize=64m\n"
+    );
+    Ok(())
+}
+
+#[test]
+fn run_init_omission_true_false_and_raw_text_render_distinctly() -> Result<(), Box<dyn std::error::Error>> {
+    for (source_id, authored) in [
+        (SourceId::new(89), None),
+        (SourceId::new(90), Some("true")),
+        (SourceId::new(91), Some("false")),
+        (SourceId::new(92), Some("vendor-defined-value")),
+    ] {
+        let mut builder = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+        builder.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+        if let Some(authored) = authored {
+            builder.push_container(ContainerKey::RunInit, value(authored)?)?;
+        }
+        let generated = builder.build(source_id)?;
+        let expected = authored.map_or_else(
+            || "[Container]\nImage=example.invalid/app\n".to_owned(),
+            |value| format!("[Container]\nImage=example.invalid/app\nRunInit={value}\n"),
+        );
+        assert_eq!(generated.text(), expected);
+        assert_eq!(
+            generated.document().entries().find_map(|entry| match entry.kind() {
+                EntryKind::Container(ContainerKey::RunInit) => Some(entry.value().primary().text()),
+                _ => None,
+            }),
+            authored
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn pull_omission_supported_forms_and_raw_text_render_distinctly() -> Result<(), Box<dyn std::error::Error>> {
+    for (source_id, authored) in [
+        (SourceId::new(93), None),
+        (SourceId::new(94), Some("always")),
+        (SourceId::new(95), Some("missing")),
+        (SourceId::new(96), Some("never")),
+        (SourceId::new(97), Some("newer")),
+        (SourceId::new(98), Some("vendor-defined-policy")),
+    ] {
+        let mut builder = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+        builder.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+        if let Some(authored) = authored {
+            builder.push_container(ContainerKey::Pull, value(authored)?)?;
+        }
+        let generated = builder.build(source_id)?;
+        let expected = authored.map_or_else(
+            || "[Container]\nImage=example.invalid/app\n".to_owned(),
+            |value| format!("[Container]\nImage=example.invalid/app\nPull={value}\n"),
+        );
+        assert_eq!(generated.text(), expected);
+        assert_eq!(
+            generated.document().entries().find_map(|entry| match entry.kind() {
+                EntryKind::Container(ContainerKey::Pull) => Some(entry.value().primary().text()),
+                _ => None,
+            }),
+            authored
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn typed_pids_limits_render_only_unlimited_or_nonzero_ascii_decimals() -> Result<(), Box<dyn std::error::Error>> {
+    assert_eq!(PidsLimit::unlimited().as_str(), "-1");
+    assert_eq!(PidsLimit::finite("1")?.as_str(), "1");
+    assert_eq!(PidsLimit::finite("00047")?.as_str(), "00047");
+    assert_eq!(
+        PidsLimit::finite("999999999999999999999999999999999999")?.as_str(),
+        "999999999999999999999999999999999999"
+    );
+    assert_eq!(PidsLimit::finite(""), Err(PidsLimitError::Empty));
+    assert_eq!(PidsLimit::finite("0"), Err(PidsLimitError::Zero));
+    assert_eq!(PidsLimit::finite("000"), Err(PidsLimitError::Zero));
+    for non_decimal in ["-1", "+1", "1_000", "1.5", " 1", "１"] {
+        assert_eq!(PidsLimit::finite(non_decimal), Err(PidsLimitError::NonDecimal));
+    }
+
+    for (source_id, limit, expected) in [
+        (SourceId::new(99), PidsLimit::finite("47")?, "47"),
+        (SourceId::new(100), PidsLimit::unlimited(), "-1"),
+    ] {
+        let mut builder = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+        builder.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+        builder.push_container(ContainerKey::PidsLimit, limit.into())?;
+        assert_eq!(
+            builder.build(source_id)?.text(),
+            format!("[Container]\nImage=example.invalid/app\nPidsLimit={expected}\n")
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn raw_pids_limit_omission_zero_and_noncanonical_text_render_distinctly() -> Result<(), Box<dyn std::error::Error>> {
+    for (source_id, authored) in [
+        (SourceId::new(101), None),
+        (SourceId::new(102), Some("0")),
+        (SourceId::new(103), Some("vendor-defined-limit")),
+        (SourceId::new(104), Some("999999999999999999999999999999999999")),
+    ] {
+        let mut builder = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+        builder.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+        if let Some(authored) = authored {
+            builder.push_container(ContainerKey::PidsLimit, value(authored)?)?;
+        }
+        let expected = authored.map_or_else(
+            || "[Container]\nImage=example.invalid/app\n".to_owned(),
+            |limit| format!("[Container]\nImage=example.invalid/app\nPidsLimit={limit}\n"),
+        );
+        assert_eq!(builder.build(source_id)?.text(), expected);
+    }
+    Ok(())
+}
+
+#[test]
+fn hostname_omission_and_raw_text_render_distinctly() -> Result<(), Box<dyn std::error::Error>> {
+    for (source_id, authored) in [
+        (SourceId::new(105), None),
+        (SourceId::new(106), Some("app.example")),
+        (SourceId::new(107), Some("Authored_Native_Value")),
+    ] {
+        let mut builder = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+        builder.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+        if let Some(authored) = authored {
+            builder.push_container(ContainerKey::HostName, value(authored)?)?;
+        }
+        let generated = builder.build(source_id)?;
+        let expected = authored.map_or_else(
+            || "[Container]\nImage=example.invalid/app\n".to_owned(),
+            |value| format!("[Container]\nImage=example.invalid/app\nHostName={value}\n"),
+        );
+        assert_eq!(generated.text(), expected);
+        assert_eq!(
+            generated.document().entries().find_map(|entry| match entry.kind() {
+                EntryKind::Container(ContainerKey::HostName) => Some(entry.value().primary().text()),
+                _ => None,
+            }),
+            authored
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn typed_shm_sizes_preserve_native_spelling_and_distinguish_zero_unlimited() -> Result<(), Box<dyn std::error::Error>> {
+    for accepted in [
+        "0",
+        "00",
+        "0b",
+        "1",
+        "00064",
+        "1b",
+        "2k",
+        "3m",
+        "4g",
+        "999999999999999999999999999999999999g",
+    ] {
+        let size = ShmSize::new(accepted)?;
+        assert_eq!(size.as_str(), accepted);
+        assert_eq!(
+            size.is_unlimited(),
+            accepted.starts_with('0')
+                && size
+                    .as_str()
+                    .trim_end_matches(['b', 'k', 'm', 'g'])
+                    .bytes()
+                    .all(|byte| byte == b'0')
+        );
+    }
+    assert_eq!(ShmSize::unlimited().as_str(), "0");
+    assert!(ShmSize::unlimited().is_unlimited());
+    assert_eq!(ShmSize::new(""), Err(ShmSizeError::Empty));
+    for invalid in [
+        "+1", "-1", "1.5", "1e3", "1kb", "1mb", "1gb", "1K", "1M", "1G", "1KiB", " 1m", "1m ", "１m",
+    ] {
+        assert_eq!(ShmSize::new(invalid), Err(ShmSizeError::InvalidFormat));
+    }
+
+    for (source_id, unit_type, expected) in [
+        (
+            SourceId::new(108),
+            QuadletUnitType::Container,
+            "[Container]\nImage=example.invalid/app\nShmSize=00064m\n",
+        ),
+        (SourceId::new(109), QuadletUnitType::Pod, "[Pod]\nShmSize=0\n"),
+    ] {
+        let mut builder = QuadletDocumentBuilder::new(unit_type);
+        if unit_type == QuadletUnitType::Container {
+            builder.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+            builder.push_container(ContainerKey::ShmSize, ShmSize::new("00064m")?.into())?;
+        } else {
+            builder.push_pod(PodKey::ShmSize, ShmSize::unlimited().into())?;
+        }
+        assert_eq!(builder.build(source_id)?.text(), expected);
+    }
+    Ok(())
+}
+
+#[test]
+fn raw_shm_size_omission_and_noncanonical_values_remain_distinct() -> Result<(), Box<dyn std::error::Error>> {
+    for (source_id, authored) in [
+        (SourceId::new(110), None),
+        (SourceId::new(111), Some("0")),
+        (SourceId::new(112), Some("vendor-defined-size")),
+    ] {
+        let mut builder = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+        builder.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+        if let Some(authored) = authored {
+            builder.push_container(ContainerKey::ShmSize, value(authored)?)?;
+        }
+        let expected = authored.map_or_else(
+            || "[Container]\nImage=example.invalid/app\n".to_owned(),
+            |size| format!("[Container]\nImage=example.invalid/app\nShmSize={size}\n"),
+        );
+        assert_eq!(builder.build(source_id)?.text(), expected);
+    }
+    Ok(())
+}
+
+#[test]
+fn typed_memory_limits_preserve_positive_native_spelling() -> Result<(), Box<dyn std::error::Error>> {
+    for accepted in [
+        "1",
+        "00001",
+        "1b",
+        "2k",
+        "3m",
+        "4g",
+        "999999999999999999999999999999999999b",
+    ] {
+        assert_eq!(Memory::new(accepted)?.as_str(), accepted);
+    }
+    assert_eq!(Memory::new(""), Err(MemoryError::Empty));
+    for zero in ["0", "00", "0b", "000m"] {
+        assert_eq!(Memory::new(zero), Err(MemoryError::Zero));
+    }
+    for invalid in [
+        "+1", "-1", "1.5", "1e3", "1kb", "1mb", "1gb", "1K", "1M", "1G", "1KiB", " 1m", "1m ", "１m",
+    ] {
+        assert_eq!(Memory::new(invalid), Err(MemoryError::InvalidFormat));
+    }
+
+    let mut builder = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    builder.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+    builder.push_container(ContainerKey::Memory, Memory::new("00016777216b")?.into())?;
+    assert_eq!(
+        builder.build(SourceId::new(119))?.text(),
+        "[Container]\nImage=example.invalid/app\nMemory=00016777216b\n"
+    );
+    Ok(())
+}
+
+#[test]
+fn raw_memory_omission_and_noncanonical_values_remain_distinct() -> Result<(), Box<dyn std::error::Error>> {
+    for (source_id, authored) in [
+        (SourceId::new(120), None),
+        (SourceId::new(121), Some("0")),
+        (SourceId::new(122), Some(r#""64m""#)),
+        (SourceId::new(123), Some("%h")),
+        (SourceId::new(124), Some("vendor-defined-memory")),
+    ] {
+        let mut builder = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+        builder.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+        if let Some(authored) = authored {
+            builder.push_container(ContainerKey::Memory, value(authored)?)?;
+        }
+        let expected = authored.map_or_else(
+            || "[Container]\nImage=example.invalid/app\n".to_owned(),
+            |memory| format!("[Container]\nImage=example.invalid/app\nMemory={memory}\n"),
+        );
+        assert_eq!(builder.build(source_id)?.text(), expected);
+    }
     Ok(())
 }
 
@@ -231,10 +541,283 @@ fn rejects_unsafe_values_wrong_units_and_duplicate_singletons() -> Result<(), Bo
         container.push_container(ContainerKey::RunInit, value("false")?),
         Err(RenderError::DuplicateSingleton(key)) if key == "RunInit"
     ));
+    container.push_container(ContainerKey::StopSignal, value("SIGTERM")?)?;
+    assert!(matches!(
+        container.push_container(ContainerKey::StopSignal, value("9")?),
+        Err(RenderError::DuplicateSingleton(key)) if key == "StopSignal"
+    ));
+    container.push_container(ContainerKey::StopTimeout, value("0")?)?;
+    assert!(matches!(
+        container.push_container(ContainerKey::StopTimeout, value("30")?),
+        Err(RenderError::DuplicateSingleton(key)) if key == "StopTimeout"
+    ));
+    container.push_container(ContainerKey::Pull, value("missing")?)?;
+    assert!(matches!(
+        container.push_container(ContainerKey::Pull, value("always")?),
+        Err(RenderError::DuplicateSingleton(key)) if key == "Pull"
+    ));
+    container.push_container(ContainerKey::PidsLimit, PidsLimit::finite("47")?.into())?;
+    assert!(matches!(
+        container.push_container(ContainerKey::PidsLimit, PidsLimit::unlimited().into()),
+        Err(RenderError::DuplicateSingleton(key)) if key == "PidsLimit"
+    ));
+    container.push_container(ContainerKey::HostName, value("app.example")?)?;
+    assert!(matches!(
+        container.push_container(ContainerKey::HostName, value("other.example")?),
+        Err(RenderError::DuplicateSingleton(key)) if key == "HostName"
+    ));
+    container.push_container(ContainerKey::ShmSize, ShmSize::new("64m")?.into())?;
+    assert!(matches!(
+        container.push_container(ContainerKey::ShmSize, ShmSize::unlimited().into()),
+        Err(RenderError::DuplicateSingleton(key)) if key == "ShmSize"
+    ));
+    container.push_container(ContainerKey::Memory, Memory::new("16m")?.into())?;
+    assert!(matches!(
+        container.push_container(ContainerKey::Memory, Memory::new("32m")?.into()),
+        Err(RenderError::DuplicateSingleton(key)) if key == "Memory"
+    ));
     assert!(matches!(
         container.push_systemd(SystemdSection::Unit, "Invalid-Key", value("value")?),
         Err(RenderError::InvalidKey(key)) if key == "Invalid-Key"
     ));
+    Ok(())
+}
+
+#[test]
+fn entry_value_enforces_physical_line_safety_not_lifecycle_grammar() -> Result<(), Box<dyn std::error::Error>> {
+    for unsafe_value in ["first\nsecond", "first\rsecond", "first\0second"] {
+        assert!(matches!(EntryValue::new(unsafe_value), Err(RenderError::InvalidValue)));
+    }
+
+    let mut container = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    container.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+    container.push_container(ContainerKey::StopSignal, value("vendor-defined-signal")?)?;
+    container.push_container(ContainerKey::StopTimeout, value("-1.5")?)?;
+    assert_eq!(
+        container.build(SourceId::new(88))?.text(),
+        concat!(
+            "[Container]\n",
+            "Image=example.invalid/app\n",
+            "StopSignal=vendor-defined-signal\n",
+            "StopTimeout=-1.5\n",
+        )
+    );
+    Ok(())
+}
+
+#[test]
+fn drop_capability_builder_preserves_raw_values_without_native_normalization() -> Result<(), Box<dyn std::error::Error>>
+{
+    let mut container = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    container.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+    for authored in [
+        "CAP_NET_ADMIN",
+        "CAP_NET_ADMIN",
+        "ALL",
+        "CAP_DAC_OVERRIDE CAP_IPC_OWNER",
+        "Vendor_Defined Capability Text",
+    ] {
+        container.push_container(ContainerKey::DropCapability, value(authored)?)?;
+    }
+    assert_eq!(
+        container.build(SourceId::new(113))?.text(),
+        concat!(
+            "[Container]\n",
+            "Image=example.invalid/app\n",
+            "DropCapability=CAP_NET_ADMIN\n",
+            "DropCapability=CAP_NET_ADMIN\n",
+            "DropCapability=ALL\n",
+            "DropCapability=CAP_DAC_OVERRIDE CAP_IPC_OWNER\n",
+            "DropCapability=Vendor_Defined Capability Text\n",
+        )
+    );
+
+    for unsafe_value in ["CAP_NET_ADMIN\nALL", "CAP_NET_ADMIN\rALL", "CAP_NET_ADMIN\0ALL"] {
+        assert!(matches!(EntryValue::new(unsafe_value), Err(RenderError::InvalidValue)));
+    }
+    Ok(())
+}
+
+#[test]
+fn add_capability_builder_preserves_resets_duplicates_and_raw_values_without_normalization()
+-> Result<(), Box<dyn std::error::Error>> {
+    let mut container = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    container.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+    for authored in [
+        "CAP_NET_ADMIN",
+        "",
+        "CAP_NET_ADMIN",
+        "ALL",
+        "CAP_DAC_OVERRIDE CAP_IPC_OWNER",
+        "Vendor_Defined Capability Text",
+    ] {
+        container.push_container(ContainerKey::AddCapability, value(authored)?)?;
+    }
+    assert_eq!(
+        container.build(SourceId::new(114))?.text(),
+        concat!(
+            "[Container]\n",
+            "Image=example.invalid/app\n",
+            "AddCapability=CAP_NET_ADMIN\n",
+            "AddCapability=\n",
+            "AddCapability=CAP_NET_ADMIN\n",
+            "AddCapability=ALL\n",
+            "AddCapability=CAP_DAC_OVERRIDE CAP_IPC_OWNER\n",
+            "AddCapability=Vendor_Defined Capability Text\n",
+        )
+    );
+
+    for unsafe_value in ["CAP_NET_ADMIN\nALL", "CAP_NET_ADMIN\rALL", "CAP_NET_ADMIN\0ALL"] {
+        assert!(matches!(EntryValue::new(unsafe_value), Err(RenderError::InvalidValue)));
+    }
+    Ok(())
+}
+
+#[test]
+fn tmpfs_builder_preserves_resets_duplicates_case_options_and_raw_values_without_normalization()
+-> Result<(), Box<dyn std::error::Error>> {
+    let mut container = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    container.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+    for authored in [
+        "/Before:RW,NoExec",
+        "/before-two:size=64M",
+        "",
+        "/data:mode=755,uid=1009,gid=1009",
+        "/data:mode=755,uid=1009,gid=1009",
+        "Vendor_Defined Tmpfs Options",
+    ] {
+        container.push_container(ContainerKey::Tmpfs, value(authored)?)?;
+    }
+    assert_eq!(
+        container.build(SourceId::new(115))?.text(),
+        concat!(
+            "[Container]\n",
+            "Image=example.invalid/app\n",
+            "Tmpfs=/Before:RW,NoExec\n",
+            "Tmpfs=/before-two:size=64M\n",
+            "Tmpfs=\n",
+            "Tmpfs=/data:mode=755,uid=1009,gid=1009\n",
+            "Tmpfs=/data:mode=755,uid=1009,gid=1009\n",
+            "Tmpfs=Vendor_Defined Tmpfs Options\n",
+        )
+    );
+
+    for unsafe_value in ["/data\n/cache", "/data\r/cache", "/data\0/cache"] {
+        assert!(matches!(EntryValue::new(unsafe_value), Err(RenderError::InvalidValue)));
+    }
+    Ok(())
+}
+
+#[test]
+fn sysctl_builder_preserves_resets_duplicates_case_whitespace_quoting_and_specifiers_without_interpretation()
+-> Result<(), Box<dyn std::error::Error>> {
+    let mut container = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    container.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+    for authored in [
+        "net.ipv4.conf.all.rp_filter=2 net.ipv4.ip_forward=0",
+        r#"kernel.domainname="Authored Value""#,
+        " net.ipv4.ip_forward=0 ",
+        "net.ipv4.conf.%i.forwarding=%n",
+        "",
+        "net.ipv4.ip_forward=1",
+        "net.ipv4.ip_forward=1",
+        "Vendor_Defined=MixedCase",
+    ] {
+        container.push_container(ContainerKey::Sysctl, value(authored)?)?;
+    }
+    assert_eq!(
+        container.build(SourceId::new(116))?.text(),
+        concat!(
+            "[Container]\n",
+            "Image=example.invalid/app\n",
+            "Sysctl=net.ipv4.conf.all.rp_filter=2 net.ipv4.ip_forward=0\n",
+            "Sysctl=kernel.domainname=\"Authored Value\"\n",
+            "Sysctl= net.ipv4.ip_forward=0 \n",
+            "Sysctl=net.ipv4.conf.%i.forwarding=%n\n",
+            "Sysctl=\n",
+            "Sysctl=net.ipv4.ip_forward=1\n",
+            "Sysctl=net.ipv4.ip_forward=1\n",
+            "Sysctl=Vendor_Defined=MixedCase\n",
+        )
+    );
+
+    for unsafe_value in ["net.ipv4.ip_forward=1\nnext=2", "one=1\rtwo=2", "one=1\0two=2"] {
+        assert!(matches!(EntryValue::new(unsafe_value), Err(RenderError::InvalidValue)));
+    }
+    Ok(())
+}
+
+#[test]
+fn ulimit_builder_preserves_resets_duplicates_case_quoting_and_specifiers_without_interpretation()
+-> Result<(), Box<dyn std::error::Error>> {
+    let mut container = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    container.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+    for authored in [
+        "Core=0:0",
+        r#"nofile="1024:2048""#,
+        "stack=%h:%n",
+        "",
+        "nproc=4096:8192",
+        "nproc=4096:8192",
+        "Vendor_Defined=Soft:Hard",
+    ] {
+        container.push_container(ContainerKey::Ulimit, value(authored)?)?;
+    }
+    assert_eq!(
+        container.build(SourceId::new(117))?.text(),
+        concat!(
+            "[Container]\n",
+            "Image=example.invalid/app\n",
+            "Ulimit=Core=0:0\n",
+            "Ulimit=nofile=\"1024:2048\"\n",
+            "Ulimit=stack=%h:%n\n",
+            "Ulimit=\n",
+            "Ulimit=nproc=4096:8192\n",
+            "Ulimit=nproc=4096:8192\n",
+            "Ulimit=Vendor_Defined=Soft:Hard\n",
+        )
+    );
+
+    for unsafe_value in ["core=0:0\nnofile=1:2", "core=0:0\rnproc=1:2", "core=0:0\0stack=1:2"] {
+        assert!(matches!(EntryValue::new(unsafe_value), Err(RenderError::InvalidValue)));
+    }
+    Ok(())
+}
+
+#[test]
+fn add_device_builder_preserves_resets_duplicates_case_quotes_specifiers_whitespace_and_leading_dash()
+-> Result<(), Box<dyn std::error::Error>> {
+    let mut container = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    container.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+    for authored in [
+        "/dev/null:/dev/pre-null:r /dev/zero:/dev/pre-zero:w",
+        "",
+        r#""/dev/null:/dev/final null:r" /dev/zero:/dev/final-zero:w"#,
+        "%h/Device:/dev/MixedCase:rwm",
+        "-/dev/optional:/dev/optional:r",
+        r#""/dev/null:/dev/final null:r" /dev/zero:/dev/final-zero:w"#,
+        "Vendor_Defined Device Text",
+    ] {
+        container.push_container(ContainerKey::AddDevice, value(authored)?)?;
+    }
+    assert_eq!(
+        container.build(SourceId::new(118))?.text(),
+        concat!(
+            "[Container]\n",
+            "Image=example.invalid/app\n",
+            "AddDevice=/dev/null:/dev/pre-null:r /dev/zero:/dev/pre-zero:w\n",
+            "AddDevice=\n",
+            "AddDevice=\"/dev/null:/dev/final null:r\" /dev/zero:/dev/final-zero:w\n",
+            "AddDevice=%h/Device:/dev/MixedCase:rwm\n",
+            "AddDevice=-/dev/optional:/dev/optional:r\n",
+            "AddDevice=\"/dev/null:/dev/final null:r\" /dev/zero:/dev/final-zero:w\n",
+            "AddDevice=Vendor_Defined Device Text\n",
+        )
+    );
+
+    for unsafe_value in ["/dev/null\n/dev/zero", "/dev/null\r/dev/zero", "/dev/null\0/dev/zero"] {
+        assert!(matches!(EntryValue::new(unsafe_value), Err(RenderError::InvalidValue)));
+    }
     Ok(())
 }
 

@@ -1,0 +1,4 @@
+[Container]
+Image=registry.example.invalid/pull-missing:1.0
+Pull=missing
+Exec=/usr/bin/true

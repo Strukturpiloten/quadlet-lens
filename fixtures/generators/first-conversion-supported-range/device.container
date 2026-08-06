@@ -1,0 +1,5 @@
+[Container]
+Image=registry.example.invalid/device-fixture:1
+AddDevice=/dev/null:/dev/pre-null:r /dev/zero:/dev/pre-zero:w
+AddDevice=
+AddDevice=/dev/null:/dev/final-null:r /dev/zero:/dev/final-zero:w

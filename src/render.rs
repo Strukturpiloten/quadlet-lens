@@ -1,9 +1,9 @@
 //! Validated programmatic construction of deterministic Quadlet documents.
 //!
 //! This module owns native section and key spelling, repeated-entry rules, physical-line safety,
-//! deterministic section order, and parse-back validation. Entry values remain native semantic
-//! values: callers select the appropriate Quadlet value form, while future focused value encoders
-//! can provide stronger construction APIs without changing the document builder.
+//! deterministic section order, and parse-back validation. Entry values remain exact authored
+//! values: callers are responsible for key-specific semantic validity, while future focused value
+//! encoders can provide stronger construction APIs without changing the document builder.
 
 use std::{error::Error, fmt};
 
@@ -16,11 +16,12 @@ use crate::{
     source::SourceId,
 };
 
-/// A validated, single-physical-line native Quadlet value.
+/// An exact, single-physical-line native Quadlet value.
 ///
 /// The value is retained exactly. It may contain native systemd quoting and specifiers, but it may
-/// not contain line endings or NUL bytes. This type does not interpret command arguments,
-/// environment assignments, mount options, or other key-specific semantics.
+/// not contain line endings or NUL bytes. This type enforces physical-line safety only; it does
+/// not validate command arguments, environment assignments, lifecycle values, mount options, or
+/// other key-specific semantics.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EntryValue(String);
 
@@ -44,6 +45,236 @@ impl EntryValue {
         &self.0
     }
 }
+
+/// Safely constructible process-ID limit for a container.
+///
+/// This helper covers only the documented unlimited spelling (`-1`) and positive finite values
+/// written as nonzero ASCII decimal text. It deliberately does not parse the decimal into a Rust
+/// integer, so large values and leading zeros retain their exact spelling without overflow.
+/// Parsed and raw [`EntryValue`] inputs remain uninterpreted, so authored zero and noncanonical
+/// values can still be preserved.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PidsLimit(String);
+
+impl PidsLimit {
+    /// Creates an unlimited process-ID limit rendered as `-1`.
+    #[must_use]
+    pub fn unlimited() -> Self {
+        Self("-1".to_owned())
+    }
+
+    /// Creates a positive finite process-ID limit from exact ASCII decimal spelling.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`PidsLimitError::Empty`] for empty text, [`PidsLimitError::NonDecimal`] for any
+    /// non-ASCII-digit byte, and [`PidsLimitError::Zero`] when every digit is zero.
+    pub fn finite(limit: impl Into<String>) -> Result<Self, PidsLimitError> {
+        let limit = limit.into();
+        if limit.is_empty() {
+            return Err(PidsLimitError::Empty);
+        }
+        if !limit.bytes().all(|byte| byte.is_ascii_digit()) {
+            return Err(PidsLimitError::NonDecimal);
+        }
+        if !limit.bytes().any(|byte| byte != b'0') {
+            return Err(PidsLimitError::Zero);
+        }
+        Ok(Self(limit))
+    }
+
+    /// Returns the exact native spelling.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl From<PidsLimit> for EntryValue {
+    fn from(limit: PidsLimit) -> Self {
+        Self(limit.0)
+    }
+}
+
+/// Invalid input to [`PidsLimit::finite`].
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[non_exhaustive]
+pub enum PidsLimitError {
+    /// The finite decimal spelling is empty.
+    Empty,
+    /// The finite spelling contains a byte other than an ASCII decimal digit.
+    NonDecimal,
+    /// Zero is deliberately outside the typed construction contract.
+    Zero,
+}
+
+impl fmt::Display for PidsLimitError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Empty => formatter.write_str("a finite process-ID limit must not be empty"),
+            Self::NonDecimal => formatter.write_str("a finite process-ID limit must contain only ASCII decimal digits"),
+            Self::Zero => formatter.write_str("a finite process-ID limit must be positive"),
+        }
+    }
+}
+
+impl Error for PidsLimitError {}
+
+/// Safely constructible native shared-memory size for a container or pod.
+///
+/// The exact spelling is retained without parsing into a machine integer. Accepted values contain
+/// a non-negative ASCII-decimal amount followed by no unit or one lowercase native unit: `b`,
+/// `k`, `m`, or `g`. Leading zeros and arbitrary-precision amounts remain unchanged. Parsed and
+/// raw [`EntryValue`] inputs remain uninterpreted.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ShmSize(String);
+
+impl ShmSize {
+    /// Creates a shared-memory size from exact native spelling.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ShmSizeError::Empty`] for empty text and [`ShmSizeError::InvalidFormat`] unless
+    /// the value is an ASCII-decimal amount with an optional lowercase `b`, `k`, `m`, or `g` unit.
+    pub fn new(size: impl Into<String>) -> Result<Self, ShmSizeError> {
+        let size = size.into();
+        if size.is_empty() {
+            return Err(ShmSizeError::Empty);
+        }
+        let amount = match size.as_bytes().last() {
+            Some(b'b' | b'k' | b'm' | b'g') => &size[..size.len() - 1],
+            _ => size.as_str(),
+        };
+        if amount.is_empty() || !amount.bytes().all(|byte| byte.is_ascii_digit()) {
+            return Err(ShmSizeError::InvalidFormat);
+        }
+        Ok(Self(size))
+    }
+
+    /// Creates Podman's documented explicit unlimited shared-memory value, `0`.
+    #[must_use]
+    pub fn unlimited() -> Self {
+        Self("0".to_owned())
+    }
+
+    /// Returns whether the exact spelling denotes a zero amount, Podman's documented unlimited value.
+    #[must_use]
+    pub fn is_unlimited(&self) -> bool {
+        let amount = match self.0.as_bytes().last() {
+            Some(b'b' | b'k' | b'm' | b'g') => &self.0[..self.0.len() - 1],
+            _ => self.0.as_str(),
+        };
+        amount.bytes().all(|byte| byte == b'0')
+    }
+
+    /// Returns the exact native spelling.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl From<ShmSize> for EntryValue {
+    fn from(size: ShmSize) -> Self {
+        Self(size.0)
+    }
+}
+
+/// Invalid input to [`ShmSize::new`].
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[non_exhaustive]
+pub enum ShmSizeError {
+    /// The shared-memory size is empty.
+    Empty,
+    /// The value is not an ASCII-decimal amount with an optional supported lowercase unit.
+    InvalidFormat,
+}
+
+impl fmt::Display for ShmSizeError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Empty => formatter.write_str("a shared-memory size must not be empty"),
+            Self::InvalidFormat => formatter
+                .write_str("a shared-memory size must be an ASCII decimal amount with optional unit b, k, m, or g"),
+        }
+    }
+}
+
+impl Error for ShmSizeError {}
+
+/// Safely constructible native memory limit for a container.
+///
+/// The exact spelling is retained without parsing into a machine integer. Accepted values contain
+/// a positive ASCII-decimal amount followed by no unit or one lowercase native unit: `b`, `k`,
+/// `m`, or `g`. Leading zeros and arbitrary-precision amounts remain unchanged. Parsed and raw
+/// [`EntryValue`] inputs remain uninterpreted.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Memory(String);
+
+impl Memory {
+    /// Creates a positive memory limit from exact native spelling.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MemoryError::Empty`] for empty text, [`MemoryError::InvalidFormat`] unless the
+    /// value is an ASCII-decimal amount with an optional lowercase `b`, `k`, `m`, or `g` unit,
+    /// and [`MemoryError::Zero`] when every amount digit is zero.
+    pub fn new(memory: impl Into<String>) -> Result<Self, MemoryError> {
+        let memory = memory.into();
+        if memory.is_empty() {
+            return Err(MemoryError::Empty);
+        }
+        let amount = match memory.as_bytes().last() {
+            Some(b'b' | b'k' | b'm' | b'g') => &memory[..memory.len() - 1],
+            _ => memory.as_str(),
+        };
+        if amount.is_empty() || !amount.bytes().all(|byte| byte.is_ascii_digit()) {
+            return Err(MemoryError::InvalidFormat);
+        }
+        if !amount.bytes().any(|byte| byte != b'0') {
+            return Err(MemoryError::Zero);
+        }
+        Ok(Self(memory))
+    }
+
+    /// Returns the exact native spelling.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl From<Memory> for EntryValue {
+    fn from(memory: Memory) -> Self {
+        Self(memory.0)
+    }
+}
+
+/// Invalid input to [`Memory::new`].
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[non_exhaustive]
+pub enum MemoryError {
+    /// The memory-limit spelling is empty.
+    Empty,
+    /// The value is not an ASCII-decimal amount with an optional supported lowercase unit.
+    InvalidFormat,
+    /// A memory limit must be positive.
+    Zero,
+}
+
+impl fmt::Display for MemoryError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Empty => formatter.write_str("a memory limit must not be empty"),
+            Self::InvalidFormat => {
+                formatter.write_str("a memory limit must be an ASCII decimal amount with optional unit b, k, m, or g")
+            }
+            Self::Zero => formatter.write_str("a memory limit must be positive"),
+        }
+    }
+}
+
+impl Error for MemoryError {}
 
 /// Generic systemd section supported in generated Quadlet files.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -427,6 +658,19 @@ const fn container_key_name(key: ContainerKey) -> &'static str {
         ContainerKey::ContainerName => "ContainerName",
         ContainerKey::Entrypoint => "Entrypoint",
         ContainerKey::RunInit => "RunInit",
+        ContainerKey::StopSignal => "StopSignal",
+        ContainerKey::StopTimeout => "StopTimeout",
+        ContainerKey::Pull => "Pull",
+        ContainerKey::PidsLimit => "PidsLimit",
+        ContainerKey::HostName => "HostName",
+        ContainerKey::ShmSize => "ShmSize",
+        ContainerKey::DropCapability => "DropCapability",
+        ContainerKey::AddCapability => "AddCapability",
+        ContainerKey::Tmpfs => "Tmpfs",
+        ContainerKey::Sysctl => "Sysctl",
+        ContainerKey::Ulimit => "Ulimit",
+        ContainerKey::AddDevice => "AddDevice",
+        ContainerKey::Memory => "Memory",
     }
 }
 
@@ -438,6 +682,7 @@ const fn pod_key_name(key: PodKey) -> &'static str {
         PodKey::Network => "Network",
         PodKey::Volume => "Volume",
         PodKey::UserNS => "UserNS",
+        PodKey::ShmSize => "ShmSize",
     }
 }
 

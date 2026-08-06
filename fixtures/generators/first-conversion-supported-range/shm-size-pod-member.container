@@ -1,0 +1,3 @@
+[Container]
+Image=registry.example.invalid/shm-size-pod-member:1.0
+Pod=shm-size.pod

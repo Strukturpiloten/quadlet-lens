@@ -1,0 +1,2 @@
+---memory.service---
+SourcePath=/fixtures/memory.container

@@ -1,0 +1,4 @@
+[Container]
+Image=registry.example.invalid/zero-stop-timeout:1.0@sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
+Exec=/usr/bin/true
+StopTimeout=0

@@ -75,8 +75,11 @@ makes the next typed promotions concrete:
    explicit `ContainerName` are already typed and generator-verified;
 2. logging: `LogDriver` and repeatable `LogOpt`;
 3. security and host integration: capabilities, devices, security-label keys, seccomp, sysctls,
-   temporary filesystems, shared memory, and ulimits;
-4. richer pod/network/volume keys, beginning with pod `ShmSize` and network `Driver`;
+   temporary filesystems, and ulimits; container/pod `ShmSize` plus container `DropCapability`,
+   `AddCapability`, `Tmpfs`, `Sysctl`, `Ulimit`, `AddDevice`, and `Memory` are already typed and generator-verified, while target tmpfs-option
+   validation, rootless/mount behavior, runtime privilege effects, and remaining security
+   interactions remain open;
+4. richer pod/network/volume keys, continuing with network `Driver`;
 5. typed systemd resource controls without pretending QuadletLens can validate host cgroups; and
 6. explicit processing rules for authored `${...}` text, environment files, and external runtime
    resource names.
