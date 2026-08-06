@@ -1,0 +1,18 @@
+schema = 1
+id = "memory-supported-range"
+suite = "generators"
+description = "Exercises the singleton container Memory key separately from the Podman 5.4-compatible first-conversion fixture, including earlier duplicate and empty assignments followed by one positive explicit-byte value."
+secrets_reviewed = true
+files = ["expected-fragments.txt", "memory.container"]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "The harness mounts this directory read-only with label separation disabled and invokes only exact Podman Quadlet generators in dry-run mode. It does not start generated services or container workloads."
+
+[expectations]
+summary = "Podman 5.4.0 through 5.4.2 reject or exclude the unsupported Memory key and emit no memory argument. Every recorded release from 5.5.0 through 6.0.2 emits exactly one final `--memory 16777216b` argument with no duplicate, equals, empty, quoted, or alternate form."

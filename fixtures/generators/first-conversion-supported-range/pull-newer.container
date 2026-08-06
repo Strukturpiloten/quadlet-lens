@@ -1,0 +1,4 @@
+[Container]
+Image=registry.example.invalid/pull-newer:1.0
+Pull=newer
+Exec=/usr/bin/true

@@ -1,0 +1,5 @@
+[Container]
+Image=registry.example.invalid/cap-drop:1
+DropCapability=CAP_NET_ADMIN
+DropCapability=ALL
+DropCapability=CAP_DAC_OVERRIDE CAP_IPC_OWNER

@@ -20,6 +20,71 @@ const QUOTED_LABEL_LITERAL_SPACE: &str =
     r#"--label "io.github.strukturpiloten.quadlet-lens.metadata={\"channel\": \"stable\"}""#;
 const QUOTED_LABEL_HEX_SPACE: &str =
     r#"--label "io.github.strukturpiloten.quadlet-lens.metadata={\"channel\":\x20\"stable\"}""#;
+const ENTRYPOINT_SEPARATE_ARGUMENT: &str = r#"--entrypoint "[\"/usr/bin/env\",\"sh\"]""#;
+const ENTRYPOINT_EQUALS_ARGUMENT: &str = r#""--entrypoint=[\"/usr/bin/env\",\"sh\"]""#;
+const RUN_INIT_ARGUMENT: &str = "--init";
+const RUN_INIT_FALSE_ARGUMENT: &str = "--init=false";
+const NAMED_STOP_SIGNAL_ARGUMENT: &str = "--stop-signal SIGUSR1";
+const NUMERIC_STOP_SIGNAL_ARGUMENT: &str = "--stop-signal 9";
+const POSITIVE_STOP_TIMEOUT_ARGUMENT: &str = "--stop-timeout 37";
+const ZERO_STOP_TIMEOUT_ARGUMENT: &str = "--stop-timeout 0";
+const PULL_CASES: &[(&str, &str)] = &[
+    ("pull-always.service", "--pull always"),
+    ("pull-missing.service", "--pull missing"),
+    ("pull-never.service", "--pull never"),
+    ("pull-newer.service", "--pull newer"),
+];
+const PIDS_LIMIT_CASES: &[(&str, &str)] = &[
+    ("pids-limit-finite.service", "--pids-limit 127"),
+    ("pids-limit-unlimited.service", "--pids-limit -1"),
+];
+const HOSTNAME_SEPARATE_ARGUMENT: &str = "--hostname app.example";
+const SHM_SIZE_CASES: &[(&str, &str)] = &[
+    ("shm-size-container.service", "--shm-size 67108864b"),
+    ("shm-size-zero.service", "--shm-size 0"),
+    ("shm-size-pod.service", "--shm-size 32m"),
+];
+const CAP_DROP_ARGUMENTS: &[&str] = &[
+    "--cap-drop cap_net_admin",
+    "--cap-drop all",
+    "--cap-drop cap_dac_override",
+    "--cap-drop cap_ipc_owner",
+];
+const CAP_ADD_ARGUMENTS: &[&str] = &[
+    "--cap-add cap_net_admin",
+    "--cap-add all",
+    "--cap-add cap_dac_override",
+    "--cap-add cap_ipc_owner",
+];
+const CAP_DROP_ALL_ARGUMENT: &str = "--cap-drop all";
+const CAP_ADD_NET_BIND_SERVICE_ARGUMENT: &str = "--cap-add cap_net_bind_service";
+const TMPFS_ARGUMENT: &str = "--tmpfs /data:mode=755,uid=1009,gid=1009";
+const TMPFS_PRE_RESET_PATHS: &[&str] = &["/earlier-one", "/earlier-two"];
+const SYSCTL_ARGUMENT: &str = "--sysctl net.ipv4.ip_forward=1";
+const SYSCTL_PRE_RESET_SETTINGS: &[&str] = &["net.ipv4.conf.all.rp_filter=2", "net.ipv4.tcp_syncookies=0"];
+const ULIMIT_ARGUMENTS: &[&str] = &["--ulimit nproc=4096:8192", "--ulimit stack=-1:-1"];
+const ULIMIT_PRE_RESET_LIMITS: &[&str] = &["core=0:0", "nofile=1024:2048"];
+const ULIMIT_EMPTY_OR_ALTERNATE_FORMS: &[&str] = &["--ulimit=", "--ulimit \"\"", "--ulimit ''"];
+const DEVICE_ARGUMENTS: &[&str] = &[
+    "--device /dev/null:/dev/final-null:r",
+    "--device /dev/zero:/dev/final-zero:w",
+];
+const DEVICE_PRE_RESET_MAPPINGS: &[&str] = &["/dev/null:/dev/pre-null:r", "/dev/zero:/dev/pre-zero:w"];
+const DEVICE_EMPTY_OR_ALTERNATE_FORMS: &[&str] = &[
+    "--device=",
+    "--device \"\"",
+    "--device ''",
+    "--device=/dev/null:/dev/final-null:r",
+    "--device=/dev/zero:/dev/final-zero:w",
+];
+const MEMORY_ARGUMENT: &str = "--memory 16777216b";
+const MEMORY_EMPTY_OR_ALTERNATE_FORMS: &[&str] = &[
+    "--memory=",
+    "--memory \"\"",
+    "--memory ''",
+    "--memory \"16777216b\"",
+    "--memory 32m",
+];
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -59,7 +124,7 @@ fn generator_matrix_is_exact_complete_and_digest_pinned() -> Result<(), String> 
     assert_eq!(matrix.schema, 1);
     assert_eq!(matrix.support_minimum, "5.4.0");
     assert_eq!(matrix.tracked_current, "6.0.2");
-    assert_eq!(matrix.checked_on, "2026-08-05");
+    assert_eq!(matrix.checked_on, "2026-08-06");
     assert_eq!(matrix.official_image_maximum, "5.8.2");
 
     assert_eq!(matrix.source_repository, "https://github.com/containers/podman.git");
@@ -116,6 +181,14 @@ fn generator_matrix_is_exact_complete_and_digest_pinned() -> Result<(), String> 
         matrix.source.last().map(|source| source.version.as_str()),
         Some(matrix.tracked_current.as_str())
     );
+    let memory_versions = matrix
+        .image
+        .iter()
+        .map(|image| image.version.as_str())
+        .chain(matrix.source.iter().map(|source| source.version.as_str()))
+        .filter(|version| PodmanVersion::from_str(version).is_ok_and(|version| version >= PodmanVersion::new(5, 5, 0)))
+        .count();
+    assert_eq!(memory_versions, 17);
     Ok(())
 }
 
@@ -145,11 +218,15 @@ fn supported_generators_match_the_first_conversion_fixture() -> Result<(), Strin
 
     let fixture = fixture_directory()?;
     let expected = expected_fragments(&fixture)?;
+    let memory_fixture = memory_fixture_directory()?;
+    let memory_expected = expected_fragments(&memory_fixture)?;
     for image in selected_images {
         eprintln!("testing Podman {} with {}", image.version, image.reference);
         verify_image_version(&engine, image)?;
         let output = run_generator(&engine, image, &fixture)?;
         verify_generator_output(&image.version, &expected, &output)?;
+        let memory_output = run_generator_raw(&engine, image, &memory_fixture)?;
+        verify_memory_generator_output(&image.version, &memory_expected, &memory_output)?;
     }
     for source in selected_sources {
         eprintln!("testing Podman {} source at {}", source.version, source.commit);
@@ -157,6 +234,9 @@ fn supported_generators_match_the_first_conversion_fixture() -> Result<(), Strin
         verify_source_version(&engine, &matrix.builder_reference, source, &generator)?;
         let output = run_source_generator(&engine, &matrix.builder_reference, source, &generator, &fixture)?;
         verify_generator_output(&source.version, &expected, &output)?;
+        let memory_output =
+            run_source_generator(&engine, &matrix.builder_reference, source, &generator, &memory_fixture)?;
+        verify_memory_generator_output(&source.version, &memory_expected, &memory_output)?;
     }
     Ok(())
 }
@@ -192,6 +272,12 @@ fn parse_matrix() -> Result<GeneratorMatrix, String> {
 
 fn fixture_directory() -> Result<PathBuf, String> {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/first-conversion-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn memory_fixture_directory() -> Result<PathBuf, String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/memory-supported-range");
     path.canonicalize()
         .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
 }
@@ -235,6 +321,12 @@ fn verify_image_version(engine: &str, image: &GeneratorImage) -> Result<(), Stri
 }
 
 fn run_generator(engine: &str, image: &GeneratorImage, fixture: &Path) -> Result<Output, String> {
+    let output = run_generator_raw(engine, image, fixture)?;
+    ensure_success(&image.version, "generator", &output)?;
+    Ok(output)
+}
+
+fn run_generator_raw(engine: &str, image: &GeneratorImage, fixture: &Path) -> Result<Output, String> {
     let mount = format!("type=bind,src={},dst=/fixtures,ro", fixture.display());
     let output = Command::new(engine)
         .args([
@@ -255,7 +347,6 @@ fn run_generator(engine: &str, image: &GeneratorImage, fixture: &Path) -> Result
         ])
         .output()
         .map_err(|error| format!("cannot execute `{engine}`: {error}"))?;
-    ensure_success(&image.version, "generator", &output)?;
     Ok(output)
 }
 
@@ -494,7 +585,481 @@ fn verify_generator_output(version: &str, expected: &[String], output: &Output) 
             ));
         }
     }
+    verify_entrypoint_encoding(version, &generated, output)?;
+    verify_run_init_argument(version, &generated, output)?;
+    verify_stop_lifecycle_arguments(version, &generated, output)?;
+    verify_pull_arguments(version, &generated, output)?;
+    verify_pids_limit_arguments(version, &generated, output)?;
+    verify_hostname_argument(version, &generated, output)?;
+    verify_shm_size_arguments(version, &generated, output)?;
+    verify_cap_drop_arguments(version, &generated, output)?;
+    verify_cap_add_arguments(version, &generated, output)?;
+    verify_cap_drop_all_add_one_arguments(version, &generated, output)?;
+    verify_tmpfs_argument(version, &generated, output)?;
+    verify_sysctl_argument(version, &generated, output)?;
+    verify_ulimit_arguments(version, &generated, output)?;
+    verify_device_arguments(version, &generated, output)?;
     verify_quoted_label_encoding(version, &generated, output)?;
+    Ok(())
+}
+
+fn verify_memory_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    let generated = String::from_utf8(output.stdout.clone())
+        .map_err(|error| format!("{version} generator emitted non-UTF-8 output: {error}"))?;
+    let diagnostics = String::from_utf8_lossy(&output.stderr);
+
+    if parsed < PodmanVersion::new(5, 5, 0) {
+        let memory_argument_count = generated.matches("--memory").count();
+        let rejected_or_excluded =
+            !output.status.success() || !generated.contains("---memory.service---") || diagnostics.contains("Memory");
+        if memory_argument_count != 0 || !rejected_or_excluded {
+            return Err(format!(
+                "Podman {version} predates native Memory support and must reject or exclude the fixture without emitting --memory; found memory-arguments={memory_argument_count}, status={}\nstdout:\n{generated}\nstderr:\n{diagnostics}",
+                output.status
+            ));
+        }
+        eprintln!("Podman {version} Memory: unsupported key is rejected or excluded with no --memory argument");
+        return Ok(());
+    }
+
+    ensure_success(version, "memory generator", output)?;
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} memory generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            ));
+        }
+    }
+    let generated_unit = generated_unit(version, &generated, "memory.service", output)?;
+    let podman_run = generated_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} generator output for memory.service is missing its Podman run command\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            )
+        })?;
+    let expected_count = podman_run.matches(MEMORY_ARGUMENT).count();
+    let all_memory_count = podman_run.matches("--memory").count();
+    let empty_or_alternate_forms: Vec<_> = MEMORY_EMPTY_OR_ALTERNATE_FORMS
+        .iter()
+        .copied()
+        .filter(|form| podman_run.contains(form))
+        .collect();
+    if expected_count != 1 || all_memory_count != 1 || !empty_or_alternate_forms.is_empty() {
+        return Err(format!(
+            "Podman {version} generator output for memory.service must contain exactly one final `{MEMORY_ARGUMENT}` and no duplicate, equals, empty, quoted, or alternate form; found expected={expected_count}, all-memory={all_memory_count}, empty-or-alternate={empty_or_alternate_forms:?}\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+        ));
+    }
+    eprintln!("Podman {version} Memory: last effective assignment emits exactly one --memory 16777216b argument");
+    Ok(())
+}
+
+fn verify_entrypoint_encoding(version: &str, generated: &str, output: &Output) -> Result<(), String> {
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    let separate_count = generated.matches(ENTRYPOINT_SEPARATE_ARGUMENT).count();
+    let equals_count = generated.matches(ENTRYPOINT_EQUALS_ARGUMENT).count();
+    let (expected_name, expected_count, unexpected_count) = if parsed < PodmanVersion::new(5, 8, 2) {
+        ("separate-argument", separate_count, equals_count)
+    } else {
+        ("equals-argument", equals_count, separate_count)
+    };
+    if expected_count != 1 || unexpected_count != 0 {
+        return Err(format!(
+            "Podman {version} generator output must contain exactly one {expected_name} JSON-array entrypoint encoding and no other supported encoding; found separate-argument={separate_count}, equals-argument={equals_count}\nstdout:\n{generated}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+    eprintln!("Podman {version} JSON-array entrypoint encoding: {expected_name}");
+    Ok(())
+}
+
+fn verify_run_init_argument(version: &str, generated: &str, output: &Output) -> Result<(), String> {
+    let true_unit = generated_unit(version, generated, "app.service", output)?;
+    let true_count = true_unit.matches(RUN_INIT_ARGUMENT).count();
+    if true_count != 1 {
+        return Err(format!(
+            "Podman {version} generator output for authored `RunInit=true` must contain exactly one {RUN_INIT_ARGUMENT} argument; found {true_count}\nstdout:\n{generated}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+    let false_unit = generated_unit(version, generated, "run-init-false.service", output)?;
+    let false_count = false_unit.matches(RUN_INIT_FALSE_ARGUMENT).count();
+    let false_form_count = false_unit.matches(RUN_INIT_ARGUMENT).count();
+    if false_count != 1 || false_form_count != 1 {
+        return Err(format!(
+            "Podman {version} generator output for authored `RunInit=false` must contain exactly one {RUN_INIT_FALSE_ARGUMENT} argument and no other {RUN_INIT_ARGUMENT} form; found explicit-false={false_count}, all-forms={false_form_count}\nstdout:\n{generated}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+    eprintln!("Podman {version} RunInit: true emits one --init; false emits one --init=false");
+    Ok(())
+}
+
+fn generated_unit<'a>(version: &str, generated: &'a str, unit: &str, output: &Output) -> Result<&'a str, String> {
+    let marker = format!("---{unit}---");
+    let (_, remainder) = generated.split_once(&marker).ok_or_else(|| {
+        format!(
+            "Podman {version} generator output is missing unit marker `{marker}`\nstdout:\n{generated}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stderr)
+        )
+    })?;
+    Ok(remainder.split("\n---").next().unwrap_or(remainder))
+}
+
+fn verify_stop_lifecycle_arguments(version: &str, generated: &str, output: &Output) -> Result<(), String> {
+    for argument in [
+        NAMED_STOP_SIGNAL_ARGUMENT,
+        NUMERIC_STOP_SIGNAL_ARGUMENT,
+        POSITIVE_STOP_TIMEOUT_ARGUMENT,
+        ZERO_STOP_TIMEOUT_ARGUMENT,
+    ] {
+        let count = generated.matches(argument).count();
+        if count != 1 {
+            return Err(format!(
+                "Podman {version} generator output must contain exactly one `{argument}` observation; found {count}\nstdout:\n{generated}\nstderr:\n{}",
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
+    }
+    eprintln!(
+        "Podman {version} container stop lifecycle: named and numeric signals, positive timeout, and zero timeout preserved"
+    );
+    Ok(())
+}
+
+fn verify_pull_arguments(version: &str, generated: &str, output: &Output) -> Result<(), String> {
+    for &(unit, argument) in PULL_CASES {
+        let generated_unit = generated_unit(version, generated, unit, output)?;
+        let expected_count = generated_unit.matches(argument).count();
+        let all_pull_count = generated_unit.matches("--pull").count();
+        if expected_count != 1 || all_pull_count != 1 {
+            return Err(format!(
+                "Podman {version} generator output for {unit} must contain exactly one `{argument}` and no other --pull form; found expected={expected_count}, all-pull={all_pull_count}\nstdout:\n{generated}\nstderr:\n{}",
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
+    }
+    eprintln!("Podman {version} Pull: always, missing, never, and newer each emit their matching --pull argument");
+    Ok(())
+}
+
+fn verify_pids_limit_arguments(version: &str, generated: &str, output: &Output) -> Result<(), String> {
+    for &(unit, argument) in PIDS_LIMIT_CASES {
+        let generated_unit = generated_unit(version, generated, unit, output)?;
+        let expected_count = generated_unit.matches(argument).count();
+        let all_limit_count = generated_unit.matches("--pids-limit").count();
+        if expected_count != 1 || all_limit_count != 1 {
+            return Err(format!(
+                "Podman {version} generator output for {unit} must contain exactly one `{argument}` and no other --pids-limit form; found expected={expected_count}, all-pids-limit={all_limit_count}\nstdout:\n{generated}\nstderr:\n{}",
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
+    }
+    eprintln!("Podman {version} PidsLimit: finite 127 and unlimited -1 each emit one matching --pids-limit argument");
+    Ok(())
+}
+
+fn verify_hostname_argument(version: &str, generated: &str, output: &Output) -> Result<(), String> {
+    let generated_unit = generated_unit(version, generated, "hostname.service", output)?;
+    let separate_count = generated_unit.matches(HOSTNAME_SEPARATE_ARGUMENT).count();
+    let all_hostname_count = generated_unit.matches("--hostname").count();
+    if separate_count != 1 || all_hostname_count != 1 {
+        return Err(format!(
+            "Podman {version} generator output for hostname.service must contain exactly one `--hostname app.example` argument and no duplicate hostname form; found expected={separate_count}, all-hostname={all_hostname_count}\nstdout:\n{generated}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+    eprintln!("Podman {version} HostName: app.example emits exactly one --hostname argument");
+    Ok(())
+}
+
+fn verify_shm_size_arguments(version: &str, generated: &str, output: &Output) -> Result<(), String> {
+    for &(unit, argument) in SHM_SIZE_CASES {
+        let generated_unit = generated_unit(version, generated, unit, output)?;
+        let expected_count = generated_unit.matches(argument).count();
+        let all_shm_size_count = generated_unit.matches("--shm-size").count();
+        if expected_count != 1 || all_shm_size_count != 1 {
+            return Err(format!(
+                "Podman {version} generator output for {unit} must contain exactly one `{argument}` and no duplicate --shm-size form; found expected={expected_count}, all-shm-size={all_shm_size_count}\nstdout:\n{generated}\nstderr:\n{}",
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
+    }
+    let member_unit = generated_unit(version, generated, "shm-size-pod-member.service", output)?;
+    let member_count = member_unit.matches("--shm-size").count();
+    if member_count != 0 {
+        return Err(format!(
+            "Podman {version} generator output for the container joining shm-size.pod must not duplicate the pod-owned --shm-size argument; found {member_count}\nstdout:\n{generated}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+    eprintln!(
+        "Podman {version} ShmSize: positive container, zero container, and pod-owned values each emit exactly one matching --shm-size argument"
+    );
+    Ok(())
+}
+
+fn verify_cap_drop_arguments(version: &str, generated: &str, output: &Output) -> Result<(), String> {
+    let generated_unit = generated_unit(version, generated, "cap-drop.service", output)?;
+    let all_drop_count = generated_unit.matches("--cap-drop").count();
+    let add_count = generated_unit.matches("--cap-add").count();
+    let mut positions = Vec::with_capacity(CAP_DROP_ARGUMENTS.len());
+    for argument in CAP_DROP_ARGUMENTS {
+        let matches: Vec<_> = generated_unit
+            .match_indices(argument)
+            .map(|(position, _)| position)
+            .collect();
+        if matches.len() != 1 {
+            return Err(format!(
+                "Podman {version} generator output for cap-drop.service must contain exactly one `{argument}`; found {}\nstdout:\n{generated}\nstderr:\n{}",
+                matches.len(),
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
+        positions.push(matches[0]);
+    }
+    if all_drop_count != CAP_DROP_ARGUMENTS.len()
+        || add_count != 0
+        || !positions.windows(2).all(|pair| pair[0] < pair[1])
+    {
+        return Err(format!(
+            "Podman {version} generator output for cap-drop.service must contain exactly four ordered lowercase separate-argument --cap-drop forms and no --cap-add form; found cap-drop={all_drop_count}, cap-add={add_count}, positions={positions:?}\nstdout:\n{generated}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+    eprintln!(
+        "Podman {version} DropCapability: repeated and space-separated values emit four ordered lowercase --cap-drop arguments and no --cap-add"
+    );
+    Ok(())
+}
+
+fn verify_cap_add_arguments(version: &str, generated: &str, output: &Output) -> Result<(), String> {
+    let generated_unit = generated_unit(version, generated, "cap-add.service", output)?;
+    let add_count = generated_unit.matches("--cap-add").count();
+    let drop_count = generated_unit.matches("--cap-drop").count();
+    let mut positions = Vec::with_capacity(CAP_ADD_ARGUMENTS.len());
+    for argument in CAP_ADD_ARGUMENTS {
+        let matches: Vec<_> = generated_unit
+            .match_indices(argument)
+            .map(|(position, _)| position)
+            .collect();
+        if matches.len() != 1 {
+            return Err(format!(
+                "Podman {version} generator output for cap-add.service must contain exactly one `{argument}`; found {}\nstdout:\n{generated}\nstderr:\n{}",
+                matches.len(),
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
+        positions.push(matches[0]);
+    }
+    if add_count != CAP_ADD_ARGUMENTS.len() || drop_count != 0 || !positions.windows(2).all(|pair| pair[0] < pair[1]) {
+        return Err(format!(
+            "Podman {version} generator output for cap-add.service must contain exactly four ordered lowercase separate-argument --cap-add forms and no --cap-drop form; found cap-add={add_count}, cap-drop={drop_count}, positions={positions:?}\nstdout:\n{generated}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+    eprintln!(
+        "Podman {version} AddCapability: repeated and space-separated values emit four ordered lowercase --cap-add arguments and no --cap-drop"
+    );
+    Ok(())
+}
+
+fn verify_cap_drop_all_add_one_arguments(version: &str, generated: &str, output: &Output) -> Result<(), String> {
+    let generated_unit = generated_unit(version, generated, "cap-drop-all-add-one.service", output)?;
+    let all_add_count = generated_unit.matches("--cap-add").count();
+    let all_drop_count = generated_unit.matches("--cap-drop").count();
+    let drop_positions: Vec<_> = generated_unit
+        .match_indices(CAP_DROP_ALL_ARGUMENT)
+        .map(|(position, _)| position)
+        .collect();
+    let add_positions: Vec<_> = generated_unit
+        .match_indices(CAP_ADD_NET_BIND_SERVICE_ARGUMENT)
+        .map(|(position, _)| position)
+        .collect();
+    if all_drop_count != 1
+        || all_add_count != 1
+        || drop_positions.len() != 1
+        || add_positions.len() != 1
+        || drop_positions[0] >= add_positions[0]
+    {
+        return Err(format!(
+            "Podman {version} generator output for cap-drop-all-add-one.service must contain exactly one `{CAP_DROP_ALL_ARGUMENT}` followed by exactly one `{CAP_ADD_NET_BIND_SERVICE_ARGUMENT}` and no other capability arguments; found cap-drop={all_drop_count}, cap-add={all_add_count}, drop-positions={drop_positions:?}, add-positions={add_positions:?}\nstdout:\n{generated}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+    eprintln!("Podman {version} capability ordering: one --cap-drop all precedes one --cap-add cap_net_bind_service");
+    Ok(())
+}
+
+fn verify_tmpfs_argument(version: &str, generated: &str, output: &Output) -> Result<(), String> {
+    let generated_unit = generated_unit(version, generated, "tmpfs.service", output)?;
+    let podman_run = generated_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} generator output for tmpfs.service is missing its Podman run command\nstdout:\n{generated}\nstderr:\n{}",
+                String::from_utf8_lossy(&output.stderr)
+            )
+        })?;
+    let expected_count = podman_run.matches(TMPFS_ARGUMENT).count();
+    let all_tmpfs_count = podman_run.matches("--tmpfs").count();
+    let pre_reset_paths: Vec<_> = TMPFS_PRE_RESET_PATHS
+        .iter()
+        .copied()
+        .filter(|path| podman_run.contains(path))
+        .collect();
+    if expected_count != 1 || all_tmpfs_count != 1 || !pre_reset_paths.is_empty() {
+        return Err(format!(
+            "Podman {version} generator output for tmpfs.service must contain exactly one post-reset `{TMPFS_ARGUMENT}`, no other --tmpfs form, and no pre-reset path; found expected={expected_count}, all-tmpfs={all_tmpfs_count}, pre-reset={pre_reset_paths:?}\nstdout:\n{generated}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+    eprintln!(
+        "Podman {version} Tmpfs: LookupAll reset leaves exactly one --tmpfs /data:mode=755,uid=1009,gid=1009 argument"
+    );
+    Ok(())
+}
+
+fn verify_sysctl_argument(version: &str, generated: &str, output: &Output) -> Result<(), String> {
+    let generated_unit = generated_unit(version, generated, "sysctl.service", output)?;
+    let podman_run = generated_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} generator output for sysctl.service is missing its Podman run command\nstdout:\n{generated}\nstderr:\n{}",
+                String::from_utf8_lossy(&output.stderr)
+            )
+        })?;
+    let expected_count = podman_run.matches(SYSCTL_ARGUMENT).count();
+    let all_sysctl_count = podman_run.matches("--sysctl").count();
+    let pre_reset_settings: Vec<_> = SYSCTL_PRE_RESET_SETTINGS
+        .iter()
+        .copied()
+        .filter(|setting| podman_run.contains(setting))
+        .collect();
+    if expected_count != 1 || all_sysctl_count != 1 || !pre_reset_settings.is_empty() {
+        return Err(format!(
+            "Podman {version} generator output for sysctl.service must contain exactly one post-reset `{SYSCTL_ARGUMENT}`, no other --sysctl form, and neither pre-reset setting; found expected={expected_count}, all-sysctl={all_sysctl_count}, pre-reset={pre_reset_settings:?}\nstdout:\n{generated}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+    eprintln!(
+        "Podman {version} Sysctl: LookupAllStrv reset leaves exactly one --sysctl net.ipv4.ip_forward=1 argument"
+    );
+    Ok(())
+}
+
+fn verify_ulimit_arguments(version: &str, generated: &str, output: &Output) -> Result<(), String> {
+    let generated_unit = generated_unit(version, generated, "ulimit.service", output)?;
+    let podman_run = generated_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} generator output for ulimit.service is missing its Podman run command\nstdout:\n{generated}\nstderr:\n{}",
+                String::from_utf8_lossy(&output.stderr)
+            )
+        })?;
+
+    let mut positions = Vec::with_capacity(ULIMIT_ARGUMENTS.len());
+    for argument in ULIMIT_ARGUMENTS {
+        let matches: Vec<_> = podman_run
+            .match_indices(argument)
+            .map(|(position, _)| position)
+            .collect();
+        if matches.len() != 1 {
+            return Err(format!(
+                "Podman {version} generator output for ulimit.service must contain `{argument}` exactly once; found {}\nstdout:\n{generated}\nstderr:\n{}",
+                matches.len(),
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
+        positions.push(matches[0]);
+    }
+
+    let all_ulimit_count = podman_run.matches("--ulimit").count();
+    let pre_reset_limits: Vec<_> = ULIMIT_PRE_RESET_LIMITS
+        .iter()
+        .copied()
+        .filter(|limit| podman_run.contains(limit))
+        .collect();
+    let empty_or_alternate_forms: Vec<_> = ULIMIT_EMPTY_OR_ALTERNATE_FORMS
+        .iter()
+        .copied()
+        .filter(|form| podman_run.contains(form))
+        .collect();
+    if all_ulimit_count != ULIMIT_ARGUMENTS.len()
+        || !positions.windows(2).all(|pair| pair[0] < pair[1])
+        || !pre_reset_limits.is_empty()
+        || !empty_or_alternate_forms.is_empty()
+    {
+        return Err(format!(
+            "Podman {version} generator output for ulimit.service must contain exactly two ordered post-reset Ulimit arguments, no duplicates, no pre-reset limit, and no empty/alternate form; found all-ulimit={all_ulimit_count}, positions={positions:?}, pre-reset={pre_reset_limits:?}, empty-or-alternate={empty_or_alternate_forms:?}\nstdout:\n{generated}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+
+    eprintln!(
+        "Podman {version} Ulimit: LookupAll reset leaves exactly two ordered --ulimit nproc=4096:8192 and --ulimit stack=-1:-1 arguments"
+    );
+    Ok(())
+}
+
+fn verify_device_arguments(version: &str, generated: &str, output: &Output) -> Result<(), String> {
+    let generated_unit = generated_unit(version, generated, "device.service", output)?;
+    let podman_run = generated_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} generator output for device.service is missing its Podman run command\nstdout:\n{generated}\nstderr:\n{}",
+                String::from_utf8_lossy(&output.stderr)
+            )
+        })?;
+
+    let mut positions = Vec::with_capacity(DEVICE_ARGUMENTS.len());
+    for argument in DEVICE_ARGUMENTS {
+        let matches: Vec<_> = podman_run
+            .match_indices(argument)
+            .map(|(position, _)| position)
+            .collect();
+        if matches.len() != 1 {
+            return Err(format!(
+                "Podman {version} generator output for device.service must contain `{argument}` exactly once; found {}\nstdout:\n{generated}\nstderr:\n{}",
+                matches.len(),
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
+        positions.push(matches[0]);
+    }
+
+    let all_device_count = podman_run.matches("--device").count();
+    let pre_reset_mappings: Vec<_> = DEVICE_PRE_RESET_MAPPINGS
+        .iter()
+        .copied()
+        .filter(|mapping| podman_run.contains(mapping))
+        .collect();
+    let empty_or_alternate_forms: Vec<_> = DEVICE_EMPTY_OR_ALTERNATE_FORMS
+        .iter()
+        .copied()
+        .filter(|form| podman_run.contains(form))
+        .collect();
+    if all_device_count != DEVICE_ARGUMENTS.len()
+        || !positions.windows(2).all(|pair| pair[0] < pair[1])
+        || !pre_reset_mappings.is_empty()
+        || !empty_or_alternate_forms.is_empty()
+    {
+        return Err(format!(
+            "Podman {version} generator output for device.service must contain exactly two ordered post-reset AddDevice arguments, no duplicates, no pre-reset mapping, and no empty/alternate form; found all-device={all_device_count}, positions={positions:?}, pre-reset={pre_reset_mappings:?}, empty-or-alternate={empty_or_alternate_forms:?}\nstdout:\n{generated}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+
+    eprintln!("Podman {version} AddDevice: LookupAllStrv reset leaves exactly two ordered final --device arguments");
     Ok(())
 }
 

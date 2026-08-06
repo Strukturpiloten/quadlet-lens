@@ -71,12 +71,15 @@ the generator fixture protects its `--rootfs` output from Podman 5.4.0 through 6
 The corpus confirms the current loss-aware syntax layer is broad enough for these files. It also
 makes the next typed promotions concrete:
 
-1. container lifecycle: `AutoUpdate`, `Timezone`, `Entrypoint`, and stop behavior; explicit
-   `ContainerName` is already typed and generator-verified;
+1. container lifecycle: `AutoUpdate`, `Timezone`, and stop behavior; `Entrypoint`, `RunInit`, and
+   explicit `ContainerName` are already typed and generator-verified;
 2. logging: `LogDriver` and repeatable `LogOpt`;
 3. security and host integration: capabilities, devices, security-label keys, seccomp, sysctls,
-   temporary filesystems, shared memory, and ulimits;
-4. richer pod/network/volume keys, beginning with pod `ShmSize` and network `Driver`;
+   temporary filesystems, and ulimits; container/pod `ShmSize` plus container `DropCapability`,
+   `AddCapability`, `Tmpfs`, `Sysctl`, `Ulimit`, `AddDevice`, and `Memory` are already typed and generator-verified, while target tmpfs-option
+   validation, rootless/mount behavior, runtime privilege effects, and remaining security
+   interactions remain open;
+4. richer pod/network/volume keys, continuing with network `Driver`;
 5. typed systemd resource controls without pretending QuadletLens can validate host cgroups; and
 6. explicit processing rules for authored `${...}` text, environment files, and external runtime
    resource names.

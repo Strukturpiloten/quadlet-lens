@@ -1,0 +1,3 @@
+[Container]
+Image=registry.example.invalid/hostname:1.0
+HostName=app.example

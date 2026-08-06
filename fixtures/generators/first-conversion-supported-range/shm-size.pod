@@ -1,0 +1,2 @@
+[Pod]
+ShmSize=32m

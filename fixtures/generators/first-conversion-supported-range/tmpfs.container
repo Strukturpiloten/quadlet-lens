@@ -1,0 +1,6 @@
+[Container]
+Image=registry.example.invalid/tmpfs:1
+Tmpfs=/earlier-one:rw,size=64M
+Tmpfs=/earlier-two:ro
+Tmpfs=
+Tmpfs=/data:mode=755,uid=1009,gid=1009

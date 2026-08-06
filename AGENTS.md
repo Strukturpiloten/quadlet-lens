@@ -77,3 +77,19 @@ gate, `cargo ci-model` is the native typed-model and document-set gate, and `car
 non-network contract tests. `cargo ci-generators` runs the pinned minimum/image-boundary/current
 smoke lane; `QUADLET_LENS_GENERATOR_LANE=full cargo ci-generators` is scheduled/manual and runs
 every recorded official-image or exact-source generator.
+
+## Multi-agent coordination
+
+- Delegate only concrete, bounded tasks with an independently verifiable result.
+- Never run two source-writing agents in this repository checkout concurrently.
+- Agents may write concurrently in separate repository checkouts only after the public contract is
+  defined by the primary agent.
+- Specification research and review agents remain read-only.
+- Run a verifier only after this repository's writing agent has finished.
+- Verification agents report failures but do not modify source, tests, configuration, or
+  documentation.
+- The primary agent reviews every diff and owns architectural and cross-repository API decisions.
+- Subagents never commit, push, publish crates, create tags, or create releases.
+- Prefer subagents for specification research, focused implementation, review, test execution, and
+  log analysis when those tasks would otherwise pollute the primary thread or can proceed
+  independently.

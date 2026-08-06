@@ -2,7 +2,7 @@
 
 - Status: accepted
 - Date: 2026-08-03
-- Additive amendments: 2026-08-03 and 2026-08-05
+- Additive amendments: 2026-08-03, 2026-08-05, and 2026-08-06
 
 ## Context
 
@@ -28,10 +28,44 @@ QuadletLens provides a programmatic document builder that:
 - retains repeated container label assignments in insertion order;
 - retains repeated container secret entries for distinct mounted-file and environment exposures;
 - retains pod `UserNS` as a singleton distinct from container-level namespace selection;
+- retains container `HostName` as an opaque singleton without adding cross-format hostname
+  validation or normalization;
+- retains separate container and pod `ShmSize` values as opaque singletons without selecting IPC
+  modes or importing cross-format size grammar;
+- retains repeated container `DropCapability` entries as exact opaque one-line values in insertion
+  order without splitting, deduplication, lowercasing, or native capability validation;
+- retains repeated container `AddCapability` entries, including empty native reset assignments, as
+  exact opaque one-line values in insertion order without splitting, deduplication, lowercasing,
+  or native capability validation;
+- retains repeated container `Tmpfs` entries, including empty native reset assignments, as exact
+  opaque one-line values in insertion order without splitting destination/options text,
+  normalization, deduplication, mount-option validation, or conflation with `Volume`;
+- retains repeated container `Sysctl` entries, including empty native reset assignments, as exact
+  opaque one-line values in insertion order without parsing `name=value`, splitting whitespace,
+  normalization, namespace validation, or runtime/kernel interpretation;
+- retains repeated container `Ulimit` entries, including empty native reset assignments, as exact
+  opaque one-line values in insertion order without splitting, unquoting, parsing
+  `TYPE=SOFT[:HARD]`, normalization, resource-name validation, or runtime interpretation;
+- retains repeated container `AddDevice` entries, including empty native reset assignments, as
+  exact opaque one-line values in insertion order without splitting, unquoting, parsing host and
+  container paths or permissions, interpreting whitespace tokenization or a leading `-`, checking
+  device existence, or applying runtime semantics;
+- retains container `Memory` as an opaque singleton without applying runtime, cgroup, swap,
+  page-size, host-memory, rootless, or cross-format semantics;
 - rejects native keys from the wrong unit type and repeated singleton keys;
 - retains repeatable entries in insertion order;
 - emits sections in deterministic `[Unit]`, native, `[Service]`, `[Install]` order;
-- rejects NUL bytes and physical line endings in values; and
+- rejects NUL bytes and physical line endings in values;
+- provides a focused process-ID-limit helper that constructs only `-1` unlimited or nonzero
+  ASCII-decimal finite spelling, retaining arbitrary precision without parsing while leaving the
+  existing raw `EntryValue` boundary unchanged;
+- provides a focused shared-memory-size helper for a non-negative ASCII-decimal amount with an
+  optional lowercase `b`, `k`, `m`, or `g`, preserving exact arbitrary-precision spelling and
+  explicitly representing zero as Podman's documented unlimited value while leaving parsed and
+  raw values opaque;
+- provides a focused container-memory helper for a positive ASCII-decimal amount with an optional
+  lowercase `b`, `k`, `m`, or `g`, preserving leading zeros and arbitrary precision without
+  narrowing the raw `EntryValue` boundary; and
 - reparses generated text and returns it only when syntax and native-model validation succeed.
 
 Values remain exact, already-semantic native values. The builder does not quote, split, expand, or

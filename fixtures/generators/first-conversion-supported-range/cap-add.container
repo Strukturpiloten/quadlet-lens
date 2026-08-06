@@ -1,0 +1,5 @@
+[Container]
+Image=registry.example.invalid/cap-add:1
+AddCapability=CAP_NET_ADMIN
+AddCapability=ALL
+AddCapability=CAP_DAC_OVERRIDE CAP_IPC_OWNER

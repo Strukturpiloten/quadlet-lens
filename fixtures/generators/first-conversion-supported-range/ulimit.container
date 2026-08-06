@@ -1,0 +1,7 @@
+[Container]
+Image=registry.example.invalid/application:1.0@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+Ulimit=core=0:0
+Ulimit=nofile=1024:2048
+Ulimit=
+Ulimit=nproc=4096:8192
+Ulimit=stack=-1:-1

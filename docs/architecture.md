@@ -47,7 +47,30 @@ The first implemented subset covers `.container`, `.pod`, `.network`, and `.volu
 native keys needed by the first conversion, keeps repeated section occurrences and entries in
 source order, and owns the authored text plus source span for every typed name and value segment.
 That boundary includes container execution identity/context and pod-level user-namespace selection
-without resolving host users, groups, paths, or namespaces.
+without resolving host users, groups, paths, or namespaces, plus container stop signal, timeout,
+image pull policy, process-ID limit, and hostname values without normalizing their native spelling.
+Container and pod shared-memory sizes are likewise recognized as opaque singleton values. Focused
+process-ID-limit and shared-memory-size construction helpers are additive to, and do not narrow,
+the raw value boundary. Container `DropCapability` and `AddCapability` are recognized as separate
+opaque repeatable keys; their authored entries, empty reset assignments, and space-separated text
+are neither merged nor normalized. Container `Tmpfs` is a third opaque repeatable boundary:
+omission, empty resets, duplicates, order, case, destination/options text, and its distinction from
+`Volume` remain intact rather than being interpreted as mounts by the model.
+Container `Sysctl` is a fourth opaque repeatable boundary. Each authored one-line entry, including
+empty resets, whitespace, quoting, specifiers, duplicates, and case, remains intact; the model does
+not parse `name=value` assignments or import Podman/kernel namespace rules. Pod `Sysctl` remains an
+unknown preserved entry.
+Container `Ulimit` is a fifth opaque repeatable boundary. Omission, every authored one-line value,
+empty resets, duplicates, order, case, quoting, and specifiers remain intact. The model does not
+split, unquote, or validate `TYPE=SOFT[:HARD]`; Pod `Ulimit` remains an unknown preserved entry.
+Container `AddDevice` is a sixth opaque repeatable boundary. Omission, every physical value,
+empty resets, duplicates, order, case, quotes/specifiers, whitespace-token-containing lines, and
+a leading `-` remain intact without splitting, unquoting, or device validation. Pod `AddDevice`
+remains an unknown preserved entry. Tagged generator behavior is evidence, not native-model logic.
+Container `Memory` is an opaque singleton boundary introduced natively in Podman 5.5.0. Omission,
+duplicates, empty assignments, quoting, specifiers, and exact one-line values remain source-aware;
+the model does not infer runtime limits or cross-format equivalence. A focused positive-decimal
+construction helper is additive to the unchanged raw-value boundary. Pod `Memory` remains unknown.
 Generic `[Unit]`, `[Service]`, and `[Install]` entries remain open-ended. Unknown sections and keys
 remain explicit entries rather than validation losses.
 
@@ -72,6 +95,8 @@ The catalogue describes when a unit type, section, key, value form, or fallback 
 strict versioned TOML, data-driven, and independently validated. Coverage ranges are separate from
 the rolling product support window and upstream introduction claims, known patch bugs override
 native support, and documentation evidence remains distinguishable from exact generator execution.
+Catalogue `value_forms` identify evidenced and supported caller representations; they do not add
+key-specific semantic validation to the source-aware model or the physical-line-safe builder.
 The built-in catalogue starts at Podman 5.4.0 and currently verifies the first-conversion subset
 through current Podman 6.0.2. [ADR 0004](decisions/0004-versioned-capability-catalogue.md) defines the core schema;
 [ADR 0006](decisions/0006-rolling-support-window-and-generator-evidence.md) defines ranged evidence

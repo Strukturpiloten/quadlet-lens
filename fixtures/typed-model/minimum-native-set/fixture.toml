@@ -1,7 +1,7 @@
 schema = 1
 id = "minimum-native-set"
 suite = "typed-model"
-description = "Protects the first-conversion container, pod, network, volume, secret, container/pod user-namespace, execution-identity, reference, path, and generic systemd model surface."
+description = "Protects the first-conversion container, pod, network, volume, entrypoint, init-process, container stop-signal/timeout, pull policy, raw PID limit, raw container hostname, container/pod shared-memory size, repeated raw capability drops and additions, repeated raw temporary filesystems, kernel-parameter assignments, container-only resource limits, host-device mappings including empty resets, and a raw singleton container memory limit, plus secret, container/pod user-namespace, execution-identity, reference, path, and generic systemd model surface."
 secrets_reviewed = true
 files = ["app.container", "application.pod", "cache.volume", "frontend.network"]
 
@@ -15,4 +15,4 @@ modifications = "none"
 description = "No systemd specifiers are expanded and no Podman generator or runtime is invoked."
 
 [expectations]
-summary = "Known fields, including repeated secrets, container/pod user namespaces, repeated supplementary groups, and execution context, are typed while generic systemd sections, unknown keys, continuations, references, and paths remain source-aware."
+summary = "Known fields, including JSON-array entrypoint, init-process selection, container stop signal and zero timeout, pull policy, raw zero PID limit, raw container hostname, raw container zero and pod unit-bearing shared-memory sizes, repeated ordered opaque capability drops, additions, temporary filesystems, kernel-parameter assignments, resource limits, host-device mappings including empty native reset assignments, raw container Memory, repeated secrets, container/pod user namespaces, repeated supplementary groups, and execution context, are typed while pod Ulimit, AddDevice, and Memory, generic systemd sections, unknown keys, continuations, references, and paths remain source-aware."

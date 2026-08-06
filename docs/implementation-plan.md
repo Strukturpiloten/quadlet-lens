@@ -24,6 +24,7 @@ The repository that owns a task is authoritative for its detailed status. Update
 | T5 | All repositories | in progress | Minimum native typed subsets for the first conversion |
 | T6 | BoxFerry, integrating both Lens libraries | in progress | First Compose-to-Quadlet vertical slice |
 | T7 | All repositories | in progress | Expanded conformance, runtime, and release testing tiers |
+| T8 | BoxFerry, integrating all adapters | in progress | First N-to-N Docker/Compose/Podman/Quadlet milestone |
 
 ## T1: Testing foundations
 
@@ -149,6 +150,110 @@ promoting the field into its neutral model; sibling path dependencies are not us
 `Rootfs` end to end still requires an explicit neutral rootfs workload source rather than
 substituting it for an image.
 
+QuadletLens now additionally types native singleton container `StopSignal` and `StopTimeout`,
+preserves an authored zero timeout, and records exact named/numeric signal and positive/zero
+timeout generator observations across its supported Podman 5.4.0-through-6.0.2 range. This is a
+Quadlet-native boundary only; runtime zero behavior, cross-format lifecycle mapping, and
+zero/default equivalence remain outside this repository.
+
+QuadletLens additionally types native singleton container `Pull`, preserves omission and raw
+one-line values, and records isolated `always`, `missing`, `never`, and `newer` generated
+`--pull` forms across Podman 5.4.0 through 6.0.2. Registry and local-image runtime behavior remain
+outside this generator-only evidence.
+
+QuadletLens additionally types native singleton container `PidsLimit`, preserves omission, zero,
+and raw noncanonical values, and provides safe `-1` unlimited or nonzero ASCII-decimal construction
+without parsing or integer overflow. Isolated positive and `-1` generated `--pids-limit` forms are
+verified from Podman 5.4.0 through 6.0.2; a portable numeric maximum, zero, and runtime cgroup
+behavior remain outside the capability evidence.
+
+QuadletLens additionally types native singleton container `HostName`, preserves omission and raw
+one-line values without Compose validation or normalization, and verifies one isolated logical
+`--hostname app.example` argument from Podman 5.4.0 through 6.0.2. The key requires a private UTS
+namespace; for a container joining a pod with default shared UTS, the pod hostname wins. Runtime
+hostname inspection, pod hostname typing, and UTS-mode changes remain outside this slice.
+
+QuadletLens additionally types native singleton container and pod `ShmSize`, preserves omission
+and raw values, and provides safe non-negative ASCII-decimal construction with optional lowercase
+`b`, `k`, `m`, or `g` without parsing or overflow. Explicit zero remains distinguishable as
+Podman's documented unlimited IPC-memory value. Positive container, zero container, and pod-owned
+generated `--shm-size` forms are verified from Podman 5.4.0 through 6.0.2, including a joined
+container that does not duplicate the pod argument. Runtime enforcement, omission defaults,
+rootless behavior, IPC-mode keys, pod lifting, and `/dev/shm` inspection remain outside this slice.
+Future BoxFerry exact mapping is limited to a positive explicit-byte Compose value on a separate
+private-IPC container; that cross-format policy is not implemented in QuadletLens.
+
+QuadletLens additionally types native repeatable container `DropCapability`, preserving omission,
+repetition, insertion order, and exact opaque one-line values without splitting, deduplication,
+lowercasing, or capability-name validation. The native capability is evidenced exactly from Podman
+5.4.0 through 6.0.2. An isolated full-matrix fixture observes four ordered lowercase `--cap-drop`
+forms from three entries and no `--cap-add`; tagged source separately records drops before additions.
+Rootless/rootful operation, effective bounding sets, user namespaces, SELinux/seccomp interaction,
+and runtime privilege outcomes remain explicit evidence gaps.
+
+QuadletLens additionally types native repeatable container `AddCapability`, preserving omission,
+empty native reset assignments, duplicates, insertion order, case, and exact opaque one-line text
+without splitting, deduplication, lowercasing, or capability validation. Documentation establishes
+repeatable space-separated additions beyond Podman's default set; tagged 5.4.0 and 6.0.2 source,
+not the Quadlet prose, records `all`, empty resets, lowercasing, drops-before-adds construction, and
+capability merger semantics. Across all 20 patches, an isolated fixture emits exactly four ordered
+lowercase additions and no drops, while a combined fixture emits one drop-all before one specific
+addition and no other capability arguments. Compose `cap_add`, BoxFerry mapping, rootless/rootful
+operation, effective and bounding sets, user namespaces, SELinux/seccomp interaction, and runtime
+privilege outcomes remain outside this native generator-only slice.
+
+QuadletLens additionally types native repeatable container `Tmpfs`, preserving omission, empty
+native reset assignments, duplicates, insertion order, case, options, and exact opaque one-line
+text without splitting, normalization, deduplication, mount-option validation, or conflation with
+`Volume`. Quadlet documentation establishes the repeatable `CONTAINER-DIR[:OPTIONS]` mapping;
+separate Podman CLI documentation records Linux mount flags and the `rw,noexec,nosuid,nodev`
+default. Tagged source and all 20 recorded generators establish `LookupAll` post-reset command
+construction: the isolated fixture emits exactly one final
+`--tmpfs /data:mode=755,uid=1009,gid=1009`, no pre-reset path, and no extra tmpfs form. Target-only
+option acceptance, rootless operation, copy-up, mount creation, default enforcement, runtime
+inspection, pods, `Volume` tmpfs, Compose, and BoxFerry remain outside this native generator-only
+slice.
+
+QuadletLens additionally types native repeatable container `Sysctl`, preserving omission, empty
+native reset assignments, duplicates, insertion order, case, whitespace, systemd quoting and
+specifiers, and exact opaque one-line values without parsing `name=value`, splitting lists,
+normalization, or namespace/runtime validation. Endpoint manuals, Podman-run namespace limits,
+tagged 5.4.0/6.0.2 `LookupAllStrv` construction/tokenization/reset source, and all 20 recorded
+generators establish exactly one final post-reset `--sysctl net.ipv4.ip_forward=1`, neither
+pre-reset setting, and no other sysctl form. Pod `Sysctl`, Compose/BoxFerry mapping, runtime
+namespace state, rootless behavior, kernel acceptance, and actual parameter effects remain outside
+this native generator-only slice.
+
+QuadletLens additionally types native repeatable container `Ulimit`, preserving omission, empty
+native reset assignments, duplicates, insertion order, case, quotes/specifiers, and exact opaque
+one-line values without splitting, unquoting, parsing `TYPE=SOFT[:HARD]`, normalization, or
+resource-name validation. Distinct endpoint manuals, Podman-run grammar/default caveats, tagged
+5.4.0/6.0.2 command and `LookupAll` reset source, and all 20 recorded generators establish exactly
+two ordered final post-reset `--ulimit nproc=4096:8192` and `--ulimit stack=-1:-1` arguments, with
+neither pre-reset limit nor duplicate, empty, or alternate form. Pod `Ulimit`, Compose/BoxFerry
+mapping, runtime enforcement, host inheritance, defaults, cgroups, rootless behavior, and
+acceptance of unverified resource names remain outside this native generator-only slice.
+
+QuadletLens additionally types native repeatable container `AddDevice`, preserving omission, every
+physical value, empty native resets, duplicates, insertion order, case, quotes/specifiers,
+whitespace-token-containing lines, and leading `-` as exact opaque text without splitting,
+unquoting, parsing paths/permissions, normalization, or device validation. Endpoint manuals,
+Podman-run caveats, tagged 5.4.0/6.0.2 `LookupAllStrv` tokenization/reset and conditional
+leading-minus command source, and all 20 recorded generators establish exactly two ordered final
+post-reset `--device /dev/null:/dev/final-null:r` and
+`--device /dev/zero:/dev/final-zero:w` arguments and exactly two total, with no pre-reset, empty,
+or alternate form. The generator fixture contains no leading `-` and runs no workload. Pod
+`AddDevice`, Compose/BoxFerry mapping, CDI, runtime access, rootless behavior, SELinux, cgroups,
+device existence, and symlink behavior remain outside this native generator-only slice.
+
+QuadletLens additionally types native singleton container `Memory`, preserving omission,
+duplicates, empty assignments, quotes/specifiers, and exact opaque one-line values. A focused
+helper constructs positive arbitrary-precision ASCII-decimal amounts with optional lowercase
+`b`/`k`/`m`/`g` while retaining leading zeros. The capability begins at Podman 5.5.0: all 17
+recorded patches through 6.0.2 emit exactly one final `--memory 16777216b`, while all three 5.4.x
+generators reject or exclude the unsupported key and emit no memory argument. Runtime cgroup,
+page-size, swap, host-memory, rootless, and cross-format behavior remain outside this native slice.
+
 ## T6: First end-to-end milestone
 
 Status: in progress. BoxFerry coordinates this task. Compose import and the first Quadlet export
@@ -171,3 +276,17 @@ adapter fixture; broader BoxFerry tiers remain.
 - Release validation: supported Podman matrices, rootless/rootful contexts, real-world projects, and eventually disposable Kubernetes clusters.
 
 Each harness becomes required only after its command, isolation model, version source, fixture provenance, and failure policy are documented.
+
+## T8: First N-to-N runtime and definition milestone
+
+Status: in progress. BoxFerry coordinates this task. Docker runtime resources, Docker Compose,
+Podman runtime resources, and Podman Quadlet must each be available as a source and a target.
+Routes compose through the neutral application model rather than pair-specific conversion logic.
+
+Exit criteria:
+
+- All four boundaries have importers and exporters for one documented shared semantic subset.
+- The CLI explicitly selects every source and target without owning conversion rules.
+- All sixteen source/target combinations have offline golden contract tests.
+- Runtime targets produce reviewable plans before any explicit apply operation.
+- Incompatible intent always produces structured, policy-controlled outcomes.

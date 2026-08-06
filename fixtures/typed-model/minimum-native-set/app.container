@@ -8,6 +8,45 @@ ContainerName=quadlet-lens-app
 AddHost=host.docker.internal:host-gateway
 AddHost=database:192.0.2.10
 Image=registry.example.invalid/app:1.2@sha256:abcdef
+Entrypoint=["/usr/bin/env","php"]
+RunInit=true
+StopSignal=SIGUSR1
+StopTimeout=0
+Pull=newer
+PidsLimit=0
+HostName=app.example
+ShmSize=0
+Memory=16777216b
+DropCapability=CAP_NET_ADMIN
+DropCapability=ALL
+DropCapability=CAP_DAC_OVERRIDE CAP_IPC_OWNER
+AddCapability=CAP_NET_ADMIN
+AddCapability=
+AddCapability=CAP_NET_ADMIN
+AddCapability=ALL
+AddCapability=CAP_DAC_OVERRIDE CAP_IPC_OWNER
+Tmpfs=/before-one:RW,NoExec
+Tmpfs=/before-two:size=64M
+Tmpfs=
+Tmpfs=/data:mode=755,uid=1009,gid=1009
+Sysctl=net.ipv4.conf.all.rp_filter=2 net.ipv4.ip_forward=0
+Sysctl=kernel.domainname="Authored Value"
+Sysctl=net.ipv4.conf.%i.forwarding=%n
+Sysctl=
+Sysctl=net.ipv4.ip_forward=1
+Sysctl=net.ipv4.ip_forward=1
+Ulimit=Core=0:0
+Ulimit=nofile="1024:2048"
+Ulimit=stack=%h:%n
+Ulimit=
+Ulimit=nproc=4096:8192
+Ulimit=nproc=4096:8192
+AddDevice=/dev/null:/dev/pre-null:r /dev/zero:/dev/pre-zero:w
+AddDevice=
+AddDevice="/dev/null:/dev/final null:r" /dev/zero:/dev/final-zero:w
+AddDevice=%h/Device:/dev/MixedCase:rwm
+AddDevice=-/dev/optional:/dev/optional:r
+AddDevice="/dev/null:/dev/final null:r" /dev/zero:/dev/final-zero:w
 Exec=/bin/sh -c "php vendor/bin/example"
 Environment=APP_ENV=production
 Environment=APP_HOME=%h/example

@@ -158,6 +158,36 @@ pub enum ContainerKey {
     Rootfs,
     /// Runtime name assigned to the generated Podman container.
     ContainerName,
+    /// Entrypoint override passed to Podman, including JSON command-array syntax.
+    Entrypoint,
+    /// Authored selection value for Podman's minimal init process.
+    RunInit,
+    /// Authored signal value Podman uses when stopping the container.
+    StopSignal,
+    /// Authored stop-timeout value in seconds, including a native zero.
+    StopTimeout,
+    /// Authored image pull-policy value.
+    Pull,
+    /// Authored container process-ID limit.
+    PidsLimit,
+    /// Authored hostname available inside the container.
+    HostName,
+    /// Authored size of the container shared-memory filesystem.
+    ShmSize,
+    /// Authored capabilities removed from the container's default capability set.
+    DropCapability,
+    /// Authored capabilities added to the container's default capability set.
+    AddCapability,
+    /// Authored temporary-filesystem destination and optional mount options.
+    Tmpfs,
+    /// Authored kernel parameter assignments passed to the container.
+    Sysctl,
+    /// Authored resource-limit assignments passed to the container.
+    Ulimit,
+    /// Authored host-device mappings passed to the container.
+    AddDevice,
+    /// Authored memory limit passed to the container.
+    Memory,
 }
 
 /// Pod keys required by the first Compose-to-Quadlet conversion.
@@ -176,6 +206,8 @@ pub enum PodKey {
     Volume,
     /// User-namespace mode shared by containers in the pod.
     UserNS,
+    /// Authored size of the pod shared-memory filesystem.
+    ShmSize,
 }
 
 /// Network keys required by the first conversion.
@@ -230,6 +262,12 @@ impl EntryKind {
                         | ContainerKey::Network
                         | ContainerKey::PodmanArgs
                         | ContainerKey::GroupAdd
+                        | ContainerKey::DropCapability
+                        | ContainerKey::AddCapability
+                        | ContainerKey::Tmpfs
+                        | ContainerKey::Sysctl
+                        | ContainerKey::Ulimit
+                        | ContainerKey::AddDevice
                 )
                 | Self::Pod(PodKey::AddHost | PodKey::PublishPort | PodKey::Network | PodKey::Volume)
                 | Self::Unknown
@@ -772,6 +810,21 @@ fn classify_entry(section: SectionKind, key: &str) -> EntryKind {
             "ReadOnly" => EntryKind::Container(ContainerKey::ReadOnly),
             "Rootfs" => EntryKind::Container(ContainerKey::Rootfs),
             "ContainerName" => EntryKind::Container(ContainerKey::ContainerName),
+            "Entrypoint" => EntryKind::Container(ContainerKey::Entrypoint),
+            "RunInit" => EntryKind::Container(ContainerKey::RunInit),
+            "StopSignal" => EntryKind::Container(ContainerKey::StopSignal),
+            "StopTimeout" => EntryKind::Container(ContainerKey::StopTimeout),
+            "Pull" => EntryKind::Container(ContainerKey::Pull),
+            "PidsLimit" => EntryKind::Container(ContainerKey::PidsLimit),
+            "HostName" => EntryKind::Container(ContainerKey::HostName),
+            "ShmSize" => EntryKind::Container(ContainerKey::ShmSize),
+            "DropCapability" => EntryKind::Container(ContainerKey::DropCapability),
+            "AddCapability" => EntryKind::Container(ContainerKey::AddCapability),
+            "Tmpfs" => EntryKind::Container(ContainerKey::Tmpfs),
+            "Sysctl" => EntryKind::Container(ContainerKey::Sysctl),
+            "Ulimit" => EntryKind::Container(ContainerKey::Ulimit),
+            "AddDevice" => EntryKind::Container(ContainerKey::AddDevice),
+            "Memory" => EntryKind::Container(ContainerKey::Memory),
             _ => EntryKind::Unknown,
         },
         SectionKind::Pod => match key {
@@ -781,6 +834,7 @@ fn classify_entry(section: SectionKind, key: &str) -> EntryKind {
             "Network" => EntryKind::Pod(PodKey::Network),
             "Volume" => EntryKind::Pod(PodKey::Volume),
             "UserNS" => EntryKind::Pod(PodKey::UserNS),
+            "ShmSize" => EntryKind::Pod(PodKey::ShmSize),
             _ => EntryKind::Unknown,
         },
         SectionKind::Network => match key {

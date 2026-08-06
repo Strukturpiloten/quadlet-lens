@@ -1,0 +1,4 @@
+[Container]
+Image=registry.example.invalid/pull-always:1.0
+Pull=always
+Exec=/usr/bin/true
