@@ -3,7 +3,8 @@
 This document distinguishes loss-aware parsing from typed construction and version-evidenced
 generation. It was audited against the current official
 [Quadlet manual](https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html) and the
-supported Podman 5.4 floor on 2026-08-05.
+supported Podman 5.4 floor on 2026-08-06. The exact current untyped-key inventory and promotion
+order live in the [roadmap](roadmap.md).
 
 ## Coverage layers
 
@@ -37,17 +38,16 @@ one of the four typed unit types.
 
 | Section | Typed keys |
 | --- | --- |
-| `[Container]` | `AddHost`, `ContainerName`, `Image`, `Rootfs`, `Exec`, `Environment`, `EnvironmentFile`, `Label`, `Secret`, `User`, `Group`, `UserNS`, `GroupAdd`, `WorkingDir`, `ReadOnly`, `PublishPort`, `Volume`, `Network`, `Pod`, `HealthCmd`, `Notify`, `HealthInterval`, `HealthRetries`, `HealthStartPeriod`, `HealthTimeout`, `PodmanArgs` |
+| `[Container]` | `AddHost`, `ContainerName`, `Image`, `Rootfs`, `Entrypoint`, `RunInit`, `Exec`, `Environment`, `EnvironmentFile`, `Label`, `Secret`, `User`, `Group`, `UserNS`, `GroupAdd`, `WorkingDir`, `ReadOnly`, `PublishPort`, `Volume`, `Network`, `Pod`, `HealthCmd`, `Notify`, `HealthInterval`, `HealthRetries`, `HealthStartPeriod`, `HealthTimeout`, `PodmanArgs` |
 | `[Pod]` | `AddHost`, `PodName`, `PublishPort`, `Network`, `Volume`, `UserNS` |
 | `[Network]` | `NetworkName` |
 | `[Volume]` | `VolumeName` |
 | `[Unit]`, `[Service]`, `[Install]` | Open-ended generic systemd directives with source/order preservation; typed generation and explicit capability evidence exist for `[Unit]` `Requires=`, `Wants=`, and `After=`, and `[Service]` `Restart=`. |
 
-All other current manual keys are syntax-preserved but not yet part of the typed builder contract.
-This includes many useful container keys such as DNS, capabilities, entrypoint, startup-health
-settings, hostname, resource limits, mounts, network aliases, security labeling,
-and stop behavior. Pod, network, and volume sections likewise have broader native surfaces than
-the first conversion subset.
+The current manual contains 62 additional container keys, 19 additional pod keys, 17 additional
+network keys, and 15 additional volume keys that are syntax-preserved but not typed. The complete
+lists, plus every current build, image, kube, artifact, and Quadlet-section key, are maintained in
+the [specification coverage ledger](roadmap.md#specification-coverage-ledger).
 
 ## Next promotion
 
@@ -80,6 +80,13 @@ The container-identity subset includes singleton `ContainerName`. It is document
 5.4 floor and verified as an exact `--name` generator argument through 6.0.2. The value is not
 derived from the unit basename, checked for host collisions, or treated as a systemd unit name.
 
+The process subset includes singleton `Entrypoint`. QuadletLens retains the exact executable or
+JSON command-array text instead of decoding systemd/JSON quoting. The generator matrix verifies
+that every supported Podman release passes the JSON array to `podman run`; it records the exact
+presentation boundary from a separate argument through 5.8.1 to `--entrypoint=...` from 5.8.2.
+The same process subset includes singleton `RunInit`; the matrix proves exactly one `--init`
+argument for every supported patch release.
+
 The dependency-readiness subset also includes:
 
 - `Notify=healthy` to delay service readiness until Podman reports a healthy container;
@@ -91,8 +98,8 @@ Typed systemd keys are a programmatic-generation aid, not a complete systemd sem
 Runtime activation, failed-unit propagation, cycles, stop ordering, and restart propagation remain
 outside current generator evidence and require separate systemd-aware validation.
 
-The next cohesive promotion should cover lifecycle behavior required by the BoxFerry conversion
-roadmap without conflating Compose restart and entrypoint semantics with systemd or Podman.
+The next cohesive promotion should cover the remaining lifecycle behavior required by the
+BoxFerry conversion roadmap without conflating Compose restart semantics with systemd or Podman.
 
 ## Promotion checklist
 

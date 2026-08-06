@@ -2,6 +2,7 @@ quadlet.container.add-host
 quadlet.container.container-name
 quadlet.container.environment
 quadlet.container.environment-file
+quadlet.container.entrypoint
 quadlet.container.exec
 quadlet.container.group
 quadlet.container.group-add
@@ -19,6 +20,7 @@ quadlet.container.podman-args
 quadlet.container.publish-port
 quadlet.container.read-only
 quadlet.container.rootfs
+quadlet.container.run-init
 quadlet.container.secret
 quadlet.container.user
 quadlet.container.userns

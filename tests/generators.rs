@@ -20,6 +20,9 @@ const QUOTED_LABEL_LITERAL_SPACE: &str =
     r#"--label "io.github.strukturpiloten.quadlet-lens.metadata={\"channel\": \"stable\"}""#;
 const QUOTED_LABEL_HEX_SPACE: &str =
     r#"--label "io.github.strukturpiloten.quadlet-lens.metadata={\"channel\":\x20\"stable\"}""#;
+const ENTRYPOINT_SEPARATE_ARGUMENT: &str = r#"--entrypoint "[\"/usr/bin/env\",\"sh\"]""#;
+const ENTRYPOINT_EQUALS_ARGUMENT: &str = r#""--entrypoint=[\"/usr/bin/env\",\"sh\"]""#;
+const RUN_INIT_ARGUMENT: &str = "--init";
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -59,7 +62,7 @@ fn generator_matrix_is_exact_complete_and_digest_pinned() -> Result<(), String> 
     assert_eq!(matrix.schema, 1);
     assert_eq!(matrix.support_minimum, "5.4.0");
     assert_eq!(matrix.tracked_current, "6.0.2");
-    assert_eq!(matrix.checked_on, "2026-08-05");
+    assert_eq!(matrix.checked_on, "2026-08-06");
     assert_eq!(matrix.official_image_maximum, "5.8.2");
 
     assert_eq!(matrix.source_repository, "https://github.com/containers/podman.git");
@@ -494,7 +497,39 @@ fn verify_generator_output(version: &str, expected: &[String], output: &Output) 
             ));
         }
     }
+    verify_entrypoint_encoding(version, &generated, output)?;
+    verify_run_init_argument(version, &generated, output)?;
     verify_quoted_label_encoding(version, &generated, output)?;
+    Ok(())
+}
+
+fn verify_entrypoint_encoding(version: &str, generated: &str, output: &Output) -> Result<(), String> {
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    let separate_count = generated.matches(ENTRYPOINT_SEPARATE_ARGUMENT).count();
+    let equals_count = generated.matches(ENTRYPOINT_EQUALS_ARGUMENT).count();
+    let (expected_name, expected_count, unexpected_count) = if parsed < PodmanVersion::new(5, 8, 2) {
+        ("separate-argument", separate_count, equals_count)
+    } else {
+        ("equals-argument", equals_count, separate_count)
+    };
+    if expected_count != 1 || unexpected_count != 0 {
+        return Err(format!(
+            "Podman {version} generator output must contain exactly one {expected_name} JSON-array entrypoint encoding and no other supported encoding; found separate-argument={separate_count}, equals-argument={equals_count}\nstdout:\n{generated}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+    eprintln!("Podman {version} JSON-array entrypoint encoding: {expected_name}");
+    Ok(())
+}
+
+fn verify_run_init_argument(version: &str, generated: &str, output: &Output) -> Result<(), String> {
+    let count = generated.matches(RUN_INIT_ARGUMENT).count();
+    if count != 1 {
+        return Err(format!(
+            "Podman {version} generator output must contain exactly one {RUN_INIT_ARGUMENT} argument; found {count}\nstdout:\n{generated}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
     Ok(())
 }
 

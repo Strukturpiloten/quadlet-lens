@@ -5,6 +5,15 @@ Versioning for its documented pre-1.0 public API.
 
 ## [Unreleased]
 
+### Added
+
+- Typed singleton `Entrypoint` parsing and programmatic construction, kept distinct from `Exec`.
+- Podman 5.4.0-through-6.0.2 capability and real-generator coverage for JSON command-array
+  entrypoints, including both observed equivalent CLI encodings.
+- Typed singleton `RunInit` parsing and programmatic construction with finite capability evidence.
+- Exact real-generator verification of one `--init` argument across every supported Podman patch
+  release from 5.4.0 through 6.0.2.
+
 ## [0.1.9] - 2026-08-05
 
 ### Added

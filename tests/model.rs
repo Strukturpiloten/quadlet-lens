@@ -59,6 +59,8 @@ fn container_model_retains_order_repetition_unknowns_and_generic_systemd() -> Re
             ContainerKey::AddHost,
             ContainerKey::AddHost,
             ContainerKey::Image,
+            ContainerKey::Entrypoint,
+            ContainerKey::RunInit,
             ContainerKey::Exec,
             ContainerKey::Environment,
             ContainerKey::Environment,

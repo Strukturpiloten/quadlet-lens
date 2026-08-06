@@ -425,6 +425,8 @@ const fn container_key_name(key: ContainerKey) -> &'static str {
         ContainerKey::ReadOnly => "ReadOnly",
         ContainerKey::Rootfs => "Rootfs",
         ContainerKey::ContainerName => "ContainerName",
+        ContainerKey::Entrypoint => "Entrypoint",
+        ContainerKey::RunInit => "RunInit",
     }
 }
 

@@ -19,7 +19,7 @@ This directory defines QuadletLens's architecture and version-aware behavior.
 - [Fixture format](fixture-format.md) — shared metadata, provenance, and secrets contract
 - [Podlet regression map](research/podlet-regressions-2026-08-01.md) — native syntax, document-set, and capability lessons from user reports
 - [Dependency and license policy](dependency-policy.md) — dependency selection, allowed sources, and license checks
-- [Implementation plan](implementation-plan.md) — synchronized cross-repository tasks T1–T7
+- [Implementation plan](implementation-plan.md) — synchronized cross-repository tasks T1–T8
 - [Roadmap](roadmap.md) — implementation order
 - [0.1.9 release notes](releases/0.1.9.md) — explicit Podman container names
 - [0.1.6 release notes](releases/0.1.6.md) — pod user namespaces and container secrets

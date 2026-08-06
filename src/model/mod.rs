@@ -158,6 +158,10 @@ pub enum ContainerKey {
     Rootfs,
     /// Runtime name assigned to the generated Podman container.
     ContainerName,
+    /// Entrypoint override passed to Podman, including JSON command-array syntax.
+    Entrypoint,
+    /// Whether Podman should run its minimal init process inside the container.
+    RunInit,
 }
 
 /// Pod keys required by the first Compose-to-Quadlet conversion.
@@ -772,6 +776,8 @@ fn classify_entry(section: SectionKind, key: &str) -> EntryKind {
             "ReadOnly" => EntryKind::Container(ContainerKey::ReadOnly),
             "Rootfs" => EntryKind::Container(ContainerKey::Rootfs),
             "ContainerName" => EntryKind::Container(ContainerKey::ContainerName),
+            "Entrypoint" => EntryKind::Container(ContainerKey::Entrypoint),
+            "RunInit" => EntryKind::Container(ContainerKey::RunInit),
             _ => EntryKind::Unknown,
         },
         SectionKind::Pod => match key {

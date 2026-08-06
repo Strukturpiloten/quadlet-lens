@@ -87,6 +87,19 @@ fn supported_range_records_paths_references_and_repetition() -> Result<(), Strin
     assert!(!rootfs.is_required());
     assert!(rootfs.value_forms().iter().any(|form| form == "podman-rootfs"));
 
+    let entrypoint = catalogue
+        .capability("quadlet.container.entrypoint")
+        .ok_or_else(|| "container entrypoint capability must exist".to_owned())?;
+    assert!(!entrypoint.is_repeatable());
+    assert!(entrypoint.value_forms().iter().any(|form| form == "executable"));
+    assert!(entrypoint.value_forms().iter().any(|form| form == "json-command-array"));
+
+    let run_init = catalogue
+        .capability("quadlet.container.run-init")
+        .ok_or_else(|| "container run-init capability must exist".to_owned())?;
+    assert!(!run_init.is_repeatable());
+    assert_eq!(run_init.value_forms(), ["boolean"]);
+
     let restart = catalogue
         .capability("systemd.service.restart")
         .ok_or_else(|| "generic systemd restart capability must exist".to_owned())?;
@@ -106,6 +119,7 @@ fn supported_range_records_paths_references_and_repetition() -> Result<(), Strin
         "quadlet.container.add-host",
         "quadlet.container.container-name",
         "quadlet.container.environment-file",
+        "quadlet.container.entrypoint",
         "quadlet.container.user",
         "quadlet.container.group",
         "quadlet.container.userns",
@@ -113,6 +127,7 @@ fn supported_range_records_paths_references_and_repetition() -> Result<(), Strin
         "quadlet.container.working-dir",
         "quadlet.container.read-only",
         "quadlet.container.rootfs",
+        "quadlet.container.run-init",
         "quadlet.container.secret",
         "quadlet.container.label",
         "quadlet.container.pod",

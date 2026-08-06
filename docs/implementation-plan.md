@@ -24,6 +24,7 @@ The repository that owns a task is authoritative for its detailed status. Update
 | T5 | All repositories | in progress | Minimum native typed subsets for the first conversion |
 | T6 | BoxFerry, integrating both Lens libraries | in progress | First Compose-to-Quadlet vertical slice |
 | T7 | All repositories | in progress | Expanded conformance, runtime, and release testing tiers |
+| T8 | BoxFerry, integrating all adapters | in progress | First N-to-N Docker/Compose/Podman/Quadlet milestone |
 
 ## T1: Testing foundations
 
@@ -171,3 +172,17 @@ adapter fixture; broader BoxFerry tiers remain.
 - Release validation: supported Podman matrices, rootless/rootful contexts, real-world projects, and eventually disposable Kubernetes clusters.
 
 Each harness becomes required only after its command, isolation model, version source, fixture provenance, and failure policy are documented.
+
+## T8: First N-to-N runtime and definition milestone
+
+Status: in progress. BoxFerry coordinates this task. Docker runtime resources, Docker Compose,
+Podman runtime resources, and Podman Quadlet must each be available as a source and a target.
+Routes compose through the neutral application model rather than pair-specific conversion logic.
+
+Exit criteria:
+
+- All four boundaries have importers and exporters for one documented shared semantic subset.
+- The CLI explicitly selects every source and target without owning conversion rules.
+- All sixteen source/target combinations have offline golden contract tests.
+- Runtime targets produce reviewable plans before any explicit apply operation.
+- Incompatible intent always produces structured, policy-controlled outcomes.

@@ -71,8 +71,8 @@ the generator fixture protects its `--rootfs` output from Podman 5.4.0 through 6
 The corpus confirms the current loss-aware syntax layer is broad enough for these files. It also
 makes the next typed promotions concrete:
 
-1. container lifecycle: `AutoUpdate`, `Timezone`, `Entrypoint`, and stop behavior; explicit
-   `ContainerName` is already typed and generator-verified;
+1. container lifecycle: `AutoUpdate`, `Timezone`, and stop behavior; `Entrypoint`, `RunInit`, and
+   explicit `ContainerName` are already typed and generator-verified;
 2. logging: `LogDriver` and repeatable `LogOpt`;
 3. security and host integration: capabilities, devices, security-label keys, seccomp, sysctls,
    temporary filesystems, shared memory, and ulimits;

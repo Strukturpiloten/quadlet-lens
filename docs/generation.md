@@ -22,6 +22,13 @@ a document with neither or both returns structured typed-model diagnostics.
 `ContainerKey::ContainerName` optionally selects the exact Podman runtime name. It is a singleton
 and remains separate from the Quadlet filename and generated service identity.
 
+`ContainerKey::Entrypoint` optionally overrides the image entrypoint and is a singleton distinct
+from `ContainerKey::Exec`. Multiple entrypoint arguments use the documented JSON command-array
+text; `EntryValue` retains that spelling exactly.
+
+`ContainerKey::RunInit` is a singleton that carries Quadlet's exact boolean text. Setting it to
+`true` asks Podman to run its minimal signal-forwarding and child-reaping init process.
+
 `ContainerKey::Secret` is repeatable. Its exact value may select mounted-file or environment
 exposure and carry target, UID, GID, and mode options; the builder preserves those options without
 reading the referenced Podman secret.
@@ -42,7 +49,7 @@ document, and complete parse result.
 
 `EntryValue` is exact native semantic text on one physical line. It rejects NUL bytes and line
 endings, but deliberately does not quote or normalize its contents. A caller that writes
-`AddHost=`, `Environment=`, `Label=`, `Secret=`, `Exec=`, an identity/context key, a health-check
+`AddHost=`, `Environment=`, `Label=`, `Secret=`, `Entrypoint=`, `RunInit=`, `Exec=`, an identity/context key, a health-check
 or readiness key, a systemd unit dependency, `PublishPort=`, or `Volume=` must select the appropriate native
 systemd/Podman spelling.
 
@@ -74,6 +81,11 @@ builder.push_container(
     EntryValue::new("example.invalid/application:1")?,
 )?;
 builder.push_container(
+    ContainerKey::Entrypoint,
+    EntryValue::new(r#"["/usr/bin/env","php"]"#)?,
+)?;
+builder.push_container(ContainerKey::RunInit, EntryValue::new("true")?)?;
+builder.push_container(
     ContainerKey::Environment,
     EntryValue::new("APP_ENV=production")?,
 )?;
@@ -90,6 +102,8 @@ assert_eq!(
         "ContainerName=example-application\n",
         "AddHost=host.docker.internal:host-gateway\n",
         "Image=example.invalid/application:1\n",
+        "Entrypoint=[\"/usr/bin/env\",\"php\"]\n",
+        "RunInit=true\n",
         "Environment=APP_ENV=production\n",
         "Label=org.example.application=example\n",
     ),

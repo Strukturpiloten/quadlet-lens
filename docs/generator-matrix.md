@@ -5,7 +5,7 @@
 QuadletLens has a fixed minimum Podman version and a rolling upper target:
 
 - minimum supported version: Podman 5.4.0;
-- current upstream target checked on 2026-08-05: Podman 6.0.2;
+- current upstream target checked on 2026-08-06: Podman 6.0.2;
 - current generator-verified first-conversion range: Podman 5.4.0 through 6.0.2.
 
 “Supported target,” “catalogue evidence,” and “generator verified” are deliberately separate. A
@@ -49,7 +49,8 @@ invoke systemctl, or start generated services. Runtime, rootless/rootful, cgroup
 SELinux behavior remain separate test tiers.
 
 The first-conversion fixture covers mutually exclusive registry-image and host-rootfs workload
-sources, including `name:tag@digest` images and absolute `Rootfs` values, explicit container names, commands,
+sources, including `name:tag@digest` images and absolute `Rootfs` values, explicit container names,
+JSON-array entrypoints, init-process selection, commands,
 environment and systemd specifiers, absolute and unit-relative environment files, repeated
 container labels, repeated mounted
 and environment-variable secrets with options, repeatable container and pod host mappings
@@ -66,6 +67,14 @@ The quote-bearing label case also records a generated-service presentation bound
 keeps the JSON-like label's space literal inside a quoted argument; every tested release from 5.5.0
 onward writes the equivalent systemd `\x20` escape. The harness requires exactly the observed form
 family and still verifies that the complete label remains one quoted `--label` argument.
+
+The entrypoint case likewise records an exact generated-service presentation boundary. Podman
+5.4.0 through 5.8.1 emit `--entrypoint` plus a separate JSON-array argument; Podman 5.8.2 through
+6.0.2 emit one quoted `--entrypoint=...` argument. The harness requires exactly the observed form
+and verifies that both encodings carry the same JSON array.
+
+The `RunInit=true` case is version-invariant across the matrix. The harness requires exactly one
+generated `--init` argument for every supported Podman patch release.
 
 ## Commands
 

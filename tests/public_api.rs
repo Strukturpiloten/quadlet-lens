@@ -38,9 +38,11 @@ fn growing_public_key_enums_preserve_published_discriminants() {
             ContainerKey::Label as isize,
             ContainerKey::Rootfs as isize,
             ContainerKey::ContainerName as isize,
+            ContainerKey::Entrypoint as isize,
+            ContainerKey::RunInit as isize,
         ],
         [
-            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
+            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27,
         ]
     );
     assert_eq!(
@@ -95,19 +97,15 @@ fn supported_public_pipeline_compiles_and_keeps_stages_explicit() -> Result<(), 
 
     let catalogue = CapabilityCatalogue::supported_range()?;
     let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
-    let support = catalogue.evaluate("quadlet.container.image", target);
-    assert_eq!(support.classification(), SupportClassification::Native);
-    let rootfs_support = catalogue.evaluate("quadlet.container.rootfs", target);
-    assert_eq!(rootfs_support.classification(), SupportClassification::Native);
-    let container_name_support = catalogue.evaluate("quadlet.container.container-name", target);
-    assert_eq!(container_name_support.classification(), SupportClassification::Native);
-    let host_support = catalogue.evaluate("quadlet.container.add-host", target);
-    assert_eq!(host_support.classification(), SupportClassification::Native);
-    let health_support = catalogue.evaluate("quadlet.container.health-timeout", target);
-    assert_eq!(health_support.classification(), SupportClassification::Native);
-    let readiness_support = catalogue.evaluate("quadlet.container.notify-healthy", target);
-    assert_eq!(readiness_support.classification(), SupportClassification::Native);
     for capability in [
+        "quadlet.container.image",
+        "quadlet.container.rootfs",
+        "quadlet.container.container-name",
+        "quadlet.container.entrypoint",
+        "quadlet.container.run-init",
+        "quadlet.container.add-host",
+        "quadlet.container.health-timeout",
+        "quadlet.container.notify-healthy",
         "quadlet.container.user",
         "quadlet.container.group",
         "quadlet.container.userns",
@@ -133,6 +131,8 @@ fn supported_public_pipeline_compiles_and_keeps_stages_explicit() -> Result<(), 
         EntryValue::new("host.docker.internal:host-gateway")?,
     )?;
     generated.push_container(ContainerKey::Image, EntryValue::new("example.invalid/generated:1")?)?;
+    generated.push_container(ContainerKey::Entrypoint, EntryValue::new(r#"["/usr/bin/env","php"]"#)?)?;
+    generated.push_container(ContainerKey::RunInit, EntryValue::new("true")?)?;
     generated.push_container(
         ContainerKey::Label,
         EntryValue::new("org.example.application=generated")?,
@@ -162,6 +162,8 @@ fn supported_public_pipeline_compiles_and_keeps_stages_explicit() -> Result<(), 
             "[Container]\n",
             "AddHost=host.docker.internal:host-gateway\n",
             "Image=example.invalid/generated:1\n",
+            "Entrypoint=[\"/usr/bin/env\",\"php\"]\n",
+            "RunInit=true\n",
             "Label=org.example.application=generated\n",
             "Label=org.example.stage=test\n",
             "Secret=database-password,target=password,mode=0440\n",

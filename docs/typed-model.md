@@ -15,7 +15,7 @@ defines its representation boundary.
 | `.network`   | `[Network]`      | `NetworkName`               |
 | `.volume`    | `[Volume]`       | `VolumeName`                |
 
-Typed container keys are `AddHost`, `ContainerName`, `Image`, `Rootfs`, `Exec`, `Environment`, `EnvironmentFile`, `Label`, `Secret`,
+Typed container keys are `AddHost`, `ContainerName`, `Image`, `Rootfs`, `Entrypoint`, `RunInit`, `Exec`, `Environment`, `EnvironmentFile`, `Label`, `Secret`,
 `User`, `Group`, `UserNS`, `GroupAdd`, `WorkingDir`, `ReadOnly`, `PublishPort`, `Volume`,
 `Network`, `Pod`, `HealthCmd`, `HealthInterval`, `HealthRetries`, `HealthStartPeriod`,
 `HealthTimeout`, `Notify`, and `PodmanArgs`. Typed pod keys are `AddHost`, `PodName`, `PublishPort`,
@@ -73,6 +73,12 @@ contents, or verify runtime existence.
 `ContainerName` is a typed singleton distinct from the Quadlet unit-file basename and generated
 systemd service name. Its exact value is retained; QuadletLens does not invent a runtime name or
 probe the host for collisions.
+
+`Entrypoint` is a typed singleton distinct from `Exec`. Its exact executable or JSON command-array
+text is retained; QuadletLens does not decode or normalize JSON and systemd quoting.
+
+`RunInit` is a typed singleton whose exact boolean spelling remains authored text. QuadletLens
+does not select, mount, or inspect Podman's container-init binary.
 
 ## Document sets and dependency graph
 

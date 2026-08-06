@@ -24,6 +24,8 @@ fn builds_a_deterministic_first_conversion_document_set() -> Result<(), Box<dyn 
     container.push_systemd_unit(SystemdUnitKey::After, value("database.service")?)?;
     container.push_container(ContainerKey::AddHost, value("host.docker.internal:host-gateway")?)?;
     container.push_container(ContainerKey::Image, value("example.invalid/app:1@sha256:abcd")?)?;
+    container.push_container(ContainerKey::Entrypoint, value(r#"["/usr/bin/env","php"]"#)?)?;
+    container.push_container(ContainerKey::RunInit, value("true")?)?;
     container.push_container(ContainerKey::Exec, value("php -v")?)?;
     container.push_container(ContainerKey::Environment, value("APP_ENV=production")?)?;
     container.push_container(ContainerKey::Label, value("org.example.application=example")?)?;
@@ -63,6 +65,8 @@ fn builds_a_deterministic_first_conversion_document_set() -> Result<(), Box<dyn 
             "[Container]\n",
             "AddHost=host.docker.internal:host-gateway\n",
             "Image=example.invalid/app:1@sha256:abcd\n",
+            "Entrypoint=[\"/usr/bin/env\",\"php\"]\n",
+            "RunInit=true\n",
             "Exec=php -v\n",
             "Environment=APP_ENV=production\n",
             "Label=org.example.application=example\n",
@@ -216,6 +220,16 @@ fn rejects_unsafe_values_wrong_units_and_duplicate_singletons() -> Result<(), Bo
     assert!(matches!(
         container.push_container(ContainerKey::User, value("1002")?),
         Err(RenderError::DuplicateSingleton(key)) if key == "User"
+    ));
+    container.push_container(ContainerKey::Entrypoint, value("/usr/bin/env")?)?;
+    assert!(matches!(
+        container.push_container(ContainerKey::Entrypoint, value("/bin/sh")?),
+        Err(RenderError::DuplicateSingleton(key)) if key == "Entrypoint"
+    ));
+    container.push_container(ContainerKey::RunInit, value("true")?)?;
+    assert!(matches!(
+        container.push_container(ContainerKey::RunInit, value("false")?),
+        Err(RenderError::DuplicateSingleton(key)) if key == "RunInit"
     ));
     assert!(matches!(
         container.push_systemd(SystemdSection::Unit, "Invalid-Key", value("value")?),
