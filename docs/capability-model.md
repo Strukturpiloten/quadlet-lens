@@ -208,6 +208,74 @@ unsupported key and emits no memory argument. This establishes native recognitio
 command construction only, not cgroup enforcement, page rounding, swap interaction, host-memory
 availability, rootless behavior, runtime inspection, or Compose/BoxFerry equivalence.
 
+The container logging capabilities cover opaque singleton `LogDriver` and repeatable `LogOpt`
+from Podman 5.4.0 through 6.0.2. Parsed and constructed values remain physical-line-safe authored
+text; `LogOpt` assignments may repeat and reset, but QuadletLens does not apply Podman's effective
+tokenization to its model, parse options as key/value maps, validate drivers/options, or inject
+defaults. Endpoint manuals and tagged 5.4.0/6.0.2 source establish the native flag mappings,
+singleton lookup, `LookupAllStrv` order, and empty reset behavior. The isolated full matrix proves
+one final `--log-driver k8s-file` and two ordered post-reset `--log-opt` arguments only. It does not
+start a workload, inspect configuration or logs, or establish host-policy, default, runtime, or
+cross-format behavior.
+
+The container network-identity capabilities cover opaque singleton `IP` and `IP6` plus repeatable,
+resettable `NetworkAlias` from Podman 5.4.0 through 6.0.2. The model and builder do not parse or
+validate addresses or aliases. An isolated fixture with one `Network=bridge` proves one `--ip`,
+one `--ip6`, one network selection, and two ordered final post-reset `--network-alias` arguments
+across all 20 patches. It does not assert map-dependent relative flag ordering or establish IPAM,
+IPv6 enablement, DNS, network-option, runtime, or cross-format behavior.
+
+Network `Driver` is a singleton and `Options` is repeatable and resettable across Podman 5.4.0
+through 6.0.2. The native model preserves every physical entry and does not validate driver
+availability or provider options. The complete generator lane proves one `--driver bridge`, reset
+handling, final duplicate-key collapse, and sorted retained options. It separately records that
+5.4.0 drops the authored bare option token whereas 6.0.2 emits it. Those effective-generator
+rules do not become model or builder semantics.
+
+Network `Label` is an opaque, repeatable/resettable physical key across Podman 5.4.0 through
+6.0.2. The endpoint manuals and tagged 5.4.0/6.0.2 source record mapping to `--label`, reset,
+quote-aware tokenization, final duplicate-key selection, and sorted command emission. The full
+matrix proves final labels, explicit `key=`, embedded `key=a=b`, and one quoted-whitespace
+argument. Bare tokens are absent through 5.5.2 and emitted from 5.6.0 onward. QuadletLens keeps
+all authored values without applying those generator rules; no network creation, inspection, or
+runtime claim is made.
+
+Network `IPAMDriver` is an opaque singleton; `Subnet`, `Gateway`, and `IPRange` are opaque,
+repeatable/resettable physical keys across Podman 5.4.0–6.0.2. Endpoint manuals and tagged source
+record `--ipam-driver` plus indexed subnet/gateway/range command construction. The full matrix
+proves one explicit driver, blank-driver omission, and two ordered final reset-aware columns. It
+does not validate IPAM-driver availability or defaults, address/range grammar, network creation,
+runtime behavior, Compose `aux_addresses` or IPAM-options equivalence, IPv4-disable inference, or
+automatic IPv6 inference. The generator's negative no-subnet and gateway/range-overrun paths have
+only human-readable diagnostics, so they are recorded as tagged-source evidence rather than brittle
+text-matching matrix assertions. Cross-format prefix-complete mapping policy belongs to BoxFerry;
+QuadletLens preserves native syntax and validates target capability only.
+
+Volume `Driver` is an opaque singleton across Podman 5.4.0–6.0.2. Endpoint evidence uses the
+combined 5.4 manual and the split 6.0.2 `podman-volume.unit(5)` manual. Volume `Options` is a
+separate opaque singleton raw mount-option string; it is observed in tagged source and absent from
+those endpoint manuals. Tagged source and the full matrix record last-physical-value lookup, blank
+omission, one `--opt o=<Options>` argument, the Device prerequisite through 5.8.5, its removal in
+6.0.0, and the 5.8.2 unmatched-quote boundary. These are dry-run generator facts only: no
+driver/plugin, mount, rootless, runtime, Compose `driver_opts`, or BoxFerry name/external/image
+policy is claimed.
+
+Volume `Device` and `Type` are separate opaque singletons across the same range. Endpoint manuals
+define Device as the source and Type as its filesystem type; tagged parser evidence covers the
+common last-physical-value lookup. All 20 generators emit final `device=` and `type=bind` options,
+suppress final blanks, reject Type without Device, and retain quote, specifier, and continuation
+inputs. For a bind Device containing a literal space, the additional generated `RequiresMountsFor`
+line is absent through 5.5.2, unescaped from 5.6.0–5.7.1, and quoted with `\\x20` from 5.8.0–6.0.2.
+These dry-run observations do not claim source availability, filesystem support, mount ordering,
+runtime behavior, or Compose/BoxFerry equivalence.
+
+Volume `Label` is an opaque, repeatable/resettable physical key across Podman 5.4.0 through
+6.0.2. Endpoint manuals and tagged source record `--label`, reset, quote-aware tokenization,
+final duplicate-key selection, and sorted command emission. The full matrix proves final labels,
+explicit `key=`, embedded `key=a=b`, quoted whitespace, and the bare-token boundary; it also
+records literal-space presentation in 5.4.x and `\\x20` from 5.5.0 onward. QuadletLens retains
+every physical source entry and claims no volume creation, inspection, or runtime behavior.
+
 Container `DNS`, `DNSOption`, and `DNSSearch` are native repeatable capabilities across
 Podman 5.4.0–6.0.2. `ExposeHostPort` is native over the same range; tagged Quadlet accepts TCP/UDP
 while the Podman CLI also documents SCTP, so `/sctp` remains preserved but not claimed as
@@ -253,3 +321,13 @@ callers and maintainers.
 ## Fallbacks
 
 Fallback records describe a semantic option, not a preassembled shell string. Rendering is responsible for safe argument construction and target syntax. A fallback must state which Podman versions support the underlying command behavior and what semantic differences remain.
+
+## Volume `Copy`
+
+Volume `Copy` is an opaque singleton with native evidence from Podman 5.4.0 through 6.0.2.
+Endpoint manuals, tagged conversion/parser source, and the isolated dry-run matrix record omission,
+accepted true spellings, invalid-as-`nocopy`, duplicate last-value selection, quote/continuation
+handling, the 5.8.2 unmatched-quote boundary, and image-driver suppression. The model retains raw
+physical text rather than coercing a boolean. Versions before the floor and after the ceiling remain
+explicit gaps; no copy-up, volume creation, image pull, runtime, rootless, plugin, or cross-format
+claim is made.

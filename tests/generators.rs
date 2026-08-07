@@ -77,6 +77,161 @@ const DEVICE_EMPTY_OR_ALTERNATE_FORMS: &[&str] = &[
     "--device=/dev/null:/dev/final-null:r",
     "--device=/dev/zero:/dev/final-zero:w",
 ];
+const LOG_DRIVER_ARGUMENT: &str = "--log-driver k8s-file";
+const LOG_OPT_ARGUMENTS: &[&str] = &[
+    "--log-opt tag=quadlet-lens-final",
+    "--log-opt path=/tmp/quadlet-lens-final.log",
+];
+const LOGGING_PRE_RESET_VALUES: &[&str] = &["tag=quadlet-lens-pre", "path=/tmp/quadlet-lens-pre.log"];
+const LOGGING_EMPTY_OR_ALTERNATE_FORMS: &[&str] = &[
+    "--log-driver=",
+    "--log-driver \"k8s-file\"",
+    "--log-driver 'k8s-file'",
+    "--log-opt=",
+    "--log-opt=tag=quadlet-lens-final",
+    "--log-opt=path=/tmp/quadlet-lens-final.log",
+    "--log-opt \"tag=quadlet-lens-final\"",
+    "--log-opt \"path=/tmp/quadlet-lens-final.log\"",
+    "--log-opt 'tag=quadlet-lens-final'",
+    "--log-opt 'path=/tmp/quadlet-lens-final.log'",
+];
+const NETWORK_IDENTITY_IP_ARGUMENT: &str = "--ip 192.0.2.40";
+const NETWORK_IDENTITY_IP6_ARGUMENT: &str = "--ip6 2001:db8::40";
+const NETWORK_IDENTITY_NETWORK_ARGUMENT: &str = "--network bridge";
+const NETWORK_ALIAS_ARGUMENTS: &[&str] = &["--network-alias final-one", "--network-alias final-two"];
+const NETWORK_ALIAS_PRE_RESET_VALUES: &[&str] = &["pre-one", "pre-two"];
+const NETWORK_IDENTITY_EMPTY_OR_ALTERNATE_FORMS: &[&str] = &[
+    "--ip=",
+    "--ip6=",
+    "--network=bridge",
+    "--network-alias=",
+    "--network-alias=final-one",
+    "--network-alias=final-two",
+    "--network-alias \"final-one\"",
+    "--network-alias \"final-two\"",
+    "--network-alias 'final-one'",
+    "--network-alias 'final-two'",
+];
+const NETWORK_OPTIONS_DRIVER_ARGUMENT: &str = "--driver bridge";
+const NETWORK_OPTIONS_ARGUMENTS: &[&str] = &["--opt alpha=final", "--opt zeta=last"];
+const NETWORK_OPTIONS_BARE_ARGUMENT: &str = "--opt bare-token";
+const NETWORK_OPTIONS_PRE_RESET_VALUES: &[&str] = &["pre-one", "pre-two"];
+const NETWORK_OPTIONS_ALTERNATE_FORMS: &[&str] = &[
+    "--driver=bridge",
+    "--driver \"bridge\"",
+    "--opt=alpha=final",
+    "--opt=bare-token",
+    "--opt=zeta=last",
+    "--opt \"alpha=final\"",
+    "--opt \"bare-token\"",
+    "--opt \"zeta=last\"",
+    "--opt alpha=first",
+];
+const NETWORK_LABEL_ARGUMENTS: &[&str] = &[
+    "--label alpha=final",
+    "--label embedded=a=b",
+    "--label empty=",
+    "--label zeta=last",
+];
+const NETWORK_LABEL_BARE_ARGUMENT: &str = "--label bare-token";
+const NETWORK_LABEL_QUOTED_LITERAL_SPACE: &str = r#"--label "quoted=one value""#;
+const NETWORK_LABEL_QUOTED_HEX_SPACE: &str = r#"--label "quoted=one\x20value""#;
+const NETWORK_LABEL_PRE_RESET_VALUES: &[&str] = &["pre-one", "pre-two", "alpha=first"];
+const NETWORK_LABEL_ALTERNATE_FORMS: &[&str] = &[
+    "--label=alpha=final",
+    "--label=embedded=a=b",
+    "--label=empty=",
+    "--label=bare-token",
+    "--label=zeta=last",
+    "--label \"alpha=final\"",
+    "--label \"embedded=a=b\"",
+    "--label \"empty=\"",
+    "--label \"bare-token\"",
+    "--label \"zeta=last\"",
+];
+const VOLUME_LABEL_ARGUMENTS: &[&str] = &[
+    "--label alpha=final",
+    "--label embedded=a=b",
+    "--label empty=",
+    "--label zeta=last",
+];
+const VOLUME_LABEL_BARE_ARGUMENT: &str = "--label bare-token";
+const VOLUME_LABEL_QUOTED_LITERAL_SPACE: &str = r#"--label "quoted=one value""#;
+const VOLUME_LABEL_QUOTED_HEX_SPACE: &str = r#"--label "quoted=one\x20value""#;
+const VOLUME_LABEL_PRE_RESET_VALUES: &[&str] = &["pre-one", "pre-two", "alpha=first"];
+const VOLUME_LABEL_ALTERNATE_FORMS: &[&str] = &[
+    "--label=alpha=final",
+    "--label=embedded=a=b",
+    "--label=empty=",
+    "--label=bare-token",
+    "--label=zeta=last",
+    "--label \"alpha=final\"",
+    "--label \"embedded=a=b\"",
+    "--label \"empty=\"",
+    "--label \"bare-token\"",
+    "--label \"zeta=last\"",
+];
+const NETWORK_IPAM_DRIVER_ARGUMENT: &str = "--ipam-driver host-local";
+const NETWORK_IPAM_COLUMN_ARGUMENTS: &[&str] = &[
+    "--subnet 10.212.0.0/24",
+    "--gateway 10.212.0.1",
+    "--ip-range 10.212.0.64/26",
+    "--subnet 10.213.0.0/24",
+    "--gateway 10.213.0.1",
+    "--ip-range 10.213.0.64/26",
+];
+const NETWORK_IPAM_PRE_RESET_VALUES: &[&str] = &[
+    "10.210.0.0/24",
+    "10.211.0.0/24",
+    "10.210.0.1",
+    "10.211.0.1",
+    "10.210.0.64/26",
+    "10.211.0.64/26",
+];
+const NETWORK_IPAM_EMPTY_OR_ALTERNATE_FORMS: &[&str] = &[
+    "--ipam-driver=host-local",
+    "--ipam-driver \"host-local\"",
+    "--ipam-driver ''",
+    "--subnet=10.212.0.0/24",
+    "--gateway=10.212.0.1",
+    "--ip-range=10.212.0.64/26",
+    "--subnet \"10.212.0.0/24\"",
+    "--gateway \"10.212.0.1\"",
+    "--ip-range \"10.212.0.64/26\"",
+];
+const NETWORK_BOOLEAN_CASES: &[(&str, &str, &str, Option<&str>)] = &[
+    (
+        "network-internal-omitted-network.service",
+        "Internal omitted",
+        "--internal",
+        None,
+    ),
+    (
+        "network-internal-true-network.service",
+        "Internal=true",
+        "--internal",
+        Some("--internal"),
+    ),
+    (
+        "network-internal-false-network.service",
+        "Internal=false",
+        "--internal",
+        Some("--internal=false"),
+    ),
+    ("network-ipv6-omitted-network.service", "IPv6 omitted", "--ipv6", None),
+    (
+        "network-ipv6-true-network.service",
+        "IPv6=true",
+        "--ipv6",
+        Some("--ipv6"),
+    ),
+    (
+        "network-ipv6-false-network.service",
+        "IPv6=false",
+        "--ipv6",
+        Some("--ipv6=false"),
+    ),
+];
 const DNS_ARGUMENTS: &[&str] = &["--dns 9.9.9.9", "--dns 2001:4860:4860::8888"];
 const DNS_PRE_RESET_VALUES: &[&str] = &["1.1.1.1"];
 const DNS_EMPTY_OR_ALTERNATE_FORMS: &[&str] = &[
@@ -364,6 +519,32 @@ struct SecurityLabelFixtures {
     unmask: (PathBuf, Vec<String>),
 }
 
+struct GeneratorFixtures {
+    memory: (PathBuf, Vec<String>),
+    logging: (PathBuf, Vec<String>),
+    network_identity: (PathBuf, Vec<String>),
+    network_driver_options: (PathBuf, Vec<String>),
+    network_labels: (PathBuf, Vec<String>),
+    volume_labels: (PathBuf, Vec<String>),
+    network_booleans: (PathBuf, Vec<String>),
+    network_ipam: (PathBuf, Vec<String>),
+    volume_driver_options: VolumeDriverOptionsFixtures,
+    volume_copy: (PathBuf, Vec<String>),
+}
+
+struct VolumeDriverOptionsFixtures {
+    main: (PathBuf, Vec<String>),
+    without_device: (PathBuf, Vec<String>),
+    unmatched_quote: (PathBuf, Vec<String>),
+    type_without_device: PathBuf,
+}
+
+#[test]
+fn volume_label_quote_expectations_use_unescaped_output_text() {
+    assert_eq!(VOLUME_LABEL_QUOTED_LITERAL_SPACE, NETWORK_LABEL_QUOTED_LITERAL_SPACE);
+    assert_eq!(VOLUME_LABEL_QUOTED_HEX_SPACE, NETWORK_LABEL_QUOTED_HEX_SPACE);
+}
+
 #[test]
 fn generator_matrix_is_exact_complete_and_digest_pinned() -> Result<(), String> {
     let matrix = parse_matrix()?;
@@ -464,8 +645,7 @@ fn supported_generators_match_the_first_conversion_fixture() -> Result<(), Strin
 
     let fixture = fixture_directory()?;
     let expected = expected_fragments(&fixture)?;
-    let memory_fixture = memory_fixture_directory()?;
-    let memory_expected = expected_fragments(&memory_fixture)?;
+    let fixtures = load_generator_fixtures()?;
     let apparmor_fixture = apparmor_fixture_directory()?;
     let apparmor_expected = expected_fragments(&apparmor_fixture)?;
     let no_new_privileges_fixture = no_new_privileges_fixture_directory()?;
@@ -478,8 +658,7 @@ fn supported_generators_match_the_first_conversion_fixture() -> Result<(), Strin
         verify_image_version(&engine, image)?;
         let output = run_generator(&engine, image, &fixture)?;
         verify_generator_output(&image.version, &expected, &output)?;
-        let memory_output = run_generator_raw(&engine, image, &memory_fixture)?;
-        verify_memory_generator_output(&image.version, &memory_expected, &memory_output)?;
+        verify_image_isolated_fixtures(&engine, image, &fixtures)?;
         let apparmor_output = run_generator_raw(&engine, image, &apparmor_fixture)?;
         verify_apparmor_generator_output(&image.version, &apparmor_expected, &apparmor_output)?;
         let no_new_privileges_output = run_generator(&engine, image, &no_new_privileges_fixture)?;
@@ -503,9 +682,7 @@ fn supported_generators_match_the_first_conversion_fixture() -> Result<(), Strin
         verify_source_version(&engine, &matrix.builder_reference, source, &generator)?;
         let output = run_source_generator(&engine, &matrix.builder_reference, source, &generator, &fixture)?;
         verify_generator_output(&source.version, &expected, &output)?;
-        let memory_output =
-            run_source_generator(&engine, &matrix.builder_reference, source, &generator, &memory_fixture)?;
-        verify_memory_generator_output(&source.version, &memory_expected, &memory_output)?;
+        verify_source_isolated_fixtures(&engine, &matrix, source, &generator, &fixtures)?;
         let apparmor_output = run_source_generator(
             &engine,
             &matrix.builder_reference,
@@ -583,6 +760,425 @@ fn memory_fixture_directory() -> Result<PathBuf, String> {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/memory-supported-range");
     path.canonicalize()
         .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn logging_fixture_directory() -> Result<PathBuf, String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/container-logging-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn network_identity_fixture_directory() -> Result<PathBuf, String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("fixtures/generators/container-network-identity-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn network_driver_options_fixture_directory() -> Result<PathBuf, String> {
+    let path =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/network-driver-options-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn network_labels_fixture_directory() -> Result<PathBuf, String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/network-labels-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn network_booleans_fixture_directory() -> Result<PathBuf, String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/network-booleans-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn network_ipam_fixture_directory() -> Result<PathBuf, String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/network-ipam-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn volume_driver_options_fixture_directory() -> Result<PathBuf, String> {
+    let path =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/volume-driver-options-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn volume_labels_fixture_directory() -> Result<PathBuf, String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/volume-labels-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn volume_copy_fixture_directory() -> Result<PathBuf, String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/volume-copy-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn volume_options_without_device_fixture_directory() -> Result<PathBuf, String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("fixtures/generators/volume-options-without-device-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn volume_options_unmatched_quote_fixture_directory() -> Result<PathBuf, String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("fixtures/generators/volume-options-unmatched-quote-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn volume_type_without_device_fixture_directory() -> Result<PathBuf, String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("fixtures/generators/volume-type-without-device-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn load_memory_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = memory_fixture_directory()?;
+    let expected = expected_fragments(&fixture)?;
+    Ok((fixture, expected))
+}
+
+fn load_generator_fixtures() -> Result<GeneratorFixtures, String> {
+    Ok(GeneratorFixtures {
+        memory: load_memory_fixture()?,
+        logging: load_logging_fixture()?,
+        network_identity: load_network_identity_fixture()?,
+        network_driver_options: load_network_driver_options_fixture()?,
+        network_labels: load_network_labels_fixture()?,
+        volume_labels: load_volume_labels_fixture()?,
+        network_booleans: load_network_booleans_fixture()?,
+        network_ipam: load_network_ipam_fixture()?,
+        volume_driver_options: load_volume_driver_options_fixtures()?,
+        volume_copy: load_volume_copy_fixture()?,
+    })
+}
+
+fn load_logging_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = logging_fixture_directory()?;
+    let expected = expected_fragments(&fixture)?;
+    Ok((fixture, expected))
+}
+
+fn load_network_identity_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = network_identity_fixture_directory()?;
+    let expected = expected_fragments(&fixture)?;
+    Ok((fixture, expected))
+}
+
+fn load_network_driver_options_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = network_driver_options_fixture_directory()?;
+    let expected = expected_fragments(&fixture)?;
+    Ok((fixture, expected))
+}
+
+fn load_network_labels_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = network_labels_fixture_directory()?;
+    let expected = expected_fragments(&fixture)?;
+    Ok((fixture, expected))
+}
+
+fn load_volume_labels_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = volume_labels_fixture_directory()?;
+    let expected = expected_fragments(&fixture)?;
+    Ok((fixture, expected))
+}
+
+fn load_volume_copy_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = volume_copy_fixture_directory()?;
+    let expected = expected_fragments(&fixture)?;
+    Ok((fixture, expected))
+}
+
+fn load_network_booleans_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = network_booleans_fixture_directory()?;
+    let expected = expected_fragments(&fixture)?;
+    Ok((fixture, expected))
+}
+
+fn load_network_ipam_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = network_ipam_fixture_directory()?;
+    let expected = expected_fragments(&fixture)?;
+    Ok((fixture, expected))
+}
+
+fn load_volume_driver_options_fixtures() -> Result<VolumeDriverOptionsFixtures, String> {
+    let load = |directory: fn() -> Result<PathBuf, String>| -> Result<(PathBuf, Vec<String>), String> {
+        let fixture = directory()?;
+        let expected = expected_fragments(&fixture)?;
+        Ok((fixture, expected))
+    };
+    Ok(VolumeDriverOptionsFixtures {
+        main: load(volume_driver_options_fixture_directory)?,
+        without_device: load(volume_options_without_device_fixture_directory)?,
+        unmatched_quote: load(volume_options_unmatched_quote_fixture_directory)?,
+        type_without_device: volume_type_without_device_fixture_directory()?,
+    })
+}
+
+fn verify_image_memory(engine: &str, image: &GeneratorImage, fixture: &(PathBuf, Vec<String>)) -> Result<(), String> {
+    let output = run_generator_raw(engine, image, &fixture.0)?;
+    verify_memory_generator_output(&image.version, &fixture.1, &output)
+}
+
+fn verify_image_isolated_fixtures(
+    engine: &str,
+    image: &GeneratorImage,
+    fixtures: &GeneratorFixtures,
+) -> Result<(), String> {
+    verify_image_memory(engine, image, &fixtures.memory)?;
+    verify_image_logging(engine, image, &fixtures.logging)?;
+    verify_image_network_identity(engine, image, &fixtures.network_identity)?;
+    verify_image_network_driver_options(engine, image, &fixtures.network_driver_options)?;
+    verify_image_network_labels(engine, image, &fixtures.network_labels)?;
+    verify_image_volume_labels(engine, image, &fixtures.volume_labels)?;
+    verify_image_network_booleans(engine, image, &fixtures.network_booleans)?;
+    verify_image_network_ipam(engine, image, &fixtures.network_ipam)?;
+    verify_image_volume_driver_options(engine, image, &fixtures.volume_driver_options)?;
+    verify_image_volume_copy(engine, image, &fixtures.volume_copy)
+}
+
+fn verify_source_memory(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_source_generator(engine, &matrix.builder_reference, source, generator, &fixture.0)?;
+    verify_memory_generator_output(&source.version, &fixture.1, &output)
+}
+
+fn verify_source_isolated_fixtures(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixtures: &GeneratorFixtures,
+) -> Result<(), String> {
+    verify_source_memory(engine, matrix, source, generator, &fixtures.memory)?;
+    verify_source_logging(engine, matrix, source, generator, &fixtures.logging)?;
+    verify_source_network_identity(engine, matrix, source, generator, &fixtures.network_identity)?;
+    verify_source_network_driver_options(engine, matrix, source, generator, &fixtures.network_driver_options)?;
+    verify_source_network_labels(engine, matrix, source, generator, &fixtures.network_labels)?;
+    verify_source_volume_labels(engine, matrix, source, generator, &fixtures.volume_labels)?;
+    verify_source_network_booleans(engine, matrix, source, generator, &fixtures.network_booleans)?;
+    verify_source_network_ipam(engine, matrix, source, generator, &fixtures.network_ipam)?;
+    verify_source_volume_driver_options(engine, matrix, source, generator, &fixtures.volume_driver_options)?;
+    verify_source_volume_copy(engine, matrix, source, generator, &fixtures.volume_copy)
+}
+
+fn verify_image_logging(engine: &str, image: &GeneratorImage, fixture: &(PathBuf, Vec<String>)) -> Result<(), String> {
+    let output = run_generator(engine, image, &fixture.0)?;
+    verify_logging_generator_output(&image.version, &fixture.1, &output)
+}
+
+fn verify_source_logging(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_source_generator(engine, &matrix.builder_reference, source, generator, &fixture.0)?;
+    verify_logging_generator_output(&source.version, &fixture.1, &output)
+}
+
+fn verify_image_network_identity(
+    engine: &str,
+    image: &GeneratorImage,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_generator(engine, image, &fixture.0)?;
+    verify_network_identity_generator_output(&image.version, &fixture.1, &output)
+}
+
+fn verify_source_network_identity(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_source_generator(engine, &matrix.builder_reference, source, generator, &fixture.0)?;
+    verify_network_identity_generator_output(&source.version, &fixture.1, &output)
+}
+
+fn verify_image_network_driver_options(
+    engine: &str,
+    image: &GeneratorImage,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_generator(engine, image, &fixture.0)?;
+    verify_network_driver_options_generator_output(&image.version, &fixture.1, &output)
+}
+
+fn verify_source_network_driver_options(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_source_generator(engine, &matrix.builder_reference, source, generator, &fixture.0)?;
+    verify_network_driver_options_generator_output(&source.version, &fixture.1, &output)
+}
+
+fn verify_image_network_labels(
+    engine: &str,
+    image: &GeneratorImage,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_generator(engine, image, &fixture.0)?;
+    verify_network_labels_generator_output(&image.version, &fixture.1, &output)
+}
+
+fn verify_source_network_labels(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_source_generator(engine, &matrix.builder_reference, source, generator, &fixture.0)?;
+    verify_network_labels_generator_output(&source.version, &fixture.1, &output)
+}
+
+fn verify_image_volume_labels(
+    engine: &str,
+    image: &GeneratorImage,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_generator(engine, image, &fixture.0)?;
+    verify_volume_labels_generator_output(&image.version, &fixture.1, &output)
+}
+
+fn verify_source_volume_labels(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_source_generator(engine, &matrix.builder_reference, source, generator, &fixture.0)?;
+    verify_volume_labels_generator_output(&source.version, &fixture.1, &output)
+}
+
+fn verify_image_network_booleans(
+    engine: &str,
+    image: &GeneratorImage,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_generator(engine, image, &fixture.0)?;
+    verify_network_boolean_generator_output(&image.version, &fixture.1, &output)
+}
+
+fn verify_source_network_booleans(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_source_generator(engine, &matrix.builder_reference, source, generator, &fixture.0)?;
+    verify_network_boolean_generator_output(&source.version, &fixture.1, &output)
+}
+
+fn verify_image_network_ipam(
+    engine: &str,
+    image: &GeneratorImage,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_generator(engine, image, &fixture.0)?;
+    verify_network_ipam_generator_output(&image.version, &fixture.1, &output)
+}
+
+fn verify_source_network_ipam(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_source_generator(engine, &matrix.builder_reference, source, generator, &fixture.0)?;
+    verify_network_ipam_generator_output(&source.version, &fixture.1, &output)
+}
+
+fn verify_image_volume_driver_options(
+    engine: &str,
+    image: &GeneratorImage,
+    fixtures: &VolumeDriverOptionsFixtures,
+) -> Result<(), String> {
+    let output = run_generator(engine, image, &fixtures.main.0)?;
+    verify_volume_driver_options_generator_output(&image.version, &fixtures.main.1, &output)?;
+    let output = run_generator_raw(engine, image, &fixtures.without_device.0)?;
+    verify_volume_options_without_device_generator_output(&image.version, &fixtures.without_device.1, &output)?;
+    let output = run_generator_raw(engine, image, &fixtures.unmatched_quote.0)?;
+    verify_volume_options_unmatched_quote_generator_output(&image.version, &fixtures.unmatched_quote.1, &output)?;
+    let output = run_generator_raw(engine, image, &fixtures.type_without_device)?;
+    verify_volume_type_without_device_generator_output(&image.version, &output)
+}
+
+fn verify_source_volume_driver_options(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixtures: &VolumeDriverOptionsFixtures,
+) -> Result<(), String> {
+    let output = run_source_generator(engine, &matrix.builder_reference, source, generator, &fixtures.main.0)?;
+    verify_volume_driver_options_generator_output(&source.version, &fixtures.main.1, &output)?;
+    let output = run_source_generator_raw(
+        engine,
+        &matrix.builder_reference,
+        source,
+        generator,
+        &fixtures.without_device.0,
+    )?;
+    verify_volume_options_without_device_generator_output(&source.version, &fixtures.without_device.1, &output)?;
+    let output = run_source_generator_raw(
+        engine,
+        &matrix.builder_reference,
+        source,
+        generator,
+        &fixtures.unmatched_quote.0,
+    )?;
+    verify_volume_options_unmatched_quote_generator_output(&source.version, &fixtures.unmatched_quote.1, &output)?;
+    let output = run_source_generator_raw(
+        engine,
+        &matrix.builder_reference,
+        source,
+        generator,
+        &fixtures.type_without_device,
+    )?;
+    verify_volume_type_without_device_generator_output(&source.version, &output)
+}
+
+fn verify_image_volume_copy(
+    engine: &str,
+    image: &GeneratorImage,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_generator(engine, image, &fixture.0)?;
+    verify_volume_copy_generator_output(&image.version, &fixture.1, &output)
+}
+
+fn verify_source_volume_copy(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_source_generator(engine, &matrix.builder_reference, source, generator, &fixture.0)?;
+    verify_volume_copy_generator_output(&source.version, &fixture.1, &output)
 }
 
 fn apparmor_fixture_directory() -> Result<PathBuf, String> {
@@ -1118,6 +1714,18 @@ fn run_source_generator(
     generator: &Path,
     fixture: &Path,
 ) -> Result<Output, String> {
+    let output = run_source_generator_raw(engine, builder_reference, source, generator, fixture)?;
+    ensure_success(&source.version, "source generator", &output)?;
+    Ok(output)
+}
+
+fn run_source_generator_raw(
+    engine: &str,
+    builder_reference: &str,
+    _source: &GeneratorSource,
+    generator: &Path,
+    fixture: &Path,
+) -> Result<Output, String> {
     let output_directory = generator
         .parent()
         .ok_or_else(|| format!("generator {} has no parent directory", generator.display()))?;
@@ -1144,7 +1752,6 @@ fn run_source_generator(
         ])
         .output()
         .map_err(|error| format!("cannot execute `{engine}`: {error}"))?;
-    ensure_success(&source.version, "source generator", &output)?;
     Ok(output)
 }
 
@@ -1232,6 +1839,870 @@ fn verify_memory_generator_output(version: &str, expected: &[String], output: &O
         ));
     }
     eprintln!("Podman {version} Memory: last effective assignment emits exactly one --memory 16777216b argument");
+    Ok(())
+}
+
+fn verify_logging_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let generated = String::from_utf8(output.stdout.clone())
+        .map_err(|error| format!("{version} logging generator emitted non-UTF-8 output: {error}"))?;
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} logging generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{}",
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
+    }
+    let generated_unit = generated_unit(version, &generated, "logging.service", output)?;
+    let podman_run = generated_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} generator output for logging.service is missing its Podman run command\nstdout:\n{generated}\nstderr:\n{}",
+                String::from_utf8_lossy(&output.stderr)
+            )
+        })?;
+
+    let driver_count = podman_run.matches(LOG_DRIVER_ARGUMENT).count();
+    let all_driver_count = podman_run.matches("--log-driver").count();
+    let mut option_positions = Vec::with_capacity(LOG_OPT_ARGUMENTS.len());
+    for argument in LOG_OPT_ARGUMENTS {
+        let matches: Vec<_> = podman_run
+            .match_indices(argument)
+            .map(|(position, _)| position)
+            .collect();
+        if matches.len() != 1 {
+            return Err(format!(
+                "Podman {version} generator output for logging.service must contain `{argument}` exactly once; found {}\nstdout:\n{generated}\nstderr:\n{}",
+                matches.len(),
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
+        option_positions.push(matches[0]);
+    }
+    let all_option_count = podman_run.matches("--log-opt").count();
+    let pre_reset_values: Vec<_> = LOGGING_PRE_RESET_VALUES
+        .iter()
+        .copied()
+        .filter(|value| podman_run.contains(value))
+        .collect();
+    let empty_or_alternate_forms: Vec<_> = LOGGING_EMPTY_OR_ALTERNATE_FORMS
+        .iter()
+        .copied()
+        .filter(|form| podman_run.contains(form))
+        .collect();
+    if driver_count != 1
+        || all_driver_count != 1
+        || all_option_count != LOG_OPT_ARGUMENTS.len()
+        || !option_positions.windows(2).all(|pair| pair[0] < pair[1])
+        || !pre_reset_values.is_empty()
+        || !empty_or_alternate_forms.is_empty()
+    {
+        return Err(format!(
+            "Podman {version} generator output for logging.service must contain one log driver and exactly two ordered post-reset log options with no pre-reset, empty, duplicate, or alternate form; found driver={driver_count}, all-drivers={all_driver_count}, all-options={all_option_count}, option-positions={option_positions:?}, pre-reset={pre_reset_values:?}, empty-or-alternate={empty_or_alternate_forms:?}\nstdout:\n{generated}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+    eprintln!("Podman {version} container logging: one --log-driver and two ordered post-reset --log-opt arguments");
+    Ok(())
+}
+
+fn verify_network_identity_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let generated = String::from_utf8(output.stdout.clone())
+        .map_err(|error| format!("{version} network-identity generator emitted non-UTF-8 output: {error}"))?;
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} network-identity generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{}",
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
+    }
+    let generated_unit = generated_unit(version, &generated, "network-identity.service", output)?;
+    let podman_run = generated_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} generator output for network-identity.service is missing its Podman run command\nstdout:\n{generated}\nstderr:\n{}",
+                String::from_utf8_lossy(&output.stderr)
+            )
+        })?;
+
+    let address_counts = [
+        (
+            "IPv4",
+            podman_run.matches(NETWORK_IDENTITY_IP_ARGUMENT).count(),
+            podman_run.matches("--ip ").count() + podman_run.matches("--ip=").count(),
+        ),
+        (
+            "IPv6",
+            podman_run.matches(NETWORK_IDENTITY_IP6_ARGUMENT).count(),
+            podman_run.matches("--ip6 ").count() + podman_run.matches("--ip6=").count(),
+        ),
+    ];
+    let network_count = podman_run.matches(NETWORK_IDENTITY_NETWORK_ARGUMENT).count();
+    let all_network_count = podman_run.matches("--network ").count() + podman_run.matches("--network=").count();
+    let mut alias_positions = Vec::with_capacity(NETWORK_ALIAS_ARGUMENTS.len());
+    for argument in NETWORK_ALIAS_ARGUMENTS {
+        let matches: Vec<_> = podman_run
+            .match_indices(argument)
+            .map(|(position, _)| position)
+            .collect();
+        if matches.len() != 1 {
+            return Err(format!(
+                "Podman {version} generator output for network-identity.service must contain `{argument}` exactly once; found {}\nstdout:\n{generated}\nstderr:\n{}",
+                matches.len(),
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
+        alias_positions.push(matches[0]);
+    }
+    let all_alias_count = podman_run.matches("--network-alias").count();
+    let pre_reset_values: Vec<_> = NETWORK_ALIAS_PRE_RESET_VALUES
+        .iter()
+        .copied()
+        .filter(|value| podman_run.contains(value))
+        .collect();
+    let empty_or_alternate_forms: Vec<_> = NETWORK_IDENTITY_EMPTY_OR_ALTERNATE_FORMS
+        .iter()
+        .copied()
+        .filter(|form| podman_run.contains(form))
+        .collect();
+    if address_counts
+        .iter()
+        .any(|(_, expected, all)| *expected != 1 || *all != 1)
+        || network_count != 1
+        || all_network_count != 1
+        || all_alias_count != NETWORK_ALIAS_ARGUMENTS.len()
+        || !alias_positions.windows(2).all(|pair| pair[0] < pair[1])
+        || !pre_reset_values.is_empty()
+        || !empty_or_alternate_forms.is_empty()
+    {
+        return Err(format!(
+            "Podman {version} generator output for network-identity.service must contain one IP, one IP6, one Network, and exactly two ordered post-reset network aliases without alternate or duplicate forms; found addresses={address_counts:?}, network={network_count}/{all_network_count}, aliases={all_alias_count}, alias-positions={alias_positions:?}, pre-reset={pre_reset_values:?}, empty-or-alternate={empty_or_alternate_forms:?}\nstdout:\n{generated}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+    eprintln!(
+        "Podman {version} container network identity: one --ip, one --ip6, one --network, and two ordered post-reset --network-alias arguments"
+    );
+    Ok(())
+}
+
+fn verify_network_driver_options_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    let generated = String::from_utf8(output.stdout.clone())
+        .map_err(|error| format!("{version} network-driver-options generator emitted non-UTF-8 output: {error}"))?;
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} network-driver-options generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{}",
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
+    }
+    let generated_unit = generated_unit(version, &generated, "network-driver-options-network.service", output)?;
+    let podman_network = generated_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman network create "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} generator output for network-driver-options-network.service is missing its Podman network create command\nstdout:\n{generated}\nstderr:\n{}",
+                String::from_utf8_lossy(&output.stderr)
+            )
+        })?;
+
+    let driver_count = podman_network.matches(NETWORK_OPTIONS_DRIVER_ARGUMENT).count();
+    let all_driver_count = podman_network.matches("--driver ").count() + podman_network.matches("--driver=").count();
+    let mut option_positions = Vec::with_capacity(NETWORK_OPTIONS_ARGUMENTS.len());
+    for argument in NETWORK_OPTIONS_ARGUMENTS {
+        let matches: Vec<_> = podman_network
+            .match_indices(argument)
+            .map(|(position, _)| position)
+            .collect();
+        if matches.len() != 1 {
+            return Err(format!(
+                "Podman {version} generator output for network-driver-options-network.service must contain `{argument}` exactly once; found {}\nstdout:\n{generated}\nstderr:\n{}",
+                matches.len(),
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
+        option_positions.push(matches[0]);
+    }
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    let bare_count = podman_network.matches(NETWORK_OPTIONS_BARE_ARGUMENT).count();
+    let bare_expectation = if parsed == PodmanVersion::new(5, 4, 0) {
+        Some(0)
+    } else if parsed == PodmanVersion::new(6, 0, 2) {
+        Some(1)
+    } else {
+        None
+    };
+    let pre_reset_values: Vec<_> = NETWORK_OPTIONS_PRE_RESET_VALUES
+        .iter()
+        .copied()
+        .filter(|value| podman_network.contains(value))
+        .collect();
+    let alternate_forms: Vec<_> = NETWORK_OPTIONS_ALTERNATE_FORMS
+        .iter()
+        .copied()
+        .filter(|form| podman_network.contains(form))
+        .collect();
+    let expected_option_count = bare_expectation.map(|bare| NETWORK_OPTIONS_ARGUMENTS.len() + bare);
+    let all_option_count = podman_network.matches("--opt ").count() + podman_network.matches("--opt=").count();
+    if driver_count != 1
+        || all_driver_count != 1
+        || !option_positions.windows(2).all(|pair| pair[0] < pair[1])
+        || bare_expectation.is_some_and(|expected| bare_count != expected)
+        || expected_option_count.is_some_and(|expected| all_option_count != expected)
+        || !((NETWORK_OPTIONS_ARGUMENTS.len())..=(NETWORK_OPTIONS_ARGUMENTS.len() + 1)).contains(&all_option_count)
+        || !pre_reset_values.is_empty()
+        || !alternate_forms.is_empty()
+    {
+        return Err(format!(
+            "Podman {version} generator output for network-driver-options-network.service must contain one --driver bridge, final reset-aware key-sorted --opt alpha=final then --opt zeta=last, and the version-specific bare-token behavior; found driver={driver_count}/{all_driver_count}, option-positions={option_positions:?}, bare={bare_count}/{bare_expectation:?}, all-options={all_option_count}/{expected_option_count:?}, pre-reset={pre_reset_values:?}, alternate={alternate_forms:?}\nstdout:\n{generated}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+    eprintln!(
+        "Podman {version} network driver/options: one --driver, reset-aware duplicate-collapsed key-sorted --opt arguments, bare token expectation {bare_expectation:?}"
+    );
+    Ok(())
+}
+
+fn verify_volume_driver_options_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    ensure_success(version, "volume driver/options generator", output)?;
+    let generated = String::from_utf8(output.stdout.clone())
+        .map_err(|error| format!("{version} volume driver/options generator emitted non-UTF-8 output: {error}"))?;
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} volume driver/options generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{}",
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
+    }
+    let command = |unit| -> Result<&str, String> {
+        generated_unit(version, &generated, unit, output)?.lines().find(|line| {
+            line.starts_with("ExecStart=/usr/bin/podman volume create ")
+        }).ok_or_else(|| format!(
+            "Podman {version} generator output for {unit} is missing its Podman volume create command\nstdout:\n{generated}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stderr)
+        ))
+    };
+    let primary = command("driver-options-volume.service")?;
+    let option_count = primary.matches("--opt ").count() + primary.matches("--opt=").count();
+    if primary.matches("--driver local").count() != 1
+        || primary.matches("--opt device=tmpfs").count() != 1
+        || primary.matches("--opt type=bind").count() != 1
+        || primary.matches("--opt o=final-option").count() != 1
+        || option_count != 3
+        || primary.contains("pre-option")
+        || primary.contains("--opt final-option")
+    {
+        return Err(format!(
+            "Podman {version} volume driver/options output must use the final singleton Driver, Device, Type, and one raw o=Options argument without general option expansion; found command `{primary}`"
+        ));
+    }
+    let bare = command("options-bare-volume.service")?;
+    if bare.matches("--opt o=bare-option").count() != 1 || bare.contains("--opt bare-option") {
+        return Err(format!(
+            "Podman {version} volume bare Options output must use exactly one o= argument; found command `{bare}`"
+        ));
+    }
+    let matched = command("options-matched-quote-volume.service")?;
+    if !matched.contains("matched")
+        || matched.matches("--opt ").count() + matched.matches("--opt=").count() != 2
+        || matched.contains("--opt matched")
+    {
+        return Err(format!(
+            "Podman {version} volume matched-quote Options output must retain one option argument instead of general expansion; found command `{matched}`"
+        ));
+    }
+    let empty = command("options-empty-volume.service")?;
+    let empty_option_count = empty.matches("--opt ").count() + empty.matches("--opt=").count();
+    if empty_option_count != 1 || empty.contains("o=pre-option") || empty.contains("--opt o=") {
+        return Err(format!(
+            "Podman {version} volume final empty Options output must omit the raw o= option; found command `{empty}`"
+        ));
+    }
+    verify_volume_device_type_forms(version, &generated, output)
+}
+
+fn verify_volume_device_type_forms(version: &str, generated: &str, output: &Output) -> Result<(), String> {
+    let command = |unit| -> Result<&str, String> {
+        generated_unit(version, generated, unit, output)?.lines().find(|line| {
+            line.starts_with("ExecStart=/usr/bin/podman volume create ")
+        }).ok_or_else(|| format!(
+            "Podman {version} generator output for {unit} is missing its Podman volume create command\nstdout:\n{generated}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stderr)
+        ))
+    };
+    for (unit, absent) in [
+        ("device-final-blank-volume.service", "device="),
+        ("type-final-blank-volume.service", "type="),
+    ] {
+        let command = command(unit)?;
+        if command.contains(absent) {
+            return Err(format!(
+                "Podman {version} {unit} output must suppress the final blank singleton {absent:?}; found command `{command}`"
+            ));
+        }
+    }
+    for unit in [
+        "device-matched-quote-volume.service",
+        "device-specifier-volume.service",
+        "device-continuation-volume.service",
+    ] {
+        let command = command(unit)?;
+        if command.matches("--opt device=").count() != 1 || command.matches("--opt type=bind").count() != 1 {
+            return Err(format!(
+                "Podman {version} {unit} output must retain exactly one Device and one Type option; found command `{command}`"
+            ));
+        }
+    }
+    let unmatched = command("device-unmatched-quote-volume.service")?;
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    let unmatched_expected = if parsed < PodmanVersion::new(5, 8, 2) {
+        "--opt device=tmpfs"
+    } else {
+        "--opt \"device=\\\"tmpfs\""
+    };
+    if unmatched.matches(unmatched_expected).count() != 1 || unmatched.matches("--opt type=bind").count() != 1 {
+        return Err(format!(
+            "Podman {version} unmatched Device quote must use the {unmatched_expected:?} presentation family with one Type option; found command `{unmatched}`"
+        ));
+    }
+    let bind_unit = generated_unit(version, generated, "bind-requires-mounts-volume.service", output)?;
+    let requires_mounts: Vec<_> = bind_unit
+        .lines()
+        .filter(|line| *line != "RequiresMountsFor=%t/containers")
+        .filter(|line| line.starts_with("RequiresMountsFor="))
+        .collect();
+    let expected_requires_mounts = if parsed <= PodmanVersion::new(5, 5, 2) {
+        None
+    } else if parsed <= PodmanVersion::new(5, 7, 1) {
+        Some("RequiresMountsFor=/tmp/quadlet lens")
+    } else {
+        Some(r#"RequiresMountsFor="/tmp/quadlet\x20lens""#)
+    };
+    match expected_requires_mounts {
+        None if requires_mounts.is_empty() => {}
+        Some(expected) if requires_mounts == [expected] => {}
+        _ => {
+            return Err(format!(
+                "Podman {version} Type=bind RequiresMountsFor must use the documented presentation band {expected_requires_mounts:?}; found {requires_mounts:?}\nunit:\n{bind_unit}"
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn verify_volume_copy_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    ensure_success(version, "volume Copy generator", output)?;
+    let generated = String::from_utf8(output.stdout.clone())
+        .map_err(|error| format!("{version} volume Copy generator emitted non-UTF-8 output: {error}"))?;
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} volume Copy generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{}",
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
+    }
+    let command = |unit| -> Result<&str, String> {
+        generated_unit(version, &generated, unit, output)?
+            .lines()
+            .find(|line| line.starts_with("ExecStart=/usr/bin/podman volume create "))
+            .ok_or_else(|| format!(
+                "Podman {version} generator output for {unit} is missing its Podman volume create command\nstdout:\n{generated}\nstderr:\n{}",
+                String::from_utf8_lossy(&output.stderr)
+            ))
+    };
+    let count = |command: &str, value: &str| {
+        command.matches(&format!("--opt {value}")).count() + command.matches(&format!("--opt={value}")).count()
+    };
+    let assert_form = |unit, expected_form: Option<&str>| -> Result<(), String> {
+        let command = command(unit)?;
+        let copy = count(command, "copy");
+        let nocopy = count(command, "nocopy");
+        let valid = match expected_form {
+            Some("copy") => copy == 1 && nocopy == 0,
+            Some("nocopy") => copy == 0 && nocopy == 1,
+            None => copy == 0 && nocopy == 0,
+            Some(_) => false,
+        };
+        if valid {
+            Ok(())
+        } else {
+            Err(format!(
+                "Podman {version} {unit} must emit {expected_form:?} as its only Copy form; found copy={copy}, nocopy={nocopy}; command `{command}`"
+            ))
+        }
+    };
+    assert_form("copy-omitted-volume.service", None)?;
+    for unit in [
+        "copy-true-volume.service",
+        "copy-yes-volume.service",
+        "copy-on-volume.service",
+        "copy-one-volume.service",
+        "copy-true-upper-volume.service",
+        "copy-yes-upper-volume.service",
+        "copy-on-upper-volume.service",
+        "copy-true-mixed-volume.service",
+        "copy-last-wins-true-volume.service",
+        "copy-matched-quote-volume.service",
+        "copy-continuation-volume.service",
+    ] {
+        assert_form(unit, Some("copy"))?;
+    }
+    for unit in [
+        "copy-false-volume.service",
+        "copy-false-upper-volume.service",
+        "copy-blank-volume.service",
+        "copy-invalid-volume.service",
+        "copy-specifier-volume.service",
+        "copy-last-wins-false-volume.service",
+    ] {
+        assert_form(unit, Some("nocopy"))?;
+    }
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    assert_form(
+        "copy-unmatched-quote-volume.service",
+        Some(if parsed < PodmanVersion::new(5, 8, 2) {
+            "copy"
+        } else {
+            "nocopy"
+        }),
+    )?;
+    assert_form("copy-image-false-volume.service", None)?;
+    eprintln!("Podman {version} Volume Copy: 20 isolated physical forms retain the recorded boolean parser boundary");
+    Ok(())
+}
+
+fn verify_volume_type_without_device_generator_output(version: &str, output: &Output) -> Result<(), String> {
+    if output.status.success() {
+        return Err(format!(
+            "Podman {version} must reject Volume Type without Device\nstdout:\n{}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+    Ok(())
+}
+
+fn verify_volume_options_without_device_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    if parsed < PodmanVersion::new(6, 0, 0) {
+        if output.status.success() {
+            return Err(format!(
+                "Podman {version} must reject Volume Options without Device before 6.0.0\nstdout:\n{}\nstderr:\n{}",
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
+        return Ok(());
+    }
+    ensure_success(version, "volume Options-without-Device generator", output)?;
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| {
+        format!("{version} volume Options-without-Device generator emitted non-UTF-8 output: {error}")
+    })?;
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} Volume Options-without-Device output is missing `{fragment}`"
+            ));
+        }
+    }
+    let unit = generated_unit(version, &generated, "options-without-device-volume.service", output)?;
+    let command = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman volume create "))
+        .ok_or_else(|| format!("Podman {version} Volume Options-without-Device output has no volume create command"))?;
+    if command.matches("--opt o=without-device").count() != 1
+        || command.matches("--opt ").count() + command.matches("--opt=").count() != 1
+        || command.contains("--opt without-device")
+    {
+        return Err(format!(
+            "Podman {version} Volume Options-without-Device output must emit one raw o= argument; found command `{command}`"
+        ));
+    }
+    Ok(())
+}
+
+fn verify_volume_options_unmatched_quote_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    ensure_success(version, "volume unmatched-quote Options generator", output)?;
+    let generated = String::from_utf8(output.stdout.clone())
+        .map_err(|error| format!("{version} volume unmatched-quote generator emitted non-UTF-8 output: {error}"))?;
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} unmatched-quote Volume Options output is missing `{fragment}`"
+            ));
+        }
+    }
+    let unit = generated_unit(version, &generated, "options-unmatched-quote-volume.service", output)?;
+    let command = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman volume create "))
+        .ok_or_else(|| {
+            format!("Podman {version} unmatched-quote Volume Options output has no volume create command")
+        })?;
+    let expected = if parsed < PodmanVersion::new(5, 8, 2) {
+        "--opt o=unmatched-option"
+    } else {
+        "--opt \"o=\\\"unmatched-option\""
+    };
+    if command.matches(expected).count() != 1 {
+        return Err(format!(
+            "Podman {version} unmatched Volume Options quote must use the {expected:?} presentation family; found command `{command}`"
+        ));
+    }
+    Ok(())
+}
+
+fn verify_network_labels_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let generated = String::from_utf8(output.stdout.clone())
+        .map_err(|error| format!("{version} network-labels generator emitted non-UTF-8 output: {error}"))?;
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} network-labels generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{}",
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
+    }
+    let generated_unit = generated_unit(version, &generated, "network-labels-network.service", output)?;
+    let podman_network = generated_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman network create "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} generator output for network-labels-network.service is missing its Podman network create command\nstdout:\n{generated}\nstderr:\n{}",
+                String::from_utf8_lossy(&output.stderr)
+            )
+        })?;
+
+    let mut positions = Vec::with_capacity(NETWORK_LABEL_ARGUMENTS.len());
+    for argument in NETWORK_LABEL_ARGUMENTS {
+        let matches: Vec<_> = podman_network
+            .match_indices(argument)
+            .map(|(position, _)| position)
+            .collect();
+        if matches.len() != 1 {
+            return Err(format!(
+                "Podman {version} generator output for network-labels-network.service must contain `{argument}` exactly once; found {}\nstdout:\n{generated}\nstderr:\n{}",
+                matches.len(),
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
+        positions.push(matches[0]);
+    }
+
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    let bare_expected = usize::from(parsed > PodmanVersion::new(5, 5, 2));
+    let bare_matches: Vec<_> = podman_network
+        .match_indices(NETWORK_LABEL_BARE_ARGUMENT)
+        .map(|(position, _)| position)
+        .collect();
+    let literal_quote_count = podman_network.matches(NETWORK_LABEL_QUOTED_LITERAL_SPACE).count();
+    let hex_quote_count = podman_network.matches(NETWORK_LABEL_QUOTED_HEX_SPACE).count();
+    let (quoted_count, unexpected_quote_count, quoted_name) = if parsed.major() == 5 && parsed.minor() == 4 {
+        (literal_quote_count, hex_quote_count, "literal-space")
+    } else {
+        (hex_quote_count, literal_quote_count, "hex-space")
+    };
+    let quoted_position = if parsed.major() == 5 && parsed.minor() == 4 {
+        podman_network.find(NETWORK_LABEL_QUOTED_LITERAL_SPACE)
+    } else {
+        podman_network.find(NETWORK_LABEL_QUOTED_HEX_SPACE)
+    };
+    let mut sorted_positions = vec![positions[0]];
+    if let Some(position) = bare_matches.first() {
+        sorted_positions.push(*position);
+    }
+    sorted_positions.extend_from_slice(&positions[1..3]);
+    if let Some(position) = quoted_position {
+        sorted_positions.push(position);
+    }
+    sorted_positions.push(positions[3]);
+    let pre_reset_values: Vec<_> = NETWORK_LABEL_PRE_RESET_VALUES
+        .iter()
+        .copied()
+        .filter(|value| podman_network.contains(value))
+        .collect();
+    let alternate_forms: Vec<_> = NETWORK_LABEL_ALTERNATE_FORMS
+        .iter()
+        .copied()
+        .filter(|form| podman_network.contains(form))
+        .collect();
+    let all_label_count = podman_network.matches("--label ").count() + podman_network.matches("--label=").count();
+    let expected_label_count = NETWORK_LABEL_ARGUMENTS.len() + 1 + bare_expected;
+    if bare_matches.len() != bare_expected
+        || quoted_count != 1
+        || unexpected_quote_count != 0
+        || sorted_positions.len() != expected_label_count
+        || !sorted_positions.windows(2).all(|pair| pair[0] < pair[1])
+        || all_label_count != expected_label_count
+        || !pre_reset_values.is_empty()
+        || !alternate_forms.is_empty()
+    {
+        return Err(format!(
+            "Podman {version} generator output for network-labels-network.service must contain final reset-aware duplicate-collapsed key-sorted labels, explicit empty and embedded-equals values, one {quoted_name} quoted whitespace argument, and {bare_expected} bare-token arguments; found bare={}, quoted={quoted_count}/{unexpected_quote_count}, positions={sorted_positions:?}, labels={all_label_count}/{expected_label_count}, pre-reset={pre_reset_values:?}, alternate={alternate_forms:?}\nstdout:\n{generated}\nstderr:\n{}",
+            bare_matches.len(),
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+    eprintln!(
+        "Podman {version} network labels: reset-aware duplicate-collapsed key-sorted labels, explicit empty and embedded-equals values, {quoted_name} quoted whitespace, bare token {bare_expected}"
+    );
+    Ok(())
+}
+
+fn verify_volume_labels_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    ensure_success(version, "volume-labels generator", output)?;
+    let generated = String::from_utf8(output.stdout.clone())
+        .map_err(|error| format!("{version} volume-labels generator emitted non-UTF-8 output: {error}"))?;
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} volume-labels generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{}",
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
+    }
+    let generated_unit = generated_unit(version, &generated, "volume-labels-volume.service", output)?;
+    let podman_volume = generated_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman volume create "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} generator output for volume-labels-volume.service is missing its Podman volume create command\nstdout:\n{generated}\nstderr:\n{}",
+                String::from_utf8_lossy(&output.stderr)
+            )
+        })?;
+
+    let mut positions = Vec::with_capacity(VOLUME_LABEL_ARGUMENTS.len());
+    for argument in VOLUME_LABEL_ARGUMENTS {
+        let matches: Vec<_> = podman_volume
+            .match_indices(argument)
+            .map(|(position, _)| position)
+            .collect();
+        if matches.len() != 1 {
+            return Err(format!(
+                "Podman {version} generator output for volume-labels-volume.service must contain `{argument}` exactly once; found {}\nstdout:\n{generated}\nstderr:\n{}",
+                matches.len(),
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
+        positions.push(matches[0]);
+    }
+
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    let bare_expected = usize::from(parsed > PodmanVersion::new(5, 5, 2));
+    let bare_matches: Vec<_> = podman_volume
+        .match_indices(VOLUME_LABEL_BARE_ARGUMENT)
+        .map(|(position, _)| position)
+        .collect();
+    let literal_quote_count = podman_volume.matches(VOLUME_LABEL_QUOTED_LITERAL_SPACE).count();
+    let hex_quote_count = podman_volume.matches(VOLUME_LABEL_QUOTED_HEX_SPACE).count();
+    let (quoted_count, unexpected_quote_count, quoted_name) = if parsed.major() == 5 && parsed.minor() == 4 {
+        (literal_quote_count, hex_quote_count, "literal-space")
+    } else {
+        (hex_quote_count, literal_quote_count, "hex-space")
+    };
+    let quoted_position = if parsed.major() == 5 && parsed.minor() == 4 {
+        podman_volume.find(VOLUME_LABEL_QUOTED_LITERAL_SPACE)
+    } else {
+        podman_volume.find(VOLUME_LABEL_QUOTED_HEX_SPACE)
+    };
+    let mut sorted_positions = vec![positions[0]];
+    if let Some(position) = bare_matches.first() {
+        sorted_positions.push(*position);
+    }
+    sorted_positions.extend_from_slice(&positions[1..3]);
+    if let Some(position) = quoted_position {
+        sorted_positions.push(position);
+    }
+    sorted_positions.push(positions[3]);
+    let pre_reset_values: Vec<_> = VOLUME_LABEL_PRE_RESET_VALUES
+        .iter()
+        .copied()
+        .filter(|value| podman_volume.contains(value))
+        .collect();
+    let alternate_forms: Vec<_> = VOLUME_LABEL_ALTERNATE_FORMS
+        .iter()
+        .copied()
+        .filter(|form| podman_volume.contains(form))
+        .collect();
+    let all_label_count = podman_volume.matches("--label ").count() + podman_volume.matches("--label=").count();
+    let expected_label_count = VOLUME_LABEL_ARGUMENTS.len() + 1 + bare_expected;
+    if bare_matches.len() != bare_expected
+        || quoted_count != 1
+        || unexpected_quote_count != 0
+        || sorted_positions.len() != expected_label_count
+        || !sorted_positions.windows(2).all(|pair| pair[0] < pair[1])
+        || all_label_count != expected_label_count
+        || !pre_reset_values.is_empty()
+        || !alternate_forms.is_empty()
+    {
+        return Err(format!(
+            "Podman {version} generator output for volume-labels-volume.service must contain final reset-aware duplicate-collapsed key-sorted labels, explicit empty and embedded-equals values, one {quoted_name} quoted whitespace argument, and {bare_expected} bare-token arguments; found bare={}, quoted={quoted_count}/{unexpected_quote_count}, positions={sorted_positions:?}, labels={all_label_count}/{expected_label_count}, pre-reset={pre_reset_values:?}, alternate={alternate_forms:?}\nstdout:\n{generated}\nstderr:\n{}",
+            bare_matches.len(),
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+    eprintln!(
+        "Podman {version} volume labels: reset-aware duplicate-collapsed key-sorted labels, explicit empty and embedded-equals values, {quoted_name} quoted whitespace, bare token {bare_expected}"
+    );
+    Ok(())
+}
+
+fn verify_network_ipam_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    ensure_success(version, "network-IPAM generator", output)?;
+    let generated = String::from_utf8(output.stdout.clone())
+        .map_err(|error| format!("{version} network-IPAM generator emitted non-UTF-8 output: {error}"))?;
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} network-IPAM generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{}",
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
+    }
+    let columns_unit = generated_unit(version, &generated, "ipam-columns-network.service", output)?;
+    let columns_command = columns_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman network create "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} generator output for ipam-columns-network.service is missing its Podman network create command\nstdout:\n{generated}\nstderr:\n{}",
+                String::from_utf8_lossy(&output.stderr)
+            )
+        })?;
+    let driver_count = columns_command.matches(NETWORK_IPAM_DRIVER_ARGUMENT).count();
+    let all_driver_count =
+        columns_command.matches("--ipam-driver ").count() + columns_command.matches("--ipam-driver=").count();
+    let mut positions = Vec::with_capacity(NETWORK_IPAM_COLUMN_ARGUMENTS.len());
+    for argument in NETWORK_IPAM_COLUMN_ARGUMENTS {
+        let matches: Vec<_> = columns_command
+            .match_indices(argument)
+            .map(|(position, _)| position)
+            .collect();
+        if matches.len() != 1 {
+            return Err(format!(
+                "Podman {version} generator output for ipam-columns-network.service must contain `{argument}` exactly once; found {}\nstdout:\n{generated}\nstderr:\n{}",
+                matches.len(),
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
+        positions.push(matches[0]);
+    }
+    let subnet_count = columns_command.matches("--subnet ").count() + columns_command.matches("--subnet=").count();
+    let gateway_count = columns_command.matches("--gateway ").count() + columns_command.matches("--gateway=").count();
+    let range_count = columns_command.matches("--ip-range ").count() + columns_command.matches("--ip-range=").count();
+    let pre_reset_values: Vec<_> = NETWORK_IPAM_PRE_RESET_VALUES
+        .iter()
+        .copied()
+        .filter(|value| columns_command.contains(value))
+        .collect();
+    let empty_or_alternate_forms: Vec<_> = NETWORK_IPAM_EMPTY_OR_ALTERNATE_FORMS
+        .iter()
+        .copied()
+        .filter(|form| columns_command.contains(form))
+        .collect();
+    if driver_count != 1
+        || all_driver_count != 1
+        || subnet_count != 2
+        || gateway_count != 2
+        || range_count != 2
+        || !positions.windows(2).all(|pair| pair[0] < pair[1])
+        || !pre_reset_values.is_empty()
+        || !empty_or_alternate_forms.is_empty()
+    {
+        return Err(format!(
+            "Podman {version} generator output for ipam-columns-network.service must contain one explicit IPAM driver and exactly two ordered post-reset subnet/gateway/ip-range groups; found driver={driver_count}/{all_driver_count}, subnet={subnet_count}, gateway={gateway_count}, range={range_count}, positions={positions:?}, pre-reset={pre_reset_values:?}, alternate={empty_or_alternate_forms:?}\nstdout:\n{generated}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+
+    let blank_unit = generated_unit(version, &generated, "ipam-driver-blank-network.service", output)?;
+    let blank_command = blank_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman network create "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} generator output for ipam-driver-blank-network.service is missing its Podman network create command\nstdout:\n{generated}\nstderr:\n{}",
+                String::from_utf8_lossy(&output.stderr)
+            )
+        })?;
+    let blank_driver_count =
+        blank_command.matches("--ipam-driver ").count() + blank_command.matches("--ipam-driver=").count();
+    if blank_driver_count != 0 {
+        return Err(format!(
+            "Podman {version} generator output for a blank IPAMDriver must omit --ipam-driver; found {blank_driver_count}\nstdout:\n{generated}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+    eprintln!(
+        "Podman {version} network IPAM: one explicit driver, two ordered reset-aware subnet/gateway/ip-range groups, and blank driver omission"
+    );
+    Ok(())
+}
+
+fn verify_network_boolean_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let generated = String::from_utf8(output.stdout.clone())
+        .map_err(|error| format!("{version} network-booleans generator emitted non-UTF-8 output: {error}"))?;
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} network-booleans generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{}",
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
+    }
+    for &(unit_name, case, flag, expected_form) in NETWORK_BOOLEAN_CASES {
+        let generated_unit = generated_unit(version, &generated, unit_name, output)?;
+        let podman_network = generated_unit
+            .lines()
+            .find(|line| line.starts_with("ExecStart=/usr/bin/podman network create "))
+            .ok_or_else(|| {
+                format!(
+                    "Podman {version} generator output for {unit_name} is missing its Podman network create command\nstdout:\n{generated}\nstderr:\n{}",
+                    String::from_utf8_lossy(&output.stderr)
+                )
+            })?;
+        let intended_count = expected_form.map_or(0, |form| {
+            podman_network.split_whitespace().filter(|token| *token == form).count()
+        });
+        let all_flag_forms = podman_network.matches(flag).count();
+        let expected_count = usize::from(expected_form.is_some());
+        if intended_count != expected_count || all_flag_forms != expected_count {
+            return Err(format!(
+                "Podman {version} generator output for {unit_name} ({case}) must contain exactly {expected_count} intended {expected_form:?} form and no alternate `{flag}` form; found intended={intended_count}, all={all_flag_forms}\nstdout:\n{generated}\nstderr:\n{}",
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
+    }
+    eprintln!("Podman {version} network booleans: isolated omission, true, and false forms for Internal and IPv6");
     Ok(())
 }
 

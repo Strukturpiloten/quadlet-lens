@@ -109,6 +109,46 @@ or one lowercase `b`, `k`, `m`, or `g`, retaining leading zeros and arbitrary pr
 parsing. It does not accept zero or make runtime, cgroup, page-size, swap, host-memory, rootless, or
 cross-format claims. `PodKey` intentionally has no `Memory` variant.
 
+`ContainerKey::LogDriver` is an opaque singleton. `ContainerKey::LogOpt` is opaque and
+repeatable, including empty native reset assignments. Their physical values, duplicates, order,
+quotes, and systemd specifiers remain exact; the builder does not split or parse options, validate
+drivers/options, inject defaults, or claim runtime or cross-format behavior. Other native key
+enums intentionally expose no logging variants in this slice.
+
+`ContainerKey::IP` and `ContainerKey::IP6` are opaque singletons.
+`ContainerKey::NetworkAlias` is opaque and repeatable, including empty native reset assignments.
+The builder retains exact physical-line-safe values, duplicates, order, quotes, and specifiers;
+it does not parse or validate addresses, aliases, IPAM, DNS, networks, runtime behavior, or
+cross-format equivalence.
+
+`NetworkKey::Driver` is an opaque singleton and `NetworkKey::Options` is opaque and repeatable,
+including empty native reset assignments. The builder retains exact physical-line-safe values,
+duplicates, order, quotes, and specifiers; it does not parse option keys or values, validate
+driver availability or provider semantics, or apply generator reset, duplicate-collapse, sorting,
+or version-specific bare-token behavior.
+
+`NetworkKey::Label` is opaque and repeatable, including empty native reset assignments. The
+builder retains exact physical-line-safe values, duplicates, order, bare values, embedded equals
+signs, quotes, and specifiers; it does not tokenize label text, apply resets, collapse duplicate
+keys, sort values, validate OCI labels, or adopt version-specific bare-token behavior.
+
+`VolumeKey::Label` is likewise opaque and repeatable, including empty native reset assignments.
+The builder retains exact physical-line-safe values, duplicates, order, bare values, embedded
+equals signs, quotes, and specifiers; it does not tokenize label text, apply resets, collapse
+duplicate keys, sort values, validate OCI labels, or adopt version-specific bare-token behavior.
+
+`VolumeKey::Device` and `VolumeKey::Type` are separate opaque singletons. The builder retains
+their exact physical-line-safe text, including blanks, quotes, and specifiers, and rejects a
+second generated value. It does not apply Podman's last-value lookup, quote handling, source-path
+or filesystem validation, Type/Device prerequisites, generated dependency rules, mount behavior,
+or cross-format policy.
+
+`NetworkKey::IPAMDriver` is an opaque singleton. `NetworkKey::Subnet`, `Gateway`, and `IPRange`
+are opaque repeatable keys, including empty native reset assignments. The builder retains exact
+physical-line-safe values, duplicates, order, quotes, and specifiers; it does not parse addresses
+or ranges, infer a subnet, apply resets, zip target IPAM columns, validate IPAM drivers/defaults,
+or make network/runtime/cross-format claims.
+
 `DNS`, `DNSOption`, `DNSSearch`, `ExposeHostPort`, `Annotation`, `Mask`, and
 `Unmask` are repeatable `ContainerKey` variants. The builder preserves each physical-line-safe
 `EntryValue` in insertion order, including duplicates and reset assignments.
@@ -242,3 +282,10 @@ assert_eq!(
 # Ok(())
 # }
 ```
+
+## Volume `Copy`
+
+`VolumeKey::Copy` is an opaque singleton. The builder renders exact physical-line-safe text and
+rejects a second generated value; it does not parse booleans or add an `Image` field. The recorded
+generator facts are dry-run command text only, not copy-up, volume creation, image pulls, runtime,
+rootless, plugin, Compose, or BoxFerry behavior.

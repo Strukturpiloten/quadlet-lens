@@ -1,0 +1,18 @@
+schema = 1
+id = "container-logging-supported-range"
+suite = "generators"
+description = "Exercises isolated singleton LogDriver and repeatable resettable LogOpt command construction across the complete supported Podman generator range."
+secrets_reviewed = true
+files = ["expected-fragments.txt", "logging.container"]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "The harness mounts this directory read-only with label separation disabled and invokes only exact Podman Quadlet generators in dry-run mode. It does not start generated services or container workloads, inspect host logging configuration, or read logs."
+
+[expectations]
+summary = "Every recorded Podman release emits exactly one `--log-driver k8s-file` argument and exactly two ordered final post-reset `--log-opt tag=quadlet-lens-final` and `--log-opt path=/tmp/quadlet-lens-final.log` arguments, with no pre-reset, empty, equals, quoted, alternate, or duplicate logging form."

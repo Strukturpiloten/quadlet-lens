@@ -1,0 +1,5 @@
+[Volume]
+VolumeName=quadlet-lens-copy-image-false
+Driver=image
+Image=example.invalid/quadlet-lens-copy:literal
+Copy=false

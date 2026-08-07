@@ -50,6 +50,7 @@ source text
 - [Real-world Quadlet corpus](docs/real-world-quadlet-corpus.md)
 - [Development environment](docs/development-environment.md)
 - [API stability policy](docs/api-stability.md)
+- [0.1.12 release notes](docs/releases/0.1.12.md)
 - [0.1.11 release notes](docs/releases/0.1.11.md)
 - [0.1.10 release notes](docs/releases/0.1.10.md)
 - [Release policy](docs/releasing.md)

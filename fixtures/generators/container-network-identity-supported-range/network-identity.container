@@ -1,0 +1,10 @@
+[Container]
+Image=registry.example.invalid/network-identity-fixture:1
+Network=bridge
+IP=192.0.2.40
+IP6=2001:db8::40
+NetworkAlias=pre-one
+NetworkAlias=pre-two
+NetworkAlias=
+NetworkAlias=final-one
+NetworkAlias=final-two

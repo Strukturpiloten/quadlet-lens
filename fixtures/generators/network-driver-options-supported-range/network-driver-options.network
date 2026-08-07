@@ -1,0 +1,10 @@
+[Network]
+NetworkName=network-driver-options
+Driver=bridge
+Options=pre-one=discard
+Options=pre-two=discard
+Options=
+Options=zeta=last
+Options=alpha=first
+Options=alpha=final
+Options=bare-token

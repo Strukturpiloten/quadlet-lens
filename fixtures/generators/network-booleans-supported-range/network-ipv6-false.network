@@ -1,0 +1,3 @@
+[Network]
+NetworkName=network-ipv6-false
+IPv6=false

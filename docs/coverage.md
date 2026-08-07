@@ -3,7 +3,7 @@
 This document distinguishes loss-aware parsing from typed construction and version-evidenced
 generation. It was audited against the current official
 [Quadlet manual](https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html) and the
-supported Podman 5.4 floor on 2026-08-06. The exact current untyped-key inventory and promotion
+supported Podman 5.4 floor on 2026-08-07. The exact current untyped-key inventory and promotion
 order live in the [roadmap](roadmap.md).
 
 ## Coverage layers
@@ -38,14 +38,14 @@ one of the four typed unit types.
 
 | Section | Typed keys |
 | --- | --- |
-| `[Container]` | 56 keys; see the [coverage ledger](roadmap.md#specification-coverage-ledger) |
+| `[Container]` | 61 keys; see the [coverage ledger](roadmap.md#specification-coverage-ledger) |
 | `[Pod]` | `AddHost`, `PodName`, `PublishPort`, `Network`, `Volume`, `UserNS`, `ShmSize` |
-| `[Network]` | `NetworkName` |
-| `[Volume]` | `VolumeName` |
+| `[Network]` | `NetworkName`, `Driver`, `Options`, `Label`, `Internal`, `IPv6`, `IPAMDriver`, `Subnet`, `Gateway`, `IPRange` |
+| `[Volume]` | `VolumeName`, `Driver`, `Options`, `Label`, `Device`, `Type`, `Copy` |
 | `[Unit]`, `[Service]`, `[Install]` | Open-ended generic systemd directives with source/order preservation; typed generation and explicit capability evidence exist for `[Unit]` `Requires=`, `Wants=`, and `After=`, and `[Service]` `Restart=`. |
 
-The current manual contains 34 additional container keys, 18 additional pod keys, 17 additional
-network keys, and 15 additional volume keys that are syntax-preserved but not typed. The complete
+The current manual contains 29 additional container keys, 18 additional pod keys, 15 additional
+nine network keys, and 14 additional volume keys that are syntax-preserved but not typed. The complete
 lists, plus every current build, image, kube, artifact, and Quadlet-section key, are maintained in
 the [specification coverage ledger](roadmap.md#specification-coverage-ledger).
 
@@ -187,11 +187,59 @@ patch releases from 5.5.0 through 6.0.2 emits exactly one final `--memory 167772
 establish cgroup enforcement, page rounding, swap interaction, host-memory availability, rootless
 behavior, runtime inspection, or cross-format equivalence. Pod `Memory` remains unknown.
 
+The container-logging subset includes opaque singleton `LogDriver` and opaque repeatable `LogOpt`.
+The source-aware model preserves omission, every physical value, duplicate singleton assignments
+with their standard diagnostic, option duplicates and order, empty option resets, quotes, and
+systemd specifiers. It does not parse options as key/value maps, validate drivers/options, or
+inject defaults. Endpoint manuals and tagged 5.4.0/6.0.2 source establish native command,
+singleton-lookup, ordered tokenization, and reset construction. The isolated complete-matrix
+fixture proves exactly one `--log-driver k8s-file` plus two ordered final post-reset `--log-opt`
+arguments. It starts no workload, reads no logs, and makes no host-policy, default, runtime, or
+cross-format claim. Other native scopes remain unknown and preserved.
+
+The container network-identity subset adds opaque singleton `IP` and `IP6` plus opaque repeatable,
+resettable `NetworkAlias`. Omission, physical values, duplicate singletons and their diagnostics,
+alias duplicates and order, empty resets, quotes, specifiers, and continuations remain preserved.
+All 20 generators emit one `--ip`, one `--ip6`, one `--network bridge`, and two ordered final
+post-reset aliases in the isolated fixture. Address, IPAM, DNS, network name/option, runtime, and
+cross-format validation remain outside this native boundary, as does map-dependent relative flag
+ordering.
+
+The network subset adds opaque singleton `Driver` and opaque repeatable/resettable `Options`.
+Every physical authored entry stays source-aware, including resets, duplicate keys, and bare
+tokens. The complete generator matrix proves driver construction, reset behavior, duplicate-key
+collapse, and key sorting, while preserving the observed 5.4.0 bare-token drop versus 6.0.2 bare
+token emission as generator evidence rather than native-model behavior. Driver availability,
+provider-specific option semantics, runtime network creation, and BoxFerry policy remain outside
+this slice.
+
+The network-IPAM subset adds opaque singleton `IPAMDriver` and opaque repeatable/resettable
+`Subnet`, `Gateway`, and `IPRange`. Every physical entry remains source-aware, including resets,
+duplicates, quotes, specifiers, continuations, and authored inter-key order. The complete matrix
+proves explicit/blank driver behavior and two ordered final indexed subnet/gateway/range groups.
+It does not validate IPAM drivers/defaults, address/range grammar, network creation, provider
+behavior, Compose `aux_addresses` or IPAM-options equivalence, IPv4-disable inference, automatic
+IPv6 inference, runtime behavior, or BoxFerry-owned prefix-complete mapping policy.
+
+Network `Label` is also opaque, repeatable, and resettable from 5.4.0 through 6.0.2. Its source
+entries retain empties, duplicates, bare values, embedded equals signs, quotes, specifiers,
+continuations, and source order. The complete generator matrix observes effective reset,
+duplicate collapse, key sorting, explicit empty and embedded-equals forms, quoted whitespace, and
+the bare-token boundary; none of those generator rules alters the native model or builder.
+
+Volume `Label` is likewise opaque, repeatable, and resettable from 5.4.0 through 6.0.2. Its source
+entries retain empties, duplicates, bare values, embedded equals signs, quotes, specifiers,
+continuations, and source order. The complete generator matrix observes reset, duplicate collapse,
+key sorting, explicit empty and embedded-equals forms, quoted whitespace, and the bare-token
+boundary without applying any of those generator rules to the model or builder.
+
 The current promotion adds these container-only typed capabilities:
 
 | Keys | Cardinality | Reviewed native range |
 | --- | --- | --- |
 | `DNS`, `DNSOption`, `DNSSearch`, `ExposeHostPort`, `Annotation` | Repeatable | 5.4.0–6.0.2 |
+| `IP`, `IP6` | Singleton | 5.4.0–6.0.2 |
+| `NetworkAlias` | Repeatable | 5.4.0–6.0.2 |
 | `AppArmor` | Singleton | 5.8.0–6.0.2; unsupported through 5.7.1 |
 | `NoNewPrivileges`, `SeccompProfile`, `SecurityLabel*` | Singleton | 5.4.0–6.0.2 |
 | `Mask`, `Unmask` | Repeatable | 5.4.0–6.0.2; earlier introduction unknown |

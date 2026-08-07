@@ -11,7 +11,7 @@ Cross-repository delivery uses the stable task numbers in the [implementation pl
 
 ## Specification coverage ledger
 
-This ledger was audited on 2026-08-06 against the current official
+This ledger was audited on 2026-08-07 against the current official
 [Podman Quadlet manual](https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html).
 It records the latest documented surface, not the subset available at the Podman 5.4 minimum.
 Each promoted key still needs separate introduction/deprecation/removal evidence over the finite
@@ -23,10 +23,10 @@ that the syntax parser rejects it.
 
 | Section/unit | Current keys | Typed keys | Syntax-preserved only |
 | --- | ---: | ---: | ---: |
-| `[Container]` / `.container` | 90 | 56 | 34 |
+| `[Container]` / `.container` | 90 | 58 | 32 |
 | `[Pod]` / `.pod` | 25 | 7 | 18 |
-| `[Network]` / `.network` | 18 | 1 | 17 |
-| `[Volume]` / `.volume` | 16 | 1 | 15 |
+| `[Network]` / `.network` | 18 | 3 | 15 |
+| `[Volume]` / `.volume` | 16 | 4 | 12 |
 | `[Build]` / `.build` | 28 | 0 | 28 |
 | `[Image]` / `.image` | 18 | 0 | 18 |
 | `[Kube]` / `.kube` | 14 | 0 | 14 |
@@ -38,22 +38,25 @@ evidence are separate layers documented in [Native coverage](coverage.md).
 
 ### Missing `[Container]` keys
 
-The following 34 current keys are syntax-preserved but not typed:
+The following 29 current keys are syntax-preserved but not typed:
 
 `AutoUpdate`, `CgroupsMode`,
 `ContainersConfModule`, `EnvironmentHost`,
 `GIDMap`, `GlobalArgs`, `HealthLogDestination`,
 `HealthMaxLogCount`, `HealthMaxLogSize`, `HealthOnFailure`, `HealthStartupCmd`,
 `HealthStartupInterval`, `HealthStartupRetries`, `HealthStartupSuccess`,
-`HealthStartupTimeout`, `HttpProxy`, `ImageVolume`, `IP`, `IP6`, `LogDriver`,
-`LogOpt`, `Mount`, `NetworkAlias`,
+`HealthStartupTimeout`, `HttpProxy`, `ImageVolume`, `Mount`,
 `ReadOnlyTmpfs`, `ReloadCmd`, `ReloadSignal`, `Retry`, `RetryDelay`,
 `ServiceName`, `StartWithPod`,
 `SubGIDMap`, `SubUIDMap`, `Timezone`, and `UIDMap`.
 
-The 56 typed keys are `AddHost`, `ContainerName`, `Image`, `Rootfs`, `Entrypoint`, `RunInit`,
+The 61 typed keys are `AddHost`, `ContainerName`, `Image`, `Rootfs`, `Entrypoint`, `RunInit`,
 `StopSignal`, `StopTimeout`, `Pull`, `PidsLimit`, `HostName`, `ShmSize`, `DropCapability`,
-`AddCapability`, `Tmpfs`, `Sysctl`, `Ulimit`, `AddDevice`, `Memory`, `DNS`, `DNSOption`, `DNSSearch`, `ExposeHostPort`, `Annotation`, `AppArmor`, `NoNewPrivileges`, `SeccompProfile`, `SecurityLabelDisable`, `SecurityLabelFileType`, `SecurityLabelLevel`, `SecurityLabelNested`, `SecurityLabelType`, `Mask`, `Unmask`, `Exec`, `Environment`, `EnvironmentFile`, `Label`, `Secret`, `User`, `Group`,
+`AddCapability`, `Tmpfs`, `Sysctl`, `Ulimit`, `AddDevice`, `Memory`, `LogDriver`, `LogOpt`, `IP`,
+`IP6`, `NetworkAlias`, `DNS`, `DNSOption`, `DNSSearch`, `ExposeHostPort`, `Annotation`, `AppArmor`,
+`NoNewPrivileges`, `SeccompProfile`, `SecurityLabelDisable`, `SecurityLabelFileType`,
+`SecurityLabelLevel`, `SecurityLabelNested`, `SecurityLabelType`, `Mask`, `Unmask`, `Exec`,
+`Environment`, `EnvironmentFile`, `Label`, `Secret`, `User`, `Group`,
 `UserNS`, `GroupAdd`, `WorkingDir`, `ReadOnly`, `PublishPort`, `Volume`, `Network`, `Pod`,
 `HealthCmd`, `Notify`, `HealthInterval`, `HealthRetries`, `HealthStartPeriod`, `HealthTimeout`, and
 `PodmanArgs`.
@@ -71,18 +74,19 @@ The typed pod keys are `AddHost`, `PodName`, `PublishPort`, `Network`, `Volume`,
 
 ### Missing `[Network]` keys
 
-Only `NetworkName` is typed. The following 17 current keys are syntax-preserved but not typed:
+`NetworkName`, `Driver`, `Options`, `Label`, `Internal`, `IPv6`, `IPAMDriver`, `Subnet`, `Gateway`, and
+`IPRange` are typed. The following eight current keys are
+syntax-preserved but not typed:
 
-`ContainersConfModule`, `DisableDNS`, `DNS`, `Driver`, `Gateway`, `GlobalArgs`, `InterfaceName`,
-`Internal`, `IPAMDriver`, `IPRange`, `IPv6`, `Label`, `NetworkDeleteOnStop`, `Options`,
-`PodmanArgs`, `ServiceName`, and `Subnet`.
+`ContainersConfModule`, `DisableDNS`, `DNS`, `GlobalArgs`, `InterfaceName`, `NetworkDeleteOnStop`,
+`PodmanArgs`, and `ServiceName`.
 
 ### Missing `[Volume]` keys
 
-Only `VolumeName` is typed. The following 15 current keys are syntax-preserved but not typed:
+`VolumeName`, `Driver`, `Options`, `Label`, `Device`, `Type`, and `Copy` are typed. The following 9 current keys are syntax-preserved but not typed:
 
-`ContainersConfModule`, `Copy`, `Device`, `Driver`, `GID`, `GlobalArgs`, `Group`, `Image`,
-`Label`, `Options`, `PodmanArgs`, `ServiceName`, `Type`, `UID`, and `User`.
+`ContainersConfModule`, `GID`, `GlobalArgs`, `Group`, `Image`, `PodmanArgs`, `ServiceName`,
+`UID`, and `User`.
 
 ### Entirely untyped unit sections
 
@@ -145,8 +149,7 @@ only for a concrete consumer scenario and must retain their native ordering/repe
   argument from Podman 5.4.0 through 6.0.2 without claiming runtime behavior.
 - [ ] Type shared DNS, pod hostname, IP, network-alias, label, and module/global-argument concepts for
   container and pod units where their value grammars actually agree.
-- [ ] Complete the `[Network]` key surface, beginning with driver, subnet/gateway/range, internal,
-  IPv6, DNS, options, labels, and delete-on-stop lifecycle.
+- [ ] Complete the `[Network]` key surface, beginning with DNS and delete-on-stop lifecycle.
 - [ ] Keep repeatability and cross-field constraints explicit; do not reduce them to raw maps.
 
 ### Next 3: security, resources, health, and storage
@@ -178,6 +181,31 @@ only for a concrete consumer scenario and must retain their native ordering/repe
 - [x] Type singleton container `Memory`, preserve raw values and duplicate diagnostics, add positive
   arbitrary-precision decimal construction, prove 5.4.x rejection/exclusion, and verify exactly one
   explicit-byte argument across all 17 Podman 5.5.0-through-6.0.2 patches without runtime claims.
+- [x] Type singleton container `LogDriver` and repeatable/resettable `LogOpt` as opaque physical
+  values, and verify one driver plus ordered post-reset options across Podman 5.4.0 through 6.0.2
+  without validation, default, runtime, or cross-format claims.
+- [x] Type singleton container `IP` and `IP6` plus repeatable/resettable `NetworkAlias` as opaque
+  values, and verify address flags plus ordered final aliases with one selected network across
+  Podman 5.4.0 through 6.0.2 without address, IPAM, DNS, runtime, or cross-format claims.
+- [x] Type singleton network `Driver` and repeatable/resettable `Options` as opaque physical
+  values, and verify reset, duplicate-key collapse, sorted final options, and the 5.4.0 versus
+  6.0.2 bare-token difference without provider validation, runtime, or cross-format claims.
+- [x] Type singleton network `Internal` and `IPv6` as opaque physical values, preserving literal
+  true/false and invalid text without boolean parsing; verify omission/true/false generator forms
+  across 5.4.0 through 6.0.2 without driver, network-creation, or runtime claims.
+- [x] Type singleton `IPAMDriver` and repeatable/resettable `Subnet`, `Gateway`, and `IPRange` as
+  opaque physical values; verify blank-driver omission and ordered final indexed groups across
+  5.4.0 through 6.0.2 without applying target resets/zipping or making runtime/cross-format claims.
+- [x] Type singleton volume `Driver` and raw singleton `Options`; preserve physical source values,
+  reject generated duplicates, and record the 5.8.2 quote and 6.0.0 Device-prerequisite generator
+  boundaries without driver/plugin, mount, rootless, runtime, Compose, or BoxFerry policy claims.
+- [x] Type opaque singleton volume `Device` and `Type`; preserve physical source values, reject
+  generated duplicates, and record final blank suppression, Type-without-Device rejection, the
+  existing 5.8.2 unmatched-quote boundary, and Type=bind dependency-presentation bands without
+  source-path, filesystem, mount, runtime, Compose, or BoxFerry equivalence claims.
+- [x] Type repeatable/resettable volume `Label`; preserve every physical source value and record
+  reset, duplicate collapse, key sorting, quoted-whitespace presentation, and the bare-token
+  boundary without importing generator semantics into the model or builder.
 - [x] Type and generator-verify container DNS, exposed-port, and annotation keys across the
   reviewed Podman range.
 - [x] Type and generator-verify AppArmor, no-new-privileges, seccomp, and SELinux-label keys.

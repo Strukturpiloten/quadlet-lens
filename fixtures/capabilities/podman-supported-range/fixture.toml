@@ -1,7 +1,7 @@
 schema = 1
 id = "podman-supported-range"
 suite = "capabilities"
-description = "Protects the reviewed first-conversion capability surface, including repeatable native container capability drops, additions, temporary filesystems, kernel-parameter assignments, resource limits, host-device mappings, DNS resolver values, options, search domains, exposed host ports, OCI annotations, mask path lists, and unmask path-list or ALL values, singleton container AppArmor, no-new-privileges, seccomp-profile, security-label-disable, security-label-file-type, security-label-level, security-label-nested, and security-label-type selection, and the Podman 5.5-introduced singleton container memory limit, in the rolling Podman supported-range catalogue."
+description = "Protects the reviewed first-conversion capability surface, including container logging and network identity, network driver/options/labels, IPAM columns, and opaque network Internal/IPv6 keys, repeatable capability, filesystem, kernel, resource, device, resolver, port, annotation, and path-list keys, singleton security selections, and the Podman 5.5-introduced container memory limit, in the rolling Podman supported-range catalogue."
 secrets_reviewed = true
 files = ["expected-capabilities.txt"]
 
@@ -12,7 +12,7 @@ redistribution = "allowed"
 modifications = "none"
 
 [environment]
-description = "Primary Podman 5.4.0, 5.5.0, and 6.0.2 Quadlet and CLI documentation, exact tagged capability, Tmpfs, Sysctl, Ulimit, AddDevice, DNS, DNSOption, DNSSearch, ExposeHostPort, Annotation, AppArmor, NoNewPrivileges, SeccompProfile, SecurityLabelDisable, SecurityLabelFileType, SecurityLabelLevel, SecurityLabelNested, SecurityLabelType, Mask, Unmask, and Memory command/Lookup/LookupAll/LookupAllArgs/LookupAllKeyVal/LookupAllStrv/map/sort/trim/regex/boolean/reset source behavior where locally available, the exact 5.4.0 through current 6.0.2 generator matrix, and the separate 5.5.0-through-current Memory and isolated security-option lanes are available; unverified runtime behavior and capabilities outside the protected fixtures retain explicit evidence gaps."
+description = "Primary Podman 5.4.0, 5.5.0, and 6.0.2 Quadlet and CLI documentation, reviewed tagged source behavior where recorded, and exact 5.4.0 through 6.0.2 generator evidence including isolated logging, network-identity, network driver/options/labels, network IPAM columns, network Internal/IPv6, Memory, and security-option lanes; unverified runtime behavior and capabilities outside the protected fixtures retain explicit evidence gaps."
 
 [expectations]
 summary = "The supported range cannot silently lose a reviewed native capability, repeatability rule, or capability required by the first Compose-to-Quadlet conversion."

@@ -5,6 +5,17 @@ Versioning for its documented pre-1.0 public API.
 
 ## [Unreleased]
 
+## [0.1.12] - 2026-08-07
+
+### Added
+
+- Native container `LogDriver`/`LogOpt` and `IP`/`IP6`/`NetworkAlias` keys.
+- Native network `Driver`/`Options`/`Internal`/`IPv6`/IPAM/`Label` keys.
+- Native volume `Driver`/`Options`/`Label`/`Device`/`Type`/`Copy` keys.
+- Exact capability and generator evidence across all 20 recorded Podman releases from 5.4.0
+  through 6.0.2, including the 5.6.0 network-label bare-token and 6.0.0 volume-options
+  device-prerequisite boundaries.
+
 ## [0.1.11] - 2026-08-07
 
 ### Added

@@ -1,0 +1,6 @@
+[Volume]
+VolumeName=quadlet-lens-volume-options-empty
+Driver=local
+Device=tmpfs
+Options=pre-option
+Options=

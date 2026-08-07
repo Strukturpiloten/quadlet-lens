@@ -1,0 +1,5 @@
+[Volume]
+VolumeName=quadlet-lens-volume-options-matched-quote
+Driver=local
+Device=tmpfs
+Options="matched option"

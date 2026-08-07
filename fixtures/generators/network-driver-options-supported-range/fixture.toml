@@ -1,0 +1,18 @@
+schema = 1
+id = "network-driver-options-supported-range"
+suite = "generators"
+description = "Exercises singleton Network Driver and repeatable/resettable Options command construction across the complete supported Podman generator range."
+secrets_reviewed = true
+files = ["expected-fragments.txt", "network-driver-options.network"]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "The harness mounts this directory read-only with label separation disabled and invokes only exact Podman Quadlet generators in dry-run mode. It does not create or inspect networks, validate drivers or provider options, or start workloads."
+
+[expectations]
+summary = "Every recorded Podman release emits exactly one `--driver bridge`, clears pre-reset Options, collapses duplicate `alpha` assignments to the final value, and sorts retained `alpha=final` before `zeta=last`. Podman 5.4.0 drops the authored bare option token while 6.0.2 emits `--opt bare-token`."

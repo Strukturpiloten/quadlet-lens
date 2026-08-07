@@ -52,8 +52,19 @@ QuadletLens provides a programmatic document builder that:
   device existence, or applying runtime semantics;
 - retains container `Memory` as an opaque singleton without applying runtime, cgroup, swap,
   page-size, host-memory, rootless, or cross-format semantics;
+- retains container `LogDriver` as an opaque singleton and repeated `LogOpt` entries, including
+  empty resets, as exact opaque one-line values without parsing options, validating logging
+  drivers/options, injecting defaults, or applying runtime or cross-format semantics;
+- retains container `IP` and `IP6` as opaque singletons and repeated `NetworkAlias` entries,
+  including empty resets, without address, alias, IPAM, DNS, network, runtime, or cross-format
+  interpretation;
 - retains the promoted repeatable networking, annotation, Mask, and Unmask keys as opaque
   physical-line-safe values in insertion order, including duplicates and reset assignments;
+- retains repeated volume label entries, including empty native reset assignments, as exact opaque
+  physical-line-safe values in insertion order without OCI parsing, reset application, duplicate
+  collapse, sorting, validation, or runtime interpretation;
+- retains volume `Device` and `Type` as separate opaque singletons without path, filesystem,
+  quote, specifier, generator-dependency, mount, runtime, or cross-format interpretation;
 - retains AppArmor, no-new-privileges, seccomp, and SELinux-label keys as opaque singletons;
 - performs no key-specific address, port, OCI, boolean, profile, SELinux, path, filesystem, host,
   runtime, or cross-format interpretation for these additions;
@@ -104,3 +115,11 @@ make source-span consistency difficult to guarantee.
 Rejected because complete systemd and Podman value modeling is much larger than the safe first
 conversion subset. The exact-value boundary permits useful generation without overstating what the
 library understands.
+
+## Follow-up: Volume `Copy`
+
+`VolumeKey::Copy` is an opaque singleton. The builder rejects a second generated `Copy`, while
+parsing retains every authored physical value and normal duplicate diagnostics. Its capability is
+bounded to Podman 5.4.0–6.0.2 and its 20-unit fixture records dry-run command construction only. It
+does not add `Image` to the Lens model or claim image pulls, volume creation, copy-up, runtime,
+rootless, plugin, Compose, or BoxFerry semantics.

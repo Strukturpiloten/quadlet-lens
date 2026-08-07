@@ -822,6 +822,314 @@ fn add_device_builder_preserves_resets_duplicates_case_quotes_specifiers_whitesp
 }
 
 #[test]
+fn logging_builder_preserves_opaque_values_and_enforces_cardinality() -> Result<(), Box<dyn std::error::Error>> {
+    let mut empty_driver = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    empty_driver.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+    empty_driver.push_container(ContainerKey::LogDriver, value("")?)?;
+    assert_eq!(
+        empty_driver.build(SourceId::new(299))?.text(),
+        "[Container]\nImage=example.invalid/app\nLogDriver=\n"
+    );
+
+    let mut container = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    container.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+    container.push_container(ContainerKey::LogDriver, value(r#""Vendor-%n Driver""#)?)?;
+    assert!(matches!(
+        container.push_container(ContainerKey::LogDriver, value("journald")?),
+        Err(RenderError::DuplicateSingleton(key)) if key == "LogDriver"
+    ));
+    for authored in [
+        "path=/var/log/pre.log",
+        "",
+        "tag=final-%n",
+        r#""path=/var/log/Authored Value.log""#,
+        "tag=final-%n",
+    ] {
+        container.push_container(ContainerKey::LogOpt, value(authored)?)?;
+    }
+    assert_eq!(
+        container.build(SourceId::new(300))?.text(),
+        concat!(
+            "[Container]\n",
+            "Image=example.invalid/app\n",
+            "LogDriver=\"Vendor-%n Driver\"\n",
+            "LogOpt=path=/var/log/pre.log\n",
+            "LogOpt=\n",
+            "LogOpt=tag=final-%n\n",
+            "LogOpt=\"path=/var/log/Authored Value.log\"\n",
+            "LogOpt=tag=final-%n\n",
+        )
+    );
+
+    for unsafe_value in ["tag=one\ntag=two", "tag=one\rtag=two", "tag=one\0tag=two"] {
+        assert!(matches!(EntryValue::new(unsafe_value), Err(RenderError::InvalidValue)));
+    }
+    Ok(())
+}
+
+#[test]
+fn network_driver_and_options_builder_preserve_raw_values_and_enforce_cardinality()
+-> Result<(), Box<dyn std::error::Error>> {
+    let mut network = QuadletDocumentBuilder::new(QuadletUnitType::Network);
+    network.push_network(NetworkKey::NetworkName, value("example-network")?)?;
+    network.push_network(NetworkKey::Driver, value(r#""Vendor-%n Driver""#)?)?;
+    assert!(matches!(
+        network.push_network(NetworkKey::Driver, value("bridge")?),
+        Err(RenderError::DuplicateSingleton(key)) if key == "Driver"
+    ));
+    network.push_network(NetworkKey::Internal, value("false")?)?;
+    assert!(matches!(
+        network.push_network(NetworkKey::Internal, value("true")?),
+        Err(RenderError::DuplicateSingleton(key)) if key == "Internal"
+    ));
+    network.push_network(NetworkKey::IPv6, value(r#""Vendor-%n IPv6""#)?)?;
+    assert!(matches!(
+        network.push_network(NetworkKey::IPv6, value("true")?),
+        Err(RenderError::DuplicateSingleton(key)) if key == "IPv6"
+    ));
+    for authored in [
+        "pre=one",
+        "pre=two",
+        "",
+        "zeta=last",
+        "alpha=first",
+        "alpha=final",
+        "bare-token",
+        r#""quoted option=%n""#,
+        "Vendor_Defined Option Text",
+    ] {
+        network.push_network(NetworkKey::Options, value(authored)?)?;
+    }
+    assert_eq!(
+        network.build(SourceId::new(302))?.text(),
+        concat!(
+            "[Network]\n",
+            "NetworkName=example-network\n",
+            "Driver=\"Vendor-%n Driver\"\n",
+            "Internal=false\n",
+            "IPv6=\"Vendor-%n IPv6\"\n",
+            "Options=pre=one\n",
+            "Options=pre=two\n",
+            "Options=\n",
+            "Options=zeta=last\n",
+            "Options=alpha=first\n",
+            "Options=alpha=final\n",
+            "Options=bare-token\n",
+            "Options=\"quoted option=%n\"\n",
+            "Options=Vendor_Defined Option Text\n",
+        )
+    );
+    for unsafe_value in ["key=one\nkey=two", "key=one\rkey=two", "key=one\0key=two"] {
+        assert!(matches!(EntryValue::new(unsafe_value), Err(RenderError::InvalidValue)));
+    }
+    Ok(())
+}
+
+#[test]
+fn volume_driver_options_device_type_and_copy_builder_preserve_raw_values_and_enforce_cardinality()
+-> Result<(), Box<dyn std::error::Error>> {
+    let mut volume = QuadletDocumentBuilder::new(QuadletUnitType::Volume);
+    volume.push_volume(VolumeKey::VolumeName, value("example-volume")?)?;
+    volume.push_volume(VolumeKey::Driver, value(r#""Vendor-%n Driver""#)?)?;
+    assert!(matches!(
+        volume.push_volume(VolumeKey::Driver, value("local")?),
+        Err(RenderError::DuplicateSingleton(key)) if key == "Driver"
+    ));
+    volume.push_volume(VolumeKey::Options, value(r#"bare,opt=one "matched=%h""#)?)?;
+    assert!(matches!(
+        volume.push_volume(VolumeKey::Options, value("o=second")?),
+        Err(RenderError::DuplicateSingleton(key)) if key == "Options"
+    ));
+    volume.push_volume(VolumeKey::Device, value(r#""/srv/%h source""#)?)?;
+    assert!(matches!(
+        volume.push_volume(VolumeKey::Device, value("/srv/other")?),
+        Err(RenderError::DuplicateSingleton(key)) if key == "Device"
+    ));
+    volume.push_volume(VolumeKey::Type, value(r#""bind %h""#)?)?;
+    assert!(matches!(
+        volume.push_volume(VolumeKey::Type, value("tmpfs")?),
+        Err(RenderError::DuplicateSingleton(key)) if key == "Type"
+    ));
+    volume.push_volume(VolumeKey::Copy, value(r#""TrUe %h""#)?)?;
+    assert!(matches!(
+        volume.push_volume(VolumeKey::Copy, value("false")?),
+        Err(RenderError::DuplicateSingleton(key)) if key == "Copy"
+    ));
+    assert_eq!(
+        volume.build(SourceId::new(304))?.text(),
+        concat!(
+            "[Volume]\n",
+            "VolumeName=example-volume\n",
+            "Driver=\"Vendor-%n Driver\"\n",
+            "Options=bare,opt=one \"matched=%h\"\n",
+            "Device=\"/srv/%h source\"\n",
+            "Type=\"bind %h\"\n",
+            "Copy=\"TrUe %h\"\n",
+        )
+    );
+    for unsafe_value in ["o=one\no=two", "o=one\ro=two", "o=one\0o=two"] {
+        assert!(matches!(EntryValue::new(unsafe_value), Err(RenderError::InvalidValue)));
+    }
+    Ok(())
+}
+
+#[test]
+fn volume_label_builder_preserves_raw_repeatable_values() -> Result<(), Box<dyn std::error::Error>> {
+    let mut volume = QuadletDocumentBuilder::new(QuadletUnitType::Volume);
+    for authored in [
+        "pre=one",
+        "",
+        "alpha=first",
+        "alpha=final",
+        "empty=",
+        "embedded=a=b",
+        "bare-token",
+        r#""quoted=%h value""#,
+    ] {
+        volume.push_volume(VolumeKey::Label, value(authored)?)?;
+    }
+    assert_eq!(
+        volume.build(SourceId::new(305))?.text(),
+        concat!(
+            "[Volume]\n",
+            "Label=pre=one\n",
+            "Label=\n",
+            "Label=alpha=first\n",
+            "Label=alpha=final\n",
+            "Label=empty=\n",
+            "Label=embedded=a=b\n",
+            "Label=bare-token\n",
+            "Label=\"quoted=%h value\"\n",
+        )
+    );
+    for unsafe_value in ["key=one\nkey=two", "key=one\rkey=two", "key=one\0key=two"] {
+        assert!(matches!(EntryValue::new(unsafe_value), Err(RenderError::InvalidValue)));
+    }
+    Ok(())
+}
+
+#[test]
+fn network_label_builder_preserves_raw_repeatable_values() -> Result<(), Box<dyn std::error::Error>> {
+    let mut network = QuadletDocumentBuilder::new(QuadletUnitType::Network);
+    for authored in [
+        "pre=one",
+        "",
+        "alpha=first",
+        "alpha=final",
+        "empty=",
+        "embedded=a=b",
+        "bare-token",
+        r#""quoted=%h value""#,
+    ] {
+        network.push_network(NetworkKey::Label, value(authored)?)?;
+    }
+    assert_eq!(
+        network.build(SourceId::new(304))?.text(),
+        concat!(
+            "[Network]\n",
+            "Label=pre=one\n",
+            "Label=\n",
+            "Label=alpha=first\n",
+            "Label=alpha=final\n",
+            "Label=empty=\n",
+            "Label=embedded=a=b\n",
+            "Label=bare-token\n",
+            "Label=\"quoted=%h value\"\n",
+        )
+    );
+    for unsafe_value in ["key=one\nkey=two", "key=one\rkey=two", "key=one\0key=two"] {
+        assert!(matches!(EntryValue::new(unsafe_value), Err(RenderError::InvalidValue)));
+    }
+    Ok(())
+}
+
+#[test]
+fn network_identity_builder_preserves_opaque_values_and_enforces_cardinality() -> Result<(), Box<dyn std::error::Error>>
+{
+    let mut container = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    container.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+    container.push_container(ContainerKey::IP, value(r#""192.0.2.%n""#)?)?;
+    assert!(matches!(
+        container.push_container(ContainerKey::IP, value("192.0.2.10")?),
+        Err(RenderError::DuplicateSingleton(key)) if key == "IP"
+    ));
+    container.push_container(ContainerKey::IP6, value("2001:db8::%i")?)?;
+    assert!(matches!(
+        container.push_container(ContainerKey::IP6, value("2001:db8::10")?),
+        Err(RenderError::DuplicateSingleton(key)) if key == "IP6"
+    ));
+    for authored in ["pre.example", "", r#""final %n""#, "final-%i", r#""final %n""#] {
+        container.push_container(ContainerKey::NetworkAlias, value(authored)?)?;
+    }
+    assert_eq!(
+        container.build(SourceId::new(301))?.text(),
+        concat!(
+            "[Container]\n",
+            "Image=example.invalid/app\n",
+            "IP=\"192.0.2.%n\"\n",
+            "IP6=2001:db8::%i\n",
+            "NetworkAlias=pre.example\n",
+            "NetworkAlias=\n",
+            "NetworkAlias=\"final %n\"\n",
+            "NetworkAlias=final-%i\n",
+            "NetworkAlias=\"final %n\"\n",
+        )
+    );
+
+    for unsafe_value in ["alias-one\nalias-two", "alias-one\ralias-two", "alias-one\0alias-two"] {
+        assert!(matches!(EntryValue::new(unsafe_value), Err(RenderError::InvalidValue)));
+    }
+    Ok(())
+}
+
+#[test]
+fn network_ipam_builder_preserves_raw_columns_and_rejects_duplicate_driver() -> Result<(), Box<dyn std::error::Error>> {
+    let mut network = QuadletDocumentBuilder::new(QuadletUnitType::Network);
+    network.push_network(NetworkKey::NetworkName, value("ipam-network")?)?;
+    network.push_network(NetworkKey::IPAMDriver, value(r#""host-local-%n""#)?)?;
+    assert!(matches!(
+        network.push_network(NetworkKey::IPAMDriver, value("dhcp")?),
+        Err(RenderError::DuplicateSingleton(key)) if key == "IPAMDriver"
+    ));
+    for (key, values) in [
+        (
+            NetworkKey::Subnet,
+            ["pre-subnet", "", r#""10.88.0.0/24""#, "10.89.0.0/24"],
+        ),
+        (NetworkKey::Gateway, ["pre-gateway", "", r#""10.88.0.1""#, "10.89.0.1"]),
+        (
+            NetworkKey::IPRange,
+            ["pre-range", "", r#""10.88.0.64/26""#, "10.89.0.64/26"],
+        ),
+    ] {
+        for authored in values {
+            network.push_network(key, value(authored)?)?;
+        }
+    }
+    assert_eq!(
+        network.build(SourceId::new(303))?.text(),
+        concat!(
+            "[Network]\n",
+            "NetworkName=ipam-network\n",
+            "IPAMDriver=\"host-local-%n\"\n",
+            "Subnet=pre-subnet\n",
+            "Subnet=\n",
+            "Subnet=\"10.88.0.0/24\"\n",
+            "Subnet=10.89.0.0/24\n",
+            "Gateway=pre-gateway\n",
+            "Gateway=\n",
+            "Gateway=\"10.88.0.1\"\n",
+            "Gateway=10.89.0.1\n",
+            "IPRange=pre-range\n",
+            "IPRange=\n",
+            "IPRange=\"10.88.0.64/26\"\n",
+            "IPRange=10.89.0.64/26\n",
+        )
+    );
+    Ok(())
+}
+
+#[test]
 fn dns_builder_preserves_resets_duplicates_order_quotes_and_specifiers_without_interpretation()
 -> Result<(), Box<dyn std::error::Error>> {
     let mut container = QuadletDocumentBuilder::new(QuadletUnitType::Container);

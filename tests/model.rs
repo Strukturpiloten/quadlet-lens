@@ -539,6 +539,198 @@ fn add_device_omission_reset_duplicates_order_case_quotes_specifiers_whitespace_
 }
 
 #[test]
+fn container_logging_preserves_opaque_physical_values_cardinality_and_scope() -> Result<(), String> {
+    let source = concat!(
+        "[Container]\n",
+        "Image=example.invalid/app\n",
+        "LogDriver=k8s-file\n",
+        "LogDriver=\n",
+        "LogDriver=\"Vendor-%n Driver\"\n",
+        "LogOpt=path=/var/log/pre.log\n",
+        "LogOpt=\n",
+        "LogOpt=tag=final-%n\n",
+        "LogOpt=\"path=/var/log/Authored Value.log\"\n",
+        "LogOpt=tag=final-%n\n",
+    );
+    let result = QuadletDocument::parse(QuadletUnitType::Container, SourceId::new(300), source)
+        .map_err(|error| error.to_string())?;
+    assert!(result.is_valid(), "{:#?}", result.model_diagnostics());
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .model_diagnostics()
+            .iter()
+            .map(|diagnostic| diagnostic.code().as_str())
+            .collect::<Vec<_>>(),
+        ["QLM0004", "QLM0004"]
+    );
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::LogDriver))
+            .map(|entry| {
+                assert_eq!(entry.value_kind(), ValueKind::Opaque);
+                entry.value().primary().text()
+            })
+            .collect::<Vec<_>>(),
+        ["k8s-file", "", r#""Vendor-%n Driver""#]
+    );
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::LogOpt))
+            .map(|entry| {
+                assert_eq!(entry.value_kind(), ValueKind::Opaque);
+                entry.value().primary().text()
+            })
+            .collect::<Vec<_>>(),
+        [
+            "path=/var/log/pre.log",
+            "",
+            "tag=final-%n",
+            r#""path=/var/log/Authored Value.log""#,
+            "tag=final-%n",
+        ]
+    );
+
+    let wrong_case = QuadletDocument::parse(
+        QuadletUnitType::Container,
+        SourceId::new(301),
+        "[Container]\nImage=example.invalid/app\nLogdriver=k8s-file\nLogopt=tag=value\n",
+    )
+    .map_err(|error| error.to_string())?;
+    assert_eq!(
+        wrong_case
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Unknown)
+            .map(|entry| entry.key().text())
+            .collect::<Vec<_>>(),
+        ["Logdriver", "Logopt"]
+    );
+
+    let pod = QuadletDocument::parse(
+        QuadletUnitType::Pod,
+        SourceId::new(302),
+        "[Pod]\nLogDriver=k8s-file\nLogOpt=tag=value\n",
+    )
+    .map_err(|error| error.to_string())?;
+    assert_eq!(
+        pod.document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Unknown)
+            .map(|entry| entry.key().text())
+            .collect::<Vec<_>>(),
+        ["LogDriver", "LogOpt"]
+    );
+    Ok(())
+}
+
+#[test]
+fn container_network_identity_preserves_opaque_values_cardinality_continuations_and_scope() -> Result<(), String> {
+    let source = concat!(
+        "[Container]\n",
+        "Image=example.invalid/app\n",
+        "IP=192.0.2.10\n",
+        "IP=\"192.0.2.%n\" \\\n",
+        "  continued-ip\n",
+        "IP6=2001:db8::10\n",
+        "IP6=\"2001:db8::%n\"\n",
+        "NetworkAlias=pre.example\n",
+        "NetworkAlias=\n",
+        "NetworkAlias=\"final %n\"\n",
+        "NetworkAlias=alias-%i \\\n",
+        "  continued-alias\n",
+        "NetworkAlias=\"final %n\"\n",
+    );
+    let result = QuadletDocument::parse(QuadletUnitType::Container, SourceId::new(303), source)
+        .map_err(|error| error.to_string())?;
+    assert!(result.is_valid(), "{:#?}", result.model_diagnostics());
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .model_diagnostics()
+            .iter()
+            .map(|diagnostic| diagnostic.code().as_str())
+            .collect::<Vec<_>>(),
+        ["QLM0004", "QLM0004"]
+    );
+
+    let ipv4: Vec<_> = result
+        .document()
+        .entries()
+        .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::IP))
+        .collect();
+    assert_eq!(ipv4.len(), 2);
+    assert_eq!(ipv4[0].value_kind(), ValueKind::Opaque);
+    assert_eq!(ipv4[0].value().primary().text(), "192.0.2.10");
+    assert_eq!(ipv4[1].value().primary().text(), r#""192.0.2.%n" \"#);
+    assert_eq!(ipv4[1].value().continuations()[0].text(), "continued-ip");
+
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::IP6))
+            .map(|entry| {
+                assert_eq!(entry.value_kind(), ValueKind::Opaque);
+                entry.value().primary().text()
+            })
+            .collect::<Vec<_>>(),
+        ["2001:db8::10", r#""2001:db8::%n""#]
+    );
+
+    let aliases: Vec<_> = result
+        .document()
+        .entries()
+        .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::NetworkAlias))
+        .collect();
+    assert_eq!(
+        aliases
+            .iter()
+            .map(|entry| entry.value().primary().text())
+            .collect::<Vec<_>>(),
+        ["pre.example", "", r#""final %n""#, "alias-%i \\", r#""final %n""#]
+    );
+    assert!(aliases.iter().all(|entry| entry.value_kind() == ValueKind::Opaque));
+    assert_eq!(aliases[3].value().continuations()[0].text(), "continued-alias");
+
+    let wrong_case = QuadletDocument::parse(
+        QuadletUnitType::Container,
+        SourceId::new(304),
+        "[Container]\nImage=example.invalid/app\nIp=192.0.2.1\nIp6=2001:db8::1\nNetworkalias=app\n",
+    )
+    .map_err(|error| error.to_string())?;
+    assert_eq!(
+        wrong_case
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Unknown)
+            .map(|entry| entry.key().text())
+            .collect::<Vec<_>>(),
+        ["Ip", "Ip6", "Networkalias"]
+    );
+
+    let pod = QuadletDocument::parse(
+        QuadletUnitType::Pod,
+        SourceId::new(305),
+        "[Pod]\nIP=192.0.2.1\nIP6=2001:db8::1\nNetworkAlias=app\n",
+    )
+    .map_err(|error| error.to_string())?;
+    assert_eq!(
+        pod.document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Unknown)
+            .map(|entry| entry.key().text())
+            .collect::<Vec<_>>(),
+        ["IP", "IP6", "NetworkAlias"]
+    );
+    Ok(())
+}
+
+#[test]
 fn dns_omission_reset_duplicates_order_case_quoting_specifiers_and_raw_values_remain_distinct() -> Result<(), String> {
     for (source_id, authored) in [
         (SourceId::new(126), &[][..]),
@@ -1423,6 +1615,526 @@ fn network_and_volume_models_retain_known_and_future_fields() -> Result<(), Stri
             .filter(|entry| entry.kind() == EntryKind::Unknown)
             .count(),
         1
+    );
+    Ok(())
+}
+
+#[test]
+fn network_driver_and_options_preserve_physical_values_cardinality_and_scope() -> Result<(), String> {
+    let source = concat!(
+        "[Network]\n",
+        "NetworkName=frontend\n",
+        "Driver=bridge\n",
+        "Driver=Vendor-%n-Driver\n",
+        "Options=pre=one\n",
+        "Options=pre=two\n",
+        "Options=\n",
+        "Options=zeta=last\n",
+        "Options=alpha=first\n",
+        "Options=alpha=final\n",
+        "Options=bare-token\n",
+        "Options=\"quoted option=%n\"\n",
+        "Options=continuation=one \\\n",
+        "  two\n",
+    );
+    let result = QuadletDocument::parse(QuadletUnitType::Network, SourceId::new(306), source)
+        .map_err(|error| error.to_string())?;
+    assert!(result.is_valid(), "{:#?}", result.model_diagnostics());
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Network(NetworkKey::Driver))
+            .map(|entry| entry.value().primary().text())
+            .collect::<Vec<_>>(),
+        ["bridge", "Vendor-%n-Driver"]
+    );
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Network(NetworkKey::Options))
+            .map(|entry| entry.value().primary().text())
+            .collect::<Vec<_>>(),
+        [
+            "pre=one",
+            "pre=two",
+            "",
+            "zeta=last",
+            "alpha=first",
+            "alpha=final",
+            "bare-token",
+            r#""quoted option=%n""#,
+            "continuation=one \\",
+        ]
+    );
+    assert_eq!(
+        result
+            .model_diagnostics()
+            .iter()
+            .map(|diagnostic| diagnostic.code().as_str())
+            .collect::<Vec<_>>(),
+        ["QLM0004"]
+    );
+
+    let container = QuadletDocument::parse(
+        QuadletUnitType::Container,
+        SourceId::new(307),
+        "[Container]\nImage=example.invalid/app\nDriver=bridge\nOptions=mtu=1500\n",
+    )
+    .map_err(|error| error.to_string())?;
+    assert_eq!(
+        container
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Unknown)
+            .map(|entry| entry.key().text())
+            .collect::<Vec<_>>(),
+        ["Driver", "Options"]
+    );
+    Ok(())
+}
+
+#[test]
+fn volume_driver_options_device_and_type_preserve_physical_values_cardinality_and_scope() -> Result<(), String> {
+    let source = concat!(
+        "[Volume]\n",
+        "VolumeName=cache\n",
+        "Driver=local\n",
+        "Driver=\"Vendor-%n Driver\"\n",
+        "Options=pre=discard\n",
+        "Options=bare-token\n",
+        "Options=\"matched option=%h\"\n",
+        "Options=\"unmatched option=%h\n",
+        "Options=continued=one \\\n",
+        "  two\n",
+        "Options=\n",
+        "Device=/srv/pre\n",
+        "Device=\"/srv/matched %h\"\n",
+        "Device=\"/srv/unmatched %h\n",
+        "Device=/srv/continued \\\n",
+        "  two\n",
+        "Device=\n",
+        "Type=tmpfs\n",
+        "Type=\"bind %h\"\n",
+        "Type=\"unmatched %h\n",
+        "Type=bind \\\n",
+        "  continued\n",
+    );
+    let result = QuadletDocument::parse(QuadletUnitType::Volume, SourceId::new(308), source)
+        .map_err(|error| error.to_string())?;
+    assert!(result.is_valid(), "{:#?}", result.model_diagnostics());
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Volume(VolumeKey::Driver))
+            .map(|entry| entry.value().primary().text())
+            .collect::<Vec<_>>(),
+        ["local", r#""Vendor-%n Driver""#]
+    );
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Volume(VolumeKey::Options))
+            .map(|entry| entry.value().primary().text())
+            .collect::<Vec<_>>(),
+        [
+            "pre=discard",
+            "bare-token",
+            r#""matched option=%h""#,
+            r#""unmatched option=%h"#,
+            "continued=one \\",
+            "",
+        ]
+    );
+    assert_volume_device_and_type_physical_values(result.document())?;
+    assert_eq!(
+        result
+            .model_diagnostics()
+            .iter()
+            .map(|diagnostic| diagnostic.code().as_str())
+            .collect::<Vec<_>>(),
+        [
+            "QLM0004", "QLM0004", "QLM0004", "QLM0004", "QLM0004", "QLM0004", "QLM0004", "QLM0004", "QLM0004",
+            "QLM0004", "QLM0004", "QLM0004", "QLM0004",
+        ]
+    );
+
+    let container = QuadletDocument::parse(
+        QuadletUnitType::Container,
+        SourceId::new(309),
+        "[Container]\nImage=example.invalid/app\nDriver=local\nOptions=o=discard\nDevice=/srv/data\nType=bind\n",
+    )
+    .map_err(|error| error.to_string())?;
+    assert_eq!(
+        container
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Unknown)
+            .map(|entry| entry.key().text())
+            .collect::<Vec<_>>(),
+        ["Driver", "Options", "Device", "Type"]
+    );
+    Ok(())
+}
+
+#[test]
+fn volume_copy_is_an_opaque_singleton_with_physical_source_fidelity() -> Result<(), String> {
+    let source = concat!(
+        "[Volume]\n",
+        "Copy=pre=discard\n",
+        "Copy=TrUe\n",
+        "Copy=\"matched true\"\n",
+        "Copy=\"unmatched true\n",
+        "Copy=\n",
+        "Copy=%h\n",
+        "Copy=tr\\\n",
+        "  ue\n",
+    );
+    let result = QuadletDocument::parse(QuadletUnitType::Volume, SourceId::new(311), source)
+        .map_err(|error| error.to_string())?;
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Volume(VolumeKey::Copy))
+            .map(|entry| entry.value().primary().text())
+            .collect::<Vec<_>>(),
+        [
+            "pre=discard",
+            "TrUe",
+            r#""matched true""#,
+            r#""unmatched true"#,
+            "",
+            "%h",
+            "tr\\",
+        ]
+    );
+    let continued = result
+        .document()
+        .entries()
+        .find(|entry| entry.kind() == EntryKind::Volume(VolumeKey::Copy) && entry.value().is_continued())
+        .ok_or_else(|| "continued Copy value must be retained".to_owned())?;
+    assert_eq!(continued.value().continuations()[0].text(), "ue");
+    assert_eq!(
+        result
+            .model_diagnostics()
+            .iter()
+            .map(|diagnostic| diagnostic.code().as_str())
+            .collect::<Vec<_>>(),
+        ["QLM0004", "QLM0004", "QLM0004", "QLM0004", "QLM0004", "QLM0004"]
+    );
+
+    let container = QuadletDocument::parse(
+        QuadletUnitType::Container,
+        SourceId::new(312),
+        "[Container]\nImage=example.invalid/app\nCopy=true\n",
+    )
+    .map_err(|error| error.to_string())?;
+    assert_eq!(
+        container
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Unknown)
+            .map(|entry| entry.key().text())
+            .collect::<Vec<_>>(),
+        ["Copy"]
+    );
+    Ok(())
+}
+
+fn assert_volume_device_and_type_physical_values(document: &QuadletDocument) -> Result<(), String> {
+    for (key, expected) in [
+        (
+            VolumeKey::Device,
+            vec![
+                "/srv/pre",
+                r#""/srv/matched %h""#,
+                r#""/srv/unmatched %h"#,
+                concat!("/srv/continued ", "\\"),
+                "",
+            ],
+        ),
+        (
+            VolumeKey::Type,
+            vec!["tmpfs", r#""bind %h""#, r#""unmatched %h"#, concat!("bind ", "\\")],
+        ),
+    ] {
+        assert_eq!(
+            document
+                .entries()
+                .filter(|entry| entry.kind() == EntryKind::Volume(key))
+                .map(|entry| entry.value().primary().text())
+                .collect::<Vec<_>>(),
+            expected
+        );
+    }
+    for (key, continuation) in [(VolumeKey::Device, "two"), (VolumeKey::Type, "continued")] {
+        let entry = document
+            .entries()
+            .find(|entry| entry.kind() == EntryKind::Volume(key) && entry.value().is_continued())
+            .ok_or_else(|| format!("continued volume {key:?} must be retained"))?;
+        assert_eq!(entry.value().continuations()[0].text(), continuation);
+    }
+    Ok(())
+}
+
+#[test]
+fn volume_labels_preserve_physical_values_cardinality_and_scope() -> Result<(), String> {
+    let source = concat!(
+        "[Volume]\n",
+        "Label=pre=one\n",
+        "Label=pre=two\n",
+        "Label=\n",
+        "Label=zeta=last\n",
+        "Label=alpha=first\n",
+        "Label=alpha=final\n",
+        "Label=empty=\n",
+        "Label=embedded=a=b\n",
+        "Label=bare-token\n",
+        "Label=\"quoted=%h value\"\n",
+        "Label=continued=one \\\n",
+        "  two\n",
+    );
+    let result = QuadletDocument::parse(QuadletUnitType::Volume, SourceId::new(310), source)
+        .map_err(|error| error.to_string())?;
+    assert!(result.is_valid(), "{:#?}", result.model_diagnostics());
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Volume(VolumeKey::Label))
+            .map(|entry| entry.value().primary().text())
+            .collect::<Vec<_>>(),
+        [
+            "pre=one",
+            "pre=two",
+            "",
+            "zeta=last",
+            "alpha=first",
+            "alpha=final",
+            "empty=",
+            "embedded=a=b",
+            "bare-token",
+            r#""quoted=%h value""#,
+            "continued=one \\",
+        ]
+    );
+    let continued = result
+        .document()
+        .entries()
+        .find(|entry| entry.kind() == EntryKind::Volume(VolumeKey::Label) && entry.value().is_continued())
+        .ok_or_else(|| "continued volume label must be retained".to_owned())?;
+    assert_eq!(continued.value().continuations()[0].text(), "two");
+
+    let network = QuadletDocument::parse(
+        QuadletUnitType::Network,
+        SourceId::new(311),
+        "[Network]\nLabel=network=value\n",
+    )
+    .map_err(|error| error.to_string())?;
+    assert!(
+        network
+            .document()
+            .entries()
+            .any(|entry| entry.kind() == EntryKind::Network(NetworkKey::Label))
+    );
+    Ok(())
+}
+
+#[test]
+fn network_labels_preserve_physical_values_cardinality_and_scope() -> Result<(), String> {
+    let source = concat!(
+        "[Network]\n",
+        "Label=pre=one\n",
+        "Label=pre=two\n",
+        "Label=\n",
+        "Label=zeta=last\n",
+        "Label=alpha=first\n",
+        "Label=alpha=final\n",
+        "Label=empty=\n",
+        "Label=embedded=a=b\n",
+        "Label=bare-token\n",
+        "Label=\"quoted=%h value\"\n",
+        "Label=continued=one \\\n",
+        "  two\n",
+    );
+    let result = QuadletDocument::parse(QuadletUnitType::Network, SourceId::new(308), source)
+        .map_err(|error| error.to_string())?;
+    assert!(result.is_valid(), "{:#?}", result.model_diagnostics());
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Network(NetworkKey::Label))
+            .map(|entry| entry.value().primary().text())
+            .collect::<Vec<_>>(),
+        [
+            "pre=one",
+            "pre=two",
+            "",
+            "zeta=last",
+            "alpha=first",
+            "alpha=final",
+            "empty=",
+            "embedded=a=b",
+            "bare-token",
+            r#""quoted=%h value""#,
+            "continued=one \\",
+        ]
+    );
+    let continued = result
+        .document()
+        .entries()
+        .find(|entry| entry.kind() == EntryKind::Network(NetworkKey::Label) && entry.value().is_continued())
+        .ok_or_else(|| "continued network label must be retained".to_owned())?;
+    assert_eq!(continued.value().continuations()[0].text(), "two");
+
+    let container = QuadletDocument::parse(
+        QuadletUnitType::Container,
+        SourceId::new(309),
+        "[Container]\nImage=example.invalid/app\nLabel=container=value\n",
+    )
+    .map_err(|error| error.to_string())?;
+    assert!(
+        container
+            .document()
+            .entries()
+            .any(|entry| entry.kind() == EntryKind::Container(ContainerKey::Label))
+    );
+    Ok(())
+}
+
+#[test]
+fn network_internal_and_ipv6_preserve_opaque_values_cardinality_and_scope() -> Result<(), String> {
+    let source = concat!(
+        "[Network]\n",
+        "Internal=true\n",
+        "Internal=false\n",
+        "Internal=\"Vendor-%n Internal\" \\\n",
+        "  continued-internal\n",
+        "IPv6=true\n",
+        "IPv6=false\n",
+        "IPv6=\"Vendor-%n IPv6\"\n",
+    );
+    let result = QuadletDocument::parse(QuadletUnitType::Network, SourceId::new(308), source)
+        .map_err(|error| error.to_string())?;
+    assert!(result.is_valid(), "{:#?}", result.model_diagnostics());
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .model_diagnostics()
+            .iter()
+            .map(|diagnostic| diagnostic.code().as_str())
+            .collect::<Vec<_>>(),
+        ["QLM0004", "QLM0004", "QLM0004", "QLM0004"]
+    );
+    let internal: Vec<_> = result
+        .document()
+        .entries()
+        .filter(|entry| entry.kind() == EntryKind::Network(NetworkKey::Internal))
+        .collect();
+    assert_eq!(internal.len(), 3);
+    assert!(internal.iter().all(|entry| entry.value_kind() == ValueKind::Opaque));
+    assert_eq!(internal[0].value().primary().text(), "true");
+    assert_eq!(internal[1].value().primary().text(), "false");
+    assert_eq!(internal[2].value().primary().text(), "\"Vendor-%n Internal\" \\");
+    assert_eq!(internal[2].value().continuations()[0].text(), "continued-internal");
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Network(NetworkKey::IPv6))
+            .map(|entry| entry.value().primary().text())
+            .collect::<Vec<_>>(),
+        ["true", "false", r#""Vendor-%n IPv6""#]
+    );
+
+    let container = QuadletDocument::parse(
+        QuadletUnitType::Container,
+        SourceId::new(309),
+        "[Container]\nImage=example.invalid/app\nInternal=true\nIPv6=false\n",
+    )
+    .map_err(|error| error.to_string())?;
+    assert_eq!(
+        container
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Unknown)
+            .map(|entry| entry.key().text())
+            .collect::<Vec<_>>(),
+        ["Internal", "IPv6"]
+    );
+    Ok(())
+}
+
+#[test]
+fn network_ipam_values_preserve_physical_columns_resets_and_scope() -> Result<(), String> {
+    let source = concat!(
+        "[Network]\n",
+        "IPAMDriver=host-local\n",
+        "IPAMDriver=\n",
+        "Subnet=10.88.0.0/24\n",
+        "Subnet=10.89.0.0/24\n",
+        "Subnet=\n",
+        "Subnet=\"10.90.0.0/24\"\n",
+        "Subnet=10.91.0.0/24 \\\n",
+        "  continued-subnet\n",
+        "Gateway=10.88.0.1\n",
+        "Gateway=10.89.0.1\n",
+        "Gateway=\n",
+        "Gateway=\"10.90.0.1\"\n",
+        "Gateway=10.91.0.1\n",
+        "IPRange=10.88.0.64/26\n",
+        "IPRange=10.89.0.64/26\n",
+        "IPRange=\n",
+        "IPRange=\"10.90.0.64/26\"\n",
+        "IPRange=10.91.0.64/26\n",
+    );
+    let result = QuadletDocument::parse(QuadletUnitType::Network, SourceId::new(309), source)
+        .map_err(|error| error.to_string())?;
+    assert!(result.is_valid(), "{:#?}", result.model_diagnostics());
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Network(NetworkKey::IPAMDriver))
+            .map(|entry| entry.value().primary().text())
+            .collect::<Vec<_>>(),
+        ["host-local", ""]
+    );
+    assert_network_ipam_columns(&result)?;
+    assert_eq!(
+        result
+            .model_diagnostics()
+            .iter()
+            .map(|diagnostic| diagnostic.code().as_str())
+            .collect::<Vec<_>>(),
+        ["QLM0004"]
+    );
+
+    let container = QuadletDocument::parse(
+        QuadletUnitType::Container,
+        SourceId::new(310),
+        "[Container]\nImage=example.invalid/app\nIPAMDriver=host-local\nSubnet=10.88.0.0/24\nGateway=10.88.0.1\nIPRange=10.88.0.64/26\n",
+    )
+    .map_err(|error| error.to_string())?;
+    assert_eq!(
+        container
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Unknown)
+            .map(|entry| entry.key().text())
+            .collect::<Vec<_>>(),
+        ["IPAMDriver", "Subnet", "Gateway", "IPRange"]
     );
     Ok(())
 }
@@ -2425,6 +3137,56 @@ fn assert_fixture_memory(result: &quadlet_lens::model::QuadletParseResult) -> Re
             .text(),
         "16777216b"
     );
+    Ok(())
+}
+
+fn assert_network_ipam_columns(result: &quadlet_lens::model::QuadletParseResult) -> Result<(), String> {
+    for (key, expected) in [
+        (
+            NetworkKey::Subnet,
+            vec![
+                "10.88.0.0/24",
+                "10.89.0.0/24",
+                "",
+                r#""10.90.0.0/24""#,
+                "10.91.0.0/24 \\",
+            ],
+        ),
+        (
+            NetworkKey::Gateway,
+            vec!["10.88.0.1", "10.89.0.1", "", r#""10.90.0.1""#, "10.91.0.1"],
+        ),
+        (
+            NetworkKey::IPRange,
+            vec![
+                "10.88.0.64/26",
+                "10.89.0.64/26",
+                "",
+                r#""10.90.0.64/26""#,
+                "10.91.0.64/26",
+            ],
+        ),
+    ] {
+        let entries: Vec<_> = result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Network(key))
+            .collect();
+        assert_eq!(
+            entries
+                .iter()
+                .map(|entry| entry.value().primary().text())
+                .collect::<Vec<_>>(),
+            expected
+        );
+        assert!(entries.iter().all(|entry| entry.value_kind() == ValueKind::Opaque));
+    }
+    let subnet = result
+        .document()
+        .entries()
+        .find(|entry| entry.kind() == EntryKind::Network(NetworkKey::Subnet) && entry.value().is_continued())
+        .ok_or_else(|| "continued subnet must be retained".to_owned())?;
+    assert_eq!(subnet.value().continuations()[0].text(), "continued-subnet");
     Ok(())
 }
 

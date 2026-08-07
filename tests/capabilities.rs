@@ -25,8 +25,8 @@ fn supported_range_has_the_reviewed_first_conversion_surface() -> Result<(), Str
         .collect();
     let expected: BTreeSet<_> = EXPECTED_CAPABILITIES.lines().filter(|line| !line.is_empty()).collect();
     assert_eq!(actual, expected);
-    assert_eq!(catalogue.capabilities().len(), 74);
-    assert_eq!(catalogue.evidence().len(), 155);
+    assert_eq!(catalogue.capabilities().len(), 94);
+    assert_eq!(catalogue.evidence().len(), 260);
 
     let documentation: Vec<_> = catalogue
         .evidence()
@@ -34,7 +34,7 @@ fn supported_range_has_the_reviewed_first_conversion_surface() -> Result<(), Str
         .filter(|evidence| evidence.level() == VerificationLevel::Documentation)
         .collect();
     assert!(!documentation.is_empty());
-    assert_eq!(documentation.len(), 139);
+    assert_eq!(documentation.len(), 229);
     assert!(documentation.iter().all(|evidence| evidence.gap().is_some()));
     let generator = catalogue
         .evidence()
@@ -644,6 +644,471 @@ fn supported_range_records_repeatable_container_add_device() -> Result<(), Strin
                 .classification(),
             expected
         );
+    }
+    Ok(())
+}
+
+#[test]
+fn supported_range_records_container_logging() -> Result<(), String> {
+    let catalogue = CapabilityCatalogue::supported_range().map_err(|error| error.to_string())?;
+    for (id, repeatable, value_form, evidence) in [
+        (
+            "quadlet.container.log-driver",
+            false,
+            "opaque-one-line-log-driver",
+            [
+                "podman-5-4-container-log-driver",
+                "podman-6-0-2-container-log-driver",
+                "podman-5-4-container-logging-command-source",
+                "podman-6-0-2-container-logging-command-source",
+                "podman-5-4-container-log-driver-lookup-source",
+                "podman-6-0-2-container-log-driver-lookup-source",
+                "podman-5-4-through-current-container-logging-generators",
+            ],
+        ),
+        (
+            "quadlet.container.log-opt",
+            true,
+            "opaque-one-line-log-option",
+            [
+                "podman-5-4-container-log-opt",
+                "podman-6-0-2-container-log-opt",
+                "podman-5-4-container-logging-command-source",
+                "podman-6-0-2-container-logging-command-source",
+                "podman-5-4-container-log-opt-reset-source",
+                "podman-6-0-2-container-log-opt-reset-source",
+                "podman-5-4-through-current-container-logging-generators",
+            ],
+        ),
+    ] {
+        let capability = catalogue.capability(id).ok_or_else(|| format!("{id} must exist"))?;
+        assert_eq!(capability.unit_types(), ["container"]);
+        assert_eq!(capability.sections(), ["Container"]);
+        assert_eq!(capability.is_repeatable(), repeatable);
+        assert_eq!(capability.value_forms(), [value_form]);
+        assert_eq!(capability.evidence(), evidence);
+        let native = capability
+            .native_range()
+            .ok_or_else(|| format!("{id} must have native coverage"))?;
+        assert_eq!(native.minimum(), version(5, 4, 0));
+        assert_eq!(native.maximum(), version(6, 0, 2));
+
+        for (target, expected) in [
+            (version(5, 3, 0), SupportClassification::Unknown),
+            (version(5, 4, 0), SupportClassification::Native),
+            (version(6, 0, 2), SupportClassification::Native),
+            (version(6, 0, 3), SupportClassification::Unknown),
+        ] {
+            let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
+            assert_eq!(catalogue.evaluate(id, target).classification(), expected);
+        }
+    }
+    Ok(())
+}
+
+#[test]
+fn supported_range_records_container_network_identity() -> Result<(), String> {
+    let catalogue = CapabilityCatalogue::supported_range().map_err(|error| error.to_string())?;
+    for (id, repeatable, value_form, evidence) in [
+        (
+            "quadlet.container.ip",
+            false,
+            "opaque-one-line-ipv4-address",
+            [
+                "podman-5-4-container-ip",
+                "podman-6-0-2-container-ip",
+                "podman-5-4-through-current-container-network-identity-generators",
+            ],
+        ),
+        (
+            "quadlet.container.ip6",
+            false,
+            "opaque-one-line-ipv6-address",
+            [
+                "podman-5-4-container-ip6",
+                "podman-6-0-2-container-ip6",
+                "podman-5-4-through-current-container-network-identity-generators",
+            ],
+        ),
+        (
+            "quadlet.container.network-alias",
+            true,
+            "opaque-one-line-network-alias",
+            [
+                "podman-5-4-container-network-alias",
+                "podman-6-0-2-container-network-alias",
+                "podman-5-4-through-current-container-network-identity-generators",
+            ],
+        ),
+    ] {
+        let capability = catalogue.capability(id).ok_or_else(|| format!("{id} must exist"))?;
+        assert_eq!(capability.unit_types(), ["container"]);
+        assert_eq!(capability.sections(), ["Container"]);
+        assert_eq!(capability.is_repeatable(), repeatable);
+        assert_eq!(capability.value_forms(), [value_form]);
+        assert_eq!(capability.evidence(), evidence);
+        let native = capability
+            .native_range()
+            .ok_or_else(|| format!("{id} must have native coverage"))?;
+        assert_eq!(native.minimum(), version(5, 4, 0));
+        assert_eq!(native.maximum(), version(6, 0, 2));
+
+        for (target, expected) in [
+            (version(5, 3, 0), SupportClassification::Unknown),
+            (version(5, 4, 0), SupportClassification::Native),
+            (version(6, 0, 2), SupportClassification::Native),
+            (version(6, 0, 3), SupportClassification::Unknown),
+        ] {
+            let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
+            assert_eq!(catalogue.evaluate(id, target).classification(), expected);
+        }
+    }
+    Ok(())
+}
+
+#[test]
+fn supported_range_records_network_driver_and_options() -> Result<(), String> {
+    let catalogue = CapabilityCatalogue::supported_range().map_err(|error| error.to_string())?;
+    let cases: [(&str, bool, &str, &[&str]); 2] = [
+        (
+            "quadlet.network.driver",
+            false,
+            "opaque-one-line-network-driver",
+            &[
+                "podman-5-4-network-driver",
+                "podman-6-0-2-network-driver",
+                "podman-5-4-network-driver-command-source",
+                "podman-6-0-2-network-driver-command-source",
+                "podman-5-4-network-driver-lookup-source",
+                "podman-6-0-2-network-driver-lookup-source",
+                "podman-5-4-through-current-network-driver-options-generators",
+            ],
+        ),
+        (
+            "quadlet.network.options",
+            true,
+            "opaque-one-line-network-option",
+            &[
+                "podman-5-4-network-options",
+                "podman-6-0-2-network-options",
+                "podman-5-4-network-options-command-source",
+                "podman-6-0-2-network-options-command-source",
+                "podman-5-4-network-options-reset-source",
+                "podman-5-4-network-options-collapse-bare-source",
+                "podman-5-4-network-options-sort-source",
+                "podman-6-0-2-network-options-reset-source",
+                "podman-6-0-2-network-options-collapse-bare-source",
+                "podman-6-0-2-network-options-sort-bare-source",
+                "podman-5-4-through-current-network-driver-options-generators",
+            ],
+        ),
+    ];
+    for (id, repeatable, value_form, evidence) in cases {
+        let capability = catalogue.capability(id).ok_or_else(|| format!("{id} must exist"))?;
+        assert_eq!(capability.unit_types(), ["network"]);
+        assert_eq!(capability.sections(), ["Network"]);
+        assert_eq!(capability.is_repeatable(), repeatable);
+        assert_eq!(capability.value_forms(), [value_form]);
+        assert_eq!(capability.evidence(), evidence);
+        let native = capability
+            .native_range()
+            .ok_or_else(|| format!("{id} must have native coverage"))?;
+        assert_eq!(native.minimum(), version(5, 4, 0));
+        assert_eq!(native.maximum(), version(6, 0, 2));
+
+        for (target, expected) in [
+            (version(5, 3, 0), SupportClassification::Unknown),
+            (version(5, 4, 0), SupportClassification::Native),
+            (version(6, 0, 2), SupportClassification::Native),
+            (version(6, 0, 3), SupportClassification::Unknown),
+        ] {
+            let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
+            assert_eq!(catalogue.evaluate(id, target).classification(), expected);
+        }
+    }
+    Ok(())
+}
+
+#[test]
+fn supported_range_records_volume_driver_options_device_type_and_copy() -> Result<(), String> {
+    let catalogue = CapabilityCatalogue::supported_range().map_err(|error| error.to_string())?;
+    let cases: [(&str, &str, &[&str]); 5] = [
+        (
+            "quadlet.volume.driver",
+            "opaque-one-line-volume-driver",
+            &[
+                "podman-5-4-volume-driver",
+                "podman-6-0-2-volume-driver",
+                "podman-5-4-volume-options-command-source",
+                "podman-6-0-2-volume-options-command-source",
+                "podman-5-4-volume-options-lookup-source",
+                "podman-6-0-2-volume-options-lookup-source",
+                "podman-5-4-through-current-volume-driver-options-generators",
+            ],
+        ),
+        (
+            "quadlet.volume.options",
+            "opaque-one-line-volume-mount-options",
+            &[
+                "podman-5-4-volume-options-command-source",
+                "podman-6-0-2-volume-options-command-source",
+                "podman-5-4-volume-options-lookup-source",
+                "podman-6-0-2-volume-options-lookup-source",
+                "podman-5-8-2-volume-options-unmatched-quote-source",
+                "podman-5-4-through-current-volume-driver-options-generators",
+                "podman-5-4-through-5-8-volume-options-device-rejection",
+                "podman-6-0-through-current-volume-options-without-device-generators",
+                "podman-5-4-through-current-volume-options-unmatched-quote-generators",
+            ],
+        ),
+        (
+            "quadlet.volume.device",
+            "opaque-one-line-volume-device",
+            &[
+                "podman-5-4-volume-device",
+                "podman-6-0-2-volume-device",
+                "podman-5-4-volume-options-command-source",
+                "podman-6-0-2-volume-options-command-source",
+                "podman-5-4-volume-options-lookup-source",
+                "podman-6-0-2-volume-options-lookup-source",
+                "podman-5-8-2-volume-options-unmatched-quote-source",
+                "podman-5-4-through-current-volume-device-type-generators",
+                "podman-5-4-through-current-volume-type-bind-requires-mounts-generators",
+            ],
+        ),
+        (
+            "quadlet.volume.type",
+            "opaque-one-line-volume-type",
+            &[
+                "podman-5-4-volume-type",
+                "podman-6-0-2-volume-type",
+                "podman-5-4-volume-options-command-source",
+                "podman-6-0-2-volume-options-command-source",
+                "podman-5-4-volume-options-lookup-source",
+                "podman-6-0-2-volume-options-lookup-source",
+                "podman-5-8-2-volume-options-unmatched-quote-source",
+                "podman-5-4-through-current-volume-device-type-generators",
+                "podman-5-4-through-current-volume-type-without-device-rejection",
+                "podman-5-4-through-current-volume-type-bind-requires-mounts-generators",
+            ],
+        ),
+        (
+            "quadlet.volume.copy",
+            "opaque-one-line-volume-copy",
+            &[
+                "podman-5-4-volume-copy",
+                "podman-6-0-2-volume-copy",
+                "podman-5-4-volume-copy-command-source",
+                "podman-6-0-2-volume-copy-command-source",
+                "podman-5-4-volume-copy-parser-source",
+                "podman-6-0-2-volume-copy-parser-source",
+                "podman-5-8-2-volume-copy-unmatched-quote-parser-source",
+                "podman-5-4-through-current-volume-copy-generators",
+            ],
+        ),
+    ];
+    for (id, value_form, evidence) in cases {
+        let capability = catalogue.capability(id).ok_or_else(|| format!("{id} must exist"))?;
+        assert_eq!(capability.unit_types(), ["volume"]);
+        assert_eq!(capability.sections(), ["Volume"]);
+        assert!(!capability.is_repeatable());
+        assert_eq!(capability.value_forms(), [value_form]);
+        assert_eq!(capability.evidence(), evidence);
+        let native = capability
+            .native_range()
+            .ok_or_else(|| format!("{id} must have native coverage"))?;
+        assert_eq!(native.minimum(), version(5, 4, 0));
+        assert_eq!(native.maximum(), version(6, 0, 2));
+        for (target, expected) in [
+            (version(5, 3, 0), SupportClassification::Unknown),
+            (version(5, 4, 0), SupportClassification::Native),
+            (version(6, 0, 2), SupportClassification::Native),
+            (version(6, 0, 3), SupportClassification::Unknown),
+        ] {
+            let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
+            assert_eq!(catalogue.evaluate(id, target).classification(), expected);
+        }
+    }
+    Ok(())
+}
+
+#[test]
+fn supported_range_records_network_labels() -> Result<(), String> {
+    let catalogue = CapabilityCatalogue::supported_range().map_err(|error| error.to_string())?;
+    let capability = catalogue
+        .capability("quadlet.network.label")
+        .ok_or_else(|| "network label capability must exist".to_owned())?;
+    assert_eq!(capability.unit_types(), ["network"]);
+    assert_eq!(capability.sections(), ["Network"]);
+    assert!(capability.is_repeatable());
+    assert_eq!(capability.value_forms(), ["opaque-one-line-network-label"]);
+    assert_eq!(
+        capability.evidence(),
+        [
+            "podman-5-4-network-label",
+            "podman-6-0-2-network-label",
+            "podman-5-4-network-label-command-source",
+            "podman-6-0-2-network-label-command-source",
+            "podman-5-4-network-label-reset-source",
+            "podman-6-0-2-network-label-reset-source",
+            "podman-5-4-network-label-tokenization-source",
+            "podman-6-0-2-network-label-tokenization-source",
+            "podman-5-4-network-label-sort-source",
+            "podman-6-0-2-network-label-sort-source",
+            "podman-5-4-through-current-network-label-generators",
+        ]
+    );
+    let native = capability
+        .native_range()
+        .ok_or_else(|| "network label must have native coverage".to_owned())?;
+    assert_eq!(native.minimum(), version(5, 4, 0));
+    assert_eq!(native.maximum(), version(6, 0, 2));
+    for (target, expected) in [
+        (version(5, 3, 0), SupportClassification::Unknown),
+        (version(5, 4, 0), SupportClassification::Native),
+        (version(6, 0, 2), SupportClassification::Native),
+        (version(6, 0, 3), SupportClassification::Unknown),
+    ] {
+        let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
+        assert_eq!(
+            catalogue.evaluate("quadlet.network.label", target).classification(),
+            expected
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn supported_range_records_volume_labels() -> Result<(), String> {
+    let catalogue = CapabilityCatalogue::supported_range().map_err(|error| error.to_string())?;
+    let capability = catalogue
+        .capability("quadlet.volume.label")
+        .ok_or_else(|| "volume label capability must exist".to_owned())?;
+    assert_eq!(capability.unit_types(), ["volume"]);
+    assert_eq!(capability.sections(), ["Volume"]);
+    assert!(capability.is_repeatable());
+    assert_eq!(capability.value_forms(), ["opaque-one-line-volume-label"]);
+    assert_eq!(
+        capability.evidence(),
+        [
+            "podman-5-4-volume-label",
+            "podman-6-0-2-volume-label",
+            "podman-5-4-volume-label-command-source",
+            "podman-6-0-2-volume-label-command-source",
+            "podman-5-4-volume-label-reset-source",
+            "podman-6-0-2-volume-label-reset-source",
+            "podman-5-4-volume-label-parser-source",
+            "podman-6-0-2-volume-label-parser-source",
+            "podman-5-4-volume-label-helper-source",
+            "podman-6-0-2-volume-label-helper-source",
+            "podman-5-4-through-current-volume-label-generators",
+        ]
+    );
+    let native = capability
+        .native_range()
+        .ok_or_else(|| "volume label must have native coverage".to_owned())?;
+    assert_eq!(native.minimum(), version(5, 4, 0));
+    assert_eq!(native.maximum(), version(6, 0, 2));
+    for (target, expected) in [
+        (version(5, 3, 0), SupportClassification::Unknown),
+        (version(5, 4, 0), SupportClassification::Native),
+        (version(6, 0, 2), SupportClassification::Native),
+        (version(6, 0, 3), SupportClassification::Unknown),
+    ] {
+        let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
+        assert_eq!(
+            catalogue.evaluate("quadlet.volume.label", target).classification(),
+            expected
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn supported_range_records_network_ipam_columns() -> Result<(), String> {
+    let catalogue = CapabilityCatalogue::supported_range().map_err(|error| error.to_string())?;
+    let cases: [(&str, bool, &str); 4] = [
+        ("quadlet.network.ipam-driver", false, "opaque-one-line-ipam-driver"),
+        ("quadlet.network.subnet", true, "opaque-one-line-network-subnet"),
+        ("quadlet.network.gateway", true, "opaque-one-line-network-gateway"),
+        ("quadlet.network.ip-range", true, "opaque-one-line-network-ip-range"),
+    ];
+    for (id, repeatable, value_form) in cases {
+        let capability = catalogue.capability(id).ok_or_else(|| format!("{id} must exist"))?;
+        assert_eq!(capability.unit_types(), ["network"]);
+        assert_eq!(capability.sections(), ["Network"]);
+        assert_eq!(capability.is_repeatable(), repeatable);
+        assert_eq!(capability.value_forms(), [value_form]);
+        let native = capability
+            .native_range()
+            .ok_or_else(|| format!("{id} must have native coverage"))?;
+        assert_eq!(native.minimum(), version(5, 4, 0));
+        assert_eq!(native.maximum(), version(6, 0, 2));
+        for (target, expected) in [
+            (version(5, 3, 0), SupportClassification::Unknown),
+            (version(5, 4, 0), SupportClassification::Native),
+            (version(6, 0, 2), SupportClassification::Native),
+            (version(6, 0, 3), SupportClassification::Unknown),
+        ] {
+            let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
+            assert_eq!(catalogue.evaluate(id, target).classification(), expected);
+        }
+    }
+    Ok(())
+}
+
+#[test]
+fn supported_range_records_network_internal_and_ipv6() -> Result<(), String> {
+    let catalogue = CapabilityCatalogue::supported_range().map_err(|error| error.to_string())?;
+    let cases: [(&str, &str, &[&str]); 2] = [
+        (
+            "quadlet.network.internal",
+            "opaque-one-line-network-internal",
+            &[
+                "podman-5-4-network-internal",
+                "podman-6-0-2-network-internal",
+                "podman-5-4-network-boolean-command-source",
+                "podman-6-0-2-network-boolean-command-source",
+                "podman-5-4-network-boolean-lookup-source",
+                "podman-6-0-2-network-boolean-lookup-source",
+                "podman-5-4-through-current-network-boolean-generators",
+            ],
+        ),
+        (
+            "quadlet.network.ipv6",
+            "opaque-one-line-network-ipv6",
+            &[
+                "podman-5-4-network-ipv6",
+                "podman-6-0-2-network-ipv6",
+                "podman-5-4-network-boolean-command-source",
+                "podman-6-0-2-network-boolean-command-source",
+                "podman-5-4-network-boolean-lookup-source",
+                "podman-6-0-2-network-boolean-lookup-source",
+                "podman-5-4-through-current-network-boolean-generators",
+            ],
+        ),
+    ];
+    for (id, value_form, evidence) in cases {
+        let capability = catalogue.capability(id).ok_or_else(|| format!("{id} must exist"))?;
+        assert_eq!(capability.unit_types(), ["network"]);
+        assert_eq!(capability.sections(), ["Network"]);
+        assert!(!capability.is_repeatable());
+        assert_eq!(capability.value_forms(), [value_form]);
+        assert_eq!(capability.evidence(), evidence);
+        let native = capability
+            .native_range()
+            .ok_or_else(|| format!("{id} must have native coverage"))?;
+        assert_eq!(native.minimum(), version(5, 4, 0));
+        assert_eq!(native.maximum(), version(6, 0, 2));
+        for (target, expected) in [
+            (version(5, 3, 0), SupportClassification::Unknown),
+            (version(5, 4, 0), SupportClassification::Native),
+            (version(6, 0, 2), SupportClassification::Native),
+            (version(6, 0, 3), SupportClassification::Unknown),
+        ] {
+            let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
+            assert_eq!(catalogue.evaluate(id, target).classification(), expected);
+        }
     }
     Ok(())
 }

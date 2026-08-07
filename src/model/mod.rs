@@ -218,6 +218,16 @@ pub enum ContainerKey {
     Mask,
     /// Authored container path list passed to Podman's unmask security option.
     Unmask,
+    /// Authored logging driver passed to the container.
+    LogDriver,
+    /// Authored logging options passed to the container.
+    LogOpt,
+    /// Authored static IPv4 address passed to the container.
+    IP,
+    /// Authored static IPv6 address passed to the container.
+    IP6,
+    /// Authored alias assigned to the container on its selected network.
+    NetworkAlias,
 }
 
 /// Pod keys required by the first Compose-to-Quadlet conversion.
@@ -246,6 +256,24 @@ pub enum PodKey {
 pub enum NetworkKey {
     /// Runtime name assigned to the generated Podman network.
     NetworkName,
+    /// Authored Podman network driver selection.
+    Driver,
+    /// Authored Podman network creation options.
+    Options,
+    /// Authored external-access restriction for the network.
+    Internal,
+    /// Authored dual-stack IPv6 network selection.
+    IPv6,
+    /// Authored IP address-management driver selection.
+    IPAMDriver,
+    /// Authored network subnet column value.
+    Subnet,
+    /// Authored gateway column value paired by the target with a subnet.
+    Gateway,
+    /// Authored allocatable address-range column value paired by the target with a subnet.
+    IPRange,
+    /// Authored OCI label assignment for the network.
+    Label,
 }
 
 /// Volume keys required by the first conversion.
@@ -254,6 +282,18 @@ pub enum NetworkKey {
 pub enum VolumeKey {
     /// Runtime name assigned to the generated Podman volume.
     VolumeName,
+    /// Authored Podman volume-driver selection.
+    Driver,
+    /// Authored raw mount-option string passed as one `o=` volume option.
+    Options,
+    /// Authored OCI label assignment attached to the volume.
+    Label,
+    /// Authored volume source passed as the local driver's `device` option.
+    Device,
+    /// Authored filesystem type passed as the local driver's `type` option.
+    Type,
+    /// Authored opaque copy-up selection retained without boolean coercion.
+    Copy,
 }
 
 /// Typed role of an authored entry.
@@ -305,8 +345,18 @@ impl EntryKind {
                         | ContainerKey::Annotation
                         | ContainerKey::Mask
                         | ContainerKey::Unmask
+                        | ContainerKey::LogOpt
+                        | ContainerKey::NetworkAlias
                 )
                 | Self::Pod(PodKey::AddHost | PodKey::PublishPort | PodKey::Network | PodKey::Volume)
+                | Self::Network(
+                    NetworkKey::Options
+                        | NetworkKey::Subnet
+                        | NetworkKey::Gateway
+                        | NetworkKey::IPRange
+                        | NetworkKey::Label
+                )
+                | Self::Volume(VolumeKey::Label)
                 | Self::Unknown
         )
     }
@@ -877,6 +927,11 @@ fn classify_entry(section: SectionKind, key: &str) -> EntryKind {
             "SecurityLabelType" => EntryKind::Container(ContainerKey::SecurityLabelType),
             "Mask" => EntryKind::Container(ContainerKey::Mask),
             "Unmask" => EntryKind::Container(ContainerKey::Unmask),
+            "LogDriver" => EntryKind::Container(ContainerKey::LogDriver),
+            "LogOpt" => EntryKind::Container(ContainerKey::LogOpt),
+            "IP" => EntryKind::Container(ContainerKey::IP),
+            "IP6" => EntryKind::Container(ContainerKey::IP6),
+            "NetworkAlias" => EntryKind::Container(ContainerKey::NetworkAlias),
             _ => EntryKind::Unknown,
         },
         SectionKind::Pod => match key {
@@ -891,14 +946,34 @@ fn classify_entry(section: SectionKind, key: &str) -> EntryKind {
         },
         SectionKind::Network => match key {
             "NetworkName" => EntryKind::Network(NetworkKey::NetworkName),
+            "Driver" => EntryKind::Network(NetworkKey::Driver),
+            "Options" => EntryKind::Network(NetworkKey::Options),
+            "Internal" => EntryKind::Network(NetworkKey::Internal),
+            "IPv6" => EntryKind::Network(NetworkKey::IPv6),
+            "IPAMDriver" => EntryKind::Network(NetworkKey::IPAMDriver),
+            "Subnet" => EntryKind::Network(NetworkKey::Subnet),
+            "Gateway" => EntryKind::Network(NetworkKey::Gateway),
+            "IPRange" => EntryKind::Network(NetworkKey::IPRange),
+            "Label" => EntryKind::Network(NetworkKey::Label),
             _ => EntryKind::Unknown,
         },
-        SectionKind::Volume => match key {
-            "VolumeName" => EntryKind::Volume(VolumeKey::VolumeName),
-            _ => EntryKind::Unknown,
-        },
+        SectionKind::Volume => classify_volume_entry(key),
         SectionKind::Unknown => EntryKind::Unknown,
     }
+}
+
+fn classify_volume_entry(key: &str) -> EntryKind {
+    let key = match key {
+        "VolumeName" => VolumeKey::VolumeName,
+        "Driver" => VolumeKey::Driver,
+        "Options" => VolumeKey::Options,
+        "Label" => VolumeKey::Label,
+        "Device" => VolumeKey::Device,
+        "Type" => VolumeKey::Type,
+        "Copy" => VolumeKey::Copy,
+        _ => return EntryKind::Unknown,
+    };
+    EntryKind::Volume(key)
 }
 
 fn classify_value(kind: EntryKind, raw: &str) -> ValueKind {

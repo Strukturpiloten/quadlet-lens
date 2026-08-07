@@ -1,0 +1,18 @@
+schema = 1
+id = "volume-options-without-device-supported-range"
+suite = "generators"
+description = "Records the exact Podman boundary for singleton Volume Options without Device."
+secrets_reviewed = true
+files = ["expected-fragments.txt", "options-without-device.volume"]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "The harness mounts this directory read-only and invokes only exact Podman Quadlet generators in dry-run mode. It does not create a volume or inspect a mount."
+
+[expectations]
+summary = "Podman 5.4.0 through 5.8.5 reject Options without Device; Podman 6.0.0 through 6.0.2 accept it and emit one `--opt o=without-device` argument."

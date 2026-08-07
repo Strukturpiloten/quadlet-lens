@@ -1,0 +1,4 @@
+[Network]
+NetworkName=quadlet-lens-ipam-blank
+IPAMDriver=
+Subnet=10.214.0.0/24

@@ -72,6 +72,59 @@ It deliberately authors no leading `-`. All four isolated fixtures exercise gene
 never start a container. See the
 [matrix documentation](generator-matrix.md).
 
+A separate container-logging fixture authors one singleton `LogDriver`, two pre-reset `LogOpt`
+entries, an empty reset, and two final options. Every selected patch must emit one
+`--log-driver k8s-file` argument and exactly two ordered final post-reset `--log-opt` arguments,
+with no pre-reset or alternate form. It validates command construction only and reads no logs.
+
+A separate network-identity fixture authors singleton `IP` and `IP6`, one `Network=bridge`, two
+pre-reset aliases, an empty reset, and two final aliases. Every selected patch must emit one
+`--ip`, one `--ip6`, one network selection, and exactly two ordered final aliases without a
+pre-reset or alternate form. The assertion deliberately ignores map-dependent relative ordering
+between network selection and identity flags and makes no address, IPAM, DNS, network-option,
+runtime, or cross-format claim.
+
+A separate network-driver/options fixture authors singleton `Driver=bridge`, pre-reset options,
+an empty reset, duplicate final `alpha` assignments, a later `zeta` assignment, and a bare token.
+Every selected patch proves the final driver, reset, duplicate-key collapse, and sorted retained
+options; assertions separately require 5.4.0 to drop the bare token and 6.0.2 to emit it. The
+fixture does not validate a driver, provider option semantics, create a network, or inspect runtime
+state.
+
+A separate network-label fixture authors pre-reset labels, an empty reset, a final duplicate key,
+explicit empty and embedded-equals values, a bare value, and quoted whitespace. Every selected
+patch proves reset, last-wins duplicate collapse, sorted final keys, `key=`, `key=a=b`, and one
+logical quoted-whitespace argument. Bare labels are absent through 5.5.2 and present exactly once
+from 5.6.0 onward. It asserts generated command presentation only; it does not create or inspect
+networks or claim runtime label behavior.
+
+A separate volume-label fixture covers the same physical forms independently. Every selected patch
+proves reset, final duplicate-key collapse, sorted labels, `key=`, `key=a=b`, and quoted
+whitespace. Bare labels are absent through 5.5.2 and present exactly once from 5.6.0 onward; the
+fixture records literal-space command presentation in 5.4.x and `\\x20` from 5.5.0 onward. It
+does not create or inspect a volume or claim runtime label behavior.
+
+A separate network-IPAM fixture authors singleton `IPAMDriver=host-local`, independently reset
+pre-values for `Subnet`, `Gateway`, and `IPRange`, and two final columns. Every selected generator
+must emit one explicit driver, exactly two ordered `--subnet`, `--gateway`, `--ip-range` groups,
+and no pre-reset form; a companion blank-driver unit emits no `--ipam-driver`. Tagged source
+documents the no-subnet and gateway/range-overrun rejections, but the harness does not match their
+plain-text diagnostics because they are not a stable structured error interface.
+
+A separate network-boolean fixture distinguishes omitted, literal true, and literal false
+`Internal` and `IPv6` values. Every selected generator must emit no flag for omission, one plain
+flag for true, and one explicit `=false` flag for false, without asserting relative flag order. It runs only the
+generator; no driver selection, network creation, external isolation, dual-stack behavior, or
+IPv4-enable key is claimed.
+
+A separate volume-driver/options/device/type suite records four opaque singletons. Its all-range
+fixture proves final Device/Type construction, final-empty omission, and quote/specifier/
+continuation presentation; a negative fixture requires Type without Device to fail across all 20
+releases. Type=bind records no additional Device-derived `RequiresMountsFor` through 5.5.2,
+unescaped output through 5.7.1, and quoted `\\x20` output from 5.8.0. It asserts dry-run command
+construction only, never source availability, filesystem support, driver/plugin availability,
+mount creation, rootless behavior, runtime state, Compose `driver_opts`, or BoxFerry policy.
+
 The promoted networking, annotation, and security fixtures cover ordered post-reset output,
 singleton/boolean command construction, and unsupported-version behavior across the complete
 20-patch matrix. AppArmor is rejected through 5.7.1 and accepted from 5.8.0. Model/render tests
@@ -119,7 +172,8 @@ the lower and rolling upper coverage boundaries, and uses synthetic evidence to 
 and known-bug precedence. Capabilities outside the generator fixture retain explicit evidence gaps.
 
 The typed-model suite protects the initial `.container`, `.pod`, `.network`, and `.volume` surface.
-It checks native key classification, repeated container/pod `AddHost` and container `Label`/`Secret`
+It checks native key classification, repeated container/pod `AddHost`, container `Label`/`Secret`,
+and network `Label`
 entries, singleton container `ContainerName`, `RunInit` omission/true/false/raw preservation,
 `StopSignal`, `StopTimeout` (including authored zero), `Pull`, and `PidsLimit`
 omission/supported/raw-value preservation without semantic validation, plus `HostName`
@@ -135,7 +189,12 @@ or grammar validation, plus repeatable opaque container `AddDevice`
 omission/order/case/quoting/specifier/whitespace/reset/duplicate/leading-dash preservation without
 splitting, unquoting, device validation, or runtime interpretation, singleton container `Memory`
 omission/raw/empty/quoted/specifier/duplicate preservation with ordinary singleton diagnostics
-while pod `Memory` remains unknown. The promoted networking, annotation, and security keys are
+while pod `Memory` remains unknown, plus opaque singleton `LogDriver` and repeatable/resettable
+`LogOpt` physical-value, quote, specifier, duplicate, order, scope, and diagnostic preservation.
+Opaque singleton `IP` and `IP6` plus repeatable/resettable `NetworkAlias` likewise protect physical
+values, duplicates, order, empty resets, quotes, specifiers, continuations, scope, and standard
+singleton diagnostics without semantic validation.
+The promoted networking, annotation, and security keys are
 tested as opaque repeatable or singleton values for ordering, resets, duplicates, malformed text,
 scope, and standard diagnostics without key-specific or runtime interpretation. The suite also
 checks singleton pod `UserNS`, generic systemd sections, repeated and unknown
@@ -148,7 +207,8 @@ source identities, and filename/type matching.
 The generation suite constructs `.container`, `.network`, and `.volume` documents, verifies exact
 deterministic output, reparses every result, and resolves the generated cross-file graph. It also
 protects explicit container names, repeated AddHost, environment, label, secret, systemd, and exact
-capability-drop/add, tmpfs, sysctl, and ulimit entries, including raw empty native resets, plus all document-builder
+capability-drop/add, tmpfs, sysctl, ulimit, and logging entries, including raw empty native resets,
+plus all document-builder
 rejection paths, including duplicate lifecycle, policy, and promoted security singletons,
 process-ID-limit, hostname, and container/pod shared-memory singletons. The exact repeatable
 boundary also covers raw host-device mappings, DNS resolver values, DNS resolver options, and mask

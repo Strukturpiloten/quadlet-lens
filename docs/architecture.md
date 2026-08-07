@@ -71,6 +71,42 @@ Container `Memory` is an opaque singleton boundary introduced natively in Podman
 duplicates, empty assignments, quoting, specifiers, and exact one-line values remain source-aware;
 the model does not infer runtime limits or cross-format equivalence. A focused positive-decimal
 construction helper is additive to the unchanged raw-value boundary. Pod `Memory` remains unknown.
+Container `LogDriver` is an opaque singleton, while `LogOpt` is opaque, repeatable, and resettable.
+Both preserve physical values, quotes, specifiers, and authored order without driver/option
+validation, key/value parsing, default injection, or runtime interpretation. Other native scopes
+remain unknown and preserved.
+Container `IP` and `IP6` are opaque singletons, while `NetworkAlias` is opaque, repeatable, and
+resettable. Physical values, duplicates, order, quotes, specifiers, continuations, and standard
+cardinality diagnostics remain source-aware without address, IPAM, DNS, network, runtime, or
+cross-format interpretation. These keys are typed only for containers.
+Network `Driver` is an opaque singleton and `Options` is opaque, repeatable, and resettable.
+Every authored physical option remains available to callers; the model does not apply Podman's
+effective reset, tokenization, duplicate-key collapse, sorting, or version-specific bare-token
+handling, and does not validate driver availability or provider-specific options.
+Network `Label` is likewise opaque, repeatable, and resettable. Its physical entries preserve
+empty resets, duplicates, bare values, embedded equals signs, quotes, specifiers, continuations,
+and source order; target tokenization, map collapse, sorting, and bare-token behavior stay
+generator evidence rather than model semantics.
+Network `Internal` and `IPv6` are separate opaque singletons. Omission, literal true/false,
+duplicates, invalid or vendor-defined spelling, quotes, specifiers, and continuations remain
+source-aware; the model does not parse booleans or adopt Podman's last-value and invalid-as-false
+lookup behavior. `Internal` remains driver-conditional, while `IPv6` describes dual-stack behavior;
+neither key implies an IPv4-enable spelling.
+`IPAMDriver` is likewise an opaque singleton, while `Subnet`, `Gateway`, and `IPRange` are
+opaque repeatable physical entries. QuadletLens preserves their resets, duplicates, quoting,
+specifiers, continuations, and authored order without calculating the generator's indexed
+subnet/gateway/range groups, inferring IPv4 or IPv6 behavior, or creating a network.
+Volume `Driver` and `Options` are opaque singletons. `Options` is one raw mount-option string,
+not a repeatable network-style option map: duplicates, blank values, bare text, quotes,
+specifiers, and continuations remain physical source entries, while generated construction rejects
+duplicate singletons. Tagged-source and generator evidence describe the target's last-value,
+blank-omission, Device prerequisite, and quote-boundary behavior without importing it into the
+model or claiming driver/plugin, mount, rootless, runtime, or cross-format semantics.
+Volume `Label` is opaque, repeatable, and resettable. Its physical entries preserve empty resets,
+duplicates, bare values, embedded equals signs, quotes, specifiers, continuations, and source
+order; target tokenization, map collapse, sorting, and bare-token behavior stay generator evidence
+rather than model semantics.
+Cross-format prefix-complete mapping policy remains BoxFerry-owned.
 Container `DNS`, `DNSOption`, `DNSSearch`, `ExposeHostPort`, `Annotation`, `Mask`,
 and `Unmask` are opaque repeatable boundaries. They preserve every physical value, reset
 assignment, duplicate, and source order without key-specific parsing or runtime interpretation.

@@ -1,0 +1,12 @@
+[Volume]
+VolumeName=volume-labels
+Label=pre-one=discard
+Label=pre-two=discard
+Label=
+Label=zeta=last
+Label=alpha=first
+Label=alpha=final
+Label=empty=
+Label=embedded=a=b
+Label=bare-token
+Label="quoted=one value"

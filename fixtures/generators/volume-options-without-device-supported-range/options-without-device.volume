@@ -1,0 +1,4 @@
+[Volume]
+VolumeName=quadlet-lens-options-without-device
+Driver=local
+Options=without-device

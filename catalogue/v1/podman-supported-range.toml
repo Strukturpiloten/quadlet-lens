@@ -114,6 +114,150 @@ test = "capabilities::supported_range_records_repeatable_container_sysctl"
 gap = "The native model intentionally preserves each authored one-line value without parsing assignments. Runtime namespace state, rootless behavior, kernel acceptance, and actual parameter effects are not tested or claimed."
 
 [[evidence]]
+id = "podman-5-4-container-log-driver"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#logdriver"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Container-unit manual documents LogDriver as the logging driver used by Podman and as equivalent to Podman --log-driver."
+test = "capabilities::supported_range_records_container_logging"
+gap = "QuadletLens preserves the authored one-line value without validating driver names, selecting defaults, starting a workload, or observing log delivery."
+
+[[evidence]]
+id = "podman-6-0-2-container-log-driver"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-systemd.unit.5.html#logdriver"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Container-unit manual retains the LogDriver mapping to Podman --log-driver."
+test = "capabilities::supported_range_records_container_logging"
+gap = "QuadletLens preserves the authored one-line value without validating driver names, selecting defaults, starting a workload, or observing log delivery."
+
+[[evidence]]
+id = "podman-5-4-container-log-opt"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#logopt"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Container-unit manual documents repeatable LogOpt entries as logging options equivalent to Podman --log-opt."
+test = "capabilities::supported_range_records_container_logging"
+gap = "QuadletLens preserves every authored physical value without parsing key/value assignments, validating options, injecting defaults, starting a workload, or observing log delivery."
+
+[[evidence]]
+id = "podman-6-0-2-container-log-opt"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-systemd.unit.5.html#logopt"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Container-unit manual retains repeatable LogOpt entries and their mapping to Podman --log-opt."
+test = "capabilities::supported_range_records_container_logging"
+gap = "QuadletLens preserves every authored physical value without parsing key/value assignments, validating options, injecting defaults, starting a workload, or observing log delivery."
+
+[[evidence]]
+id = "podman-5-4-container-logging-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L1880-L1890"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 source constructs one --log-driver pair from singleton Lookup and one --log-opt pair for each effective word returned by LookupAllStrv."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Tagged source and dry-run generated command text do not validate driver or option names, select defaults, execute a container, or establish logging behavior."
+
+[[evidence]]
+id = "podman-6-0-2-container-logging-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L1937-L1947"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 source retains singleton LogDriver Lookup and repeated LogOpt LookupAllStrv command construction."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Tagged source and dry-run generated command text do not validate driver or option names, select defaults, execute a container, or establish logging behavior."
+
+[[evidence]]
+id = "podman-5-4-container-log-driver-lookup-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/parser/unitfile.go#L600-L621"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 parser source implements singleton Lookup by selecting the last physical value and applying its own whitespace and quote handling."
+test = "model::container_logging_preserves_opaque_physical_values_cardinality_and_scope"
+gap = "QuadletLens preserves every physical authored value and reports duplicate singletons rather than emulating Podman's effective-value selection or unquoting."
+
+[[evidence]]
+id = "podman-6-0-2-container-log-driver-lookup-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/parser/unitfile.go#L605-L629"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 parser source retains last-physical-value singleton Lookup with its current matched-quote and whitespace handling."
+test = "model::container_logging_preserves_opaque_physical_values_cardinality_and_scope"
+gap = "QuadletLens preserves every physical authored value and reports duplicate singletons rather than emulating Podman's effective-value selection or unquoting."
+
+[[evidence]]
+id = "podman-5-4-container-log-opt-reset-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/parser/unitfile.go#L763-L808"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 parser source makes an empty repeated assignment clear earlier LookupAll values before LookupAllStrv applies systemd-compatible whitespace and quote tokenization in authored order."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "This effective generator behavior does not make option splitting, unquoting, or reset application part of QuadletLens's opaque source-aware value model."
+
+[[evidence]]
+id = "podman-6-0-2-container-log-opt-reset-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/parser/unitfile.go#L772-L817"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 parser source retains empty-assignment reset behavior and ordered systemd-compatible LookupAllStrv tokenization."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "This effective generator behavior does not make option splitting, unquoting, or reset application part of QuadletLens's opaque source-aware value model."
+
+[[evidence]]
+id = "podman-5-4-container-ip"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#ip"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Container-unit manual documents singleton IP as a static IPv4 address passed to Podman --ip."
+test = "capabilities::supported_range_records_container_network_identity"
+gap = "QuadletLens preserves the authored value opaquely and does not validate addresses, IPAM, network selection, runtime allocation, or cross-format equivalence."
+
+[[evidence]]
+id = "podman-6-0-2-container-ip"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-systemd.unit.5.html#ip"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Container-unit manual retains the singleton IP mapping to Podman --ip."
+test = "capabilities::supported_range_records_container_network_identity"
+gap = "QuadletLens preserves the authored value opaquely and does not validate addresses, IPAM, network selection, runtime allocation, or cross-format equivalence."
+
+[[evidence]]
+id = "podman-5-4-container-ip6"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#ip6"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Container-unit manual documents singleton IP6 as a static IPv6 address passed to Podman --ip6."
+test = "capabilities::supported_range_records_container_network_identity"
+gap = "QuadletLens preserves the authored value opaquely and does not validate addresses, IPAM, IPv6 enablement, network selection, runtime allocation, or cross-format equivalence."
+
+[[evidence]]
+id = "podman-6-0-2-container-ip6"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-systemd.unit.5.html#ip6"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Container-unit manual retains the singleton IP6 mapping to Podman --ip6."
+test = "capabilities::supported_range_records_container_network_identity"
+gap = "QuadletLens preserves the authored value opaquely and does not validate addresses, IPAM, IPv6 enablement, network selection, runtime allocation, or cross-format equivalence."
+
+[[evidence]]
+id = "podman-5-4-container-network-alias"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#networkalias"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Container-unit manual documents repeatable NetworkAlias entries mapped to Podman --network-alias."
+test = "capabilities::supported_range_records_container_network_identity"
+gap = "QuadletLens preserves every authored physical value and does not validate aliases, DNS behavior, network names or options, runtime name resolution, or cross-format equivalence."
+
+[[evidence]]
+id = "podman-6-0-2-container-network-alias"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-systemd.unit.5.html#networkalias"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Container-unit manual retains repeatable NetworkAlias entries and their mapping to Podman --network-alias."
+test = "capabilities::supported_range_records_container_network_identity"
+gap = "QuadletLens preserves every authored physical value and does not validate aliases, DNS behavior, network names or options, runtime name resolution, or cross-format equivalence."
+
+[[evidence]]
 id = "podman-6-0-2-container-sysctl"
 verification = "documentation"
 url = "https://docs.podman.io/en/v6.0.2/markdown/podman-systemd.unit.5.html#sysctl"
@@ -1158,6 +1302,167 @@ test = "capabilities::supported_range_has_the_reviewed_first_conversion_surface"
 gap = "Generated volume creation is covered through 6.0.2; rootless, rootful, and SELinux runtime behavior is not yet automated."
 
 [[evidence]]
+id = "podman-5-4-volume-driver"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#driver"
+target = "5.4.0"
+claim = "The combined Podman 5.4.0 Quadlet manual documents the Volume Driver key as the volume driver passed to podman volume create."
+test = "capabilities::supported_range_records_volume_driver_and_options"
+gap = "The manual does not establish driver availability, plugin behavior, rootless behavior, mount behavior, or any Compose/BoxFerry policy."
+
+[[evidence]]
+id = "podman-6-0-2-volume-driver"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-volume.unit.5.html#driver"
+target = "6.0.2"
+claim = "The split Podman 6.0.2 Volume-unit manual retains Driver as the volume-driver selection passed to podman volume create."
+test = "capabilities::supported_range_records_volume_driver_and_options"
+gap = "The manual does not establish driver availability, plugin behavior, rootless behavior, mount behavior, or any Compose/BoxFerry policy."
+
+[[evidence]]
+id = "podman-5-4-volume-device"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#device"
+target = "5.4.0"
+claim = "The combined Podman 5.4.0 Quadlet manual documents the Volume Device key as the device or source passed to podman volume create."
+test = "capabilities::supported_range_records_volume_device_and_type"
+gap = "The manual does not establish source-path availability, mount creation, driver/plugin behavior, rootless behavior, or cross-format policy."
+
+[[evidence]]
+id = "podman-6-0-2-volume-device"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-volume.unit.5.html#device"
+target = "6.0.2"
+claim = "The split Podman 6.0.2 Volume-unit manual retains Device as the source passed to podman volume create."
+test = "capabilities::supported_range_records_volume_device_and_type"
+gap = "The manual does not establish source-path availability, mount creation, driver/plugin behavior, rootless behavior, or cross-format policy."
+
+[[evidence]]
+id = "podman-5-4-volume-type"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#type"
+target = "5.4.0"
+claim = "The combined Podman 5.4.0 Quadlet manual documents the Volume Type key as the filesystem type of Device."
+test = "capabilities::supported_range_records_volume_device_and_type"
+gap = "The manual does not establish filesystem support, mount creation, driver/plugin behavior, rootless behavior, or cross-format policy."
+
+[[evidence]]
+id = "podman-6-0-2-volume-type"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-volume.unit.5.html#type"
+target = "6.0.2"
+claim = "The split Podman 6.0.2 Volume-unit manual retains Type as the filesystem type of Device."
+test = "capabilities::supported_range_records_volume_device_and_type"
+gap = "The manual does not establish filesystem support, mount creation, driver/plugin behavior, rootless behavior, or cross-format policy."
+
+[[evidence]]
+id = "podman-5-4-volume-options-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L1065-L1145"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 source reads singleton Driver, Device, Type, and Options values; it omits blank values, constructs each present Volume value as one --opt key=value argument rather than a general option list, and rejects Type or Options without Device."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Options is absent from the endpoint Volume manuals. Tagged source and generated command text do not validate mount options, drivers, plugins, runtime mounts, rootless behavior, or Compose/BoxFerry policy."
+
+[[evidence]]
+id = "podman-6-0-2-volume-options-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L1126-L1204"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 source retains singleton Driver, Device, Type, and Options lookup, blank-value omission, and one --opt key=value construction; Type still requires Device while Options no longer does."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Options is absent from the endpoint Volume manuals. Tagged source and generated command text do not validate mount options, drivers, plugins, runtime mounts, rootless behavior, or Compose/BoxFerry policy."
+
+[[evidence]]
+id = "podman-5-4-volume-options-lookup-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/parser/unitfile.go#L600-L621"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 singleton Lookup selects the last physical value and applies its own whitespace and quote handling before the Volume generator consumes Driver, Device, Type, or Options."
+test = "model::volume_driver_options_device_and_type_preserve_physical_values_cardinality_and_scope"
+gap = "QuadletLens deliberately retains every physical value, including empty, bare, matched or unmatched quoted, specifier, and continuation-bearing text, instead of emulating effective lookup."
+
+[[evidence]]
+id = "podman-6-0-2-volume-options-lookup-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/parser/unitfile.go#L605-L629"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 source retains last-physical-value singleton Lookup and its current matched-quote handling for Volume Driver, Device, Type, and Options."
+test = "model::volume_driver_options_device_and_type_preserve_physical_values_cardinality_and_scope"
+gap = "QuadletLens deliberately retains every physical value, including empty, bare, matched or unmatched quoted, specifier, and continuation-bearing text, instead of emulating effective lookup."
+
+[[evidence]]
+id = "podman-5-8-2-volume-options-unmatched-quote-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/v5.8.2/pkg/systemd/parser/unitfile.go"
+target = "5.8.2"
+claim = "The tagged 5.8.2 parser change alters unmatched-quote handling used by singleton Volume Device, Type, and Options lookup; the exact generator boundary is covered independently."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The source change and dry-run output establish only parser and generated-command presentation, not mount or runtime semantics."
+
+[[evidence]]
+id = "podman-5-4-through-current-volume-driver-options-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every recorded Podman release emits one final singleton --driver local and one --opt o=final-option for a Volume with Device=tmpfs and duplicate Options values, with no general option expansion; bare, matched-quote, and final-empty singleton forms are separately exercised."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The fixture invokes only the dry-run generator. It does not validate drivers or mount options, create a volume, inspect mounts, or claim plugin, rootless, runtime, Compose, or BoxFerry behavior."
+
+[[evidence]]
+id = "podman-5-4-through-current-volume-device-type-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every recorded Podman release emits exactly one final --opt device=tmpfs and --opt type=bind after duplicate values, omits final blank Device or Type values, and accepts matched-quote, unmatched-quote, specifier, and continued Device forms. The unmatched singleton quote presentation follows the existing 5.8.2 parser boundary."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "This dry-run evidence does not create a volume, mount a filesystem, resolve a source path, or establish driver/plugin, rootless, runtime, Compose, or BoxFerry behavior."
+
+[[evidence]]
+id = "podman-5-4-through-current-volume-type-without-device-rejection"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every recorded Podman generator from 5.4.0 through 6.0.2 rejects the isolated Volume Type=bind-without-Device fixture."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "This rejection is dry-run generator evidence only; it does not establish a mount, filesystem, or runtime behavior."
+
+[[evidence]]
+id = "podman-5-4-through-current-volume-type-bind-requires-mounts-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "For Type=bind and a Device path containing a literal space, recorded generators emit no additional Device-derived RequiresMountsFor through 5.5.2, an unescaped directive from 5.6.0 through 5.7.1, and a quoted systemd-escaped directive from 5.8.0 through 6.0.2."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Generated dependency text does not prove source availability, mount ordering at activation, escaping equivalence, or any runtime mount behavior."
+
+[[evidence]]
+id = "podman-5-4-through-5-8-volume-options-device-rejection"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "5.8.5" }
+claim = "Every recorded generator from Podman 5.4.0 through 5.8.5 rejects the isolated Volume Options-without-Device fixture."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+
+[[evidence]]
+id = "podman-6-0-through-current-volume-options-without-device-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "6.0.0", maximum = "6.0.2" }
+claim = "Every recorded generator from Podman 6.0.0 through 6.0.2 accepts the isolated Volume Options-without-Device fixture and emits one --opt o=without-device argument."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "This exact boundary is generated-command evidence only; it does not create a volume or establish mount behavior."
+
+[[evidence]]
+id = "podman-5-4-through-current-volume-options-unmatched-quote-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "The isolated unmatched-quote Volume Options fixture is accepted throughout the range, stripping the unmatched quote through Podman 5.8.1 and preserving it in the generated o= argument from 5.8.2 through 6.0.2."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "This exact boundary is generated-command evidence only; it does not create a volume or establish mount behavior."
+
+[[evidence]]
 id = "podman-5-5-container-memory"
 verification = "documentation"
 url = "https://docs.podman.io/en/v5.5.0/markdown/podman-systemd.unit.5.html#memory"
@@ -1243,6 +1548,645 @@ url = "https://github.com/containers/podman/releases"
 versions = { minimum = "5.4.0", maximum = "6.0.2" }
 claim = "Every Podman patch release from 5.4.0 through 6.0.2 generates the expected container, pod, network, volume, systemd dependency-ordering, container-name, add-host, isolated container hostname, isolated positive and zero container shared-memory sizes, one pod-owned shared-memory size with a joined container, four ordered lowercase capability-drop arguments from three repeated entries and no capability-add argument in that isolated unit, four ordered lowercase capability-add arguments from three repeated entries and no capability-drop argument in that isolated unit, exactly one capability-drop all before one capability-add cap_net_bind_service with no other capability arguments in a combined unit, exactly one post-reset --tmpfs /data:mode=755,uid=1009,gid=1009 argument with no pre-reset or extra tmpfs form, exactly one post-reset --sysctl net.ipv4.ip_forward=1 argument with neither pre-reset setting nor any other --sysctl form, exactly two ordered post-reset --ulimit nproc=4096:8192 and --ulimit stack=-1:-1 arguments with neither pre-reset value nor duplicate, empty, or alternate form, exactly two ordered post-reset --device /dev/null:/dev/final-null:r and --device /dev/zero:/dev/final-zero:w arguments with neither pre-reset mapping nor empty or alternate form, exactly two ordered post-reset --dns 9.9.9.9 and --dns 2001:4860:4860::8888 arguments, exactly two ordered post-reset --dns-option ndots:1 and --dns-option use-vc arguments, and exactly two ordered post-reset --dns-search dc1.example.com and --dns-search . arguments, with no respective pre-reset, duplicate, empty, equals, quoted, or alternate forms, image and rootfs workload sources, JSON-array entrypoint, RunInit=true as exactly one --init argument, RunInit=false as exactly one --init=false argument, named and numeric stop signals, positive and zero stop timeout, isolated always/missing/never/newer pull-policy arguments, isolated positive and -1 PID-limit arguments, command, environment, environment-file, repeated/empty/quote-bearing label, secret mount/environment options, port, mount, resource-reference, container and pod user-namespace, health-command, health-timing, health-readiness, restart, and PodmanArgs fragments. Each appropriate shared-memory unit contains exactly one matching --shm-size form, and the joined container does not duplicate the pod-owned argument. The entrypoint presentation changes from separate arguments through 5.8.1 to an equals argument from 5.8.2; both carry the same JSON array. The known quote-bearing label whitespace encodings are also verified explicitly. The harness uses digest-pinned official immutable images through 5.8.2 and builds later exact release commits with a digest-pinned builder."
 test = "generators::supported_generators_match_the_first_conversion_fixture"
+
+[[evidence]]
+id = "podman-5-4-through-current-container-logging-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every recorded Podman patch release from 5.4.0 through 6.0.2 accepts the isolated container logging fixture, emits exactly one --log-driver k8s-file pair, and emits exactly two ordered final post-reset --log-opt tag=quadlet-lens-final and --log-opt path=/tmp/quadlet-lens-final.log pairs with no pre-reset, empty, equals, quoted, alternate, or duplicate logging form."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The fixture invokes only the dry-run generator. It does not validate the driver or options, select defaults, start a workload, inspect host configuration or logs, or establish runtime or cross-format behavior."
+
+[[evidence]]
+id = "podman-5-4-through-current-container-network-identity-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every recorded Podman patch release from 5.4.0 through 6.0.2 accepts the isolated container network-identity fixture, emits exactly one --ip 192.0.2.40, one --ip6 2001:db8::40, one --network bridge, and exactly two ordered final post-reset --network-alias final-one and --network-alias final-two arguments, with no pre-reset, empty, equals, quoted, alternate, or duplicate identity form."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The fixture invokes only the dry-run generator and does not assert map-dependent relative ordering between the network selection and identity flags. It does not validate addresses, IPAM, IPv6 enablement, DNS, aliases, network names or options, runtime behavior, or cross-format equivalence."
+
+[[evidence]]
+id = "podman-5-4-network-driver"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#driver"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Network-unit manual documents Driver as the network driver passed to Podman --driver."
+test = "capabilities::supported_range_records_network_driver_and_options"
+gap = "QuadletLens preserves the authored one-line value without validating driver availability, provider semantics, host configuration, runtime creation, or cross-format policy."
+
+[[evidence]]
+id = "podman-6-0-2-network-driver"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-systemd.unit.5.html#driver"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Network-unit manual retains the Driver mapping to Podman --driver."
+test = "capabilities::supported_range_records_network_driver_and_options"
+gap = "QuadletLens preserves the authored one-line value without validating driver availability, provider semantics, host configuration, runtime creation, or cross-format policy."
+
+[[evidence]]
+id = "podman-5-4-network-options"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#options"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Network-unit manual documents repeatable Options entries as network options passed to Podman --opt."
+test = "capabilities::supported_range_records_network_driver_and_options"
+gap = "QuadletLens preserves every authored physical value without parsing option key/value grammar, validating provider semantics, applying reset or duplicate-collapse behavior, or creating a network."
+
+[[evidence]]
+id = "podman-6-0-2-network-options"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-systemd.unit.5.html#options"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Network-unit manual retains repeatable Options entries and their mapping to Podman --opt."
+test = "capabilities::supported_range_records_network_driver_and_options"
+gap = "QuadletLens preserves every authored physical value without parsing option key/value grammar, validating provider semantics, applying reset or duplicate-collapse behavior, or creating a network."
+
+[[evidence]]
+id = "podman-5-4-network-driver-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L963-L967"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 source maps the singleton Driver lookup to one --driver command argument."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Tagged source and dry-run generated command text do not validate driver availability, provider semantics, or runtime network creation."
+
+[[evidence]]
+id = "podman-6-0-2-network-driver-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L1041-L1045"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 source retains singleton Driver lookup and --driver command construction."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Tagged source and dry-run generated command text do not validate driver availability, provider semantics, or runtime network creation."
+
+[[evidence]]
+id = "podman-5-4-network-driver-lookup-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/parser/unitfile.go#L600-L621"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 parser source implements singleton Lookup by selecting the last physical value and applying its own whitespace and quote handling."
+test = "model::network_driver_and_options_preserve_physical_values_cardinality_and_scope"
+gap = "QuadletLens preserves every physical authored Driver value and reports duplicate singletons rather than emulating Podman's effective-value selection or unquoting."
+
+[[evidence]]
+id = "podman-6-0-2-network-driver-lookup-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/parser/unitfile.go#L605-L629"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 parser source retains last-physical-value singleton Lookup with its current matched-quote and whitespace handling."
+test = "model::network_driver_and_options_preserve_physical_values_cardinality_and_scope"
+gap = "QuadletLens preserves every physical authored Driver value and reports duplicate singletons rather than emulating Podman's effective-value selection or unquoting."
+
+[[evidence]]
+id = "podman-5-4-network-options-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L997-L1000"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 network generation obtains Options through LookupAllKeyVal and appends the resulting --opt arguments."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Tagged source and dry-run generated command text do not make Podman's effective map conversion part of QuadletLens's opaque source-aware model."
+
+[[evidence]]
+id = "podman-6-0-2-network-options-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L1075-L1080"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 network generation retains Options-to---opt construction through its warning-aware key/value helper."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Tagged source and dry-run generated command text do not make Podman's effective map conversion part of QuadletLens's opaque source-aware model."
+
+[[evidence]]
+id = "podman-5-4-network-options-reset-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/parser/unitfile.go#L763-L782"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 parser source clears earlier Options values on an empty assignment before subsequent effective option processing."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens preserves each physical Options entry, including resets, duplicates, and bare tokens, and does not apply the generator's effective reset behavior."
+
+[[evidence]]
+id = "podman-5-4-network-options-collapse-bare-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/parser/unitfile.go#L841-L853"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 parser source retains only the last value for each Options key and ignores a bare token without an equals sign."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens preserves each physical Options entry, including duplicates and bare tokens, and does not apply the generator's map collapse or token filtering."
+
+[[evidence]]
+id = "podman-5-4-network-options-sort-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/podmancmdline.go#L36-L46"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 command construction sorts effective option-map keys before emitting --opt key=value pairs."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens preserves source order and does not apply the generator's effective-option sorting."
+
+[[evidence]]
+id = "podman-6-0-2-network-options-reset-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/parser/unitfile.go#L772-L792"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 parser source retains empty-assignment reset behavior before subsequent effective option processing."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens preserves each physical Options entry, including resets, duplicates, and bare tokens, and does not apply the generator's effective reset behavior."
+
+[[evidence]]
+id = "podman-6-0-2-network-options-collapse-bare-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/parser/unitfile.go#L851-L870"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 parser source retains only the last value for each Options key and stores a bare token with a nil value."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens preserves each physical Options entry, including duplicates and bare tokens, and does not apply the generator's map collapse or token interpretation."
+
+[[evidence]]
+id = "podman-6-0-2-network-options-sort-bare-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/podmancmdline.go#L36-L49"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 command construction sorts effective option-map keys and emits a nil-valued bare token as --opt TOKEN."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens preserves source order and bare-token spelling rather than applying the generator's effective-option sorting or output conversion."
+
+[[evidence]]
+id = "podman-5-4-through-current-network-driver-options-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every recorded Podman patch generator from 5.4.0 through 6.0.2 emits one --driver bridge and final reset-aware, key-sorted --opt arguments; duplicate option keys collapse to their final value. The 5.4.0 generator drops the authored bare option token, while 6.0.2 emits it as a bare --opt argument; intermediate bare-token behavior is not asserted."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The fixture invokes only the dry-run generator. It does not validate driver availability, provider-specific options, network creation, host state, rootless behavior, runtime inspection, or BoxFerry conversion policy."
+
+[[evidence]]
+id = "podman-5-4-network-label"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#label"
+target = "5.4.0"
+claim = "The combined Podman 5.4.0 Quadlet manual documents Network Label as one or more OCI key-value labels passed to Podman network create."
+test = "capabilities::supported_range_records_network_labels"
+gap = "QuadletLens preserves every authored physical value without validating OCI label naming, metadata semantics, network creation, runtime inspection, or cross-format equivalence."
+
+[[evidence]]
+id = "podman-6-0-2-network-label"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-network.unit.5.html#label"
+target = "6.0.2"
+claim = "The split Podman 6.0.2 Network-unit manual retains Label as one or more OCI key-value labels for a Podman network."
+test = "capabilities::supported_range_records_network_labels"
+gap = "QuadletLens preserves every authored physical value without validating OCI label naming, metadata semantics, network creation, runtime inspection, or cross-format equivalence."
+
+[[evidence]]
+id = "podman-5-4-network-label-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L1002-L1003"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 source obtains Network Label values with LookupAllKeyVal and adds them through the label command helper."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Tagged source and dry-run generated command text do not make Podman's effective label-map conversion part of QuadletLens's opaque source-aware model or establish runtime behavior."
+
+[[evidence]]
+id = "podman-6-0-2-network-label-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L1075-L1079"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 source retains Network Label in the warning-aware key/value command helper mapped to --label."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Tagged source and dry-run generated command text do not make Podman's effective label-map conversion part of QuadletLens's opaque source-aware model or establish runtime behavior."
+
+[[evidence]]
+id = "podman-5-4-network-label-reset-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/parser/unitfile.go#L763-L792"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 LookupAllRaw clears prior values at an empty assignment before key/value tokenization."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens preserves each physical Label entry, including empty reset assignments, and does not apply the generator's effective reset behavior."
+
+[[evidence]]
+id = "podman-6-0-2-network-label-reset-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/parser/unitfile.go#L772-L801"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 LookupAllRaw retains empty-assignment reset behavior before key/value tokenization."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens preserves each physical Label entry, including empty reset assignments, and does not apply the generator's effective reset behavior."
+
+[[evidence]]
+id = "podman-5-4-network-label-tokenization-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/parser/unitfile.go#L840-L855"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 LookupAllKeyVal applies systemd-compatible quote and whitespace tokenization, splits only at the first equals sign, keeps the final value for a duplicate key, and ignores a bare token."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens retains quotes, specifiers, continuations, bare values, embedded equals signs, duplicates, and order as physical source rather than tokenizing or collapsing them."
+
+[[evidence]]
+id = "podman-6-0-2-network-label-tokenization-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/parser/unitfile.go#L850-L870"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 LookupAllKeyVal retains quote and whitespace tokenization, first-equals splitting, final duplicate-key selection, and records a bare token as a nil-valued key."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens retains quotes, specifiers, continuations, bare values, embedded equals signs, duplicates, and order as physical source rather than tokenizing or collapsing them."
+
+[[evidence]]
+id = "podman-5-4-network-label-sort-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/podmancmdline.go#L36-L54"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 label command construction sorts effective label-map keys before emitting --label key=value pairs."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens preserves source order and does not apply the generator's effective label-map sorting."
+
+[[evidence]]
+id = "podman-6-0-2-network-label-sort-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/podmancmdline.go#L36-L49"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 label command construction sorts effective label-map keys and emits a nil-valued bare key as --label TOKEN."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens preserves source order and bare-token spelling rather than applying the generator's effective label-map sorting or output conversion."
+
+[[evidence]]
+id = "podman-5-4-through-current-network-label-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every recorded Podman patch generator clears pre-reset Network Label values, keeps the final duplicate key, sorts final keys, preserves explicit empty and embedded-equals values, and emits quoted whitespace as one logical label argument. A bare Label token is absent from 5.4.0 through 5.5.2 and emitted exactly once from 5.6.0 through 6.0.2."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The fixture invokes only the dry-run generator. It does not validate label naming, metadata semantics, network creation, host state, rootless behavior, runtime inspection, or BoxFerry conversion policy."
+
+[[evidence]]
+id = "podman-5-4-volume-copy"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#copy"
+target = "5.4.0"
+claim = "The combined Podman 5.4.0 Quadlet manual documents Volume Copy as a boolean controlling volume copy-up selection."
+test = "capabilities::supported_range_records_volume_driver_options_device_type_and_copy"
+gap = "Versions before 5.4.0 are outside the recorded support floor. QuadletLens retains raw text and does not perform boolean conversion, volume creation, copy-up, image, or runtime behavior."
+
+[[evidence]]
+id = "podman-6-0-2-volume-copy"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-volume.unit.5.html#copy"
+target = "6.0.2"
+claim = "The split Podman 6.0.2 Volume-unit manual retains Copy as a boolean volume copy-up selection."
+test = "capabilities::supported_range_records_volume_driver_options_device_type_and_copy"
+gap = "Versions after 6.0.2 are not asserted native. QuadletLens retains raw text and does not perform boolean conversion, volume creation, copy-up, image, or runtime behavior."
+
+[[evidence]]
+id = "podman-5-4-volume-copy-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L1059-L1147"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 volume conversion reads Copy and emits the corresponding volume-create option."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Tagged source and dry-run command text do not establish volume creation, copy-up, image pull, rootless, plugin, or runtime behavior."
+
+[[evidence]]
+id = "podman-6-0-2-volume-copy-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L1207-L1255"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 volume conversion reads Copy and emits the corresponding volume-create option."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Tagged source and dry-run command text do not establish volume creation, copy-up, image pull, rootless, plugin, or runtime behavior."
+
+[[evidence]]
+id = "podman-5-4-volume-copy-parser-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/parser/unitfile.go#L705-L744"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 boolean lookup supplies the generator's effective Copy truthiness rather than preserving physical source spelling."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens preserves all physical Copy values, quotes, specifiers, blanks, duplicates, and continuations instead of parsing a boolean."
+
+[[evidence]]
+id = "podman-6-0-2-volume-copy-parser-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/parser/unitfile.go#L714-L753"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 boolean lookup supplies the generator's effective Copy truthiness rather than preserving physical source spelling."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens preserves all physical Copy values, quotes, specifiers, blanks, duplicates, and continuations instead of parsing a boolean."
+
+[[evidence]]
+id = "podman-5-8-2-volume-copy-unmatched-quote-parser-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/76c7f3852d164830b1d2fc9713d83b22b5e72738/pkg/systemd/parser/unitfile.go#L714-L753"
+target = "5.8.2"
+claim = "Tagged Podman 5.8.2 parser behavior changes the recorded unmatched-quote Copy result from copy to nocopy."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The observed parser boundary is only generator evidence; QuadletLens preserves unmatched quotes as authored and does not infer an effective boolean."
+
+[[evidence]]
+id = "podman-5-4-through-current-volume-copy-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every recorded dry-run generator omits copy options for absent Copy, emits copy for true/yes/on/1 and accepted case variants, emits nocopy for false, blank, invalid, and specifier values, uses the final duplicate value, and ignores Copy for an image driver volume with literal Image. The unmatched-quote fixture emits copy through 5.8.1 and nocopy from 5.8.2."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The isolated fixture invokes only the dry-run generator. It does not validate volume creation, copy-up, image pulls, host state, rootless behavior, plugins, runtime inspection, Compose equivalence, or BoxFerry conversion policy."
+
+[[evidence]]
+id = "podman-5-4-volume-label"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#label"
+target = "5.4.0"
+claim = "The combined Podman 5.4.0 Quadlet manual documents Volume Label as one or more OCI key-value labels passed to Podman volume create."
+test = "capabilities::supported_range_records_volume_labels"
+gap = "QuadletLens preserves every authored physical value without validating OCI label naming, metadata semantics, volume creation, runtime inspection, or cross-format equivalence."
+
+[[evidence]]
+id = "podman-6-0-2-volume-label"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-volume.unit.5.html#label"
+target = "6.0.2"
+claim = "The split Podman 6.0.2 Volume-unit manual retains Label as one or more OCI key-value labels for a Podman volume."
+test = "capabilities::supported_range_records_volume_labels"
+gap = "QuadletLens preserves every authored physical value without validating OCI label naming, metadata semantics, volume creation, runtime inspection, or cross-format equivalence."
+
+[[evidence]]
+id = "podman-5-4-volume-label-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L1059-L1147"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 volume conversion obtains Label with LookupAllKeyVal and adds the resulting labels to the volume create command."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Tagged source and dry-run generated command text do not make Podman's effective label-map conversion part of QuadletLens's opaque source-aware model or establish runtime behavior."
+
+[[evidence]]
+id = "podman-6-0-2-volume-label-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L1207-L1211"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 volume conversion maps Label to --label through the warning-aware key/value helper."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Tagged source and dry-run generated command text do not make Podman's effective label-map conversion part of QuadletLens's opaque source-aware model or establish runtime behavior."
+
+[[evidence]]
+id = "podman-5-4-volume-label-reset-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/parser/unitfile.go#L763-L792"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 LookupAllRaw clears prior values at an empty assignment before Volume Label key/value tokenization."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens preserves each physical Label entry, including empty reset assignments, and does not apply the generator's effective reset behavior."
+
+[[evidence]]
+id = "podman-6-0-2-volume-label-reset-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/parser/unitfile.go#L772-L801"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 LookupAllRaw retains empty-assignment reset behavior before Volume Label key/value tokenization."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens preserves each physical Label entry, including empty reset assignments, and does not apply the generator's effective reset behavior."
+
+[[evidence]]
+id = "podman-5-4-volume-label-parser-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/parser/unitfile.go#L840-L855"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 LookupAllKeyVal applies systemd-compatible quote and whitespace tokenization, splits only at the first equals sign, keeps the final value for a duplicate key, and ignores a bare token."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens retains quotes, specifiers, continuations, bare values, embedded equals signs, duplicates, and order as physical source rather than tokenizing or collapsing them."
+
+[[evidence]]
+id = "podman-6-0-2-volume-label-parser-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/parser/unitfile.go#L850-L870"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 LookupAllKeyVal retains quote and whitespace tokenization, first-equals splitting, final duplicate-key selection, and records a bare token as a nil-valued key."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens retains quotes, specifiers, continuations, bare values, embedded equals signs, duplicates, and order as physical source rather than tokenizing or collapsing them."
+
+[[evidence]]
+id = "podman-5-4-volume-label-helper-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/podmancmdline.go#L36-L54"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 label-command helper sorts effective label-map keys before emitting --label key=value pairs."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens preserves source order and does not apply the generator's effective label-map sorting."
+
+[[evidence]]
+id = "podman-6-0-2-volume-label-helper-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L2357-L2364"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 key/value helper obtains Volume Label parser values and delegates them to the command helper, which sorts effective keys and emits nil-valued bare keys as --label TOKEN."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens preserves source order and bare-token spelling rather than applying the generator's effective label-map sorting or output conversion."
+
+[[evidence]]
+id = "podman-5-4-through-current-volume-label-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every recorded Podman patch generator clears pre-reset Volume Label values, keeps the final duplicate key, sorts final keys, preserves explicit empty and embedded-equals values, and emits quoted whitespace as one logical label argument. A bare Label token is absent from 5.4.0 through 5.5.2 and emitted exactly once from 5.6.0 through 6.0.2. The recorded quoted-whitespace presentation changes from literal space in 5.4.x to \\x20 from 5.5.0 through 6.0.2."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The fixture invokes only the dry-run generator. It does not validate label naming, metadata semantics, volume creation, host state, rootless behavior, runtime inspection, or BoxFerry conversion policy."
+
+[[evidence]]
+id = "podman-5-4-network-ipam-driver"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#ipamdriver"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Network-unit manual documents IPAMDriver as the value passed to Podman --ipam-driver."
+test = "capabilities::supported_range_records_network_ipam_columns"
+gap = "QuadletLens preserves authored driver text without validating driver availability, default selection, provider behavior, network creation, runtime state, or cross-format equivalence."
+
+[[evidence]]
+id = "podman-6-0-2-network-ipam-driver"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-network.unit.5.html#ipamdriver"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Network-unit manual retains IPAMDriver and its --ipam-driver mapping."
+test = "capabilities::supported_range_records_network_ipam_columns"
+gap = "QuadletLens preserves authored driver text without validating driver availability, default selection, provider behavior, network creation, runtime state, or cross-format equivalence."
+
+[[evidence]]
+id = "podman-5-4-network-subnet"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#subnet"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Network-unit manual documents repeatable Subnet values as Podman --subnet arguments."
+test = "capabilities::supported_range_records_network_ipam_columns"
+gap = "QuadletLens preserves each physical subnet value and does not validate CIDR grammar, apply resets, zip IPAM columns, or create a network."
+
+[[evidence]]
+id = "podman-6-0-2-network-subnet"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-network.unit.5.html#subnet"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Network-unit manual retains repeatable Subnet values and their --subnet mapping."
+test = "capabilities::supported_range_records_network_ipam_columns"
+gap = "QuadletLens preserves each physical subnet value and does not validate CIDR grammar, apply resets, zip IPAM columns, or create a network."
+
+[[evidence]]
+id = "podman-5-4-network-gateway"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#gateway"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Network-unit manual documents repeatable Gateway values as Podman --gateway arguments and requires a subnet for a gateway."
+test = "capabilities::supported_range_records_network_ipam_columns"
+gap = "QuadletLens preserves each physical gateway value and does not validate address grammar, infer a subnet, apply resets, zip IPAM columns, or create a network."
+
+[[evidence]]
+id = "podman-6-0-2-network-gateway"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-network.unit.5.html#gateway"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Network-unit manual retains repeatable Gateway values, their --gateway mapping, and the subnet prerequisite."
+test = "capabilities::supported_range_records_network_ipam_columns"
+gap = "QuadletLens preserves each physical gateway value and does not validate address grammar, infer a subnet, apply resets, zip IPAM columns, or create a network."
+
+[[evidence]]
+id = "podman-5-4-network-ip-range"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#iprange"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Network-unit manual documents repeatable IPRange values as Podman --ip-range arguments that require a subnet."
+test = "capabilities::supported_range_records_network_ipam_columns"
+gap = "QuadletLens preserves each physical range value and does not validate range grammar, infer a subnet, apply resets, zip IPAM columns, or create a network."
+
+[[evidence]]
+id = "podman-6-0-2-network-ip-range"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-network.unit.5.html#iprange"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Network-unit manual retains repeatable IPRange values, their --ip-range mapping, and the subnet prerequisite."
+test = "capabilities::supported_range_records_network_ipam_columns"
+gap = "QuadletLens preserves each physical range value and does not validate range grammar, infer a subnet, apply resets, zip IPAM columns, or create a network."
+
+[[evidence]]
+id = "podman-5-4-network-ipam-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L963-L1002"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 source maps nonempty singleton IPAMDriver to --ipam-driver, obtains Subnet/Gateway/IPRange through LookupAll, rejects gateway/range overruns or values without a subnet, and emits each present gateway/range immediately after its indexed subnet."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens retains physical source and does not emulate effective reset application, indexed column zipping, or generator error selection; exact negative generator diagnostics are plain text rather than a stable structured interface."
+
+[[evidence]]
+id = "podman-6-0-2-network-ipam-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L1040-L1078"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 source retains nonempty singleton IPAMDriver command construction, LookupAll collection, explicit gateway/range and no-subnet rejection, and indexed subnet/gateway/IPRange command grouping."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens retains physical source and does not emulate effective reset application, indexed column zipping, or generator error selection; exact negative generator diagnostics are plain text rather than a stable structured interface."
+
+[[evidence]]
+id = "podman-5-4-network-ipam-reset-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/parser/unitfile.go#L763-L790"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 LookupAll source clears a key's previously collected values on an empty assignment before continuing with later physical values."
+test = "model::network_ipam_values_preserve_physical_columns_resets_and_scope"
+gap = "QuadletLens preserves empty entries and every physical value without applying the target's effective reset behavior."
+
+[[evidence]]
+id = "podman-6-0-2-network-ipam-reset-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/parser/unitfile.go#L772-L799"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 LookupAll source retains empty-assignment clearing before continuing with later physical values."
+test = "model::network_ipam_values_preserve_physical_columns_resets_and_scope"
+gap = "QuadletLens preserves empty entries and every physical value without applying the target's effective reset behavior."
+
+[[evidence]]
+id = "podman-5-4-through-current-network-ipam-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every recorded Podman patch generator from 5.4.0 through 6.0.2 emits one --ipam-driver host-local, then exactly two ordered post-reset --subnet/--gateway/--ip-range groups with each gateway and range immediately following its indexed subnet; a separate blank-IPAMDriver unit emits no --ipam-driver argument."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The dry-run fixture does not validate driver availability/defaults, address or range grammar, network creation, provider behavior, IPv4/IPv6 inference, runtime state, or cross-format semantics. Negative overrun/no-subnet source paths are documented but not asserted by the full generator lane because it exposes only human-readable diagnostics, not stable structured error codes."
+
+[[evidence]]
+id = "podman-5-4-network-internal"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#internal"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Network-unit manual documents Internal as the network-isolation selection passed to Podman --internal; its effect is driver-conditional."
+test = "capabilities::supported_range_records_network_internal_and_ipv6"
+gap = "QuadletLens preserves the authored one-line value without selecting, validating, or configuring a driver, creating a network, or observing external access."
+
+[[evidence]]
+id = "podman-6-0-2-network-internal"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-network.unit.5.html#internal"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Network-unit manual retains Internal as the driver-conditional network-isolation selection mapped to Podman --internal."
+test = "capabilities::supported_range_records_network_internal_and_ipv6"
+gap = "QuadletLens preserves the authored one-line value without selecting, validating, or configuring a driver, creating a network, or observing external access."
+
+[[evidence]]
+id = "podman-5-4-network-ipv6"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#ipv6"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Network-unit manual documents IPv6 as the Podman --ipv6 selection for dual-stack network behavior."
+test = "capabilities::supported_range_records_network_internal_and_ipv6"
+gap = "QuadletLens preserves the authored one-line value without validating subnets, IPAM, address allocation, IPv4 behavior, or runtime network creation."
+
+[[evidence]]
+id = "podman-6-0-2-network-ipv6"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-network.unit.5.html#ipv6"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Network-unit manual retains IPv6 as the Podman --ipv6 selection for dual-stack network behavior."
+test = "capabilities::supported_range_records_network_internal_and_ipv6"
+gap = "QuadletLens preserves the authored one-line value without validating subnets, IPAM, address allocation, IPv4 behavior, or runtime network creation."
+
+[[evidence]]
+id = "podman-5-4-network-boolean-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L957-L961"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 source places Internal and IPv6 in the Network boolean-key map, mapping them to --internal and --ipv6 command flags."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Tagged source and dry-run generated command text do not validate a driver, create a network, or establish isolation or dual-stack runtime behavior."
+
+[[evidence]]
+id = "podman-6-0-2-network-boolean-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L1034-L1038"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 source retains Internal and IPv6 in the Network boolean-key map, mapping them to --internal and --ipv6 command flags."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Tagged source and dry-run generated command text do not validate a driver, create a network, or establish isolation or dual-stack runtime behavior."
+
+[[evidence]]
+id = "podman-5-4-network-boolean-lookup-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/parser/unitfile.go#L622-L632"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 parser source resolves a boolean through its last physical value and treats every spelling other than its accepted true forms as false."
+test = "model::network_internal_and_ipv6_preserve_opaque_values_cardinality_and_scope"
+gap = "QuadletLens instead preserves every physical Internal and IPv6 value and reports duplicate singletons without parsing booleans, selecting a last value, or treating invalid spelling as false."
+
+[[evidence]]
+id = "podman-6-0-2-network-boolean-lookup-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/parser/unitfile.go#L631-L641"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 parser source retains last-physical-value boolean lookup and treats every spelling other than its accepted true forms as false."
+test = "model::network_internal_and_ipv6_preserve_opaque_values_cardinality_and_scope"
+gap = "QuadletLens instead preserves every physical Internal and IPv6 value and reports duplicate singletons without parsing booleans, selecting a last value, or treating invalid spelling as false."
+
+[[evidence]]
+id = "podman-5-4-through-current-network-boolean-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every recorded Podman patch generator from 5.4.0 through 6.0.2 accepts isolated Network Internal and IPv6 omission, literal true, and literal false units. Each omitted unit emits no corresponding flag, each true unit emits exactly one plain --internal or --ipv6 flag, and each false unit emits exactly one --internal=false or --ipv6=false flag; no relative order between the two flag families is asserted."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The fixture invokes only the dry-run generator. It does not select or validate drivers, create or inspect networks, establish external isolation or dual-stack behavior, infer an IPv4-enable key, or claim runtime or cross-format behavior."
 
 [[evidence]]
 id = "podman-5-4-through-current-container-expose-host-port-generators"
@@ -1662,6 +2606,53 @@ repeatable = true
 value_forms = ["opaque-one-line-resolver-value"]
 native = { minimum = "5.4.0", maximum = "6.0.2" }
 evidence = ["podman-5-4-container-dns", "podman-6-0-2-container-dns", "podman-5-4-container-dns-command-source", "podman-6-0-2-container-dns-command-source", "podman-5-4-container-dns-lookup-all-source", "podman-6-0-2-container-dns-lookup-all-source", "podman-5-4-container-dns-reset-source", "podman-6-0-2-container-dns-reset-source", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
+id = "quadlet.container.log-driver"
+description = "Opaque authored container logging-driver text passed to the native singleton Quadlet key without validation, default selection, or runtime interpretation."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["opaque-one-line-log-driver"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-log-driver", "podman-6-0-2-container-log-driver", "podman-5-4-container-logging-command-source", "podman-6-0-2-container-logging-command-source", "podman-5-4-container-log-driver-lookup-source", "podman-6-0-2-container-log-driver-lookup-source", "podman-5-4-through-current-container-logging-generators"]
+
+[[capability]]
+id = "quadlet.container.log-opt"
+description = "Opaque authored container logging-option text passed to the native repeatable Quadlet key without splitting, unquoting, key/value parsing, validation, default injection, or runtime interpretation."
+unit_types = ["container"]
+sections = ["Container"]
+repeatable = true
+value_forms = ["opaque-one-line-log-option"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-log-opt", "podman-6-0-2-container-log-opt", "podman-5-4-container-logging-command-source", "podman-6-0-2-container-logging-command-source", "podman-5-4-container-log-opt-reset-source", "podman-6-0-2-container-log-opt-reset-source", "podman-5-4-through-current-container-logging-generators"]
+
+[[capability]]
+id = "quadlet.container.ip"
+description = "Opaque authored container IPv4-address text passed to the native singleton Quadlet key without parsing, normalization, validation, or runtime interpretation."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["opaque-one-line-ipv4-address"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-ip", "podman-6-0-2-container-ip", "podman-5-4-through-current-container-network-identity-generators"]
+
+[[capability]]
+id = "quadlet.container.ip6"
+description = "Opaque authored container IPv6-address text passed to the native singleton Quadlet key without parsing, normalization, validation, or runtime interpretation."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["opaque-one-line-ipv6-address"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-ip6", "podman-6-0-2-container-ip6", "podman-5-4-through-current-container-network-identity-generators"]
+
+[[capability]]
+id = "quadlet.container.network-alias"
+description = "Opaque authored container network-alias text passed to the native repeatable Quadlet key without parsing, normalization, validation, DNS interpretation, or runtime behavior."
+unit_types = ["container"]
+sections = ["Container"]
+repeatable = true
+value_forms = ["opaque-one-line-network-alias"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-network-alias", "podman-6-0-2-container-network-alias", "podman-5-4-through-current-container-network-identity-generators"]
 
 [[capability]]
 id = "quadlet.container.dns-option"
@@ -2084,6 +3075,92 @@ native = { minimum = "5.4.0", maximum = "6.0.2" }
 evidence = ["podman-5-4-network", "podman-5-4-through-current-first-conversion-generators"]
 
 [[capability]]
+id = "quadlet.network.driver"
+description = "Opaque authored network-driver text passed to the native singleton Quadlet key without provider validation, availability checks, or runtime interpretation."
+unit_types = ["network"]
+sections = ["Network"]
+value_forms = ["opaque-one-line-network-driver"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-network-driver", "podman-6-0-2-network-driver", "podman-5-4-network-driver-command-source", "podman-6-0-2-network-driver-command-source", "podman-5-4-network-driver-lookup-source", "podman-6-0-2-network-driver-lookup-source", "podman-5-4-through-current-network-driver-options-generators"]
+
+[[capability]]
+id = "quadlet.network.options"
+description = "Opaque authored network-option text passed to the native repeatable Quadlet key without key/value parsing, reset application, duplicate collapse, sorting, provider validation, or runtime interpretation."
+unit_types = ["network"]
+sections = ["Network"]
+repeatable = true
+value_forms = ["opaque-one-line-network-option"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-network-options", "podman-6-0-2-network-options", "podman-5-4-network-options-command-source", "podman-6-0-2-network-options-command-source", "podman-5-4-network-options-reset-source", "podman-5-4-network-options-collapse-bare-source", "podman-5-4-network-options-sort-source", "podman-6-0-2-network-options-reset-source", "podman-6-0-2-network-options-collapse-bare-source", "podman-6-0-2-network-options-sort-bare-source", "podman-5-4-through-current-network-driver-options-generators"]
+
+[[capability]]
+id = "quadlet.network.label"
+description = "Opaque authored network-label text retained as a repeatable physical Quadlet key without OCI key/value parsing, reset application, duplicate collapse, sorting, label validation, or runtime interpretation."
+unit_types = ["network"]
+sections = ["Network"]
+repeatable = true
+value_forms = ["opaque-one-line-network-label"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-network-label", "podman-6-0-2-network-label", "podman-5-4-network-label-command-source", "podman-6-0-2-network-label-command-source", "podman-5-4-network-label-reset-source", "podman-6-0-2-network-label-reset-source", "podman-5-4-network-label-tokenization-source", "podman-6-0-2-network-label-tokenization-source", "podman-5-4-network-label-sort-source", "podman-6-0-2-network-label-sort-source", "podman-5-4-through-current-network-label-generators"]
+
+[[capability]]
+id = "quadlet.network.ipam-driver"
+description = "Opaque authored IP address-management driver text passed to the native singleton Quadlet key without driver availability/default validation, provider behavior, network creation, or runtime interpretation."
+unit_types = ["network"]
+sections = ["Network"]
+value_forms = ["opaque-one-line-ipam-driver"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-network-ipam-driver", "podman-6-0-2-network-ipam-driver", "podman-5-4-network-ipam-command-source", "podman-6-0-2-network-ipam-command-source", "podman-5-4-through-current-network-ipam-generators"]
+
+[[capability]]
+id = "quadlet.network.subnet"
+description = "Opaque authored network-subnet text retained as a repeatable physical Quadlet key without CIDR parsing, reset application, indexed column zipping, network creation, or runtime interpretation."
+unit_types = ["network"]
+sections = ["Network"]
+repeatable = true
+value_forms = ["opaque-one-line-network-subnet"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-network-subnet", "podman-6-0-2-network-subnet", "podman-5-4-network-ipam-command-source", "podman-6-0-2-network-ipam-command-source", "podman-5-4-network-ipam-reset-source", "podman-6-0-2-network-ipam-reset-source", "podman-5-4-through-current-network-ipam-generators"]
+
+[[capability]]
+id = "quadlet.network.gateway"
+description = "Opaque authored network-gateway text retained as a repeatable physical Quadlet key without address parsing, subnet inference, reset application, indexed column zipping, network creation, or runtime interpretation."
+unit_types = ["network"]
+sections = ["Network"]
+repeatable = true
+value_forms = ["opaque-one-line-network-gateway"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-network-gateway", "podman-6-0-2-network-gateway", "podman-5-4-network-ipam-command-source", "podman-6-0-2-network-ipam-command-source", "podman-5-4-network-ipam-reset-source", "podman-6-0-2-network-ipam-reset-source", "podman-5-4-through-current-network-ipam-generators"]
+
+[[capability]]
+id = "quadlet.network.ip-range"
+description = "Opaque authored allocatable network-range text retained as a repeatable physical Quadlet key without range parsing, subnet inference, reset application, indexed column zipping, network creation, or runtime interpretation."
+unit_types = ["network"]
+sections = ["Network"]
+repeatable = true
+value_forms = ["opaque-one-line-network-ip-range"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-network-ip-range", "podman-6-0-2-network-ip-range", "podman-5-4-network-ipam-command-source", "podman-6-0-2-network-ipam-command-source", "podman-5-4-network-ipam-reset-source", "podman-6-0-2-network-ipam-reset-source", "podman-5-4-through-current-network-ipam-generators"]
+
+[[capability]]
+id = "quadlet.network.internal"
+description = "Opaque authored driver-conditional network-isolation selection passed to the native singleton Quadlet key without boolean parsing, driver validation, external-access interpretation, or runtime behavior."
+unit_types = ["network"]
+sections = ["Network"]
+value_forms = ["opaque-one-line-network-internal"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-network-internal", "podman-6-0-2-network-internal", "podman-5-4-network-boolean-command-source", "podman-6-0-2-network-boolean-command-source", "podman-5-4-network-boolean-lookup-source", "podman-6-0-2-network-boolean-lookup-source", "podman-5-4-through-current-network-boolean-generators"]
+
+[[capability]]
+id = "quadlet.network.ipv6"
+description = "Opaque authored dual-stack network selection passed to the native singleton Quadlet key without boolean parsing, subnet or IPAM validation, IPv4-enable inference, or runtime behavior."
+unit_types = ["network"]
+sections = ["Network"]
+value_forms = ["opaque-one-line-network-ipv6"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-network-ipv6", "podman-6-0-2-network-ipv6", "podman-5-4-network-boolean-command-source", "podman-6-0-2-network-boolean-command-source", "podman-5-4-network-boolean-lookup-source", "podman-6-0-2-network-boolean-lookup-source", "podman-5-4-through-current-network-boolean-generators"]
+
+[[capability]]
 id = "quadlet.volume.name"
 description = "Override the generated Podman volume name."
 unit_types = ["volume"]
@@ -2091,3 +3168,58 @@ sections = ["Volume"]
 value_forms = ["podman-volume-name"]
 native = { minimum = "5.4.0", maximum = "6.0.2" }
 evidence = ["podman-5-4-volume", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
+id = "quadlet.volume.driver"
+description = "Opaque authored volume-driver text passed to the native singleton Quadlet key without driver availability, plugin, rootless, mount, runtime, or cross-format interpretation."
+unit_types = ["volume"]
+sections = ["Volume"]
+value_forms = ["opaque-one-line-volume-driver"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-volume-driver", "podman-6-0-2-volume-driver", "podman-5-4-volume-options-command-source", "podman-6-0-2-volume-options-command-source", "podman-5-4-volume-options-lookup-source", "podman-6-0-2-volume-options-lookup-source", "podman-5-4-through-current-volume-driver-options-generators"]
+
+[[capability]]
+id = "quadlet.volume.options"
+description = "One opaque authored mount-option string passed to the native singleton Quadlet key without splitting, map/reset behavior, option validation, mount interpretation, or cross-format policy."
+unit_types = ["volume"]
+sections = ["Volume"]
+value_forms = ["opaque-one-line-volume-mount-options"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-volume-options-command-source", "podman-6-0-2-volume-options-command-source", "podman-5-4-volume-options-lookup-source", "podman-6-0-2-volume-options-lookup-source", "podman-5-8-2-volume-options-unmatched-quote-source", "podman-5-4-through-current-volume-driver-options-generators", "podman-5-4-through-5-8-volume-options-device-rejection", "podman-6-0-through-current-volume-options-without-device-generators", "podman-5-4-through-current-volume-options-unmatched-quote-generators"]
+
+[[capability]]
+id = "quadlet.volume.device"
+description = "Opaque authored volume source text passed to the native singleton Device key without path normalization, quote/specifier interpretation, source availability checks, mount interpretation, or cross-format policy."
+unit_types = ["volume"]
+sections = ["Volume"]
+value_forms = ["opaque-one-line-volume-device"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-volume-device", "podman-6-0-2-volume-device", "podman-5-4-volume-options-command-source", "podman-6-0-2-volume-options-command-source", "podman-5-4-volume-options-lookup-source", "podman-6-0-2-volume-options-lookup-source", "podman-5-8-2-volume-options-unmatched-quote-source", "podman-5-4-through-current-volume-device-type-generators", "podman-5-4-through-current-volume-type-bind-requires-mounts-generators"]
+
+[[capability]]
+id = "quadlet.volume.type"
+description = "Opaque authored filesystem-type text passed to the native singleton Type key without filesystem validation, quote/specifier interpretation, mount interpretation, or cross-format policy."
+unit_types = ["volume"]
+sections = ["Volume"]
+value_forms = ["opaque-one-line-volume-type"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-volume-type", "podman-6-0-2-volume-type", "podman-5-4-volume-options-command-source", "podman-6-0-2-volume-options-command-source", "podman-5-4-volume-options-lookup-source", "podman-6-0-2-volume-options-lookup-source", "podman-5-8-2-volume-options-unmatched-quote-source", "podman-5-4-through-current-volume-device-type-generators", "podman-5-4-through-current-volume-type-without-device-rejection", "podman-5-4-through-current-volume-type-bind-requires-mounts-generators"]
+
+[[capability]]
+id = "quadlet.volume.copy"
+description = "Opaque authored Volume Copy singleton retained without boolean coercion, image-volume interpretation, copy-up semantics, volume creation, image pulls, runtime, rootless, plugin, or cross-format claims."
+unit_types = ["volume"]
+sections = ["Volume"]
+value_forms = ["opaque-one-line-volume-copy"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-volume-copy", "podman-6-0-2-volume-copy", "podman-5-4-volume-copy-command-source", "podman-6-0-2-volume-copy-command-source", "podman-5-4-volume-copy-parser-source", "podman-6-0-2-volume-copy-parser-source", "podman-5-8-2-volume-copy-unmatched-quote-parser-source", "podman-5-4-through-current-volume-copy-generators"]
+
+[[capability]]
+id = "quadlet.volume.label"
+description = "Opaque authored volume-label text retained as a repeatable physical Quadlet key without OCI key/value parsing, reset application, duplicate collapse, sorting, label validation, or runtime interpretation."
+unit_types = ["volume"]
+sections = ["Volume"]
+repeatable = true
+value_forms = ["opaque-one-line-volume-label"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-volume-label", "podman-6-0-2-volume-label", "podman-5-4-volume-label-command-source", "podman-6-0-2-volume-label-command-source", "podman-5-4-volume-label-reset-source", "podman-6-0-2-volume-label-reset-source", "podman-5-4-volume-label-parser-source", "podman-6-0-2-volume-label-parser-source", "podman-5-4-volume-label-helper-source", "podman-6-0-2-volume-label-helper-source", "podman-5-4-through-current-volume-label-generators"]

@@ -12,11 +12,11 @@ defines its representation boundary.
 | ------------ | ---------------- | --------------------------- |
 | `.container` | `[Container]`    | Container keys listed below |
 | `.pod`       | `[Pod]`          | Pod keys listed below       |
-| `.network`   | `[Network]`      | `NetworkName`               |
-| `.volume`    | `[Volume]`       | `VolumeName`                |
+| `.network`   | `[Network]`      | `NetworkName`, `Driver`, `Options`, `Label`, `Internal`, `IPv6`, `IPAMDriver`, `Subnet`, `Gateway`, `IPRange` |
+| `.volume`    | `[Volume]`       | `VolumeName`, `Driver`, `Options`, `Label`, `Device`, `Type`, `Copy` |
 
-The typed boundary currently contains 56 container keys, seven pod keys, and one key each for
-network and volume units. The exact key lists live in the
+The typed boundary currently contains 61 container keys, seven pod keys, nine network keys, and
+seven volume keys. The exact key lists live in the
 [specification coverage ledger](roadmap.md#specification-coverage-ledger).
 
 `[Unit]`, `[Service]`, and `[Install]` are recognized as generic systemd sections. Parsed keys are
@@ -171,6 +171,39 @@ second assignment. `Memory::new` is an additive safe path for positive ASCII-dec
 no suffix or one lowercase `b`, `k`, `m`, or `g`; it preserves leading zeros and arbitrary
 precision without parsing. Pod `Memory` remains an unknown preserved entry.
 
+Container `IP` and `IP6` are opaque singletons. Container `NetworkAlias` is opaque, repeatable,
+and resettable. The model preserves every physical value, singleton duplicates and diagnostics,
+alias duplicates and order, empty resets, quotes, specifiers, and continuations without parsing or
+validating addresses, aliases, IPAM, DNS, network configuration, runtime behavior, or cross-format
+equivalence. These spellings remain unknown in other native scopes.
+
+Network `Driver` is an opaque singleton and `Options` is opaque, repeatable, and resettable.
+Omission, duplicate driver diagnostics, every physical option, resets, duplicate option keys,
+quotes, specifiers, and continuations remain preserved. QuadletLens does not parse option text,
+validate a driver or provider-specific options, or reproduce the generator's effective reset,
+duplicate collapse, sorting, or version-specific bare-token behavior.
+
+Network `Label` is opaque, repeatable, and resettable. Empty assignments, duplicates, bare
+values, embedded equals signs, quotes, specifiers, continuations, and authored order remain
+physical source data. QuadletLens does not tokenize labels, collapse duplicate names, sort them,
+validate OCI label conventions, or reproduce version-specific bare-token behavior.
+
+Volume `Label` is also opaque, repeatable, and resettable. Empty assignments, duplicates, bare
+values, embedded equals signs, quotes, specifiers, continuations, and authored order remain
+physical source data. QuadletLens does not tokenize labels, collapse duplicate names, sort them,
+validate OCI label conventions, or reproduce version-specific bare-token behavior.
+
+Network `Internal` and `IPv6` are opaque singletons. Omission, literal true/false, duplicate
+diagnostics, invalid or vendor-defined spellings, quotes, specifiers, continuations, and every
+physical entry remain distinct. QuadletLens does not parse booleans, choose a last value, or import
+Podman's invalid-as-false behavior. `Internal` remains driver-conditional; `IPv6` represents
+dual-stack behavior only, so the model does not invent an IPv4-enable key.
+
+Network `IPAMDriver` is an opaque singleton. `Subnet`, `Gateway`, and `IPRange` are opaque,
+repeatable, resettable physical entries: empty assignments, duplicates, quotes, specifiers,
+continuations, and authored inter-key order remain intact. The model does not apply resets, infer
+subnets, parse addresses or ranges, or zip the three columns into effective target rows.
+
 Container `DNS`, `DNSOption`, `DNSSearch`, `ExposeHostPort`, `Annotation`, `Mask`,
 and `Unmask` are typed repeatable keys with opaque one-line values. Omission, resets, duplicates,
 order, quoting, specifiers, malformed text, and exact spelling remain source-aware.
@@ -184,6 +217,12 @@ or paths for these keys. Unsupported scopes remain unknown and preserved, and ge
 does not imply host or runtime behavior.
 
 ## Document sets and dependency graph
+
+Volume `Copy` is an opaque singleton. Every physical authored value, including blanks, duplicates,
+matched or unmatched quotes, specifiers, and continuations, remains source-aware; duplicate lines
+produce `QLM0004`. QuadletLens does not parse a boolean, select an effective duplicate, add an
+`Image` model field, or infer copy-up, volume creation, image pulls, runtime, rootless, plugin, or
+cross-format behavior.
 
 `NamedQuadletDocument` pairs a typed document with a validated basename whose suffix must match the
 selected unit type. `QuadletDocumentSet` requires unique `SourceId` values, retains duplicate

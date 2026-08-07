@@ -1,0 +1,18 @@
+schema = 1
+id = "volume-copy-supported-range"
+suite = "generators"
+description = "Exercises 20 isolated physical Volume Copy forms across the recorded Podman generator range."
+secrets_reviewed = true
+files = ["copy-blank.volume", "copy-continuation.volume", "copy-false-upper.volume", "copy-false.volume", "copy-image-false.volume", "copy-invalid.volume", "copy-last-wins-false.volume", "copy-last-wins-true.volume", "copy-matched-quote.volume", "copy-omitted.volume", "copy-on-upper.volume", "copy-on.volume", "copy-one.volume", "copy-specifier.volume", "copy-true-mixed.volume", "copy-true-upper.volume", "copy-true.volume", "copy-unmatched-quote.volume", "copy-yes-upper.volume", "copy-yes.volume", "expected-fragments.txt"]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "The harness mounts this directory read-only with label separation disabled and invokes only exact Podman Quadlet generators in dry-run mode. It does not create or inspect volumes, pull images, start workloads, inspect runtime state, exercise rootless operation or plugins, or establish Compose equivalence."
+
+[expectations]
+summary = "Omitted Copy emits neither form; accepted true values emit copy; false, blank, invalid, specifier, and final false duplicates emit nocopy; final true duplicates, matched quotes, and continuations emit copy. An unmatched quote emits copy before 5.8.2 and nocopy from 5.8.2. Driver=image with literal Image and Copy=false ignores Copy."

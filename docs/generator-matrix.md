@@ -70,6 +70,8 @@ an isolated container with one pre-reset `AddDevice=` line containing
 containing `/dev/null:/dev/final-null:r /dev/zero:/dev/final-zero:w`,
 isolated post-reset fixtures for `DNS`, `DNSOption`, `DNSSearch`, `ExposeHostPort`,
 `Annotation`, `Mask`, and `Unmask`,
+an isolated network-identity container with singleton `IP` and `IP6`, one `Network=bridge`, two
+pre-reset aliases, an empty reset, and two final aliases,
 isolated singleton fixtures for AppArmor, no-new-privileges, seccomp, and each SELinux-label key,
 environment and systemd specifiers, absolute and unit-relative environment files, repeated
 container labels, repeated mounted and environment-variable secrets with options, repeatable
@@ -89,6 +91,20 @@ that fixture against the three 5.4.x releases to require rejection or exclusion 
 argument, then against all 17 recorded patches from 5.5.0 through 6.0.2 to require exactly one
 final `--memory 16777216b` argument and no duplicate, equals, empty, quoted, or alternate form.
 The smoke lane protects the 5.4.0 unsupported boundary plus 5.8.2 and current 6.0.2 support.
+
+Container logging uses a separate all-20 fixture. It authors `LogDriver=k8s-file`, two pre-reset
+`LogOpt` entries, an empty reset, then final `tag=quadlet-lens-final` and
+`path=/tmp/quadlet-lens-final.log` entries. Each selected smoke, full, or exact-version run requires
+one driver argument and exactly those two ordered final option arguments.
+
+Volume Device/Type coverage uses the all-20 volume fixture plus a Type-only negative fixture. It
+requires final `--opt device=tmpfs` and `--opt type=bind` forms, final blank suppression, and
+single logical command construction for matched/unmatched quotes, specifiers, and continuations.
+Every release rejects `Type=bind` without `Device`. A bind source containing a literal space adds
+no Device-derived `RequiresMountsFor` line through 5.5.2, an unescaped line through 5.7.1, and a
+quoted `\\x20` line from 5.8.0; the stable `%t/containers` dependency is intentionally excluded
+from that comparison. These are dry-run generator observations, not source-path, filesystem,
+mount, rootless, runtime, or cross-format claims.
 
 The quote-bearing label case also records a generated-service presentation boundary. Podman 5.4.x
 keeps the JSON-like label's space literal inside a quoted argument; every tested release from 5.5.0
@@ -260,11 +276,66 @@ leading `-`, invokes only the dry-run generator, and starts no workload. It esta
 runtime access, rootless, SELinux, cgroup, host-device-existence, or symlink behavior. Pod
 `AddDevice`, Compose, and BoxFerry mapping remain outside this evidence.
 
+The container-logging observation is similarly generator-only. The endpoint
+[5.4.0](https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#logdriver) and
+[6.0.2](https://docs.podman.io/en/v6.0.2/markdown/podman-systemd.unit.5.html#logdriver) manuals map
+`LogDriver` to `--log-driver`; their `LogOpt` sections document repeatable `--log-opt` mappings.
+Tagged [5.4.0](https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L1880-L1890)
+and [6.0.2](https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L1937-L1947)
+source uses singleton `Lookup` for the driver and reset-aware ordered `LookupAllStrv` for options.
+All 20 generators must emit one `--log-driver k8s-file` followed by exactly two ordered post-reset
+options and no alternate form. QuadletLens does not reproduce tokenization, parse options as
+key/value maps, validate drivers/options, inject defaults, start workloads, or inspect logs.
+
+The isolated container network-identity observation uses endpoint `IP`, `IP6`, and `NetworkAlias`
+documentation plus every recorded generator. Each patch must emit one `--ip 192.0.2.40`, one
+`--ip6 2001:db8::40`, one `--network bridge`, and exactly two ordered final post-reset
+`--network-alias` arguments. The assertion does not compare map-dependent relative ordering
+between the network selection and identity flags. It does not validate addresses, aliases, IPAM,
+IPv6 enablement, DNS, network names/options, runtime behavior, or cross-format equivalence.
+
+The isolated network driver/options observation uses endpoint `Driver` and `Options` manuals plus
+tagged 5.4.0/6.0.2 source. Every recorded generator must emit one `--driver bridge`, clear the
+pre-reset options, collapse duplicate `alpha` assignments to the final value, and emit retained
+options in sorted key order. The test separately requires 5.4.0 to drop the authored bare token
+and 6.0.2 to emit `--opt bare-token`; it neither validates drivers/options nor creates a network.
+
+The isolated network-label observation uses the 5.4.0 combined manual, the 6.0.2 split
+`podman-network.unit(5)` manual, and tagged source for reset, tokenization, duplicate selection,
+and sorting. Every recorded generator clears pre-reset values, keeps final duplicate keys, sorts
+the final keys, preserves `key=` and `key=a=b`, and presents quoted whitespace as one logical
+argument. Bare labels are absent through 5.5.2 and emitted once from 5.6.0 onward. This dry-run
+observation does not create or inspect a network or establish label/runtime semantics.
+
+The isolated volume-label observation uses the 5.4.0 combined manual, the 6.0.2 split
+`podman-volume.unit(5)` manual, and tagged parser/helper source. Every recorded generator clears
+pre-reset values, keeps final duplicate keys, sorts final keys, preserves `key=` and `key=a=b`,
+and emits quoted whitespace as one logical argument. Bare labels are absent through 5.5.2 and
+emitted once from 5.6.0 onward; literal-space presentation is observed in 5.4.x and `\\x20` from
+5.5.0 onward. This dry-run observation does not create or inspect a volume or establish
+label/runtime semantics.
+
+The isolated network-IPAM observation uses endpoint `IPAMDriver`, `Subnet`, `Gateway`, and
+`IPRange` manuals plus tagged 5.4.0/6.0.2 source. Every recorded generator must emit one
+`--ipam-driver host-local`, then exactly two ordered post-reset subnet/gateway/range groups. A
+separate blank-driver unit must omit the driver flag. Tagged source records no-subnet and
+gateway/range-overrun rejection, but the matrix deliberately avoids matching unstable
+human-readable diagnostics. It neither validates driver availability/defaults, addresses/ranges,
+network creation, provider behavior, or runtime state.
+
+The isolated network-boolean observation uses endpoint `Internal` and `IPv6` manuals plus tagged
+5.4.0/6.0.2 source. It distinguishes omission, literal true, and literal false for each key:
+omission emits no flag, true emits exactly one plain `--internal` or `--ipv6`, and false emits
+exactly one `--internal=false` or `--ipv6=false`. It does not assert relative flag order, select or validate a driver, create a network, infer an
+IPv4-enable key, or establish isolation or dual-stack runtime behavior.
+
 The promoted fixtures record the following dry-run expectations across the full matrix:
 
 | Fixture group | Required result |
 | --- | --- |
 | DNS, DNS option, DNS search | Ordered final values after an empty reset |
+| IP, IP6, network alias | One address flag each and ordered final aliases after reset |
+| IPAM driver, subnet, gateway, range | Explicit/blank driver behavior and two indexed final groups after reset |
 | ExposeHostPort | Four ordered TCP/UDP-compatible values after reset |
 | Annotation | Two final key-sorted assignments after reset |
 | AppArmor | Rejected through 5.7.1; one separate option from 5.8.0 |
@@ -309,8 +380,10 @@ QUADLET_LENS_CONTAINER_ENGINE=docker cargo ci-generators
 ```
 
 The smoke lane tests 5.4.0, the official-image boundary at 5.8.2, and current stable 6.0.2. The full
-lane tests the first-conversion fixture on all 20 patch releases and the separate Memory
-fixture on the same three unsupported 5.4.x boundaries plus all 17 supported 5.5.0-through-6.0.2
+lane tests the first-conversion, container-logging, container-network-identity, network
+driver/options, network-labels, volume-labels, network-IPAM, and network-boolean fixtures on all 20 patch releases,
+and the separate Memory fixture on the same three unsupported 5.4.x boundaries plus all 17
+supported 5.5.0-through-6.0.2
 patches: 14 digest-pinned official images and six exact source builds. It
 belongs in the scheduled/manual GitHub workflow rather than pull-request CI.
 
@@ -321,3 +394,9 @@ require Git. Go itself runs inside the pinned builder and is not a host requirem
 the registry matrix benefits from `skopeo` and `jq`, but the Rust harness does not require them. The
 current development machine already has Podman 6.0.2, Git, Skopeo, and jq, so no additional
 installation is needed.
+
+## Volume `Copy`
+
+The full lane includes 20 isolated physical Copy forms. It records only dry-run command text,
+including the 5.8.2 unmatched-quote parser boundary and image-driver suppression; it does not
+create volumes, pull images, inspect runtime state, or establish cross-format behavior.

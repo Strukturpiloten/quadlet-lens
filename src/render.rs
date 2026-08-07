@@ -686,6 +686,11 @@ const fn container_key_name(key: ContainerKey) -> &'static str {
         ContainerKey::SecurityLabelType => "SecurityLabelType",
         ContainerKey::Mask => "Mask",
         ContainerKey::Unmask => "Unmask",
+        ContainerKey::LogDriver => "LogDriver",
+        ContainerKey::LogOpt => "LogOpt",
+        ContainerKey::IP => "IP",
+        ContainerKey::IP6 => "IP6",
+        ContainerKey::NetworkAlias => "NetworkAlias",
     }
 }
 
@@ -704,12 +709,27 @@ const fn pod_key_name(key: PodKey) -> &'static str {
 const fn network_key_name(key: NetworkKey) -> &'static str {
     match key {
         NetworkKey::NetworkName => "NetworkName",
+        NetworkKey::Driver => "Driver",
+        NetworkKey::Options => "Options",
+        NetworkKey::Internal => "Internal",
+        NetworkKey::IPv6 => "IPv6",
+        NetworkKey::IPAMDriver => "IPAMDriver",
+        NetworkKey::Subnet => "Subnet",
+        NetworkKey::Gateway => "Gateway",
+        NetworkKey::IPRange => "IPRange",
+        NetworkKey::Label => "Label",
     }
 }
 
 const fn volume_key_name(key: VolumeKey) -> &'static str {
     match key {
         VolumeKey::VolumeName => "VolumeName",
+        VolumeKey::Driver => "Driver",
+        VolumeKey::Options => "Options",
+        VolumeKey::Label => "Label",
+        VolumeKey::Device => "Device",
+        VolumeKey::Type => "Type",
+        VolumeKey::Copy => "Copy",
     }
 }
 
