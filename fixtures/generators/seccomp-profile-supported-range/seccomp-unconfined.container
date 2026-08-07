@@ -1,0 +1,3 @@
+[Container]
+Image=registry.example.invalid/seccomp-unconfined:1
+SeccompProfile=unconfined

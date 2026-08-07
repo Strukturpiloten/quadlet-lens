@@ -188,6 +188,36 @@ pub enum ContainerKey {
     AddDevice,
     /// Authored memory limit passed to the container.
     Memory,
+    /// Authored DNS resolver address passed to the container.
+    DNS,
+    /// Authored DNS resolver option passed to the container.
+    DNSOption,
+    /// Authored DNS search domain passed to the container.
+    DNSSearch,
+    /// Authored host port or port range exposed by the container.
+    ExposeHostPort,
+    /// Authored OCI annotation assignment attached to the container.
+    Annotation,
+    /// Authored `AppArmor` confinement profile passed to the container.
+    AppArmor,
+    /// Authored systemd boolean controlling Podman's no-new-privileges option.
+    NoNewPrivileges,
+    /// Authored seccomp profile selection passed to the container.
+    SeccompProfile,
+    /// Authored systemd boolean disabling container security-label separation.
+    SecurityLabelDisable,
+    /// Authored `SELinux` file-type label applied to container files.
+    SecurityLabelFileType,
+    /// Authored `SELinux` MLS/MCS label level applied to the container.
+    SecurityLabelLevel,
+    /// Authored systemd boolean enabling nested container security labeling.
+    SecurityLabelNested,
+    /// Authored `SELinux` process-type label applied to the container.
+    SecurityLabelType,
+    /// Authored container path list passed to Podman's mask security option.
+    Mask,
+    /// Authored container path list passed to Podman's unmask security option.
+    Unmask,
 }
 
 /// Pod keys required by the first Compose-to-Quadlet conversion.
@@ -268,6 +298,13 @@ impl EntryKind {
                         | ContainerKey::Sysctl
                         | ContainerKey::Ulimit
                         | ContainerKey::AddDevice
+                        | ContainerKey::DNS
+                        | ContainerKey::DNSOption
+                        | ContainerKey::DNSSearch
+                        | ContainerKey::ExposeHostPort
+                        | ContainerKey::Annotation
+                        | ContainerKey::Mask
+                        | ContainerKey::Unmask
                 )
                 | Self::Pod(PodKey::AddHost | PodKey::PublishPort | PodKey::Network | PodKey::Volume)
                 | Self::Unknown
@@ -825,6 +862,21 @@ fn classify_entry(section: SectionKind, key: &str) -> EntryKind {
             "Ulimit" => EntryKind::Container(ContainerKey::Ulimit),
             "AddDevice" => EntryKind::Container(ContainerKey::AddDevice),
             "Memory" => EntryKind::Container(ContainerKey::Memory),
+            "DNS" => EntryKind::Container(ContainerKey::DNS),
+            "DNSOption" => EntryKind::Container(ContainerKey::DNSOption),
+            "DNSSearch" => EntryKind::Container(ContainerKey::DNSSearch),
+            "ExposeHostPort" => EntryKind::Container(ContainerKey::ExposeHostPort),
+            "Annotation" => EntryKind::Container(ContainerKey::Annotation),
+            "AppArmor" => EntryKind::Container(ContainerKey::AppArmor),
+            "NoNewPrivileges" => EntryKind::Container(ContainerKey::NoNewPrivileges),
+            "SeccompProfile" => EntryKind::Container(ContainerKey::SeccompProfile),
+            "SecurityLabelDisable" => EntryKind::Container(ContainerKey::SecurityLabelDisable),
+            "SecurityLabelFileType" => EntryKind::Container(ContainerKey::SecurityLabelFileType),
+            "SecurityLabelLevel" => EntryKind::Container(ContainerKey::SecurityLabelLevel),
+            "SecurityLabelNested" => EntryKind::Container(ContainerKey::SecurityLabelNested),
+            "SecurityLabelType" => EntryKind::Container(ContainerKey::SecurityLabelType),
+            "Mask" => EntryKind::Container(ContainerKey::Mask),
+            "Unmask" => EntryKind::Container(ContainerKey::Unmask),
             _ => EntryKind::Unknown,
         },
         SectionKind::Pod => match key {

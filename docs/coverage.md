@@ -38,13 +38,13 @@ one of the four typed unit types.
 
 | Section | Typed keys |
 | --- | --- |
-| `[Container]` | `AddHost`, `ContainerName`, `Image`, `Rootfs`, `Entrypoint`, `RunInit`, `StopSignal`, `StopTimeout`, `Pull`, `PidsLimit`, `HostName`, `ShmSize`, `DropCapability`, `AddCapability`, `Tmpfs`, `Sysctl`, `Ulimit`, `AddDevice`, `Memory`, `Exec`, `Environment`, `EnvironmentFile`, `Label`, `Secret`, `User`, `Group`, `UserNS`, `GroupAdd`, `WorkingDir`, `ReadOnly`, `PublishPort`, `Volume`, `Network`, `Pod`, `HealthCmd`, `Notify`, `HealthInterval`, `HealthRetries`, `HealthStartPeriod`, `HealthTimeout`, `PodmanArgs` |
+| `[Container]` | 56 keys; see the [coverage ledger](roadmap.md#specification-coverage-ledger) |
 | `[Pod]` | `AddHost`, `PodName`, `PublishPort`, `Network`, `Volume`, `UserNS`, `ShmSize` |
 | `[Network]` | `NetworkName` |
 | `[Volume]` | `VolumeName` |
 | `[Unit]`, `[Service]`, `[Install]` | Open-ended generic systemd directives with source/order preservation; typed generation and explicit capability evidence exist for `[Unit]` `Requires=`, `Wants=`, and `After=`, and `[Service]` `Restart=`. |
 
-The current manual contains 49 additional container keys, 18 additional pod keys, 17 additional
+The current manual contains 34 additional container keys, 18 additional pod keys, 17 additional
 network keys, and 15 additional volume keys that are syntax-preserved but not typed. The complete
 lists, plus every current build, image, kube, artifact, and Quadlet-section key, are maintained in
 the [specification coverage ledger](roadmap.md#specification-coverage-ledger).
@@ -186,6 +186,20 @@ matrix unchanged: the three 5.4.x generators reject or exclude `Memory`, while e
 patch releases from 5.5.0 through 6.0.2 emits exactly one final `--memory 16777216b`. This does not
 establish cgroup enforcement, page rounding, swap interaction, host-memory availability, rootless
 behavior, runtime inspection, or cross-format equivalence. Pod `Memory` remains unknown.
+
+The current promotion adds these container-only typed capabilities:
+
+| Keys | Cardinality | Reviewed native range |
+| --- | --- | --- |
+| `DNS`, `DNSOption`, `DNSSearch`, `ExposeHostPort`, `Annotation` | Repeatable | 5.4.0–6.0.2 |
+| `AppArmor` | Singleton | 5.8.0–6.0.2; unsupported through 5.7.1 |
+| `NoNewPrivileges`, `SeccompProfile`, `SecurityLabel*` | Singleton | 5.4.0–6.0.2 |
+| `Mask`, `Unmask` | Repeatable | 5.4.0–6.0.2; earlier introduction unknown |
+
+All retain opaque physical values and standard cardinality diagnostics. The complete generator
+matrix verifies version support, ordering, and reset effects without claiming resolver, OCI,
+security-policy, filesystem, runtime, or cross-format behavior. Other sections and unit types
+remain unknown and preserved.
 
 Cross-format selection remains BoxFerry-owned. A future exact Compose mapping is intentionally
 bounded to a positive explicitly byte-qualified value on a separate container with private IPC;

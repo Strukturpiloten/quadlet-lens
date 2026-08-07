@@ -671,6 +671,21 @@ const fn container_key_name(key: ContainerKey) -> &'static str {
         ContainerKey::Ulimit => "Ulimit",
         ContainerKey::AddDevice => "AddDevice",
         ContainerKey::Memory => "Memory",
+        ContainerKey::DNS => "DNS",
+        ContainerKey::DNSOption => "DNSOption",
+        ContainerKey::DNSSearch => "DNSSearch",
+        ContainerKey::ExposeHostPort => "ExposeHostPort",
+        ContainerKey::Annotation => "Annotation",
+        ContainerKey::AppArmor => "AppArmor",
+        ContainerKey::NoNewPrivileges => "NoNewPrivileges",
+        ContainerKey::SeccompProfile => "SeccompProfile",
+        ContainerKey::SecurityLabelDisable => "SecurityLabelDisable",
+        ContainerKey::SecurityLabelFileType => "SecurityLabelFileType",
+        ContainerKey::SecurityLabelLevel => "SecurityLabelLevel",
+        ContainerKey::SecurityLabelNested => "SecurityLabelNested",
+        ContainerKey::SecurityLabelType => "SecurityLabelType",
+        ContainerKey::Mask => "Mask",
+        ContainerKey::Unmask => "Unmask",
     }
 }
 

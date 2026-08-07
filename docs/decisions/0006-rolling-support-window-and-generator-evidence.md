@@ -93,6 +93,14 @@ unsupported key and emit no memory argument. Every one of the 17 recorded patch 
 assignments and emits exactly one final `--memory 16777216b` argument, with no duplicate, equals,
 empty, quoted, or alternate form. The fixture invokes no workload and establishes no cgroup,
 page-size, swap, host-memory, rootless, runtime-inspection, or cross-format behavior.
+The all-20 first-conversion lane now includes DNS, exposed-port, annotation, seccomp,
+no-new-privileges, SELinux-label, Mask, and Unmask fixtures. They assert ordered command
+construction, reset effects, singleton/boolean handling, and absence of alternate forms. AppArmor
+is explicitly rejected through 5.7.1 and accepted from 5.8.0.
+
+The fixtures run only the generator. They do not validate profiles or paths, inspect host state,
+start workloads, or establish resolver, OCI, security-policy, filesystem, runtime, or cross-format
+behavior.
 
 Referenced `.image`/`.build` units, remaining native keys, runtime, rootless/rootful, and SELinux
 semantics retain narrower evidence even inside the generator-covered range.

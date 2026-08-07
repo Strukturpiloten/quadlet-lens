@@ -25,8 +25,8 @@ fn supported_range_has_the_reviewed_first_conversion_surface() -> Result<(), Str
         .collect();
     let expected: BTreeSet<_> = EXPECTED_CAPABILITIES.lines().filter(|line| !line.is_empty()).collect();
     assert_eq!(actual, expected);
-    assert_eq!(catalogue.capabilities().len(), 59);
-    assert_eq!(catalogue.evidence().len(), 69);
+    assert_eq!(catalogue.capabilities().len(), 74);
+    assert_eq!(catalogue.evidence().len(), 155);
 
     let documentation: Vec<_> = catalogue
         .evidence()
@@ -34,7 +34,7 @@ fn supported_range_has_the_reviewed_first_conversion_surface() -> Result<(), Str
         .filter(|evidence| evidence.level() == VerificationLevel::Documentation)
         .collect();
     assert!(!documentation.is_empty());
-    assert_eq!(documentation.len(), 66);
+    assert_eq!(documentation.len(), 139);
     assert!(documentation.iter().all(|evidence| evidence.gap().is_some()));
     let generator = catalogue
         .evidence()
@@ -649,6 +649,677 @@ fn supported_range_records_repeatable_container_add_device() -> Result<(), Strin
 }
 
 #[test]
+fn supported_range_records_repeatable_container_dns() -> Result<(), String> {
+    let catalogue = CapabilityCatalogue::supported_range().map_err(|error| error.to_string())?;
+    let capability = catalogue
+        .capability("quadlet.container.dns")
+        .ok_or_else(|| "container dns must exist".to_owned())?;
+    assert_eq!(capability.unit_types(), ["container"]);
+    assert_eq!(capability.sections(), ["Container"]);
+    assert!(capability.is_repeatable());
+    assert_eq!(capability.value_forms(), ["opaque-one-line-resolver-value"]);
+    assert_eq!(
+        capability.evidence(),
+        [
+            "podman-5-4-container-dns",
+            "podman-6-0-2-container-dns",
+            "podman-5-4-container-dns-command-source",
+            "podman-6-0-2-container-dns-command-source",
+            "podman-5-4-container-dns-lookup-all-source",
+            "podman-6-0-2-container-dns-lookup-all-source",
+            "podman-5-4-container-dns-reset-source",
+            "podman-6-0-2-container-dns-reset-source",
+            "podman-5-4-through-current-first-conversion-generators",
+        ]
+    );
+    let native = capability
+        .native_range()
+        .ok_or_else(|| "container dns must have native coverage".to_owned())?;
+    assert_eq!(native.minimum(), version(5, 4, 0));
+    assert_eq!(native.maximum(), version(6, 0, 2));
+
+    for (target, expected) in [
+        (version(5, 3, 0), SupportClassification::Unknown),
+        (version(5, 4, 0), SupportClassification::Native),
+        (version(6, 0, 2), SupportClassification::Native),
+        (version(6, 0, 3), SupportClassification::Unknown),
+    ] {
+        let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
+        assert_eq!(
+            catalogue.evaluate("quadlet.container.dns", target).classification(),
+            expected
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn supported_range_records_repeatable_container_dns_option() -> Result<(), String> {
+    let catalogue = CapabilityCatalogue::supported_range().map_err(|error| error.to_string())?;
+    let capability = catalogue
+        .capability("quadlet.container.dns-option")
+        .ok_or_else(|| "container dns-option must exist".to_owned())?;
+    assert_eq!(capability.unit_types(), ["container"]);
+    assert_eq!(capability.sections(), ["Container"]);
+    assert!(capability.is_repeatable());
+    assert_eq!(capability.value_forms(), ["opaque-one-line-resolver-option"]);
+    assert_eq!(
+        capability.evidence(),
+        [
+            "podman-5-4-container-dns-option",
+            "podman-6-0-2-container-dns-option",
+            "podman-5-4-container-dns-option-command-source",
+            "podman-6-0-2-container-dns-option-command-source",
+            "podman-5-4-container-dns-option-lookup-all-source",
+            "podman-6-0-2-container-dns-option-lookup-all-source",
+            "podman-5-4-container-dns-option-reset-source",
+            "podman-6-0-2-container-dns-option-reset-source",
+            "podman-5-4-through-current-first-conversion-generators",
+        ]
+    );
+    let native = capability
+        .native_range()
+        .ok_or_else(|| "container dns-option must have native coverage".to_owned())?;
+    assert_eq!(native.minimum(), version(5, 4, 0));
+    assert_eq!(native.maximum(), version(6, 0, 2));
+
+    for (target, expected) in [
+        (version(5, 3, 0), SupportClassification::Unknown),
+        (version(5, 4, 0), SupportClassification::Native),
+        (version(6, 0, 2), SupportClassification::Native),
+        (version(6, 0, 3), SupportClassification::Unknown),
+    ] {
+        let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
+        assert_eq!(
+            catalogue
+                .evaluate("quadlet.container.dns-option", target)
+                .classification(),
+            expected
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn supported_range_records_repeatable_container_dns_search() -> Result<(), String> {
+    let catalogue = CapabilityCatalogue::supported_range().map_err(|error| error.to_string())?;
+    let capability = catalogue
+        .capability("quadlet.container.dns-search")
+        .ok_or_else(|| "container dns-search must exist".to_owned())?;
+    assert_eq!(capability.unit_types(), ["container"]);
+    assert_eq!(capability.sections(), ["Container"]);
+    assert!(capability.is_repeatable());
+    assert_eq!(capability.value_forms(), ["opaque-one-line-dns-search-value"]);
+    assert_eq!(
+        capability.evidence(),
+        [
+            "podman-5-4-container-dns-search",
+            "podman-6-0-2-container-dns-search",
+            "podman-5-4-container-dns-search-command-source",
+            "podman-6-0-2-container-dns-search-command-source",
+            "podman-5-4-container-dns-search-lookup-all-source",
+            "podman-6-0-2-container-dns-search-lookup-all-source",
+            "podman-5-4-container-dns-search-reset-source",
+            "podman-6-0-2-container-dns-search-reset-source",
+            "podman-5-4-through-current-first-conversion-generators",
+        ]
+    );
+    let native = capability
+        .native_range()
+        .ok_or_else(|| "container dns-search must have native coverage".to_owned())?;
+    assert_eq!(native.minimum(), version(5, 4, 0));
+    assert_eq!(native.maximum(), version(6, 0, 2));
+
+    for (target, expected) in [
+        (version(5, 3, 0), SupportClassification::Unknown),
+        (version(5, 4, 0), SupportClassification::Native),
+        (version(6, 0, 2), SupportClassification::Native),
+        (version(6, 0, 3), SupportClassification::Unknown),
+    ] {
+        let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
+        assert_eq!(
+            catalogue
+                .evaluate("quadlet.container.dns-search", target)
+                .classification(),
+            expected
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn supported_range_records_repeatable_container_expose_host_port() -> Result<(), String> {
+    let catalogue = CapabilityCatalogue::supported_range().map_err(|error| error.to_string())?;
+    let capability = catalogue
+        .capability("quadlet.container.expose-host-port")
+        .ok_or_else(|| "container expose-host-port must exist".to_owned())?;
+    assert_eq!(capability.unit_types(), ["container"]);
+    assert_eq!(capability.sections(), ["Container"]);
+    assert!(capability.is_repeatable());
+    assert_eq!(capability.value_forms(), ["opaque-one-line-expose-host-port-value"]);
+    assert_eq!(
+        capability.evidence(),
+        [
+            "podman-5-4-container-expose-host-port",
+            "podman-6-0-2-container-expose-host-port",
+            "podman-5-4-container-expose-cli",
+            "podman-6-0-2-container-expose-cli",
+            "podman-5-4-container-expose-host-port-command-source",
+            "podman-6-0-2-container-expose-host-port-command-source",
+            "podman-5-4-container-expose-host-port-regex-source",
+            "podman-6-0-2-container-expose-host-port-regex-source",
+            "podman-5-4-container-expose-host-port-reset-source",
+            "podman-6-0-2-container-expose-host-port-reset-source",
+            "podman-5-4-through-current-container-expose-host-port-generators",
+        ]
+    );
+    let native = capability
+        .native_range()
+        .ok_or_else(|| "container expose-host-port must have native coverage".to_owned())?;
+    assert_eq!(native.minimum(), version(5, 4, 0));
+    assert_eq!(native.maximum(), version(6, 0, 2));
+
+    for (target, expected) in [
+        (version(5, 3, 3), SupportClassification::Unknown),
+        (version(5, 4, 0), SupportClassification::Native),
+        (version(6, 0, 2), SupportClassification::Native),
+        (version(6, 0, 3), SupportClassification::Unknown),
+    ] {
+        let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
+        assert_eq!(
+            catalogue
+                .evaluate("quadlet.container.expose-host-port", target)
+                .classification(),
+            expected
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn supported_range_records_repeatable_container_annotation() -> Result<(), String> {
+    let catalogue = CapabilityCatalogue::supported_range().map_err(|error| error.to_string())?;
+    let capability = catalogue
+        .capability("quadlet.container.annotation")
+        .ok_or_else(|| "container annotation must exist".to_owned())?;
+    assert_eq!(capability.unit_types(), ["container"]);
+    assert_eq!(capability.sections(), ["Container"]);
+    assert!(capability.is_repeatable());
+    assert_eq!(capability.value_forms(), ["opaque-one-line-annotation-value"]);
+    assert_eq!(
+        capability.evidence(),
+        [
+            "podman-5-4-container-annotation",
+            "podman-6-0-2-container-annotation",
+            "podman-5-4-container-annotation-command-source",
+            "podman-6-0-2-container-annotation-command-source",
+            "podman-5-4-container-annotation-reset-source",
+            "podman-6-0-2-container-annotation-reset-source",
+            "podman-5-4-through-current-container-annotation-generators",
+        ]
+    );
+    let native = capability
+        .native_range()
+        .ok_or_else(|| "container annotation must have native coverage".to_owned())?;
+    assert_eq!(native.minimum(), version(5, 4, 0));
+    assert_eq!(native.maximum(), version(6, 0, 2));
+
+    for (target, expected) in [
+        (version(5, 3, 3), SupportClassification::Unknown),
+        (version(5, 4, 0), SupportClassification::Native),
+        (version(6, 0, 2), SupportClassification::Native),
+        (version(6, 0, 3), SupportClassification::Unknown),
+    ] {
+        let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
+        assert_eq!(
+            catalogue
+                .evaluate("quadlet.container.annotation", target)
+                .classification(),
+            expected
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn supported_range_records_singleton_container_apparmor() -> Result<(), String> {
+    let catalogue = CapabilityCatalogue::supported_range().map_err(|error| error.to_string())?;
+    let capability = catalogue
+        .capability("quadlet.container.apparmor")
+        .ok_or_else(|| "container apparmor must exist".to_owned())?;
+    assert_eq!(capability.unit_types(), ["container"]);
+    assert_eq!(capability.sections(), ["Container"]);
+    assert!(!capability.is_repeatable());
+    assert_eq!(capability.value_forms(), ["opaque-one-line-apparmor-profile"]);
+    assert_eq!(
+        capability.evidence(),
+        [
+            "podman-5-4-container-apparmor",
+            "podman-6-0-2-container-apparmor",
+            "podman-6-0-2-container-apparmor-command-source",
+            "podman-5-4-through-5-7-container-apparmor-rejection",
+            "podman-5-8-through-current-container-apparmor-generators",
+        ]
+    );
+    let native = capability
+        .native_range()
+        .ok_or_else(|| "container apparmor must have native coverage".to_owned())?;
+    assert_eq!(native.minimum(), version(5, 8, 0));
+    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(capability.unsupported_ranges().len(), 1);
+    assert_eq!(
+        capability.unsupported_ranges()[0].versions().minimum(),
+        version(5, 4, 0)
+    );
+    assert_eq!(
+        capability.unsupported_ranges()[0].versions().maximum(),
+        version(5, 7, 1)
+    );
+
+    for (target, expected) in [
+        (version(5, 3, 3), SupportClassification::Unknown),
+        (version(5, 4, 0), SupportClassification::Unsupported),
+        (version(5, 7, 1), SupportClassification::Unsupported),
+        (version(5, 8, 0), SupportClassification::Native),
+        (version(6, 0, 2), SupportClassification::Native),
+        (version(6, 0, 3), SupportClassification::Unknown),
+    ] {
+        let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
+        assert_eq!(
+            catalogue
+                .evaluate("quadlet.container.apparmor", target)
+                .classification(),
+            expected
+        );
+    }
+    let crossing = PodmanTarget::new(version(5, 7, 1), Some(version(5, 8, 0))).map_err(|error| error.to_string())?;
+    assert_eq!(
+        catalogue
+            .evaluate("quadlet.container.apparmor", crossing)
+            .classification(),
+        SupportClassification::Unknown
+    );
+    Ok(())
+}
+
+#[test]
+fn supported_range_records_singleton_container_no_new_privileges() -> Result<(), String> {
+    let catalogue = CapabilityCatalogue::supported_range().map_err(|error| error.to_string())?;
+    let capability = catalogue
+        .capability("quadlet.container.no-new-privileges")
+        .ok_or_else(|| "container no-new-privileges must exist".to_owned())?;
+    assert_eq!(capability.unit_types(), ["container"]);
+    assert_eq!(capability.sections(), ["Container"]);
+    assert!(!capability.is_repeatable());
+    assert_eq!(capability.value_forms(), ["literal-true-or-false"]);
+    assert_eq!(
+        capability.evidence(),
+        [
+            "podman-5-4-container-no-new-privileges",
+            "podman-6-0-2-container-no-new-privileges",
+            "podman-6-0-2-container-no-new-privileges-command-source",
+            "podman-5-4-through-current-container-no-new-privileges-generators",
+        ]
+    );
+    let native = capability
+        .native_range()
+        .ok_or_else(|| "container no-new-privileges must have native coverage".to_owned())?;
+    assert_eq!(native.minimum(), version(5, 4, 0));
+    assert_eq!(native.maximum(), version(6, 0, 2));
+
+    for (target, expected) in [
+        (version(5, 3, 3), SupportClassification::Unknown),
+        (version(5, 4, 0), SupportClassification::Native),
+        (version(6, 0, 2), SupportClassification::Native),
+        (version(6, 0, 3), SupportClassification::Unknown),
+    ] {
+        let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
+        assert_eq!(
+            catalogue
+                .evaluate("quadlet.container.no-new-privileges", target)
+                .classification(),
+            expected
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn supported_range_records_singleton_container_seccomp_profile() -> Result<(), String> {
+    let catalogue = CapabilityCatalogue::supported_range().map_err(|error| error.to_string())?;
+    let capability = catalogue
+        .capability("quadlet.container.seccomp-profile")
+        .ok_or_else(|| "container seccomp-profile must exist".to_owned())?;
+    assert_eq!(capability.unit_types(), ["container"]);
+    assert_eq!(capability.sections(), ["Container"]);
+    assert!(!capability.is_repeatable());
+    assert_eq!(capability.value_forms(), ["opaque-one-line-seccomp-profile"]);
+    assert_eq!(
+        capability.evidence(),
+        [
+            "podman-5-4-container-seccomp-profile",
+            "podman-6-0-2-container-seccomp-profile",
+            "podman-6-0-2-container-seccomp-profile-command-source",
+            "podman-6-0-2-container-seccomp-profile-lookup-source",
+            "podman-5-4-through-current-container-seccomp-profile-generators",
+        ]
+    );
+    let native = capability
+        .native_range()
+        .ok_or_else(|| "container seccomp-profile must have native coverage".to_owned())?;
+    assert_eq!(native.minimum(), version(5, 4, 0));
+    assert_eq!(native.maximum(), version(6, 0, 2));
+
+    for (target, expected) in [
+        (version(5, 3, 3), SupportClassification::Unknown),
+        (version(5, 4, 0), SupportClassification::Native),
+        (version(6, 0, 2), SupportClassification::Native),
+        (version(6, 0, 3), SupportClassification::Unknown),
+    ] {
+        let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
+        assert_eq!(
+            catalogue
+                .evaluate("quadlet.container.seccomp-profile", target)
+                .classification(),
+            expected
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn supported_range_records_singleton_container_security_label_disable() -> Result<(), String> {
+    let catalogue = CapabilityCatalogue::supported_range().map_err(|error| error.to_string())?;
+    let capability = catalogue
+        .capability("quadlet.container.security-label-disable")
+        .ok_or_else(|| "container security-label-disable must exist".to_owned())?;
+    assert_eq!(capability.unit_types(), ["container"]);
+    assert_eq!(capability.sections(), ["Container"]);
+    assert!(!capability.is_repeatable());
+    assert_eq!(capability.value_forms(), ["literal-true-or-false"]);
+    assert_eq!(
+        capability.evidence(),
+        [
+            "podman-5-4-container-security-label-disable",
+            "podman-6-0-2-container-security-label-disable",
+            "podman-6-0-2-container-security-label-disable-command-source",
+            "podman-5-4-through-current-container-security-label-disable-generators",
+        ]
+    );
+    let native = capability
+        .native_range()
+        .ok_or_else(|| "container security-label-disable must have native coverage".to_owned())?;
+    assert_eq!(native.minimum(), version(5, 4, 0));
+    assert_eq!(native.maximum(), version(6, 0, 2));
+
+    for (target, expected) in [
+        (version(5, 3, 3), SupportClassification::Unknown),
+        (version(5, 4, 0), SupportClassification::Native),
+        (version(6, 0, 2), SupportClassification::Native),
+        (version(6, 0, 3), SupportClassification::Unknown),
+    ] {
+        let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
+        assert_eq!(
+            catalogue
+                .evaluate("quadlet.container.security-label-disable", target)
+                .classification(),
+            expected
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn supported_range_records_singleton_container_security_label_file_type() -> Result<(), String> {
+    let catalogue = CapabilityCatalogue::supported_range().map_err(|error| error.to_string())?;
+    let capability = catalogue
+        .capability("quadlet.container.security-label-file-type")
+        .ok_or_else(|| "container security-label-file-type must exist".to_owned())?;
+    assert_eq!(capability.unit_types(), ["container"]);
+    assert_eq!(capability.sections(), ["Container"]);
+    assert!(!capability.is_repeatable());
+    assert_eq!(capability.value_forms(), ["opaque-one-line-security-label-file-type"]);
+    assert_eq!(
+        capability.evidence(),
+        [
+            "podman-5-4-container-security-label-file-type",
+            "podman-6-0-2-container-security-label-file-type",
+            "podman-6-0-2-container-security-label-file-type-command-source",
+            "podman-5-4-through-current-container-security-label-file-type-generators",
+        ]
+    );
+    let native = capability
+        .native_range()
+        .ok_or_else(|| "container security-label-file-type must have native coverage".to_owned())?;
+    assert_eq!(native.minimum(), version(5, 4, 0));
+    assert_eq!(native.maximum(), version(6, 0, 2));
+
+    for (target, expected) in [
+        (version(5, 3, 3), SupportClassification::Unknown),
+        (version(5, 4, 0), SupportClassification::Native),
+        (version(6, 0, 2), SupportClassification::Native),
+        (version(6, 0, 3), SupportClassification::Unknown),
+    ] {
+        let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
+        assert_eq!(
+            catalogue
+                .evaluate("quadlet.container.security-label-file-type", target)
+                .classification(),
+            expected
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn supported_range_records_singleton_container_security_label_level() -> Result<(), String> {
+    let catalogue = CapabilityCatalogue::supported_range().map_err(|error| error.to_string())?;
+    let capability = catalogue
+        .capability("quadlet.container.security-label-level")
+        .ok_or_else(|| "container security-label-level must exist".to_owned())?;
+    assert_eq!(capability.unit_types(), ["container"]);
+    assert_eq!(capability.sections(), ["Container"]);
+    assert!(!capability.is_repeatable());
+    assert_eq!(capability.value_forms(), ["opaque-one-line-security-label-level"]);
+    assert_eq!(
+        capability.evidence(),
+        [
+            "podman-5-4-container-security-label-level",
+            "podman-6-0-2-container-security-label-level",
+            "podman-6-0-2-container-security-label-level-command-source",
+            "podman-5-4-through-current-container-security-label-level-generators",
+        ]
+    );
+    let native = capability
+        .native_range()
+        .ok_or_else(|| "container security-label-level must have native coverage".to_owned())?;
+    assert_eq!(native.minimum(), version(5, 4, 0));
+    assert_eq!(native.maximum(), version(6, 0, 2));
+
+    for (target, expected) in [
+        (version(5, 3, 3), SupportClassification::Unknown),
+        (version(5, 4, 0), SupportClassification::Native),
+        (version(6, 0, 2), SupportClassification::Native),
+        (version(6, 0, 3), SupportClassification::Unknown),
+    ] {
+        let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
+        assert_eq!(
+            catalogue
+                .evaluate("quadlet.container.security-label-level", target)
+                .classification(),
+            expected
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn supported_range_records_singleton_container_security_label_nested() -> Result<(), String> {
+    let catalogue = CapabilityCatalogue::supported_range().map_err(|error| error.to_string())?;
+    let capability = catalogue
+        .capability("quadlet.container.security-label-nested")
+        .ok_or_else(|| "container security-label-nested must exist".to_owned())?;
+    assert_eq!(capability.unit_types(), ["container"]);
+    assert_eq!(capability.sections(), ["Container"]);
+    assert!(!capability.is_repeatable());
+    assert_eq!(capability.value_forms(), ["literal-true-or-false"]);
+    assert_eq!(
+        capability.evidence(),
+        [
+            "podman-5-4-container-security-label-nested",
+            "podman-6-0-2-container-security-label-nested",
+            "podman-6-0-2-container-security-label-nested-command-source",
+            "podman-5-4-through-current-container-security-label-nested-generators",
+        ]
+    );
+    let native = capability
+        .native_range()
+        .ok_or_else(|| "container security-label-nested must have native coverage".to_owned())?;
+    assert_eq!(native.minimum(), version(5, 4, 0));
+    assert_eq!(native.maximum(), version(6, 0, 2));
+
+    for (target, expected) in [
+        (version(5, 3, 3), SupportClassification::Unknown),
+        (version(5, 4, 0), SupportClassification::Native),
+        (version(6, 0, 2), SupportClassification::Native),
+        (version(6, 0, 3), SupportClassification::Unknown),
+    ] {
+        let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
+        assert_eq!(
+            catalogue
+                .evaluate("quadlet.container.security-label-nested", target)
+                .classification(),
+            expected
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn supported_range_records_singleton_container_security_label_type() -> Result<(), String> {
+    let catalogue = CapabilityCatalogue::supported_range().map_err(|error| error.to_string())?;
+    let capability = catalogue
+        .capability("quadlet.container.security-label-type")
+        .ok_or_else(|| "container security-label-type must exist".to_owned())?;
+    assert_eq!(capability.unit_types(), ["container"]);
+    assert_eq!(capability.sections(), ["Container"]);
+    assert!(!capability.is_repeatable());
+    assert_eq!(capability.value_forms(), ["opaque-one-line-security-label-type"]);
+    assert_eq!(
+        capability.evidence(),
+        [
+            "podman-5-4-container-security-label-type",
+            "podman-6-0-2-container-security-label-type",
+            "podman-6-0-2-container-security-label-type-command-source",
+            "podman-5-4-through-current-container-security-label-type-generators",
+        ]
+    );
+    let native = capability
+        .native_range()
+        .ok_or_else(|| "container security-label-type must have native coverage".to_owned())?;
+    assert_eq!(native.minimum(), version(5, 4, 0));
+    assert_eq!(native.maximum(), version(6, 0, 2));
+
+    for (target, expected) in [
+        (version(5, 3, 3), SupportClassification::Unknown),
+        (version(5, 4, 0), SupportClassification::Native),
+        (version(6, 0, 2), SupportClassification::Native),
+        (version(6, 0, 3), SupportClassification::Unknown),
+    ] {
+        let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
+        assert_eq!(
+            catalogue
+                .evaluate("quadlet.container.security-label-type", target)
+                .classification(),
+            expected
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn supported_range_records_repeatable_container_mask() -> Result<(), String> {
+    let catalogue = CapabilityCatalogue::supported_range().map_err(|error| error.to_string())?;
+    let capability = catalogue
+        .capability("quadlet.container.mask")
+        .ok_or_else(|| "container mask must exist".to_owned())?;
+    assert_eq!(capability.unit_types(), ["container"]);
+    assert_eq!(capability.sections(), ["Container"]);
+    assert!(capability.is_repeatable());
+    assert_eq!(capability.value_forms(), ["opaque-one-line-mask-path-list"]);
+    assert_eq!(
+        capability.evidence(),
+        [
+            "podman-5-4-container-mask",
+            "podman-6-0-2-container-mask",
+            "podman-5-4-container-mask-command-source",
+            "podman-6-0-2-container-mask-command-source",
+            "podman-5-4-through-current-container-mask-generators",
+        ]
+    );
+    let native = capability
+        .native_range()
+        .ok_or_else(|| "container mask must have native coverage".to_owned())?;
+    assert_eq!(native.minimum(), version(5, 4, 0));
+    assert_eq!(native.maximum(), version(6, 0, 2));
+
+    for (target, expected) in [
+        (version(5, 3, 3), SupportClassification::Unknown),
+        (version(5, 4, 0), SupportClassification::Native),
+        (version(6, 0, 2), SupportClassification::Native),
+        (version(6, 0, 3), SupportClassification::Unknown),
+    ] {
+        let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
+        assert_eq!(
+            catalogue.evaluate("quadlet.container.mask", target).classification(),
+            expected
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn supported_range_records_repeatable_container_unmask() -> Result<(), String> {
+    let catalogue = CapabilityCatalogue::supported_range().map_err(|error| error.to_string())?;
+    let capability = catalogue
+        .capability("quadlet.container.unmask")
+        .ok_or_else(|| "container unmask must exist".to_owned())?;
+    assert_eq!(capability.unit_types(), ["container"]);
+    assert_eq!(capability.sections(), ["Container"]);
+    assert!(capability.is_repeatable());
+    assert_eq!(capability.value_forms(), ["opaque-one-line-unmask-path-list-or-all"]);
+    assert_eq!(
+        capability.evidence(),
+        [
+            "podman-5-4-container-unmask",
+            "podman-6-0-2-container-unmask",
+            "podman-5-4-container-unmask-command-source",
+            "podman-6-0-2-container-unmask-command-source",
+            "podman-5-4-through-current-container-unmask-generators",
+        ]
+    );
+    let native = capability
+        .native_range()
+        .ok_or_else(|| "container unmask must have native coverage".to_owned())?;
+    assert_eq!(native.minimum(), version(5, 4, 0));
+    assert_eq!(native.maximum(), version(6, 0, 2));
+
+    for (target, expected) in [
+        (version(5, 3, 3), SupportClassification::Unknown),
+        (version(5, 4, 0), SupportClassification::Native),
+        (version(6, 0, 2), SupportClassification::Native),
+        (version(6, 0, 3), SupportClassification::Unknown),
+    ] {
+        let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
+        assert_eq!(
+            catalogue.evaluate("quadlet.container.unmask", target).classification(),
+            expected
+        );
+    }
+    Ok(())
+}
+
+#[test]
 fn supported_range_records_container_memory_from_5_5() -> Result<(), String> {
     let catalogue = CapabilityCatalogue::supported_range().map_err(|error| error.to_string())?;
     let capability = catalogue
@@ -803,6 +1474,31 @@ fn schema_evaluates_fallbacks_and_known_bugs_before_native_support() -> Result<(
         PodmanTarget::new(version(5, 4, 1), Some(version(5, 4, 1))).map_err(|error| error.to_string())?,
     );
     assert_eq!(removed.classification(), SupportClassification::Removed);
+
+    let unsupported_record = catalogue
+        .capability("quadlet.example.unsupported")
+        .ok_or_else(|| "synthetic unsupported capability must exist".to_owned())?
+        .unsupported_ranges()
+        .first()
+        .ok_or_else(|| "synthetic unsupported range must exist".to_owned())?;
+    assert_eq!(unsupported_record.summary(), "native support starts in the final patch");
+    assert_eq!(unsupported_record.evidence(), ["generator-5-4"]);
+    let unsupported = catalogue.evaluate(
+        "quadlet.example.unsupported",
+        PodmanTarget::new(version(5, 4, 0), Some(version(5, 4, 1))).map_err(|error| error.to_string())?,
+    );
+    assert_eq!(unsupported.classification(), SupportClassification::Unsupported);
+    let crossing = catalogue.evaluate(
+        "quadlet.example.unsupported",
+        PodmanTarget::new(version(5, 4, 1), Some(version(5, 4, 2))).map_err(|error| error.to_string())?,
+    );
+    assert_eq!(crossing.classification(), SupportClassification::Unknown);
+
+    let overlapping = SYNTHETIC_CATALOGUE.replace(
+        "native = { minimum = \"5.4.2\", maximum = \"5.4.2\" }",
+        "native = { minimum = \"5.4.1\", maximum = \"5.4.2\" }",
+    );
+    assert!(CapabilityCatalogue::parse(&overlapping).is_err());
     Ok(())
 }
 
@@ -881,5 +1577,18 @@ sections = ["Container"]
 native = { minimum = "5.4.0", maximum = "5.4.0" }
 deprecated_from = "5.4.0"
 removed_from = "5.4.1"
+evidence = ["generator-5-4"]
+
+[[capability]]
+id = "quadlet.example.unsupported"
+description = "Synthetic evidence-backed unsupported range."
+unit_types = ["container"]
+sections = ["Container"]
+native = { minimum = "5.4.2", maximum = "5.4.2" }
+evidence = ["generator-5-4"]
+
+[[capability.unsupported]]
+versions = { minimum = "5.4.0", maximum = "5.4.1" }
+summary = "native support starts in the final patch"
 evidence = ["generator-5-4"]
 "#;

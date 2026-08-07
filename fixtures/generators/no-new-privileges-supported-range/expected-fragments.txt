@@ -1,0 +1,4 @@
+---no-new-privileges-true.service---
+SourcePath=/fixtures/no-new-privileges-true.container
+---no-new-privileges-false.service---
+SourcePath=/fixtures/no-new-privileges-false.container

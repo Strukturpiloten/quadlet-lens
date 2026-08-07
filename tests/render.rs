@@ -822,6 +822,516 @@ fn add_device_builder_preserves_resets_duplicates_case_quotes_specifiers_whitesp
 }
 
 #[test]
+fn dns_builder_preserves_resets_duplicates_order_quotes_and_specifiers_without_interpretation()
+-> Result<(), Box<dyn std::error::Error>> {
+    let mut container = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    container.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+    for authored in [
+        "1.1.1.1",
+        "1.1.1.1",
+        "",
+        "9.9.9.9",
+        "2001:4860:4860::8888",
+        r#""Authored Resolver""#,
+        "%h",
+        "Vendor_Defined_DNS",
+    ] {
+        container.push_container(ContainerKey::DNS, value(authored)?)?;
+    }
+    assert_eq!(
+        container.build(SourceId::new(119))?.text(),
+        concat!(
+            "[Container]\n",
+            "Image=example.invalid/app\n",
+            "DNS=1.1.1.1\n",
+            "DNS=1.1.1.1\n",
+            "DNS=\n",
+            "DNS=9.9.9.9\n",
+            "DNS=2001:4860:4860::8888\n",
+            "DNS=\"Authored Resolver\"\n",
+            "DNS=%h\n",
+            "DNS=Vendor_Defined_DNS\n",
+        )
+    );
+
+    for unsafe_value in ["1.1.1.1\n9.9.9.9", "1.1.1.1\r9.9.9.9", "1.1.1.1\09.9.9.9"] {
+        assert!(matches!(EntryValue::new(unsafe_value), Err(RenderError::InvalidValue)));
+    }
+    Ok(())
+}
+
+#[test]
+fn dns_option_builder_preserves_resets_duplicates_order_quotes_whitespace_and_specifiers_without_interpretation()
+-> Result<(), Box<dyn std::error::Error>> {
+    let mut container = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    container.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+    for authored in [
+        "rotate",
+        "rotate",
+        "",
+        "ndots:1",
+        "use-vc",
+        r#""Authored Option""#,
+        "%h",
+        "Vendor Defined Option",
+    ] {
+        container.push_container(ContainerKey::DNSOption, value(authored)?)?;
+    }
+    assert_eq!(
+        container.build(SourceId::new(120))?.text(),
+        concat!(
+            "[Container]\n",
+            "Image=example.invalid/app\n",
+            "DNSOption=rotate\n",
+            "DNSOption=rotate\n",
+            "DNSOption=\n",
+            "DNSOption=ndots:1\n",
+            "DNSOption=use-vc\n",
+            "DNSOption=\"Authored Option\"\n",
+            "DNSOption=%h\n",
+            "DNSOption=Vendor Defined Option\n",
+        )
+    );
+
+    for unsafe_value in ["rotate\nuse-vc", "rotate\ruse-vc", "rotate\0use-vc"] {
+        assert!(matches!(EntryValue::new(unsafe_value), Err(RenderError::InvalidValue)));
+    }
+    Ok(())
+}
+
+#[test]
+fn dns_search_builder_preserves_resets_duplicates_order_quotes_and_specifiers_without_interpretation()
+-> Result<(), Box<dyn std::error::Error>> {
+    let mut container = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    container.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+    for authored in [
+        "pre.example.com",
+        "pre.example.com",
+        "",
+        "dc1.example.com",
+        ".",
+        r#""Authored Search""#,
+        "%h",
+        "Vendor Defined Search",
+    ] {
+        container.push_container(ContainerKey::DNSSearch, value(authored)?)?;
+    }
+    assert_eq!(
+        container.build(SourceId::new(121))?.text(),
+        concat!(
+            "[Container]\n",
+            "Image=example.invalid/app\n",
+            "DNSSearch=pre.example.com\n",
+            "DNSSearch=pre.example.com\n",
+            "DNSSearch=\n",
+            "DNSSearch=dc1.example.com\n",
+            "DNSSearch=.\n",
+            "DNSSearch=\"Authored Search\"\n",
+            "DNSSearch=%h\n",
+            "DNSSearch=Vendor Defined Search\n",
+        )
+    );
+
+    for unsafe_value in ["example.com\n.", "example.com\r.", "example.com\0."] {
+        assert!(matches!(EntryValue::new(unsafe_value), Err(RenderError::InvalidValue)));
+    }
+    Ok(())
+}
+
+#[test]
+fn expose_host_port_builder_preserves_resets_duplicates_order_quotes_specifiers_invalid_and_sctp_without_interpretation()
+-> Result<(), Box<dyn std::error::Error>> {
+    let mut container = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    container.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+    for authored in [
+        "1000",
+        "1000",
+        "",
+        "3000",
+        "8080-8085",
+        "9090/tcp",
+        "5353/udp",
+        "5353/sctp",
+        r#""Authored Port""#,
+        "%i",
+        "not-a-port",
+    ] {
+        container.push_container(ContainerKey::ExposeHostPort, value(authored)?)?;
+    }
+    assert_eq!(
+        container.build(SourceId::new(122))?.text(),
+        concat!(
+            "[Container]\n",
+            "Image=example.invalid/app\n",
+            "ExposeHostPort=1000\n",
+            "ExposeHostPort=1000\n",
+            "ExposeHostPort=\n",
+            "ExposeHostPort=3000\n",
+            "ExposeHostPort=8080-8085\n",
+            "ExposeHostPort=9090/tcp\n",
+            "ExposeHostPort=5353/udp\n",
+            "ExposeHostPort=5353/sctp\n",
+            "ExposeHostPort=\"Authored Port\"\n",
+            "ExposeHostPort=%i\n",
+            "ExposeHostPort=not-a-port\n",
+        )
+    );
+
+    for unsafe_value in ["8080\n9090", "8080\r9090", "8080\09090"] {
+        assert!(matches!(EntryValue::new(unsafe_value), Err(RenderError::InvalidValue)));
+    }
+    Ok(())
+}
+
+#[test]
+fn annotation_builder_preserves_resets_duplicates_order_quotes_whitespace_specifiers_and_malformed_values()
+-> Result<(), Box<dyn std::error::Error>> {
+    let mut container = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    container.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+    for authored in [
+        "org.example.name=first",
+        "org.example.name=first",
+        "",
+        "org.example.name=final",
+        r#""org.example.quoted=Authored Value""#,
+        "org.example.specifier=%i",
+        "key-only",
+        " malformed = value ",
+    ] {
+        container.push_container(ContainerKey::Annotation, value(authored)?)?;
+    }
+    assert_eq!(
+        container.build(SourceId::new(123))?.text(),
+        concat!(
+            "[Container]\n",
+            "Image=example.invalid/app\n",
+            "Annotation=org.example.name=first\n",
+            "Annotation=org.example.name=first\n",
+            "Annotation=\n",
+            "Annotation=org.example.name=final\n",
+            "Annotation=\"org.example.quoted=Authored Value\"\n",
+            "Annotation=org.example.specifier=%i\n",
+            "Annotation=key-only\n",
+            "Annotation= malformed = value \n",
+        )
+    );
+
+    for unsafe_value in [
+        "key=value\nother=value",
+        "key=value\rother=value",
+        "key=value\0other=value",
+    ] {
+        assert!(matches!(EntryValue::new(unsafe_value), Err(RenderError::InvalidValue)));
+    }
+    Ok(())
+}
+
+#[test]
+fn apparmor_builder_preserves_one_exact_opaque_physical_value() -> Result<(), Box<dyn std::error::Error>> {
+    for (source_id, authored) in [
+        (SourceId::new(124), "unconfined"),
+        (SourceId::new(125), ""),
+        (SourceId::new(126), r#""Authored Profile""#),
+        (SourceId::new(127), " profile:with %i "),
+        (SourceId::new(128), "Vendor_Defined/Profile"),
+    ] {
+        let mut container = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+        container.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+        container.push_container(ContainerKey::AppArmor, value(authored)?)?;
+        assert_eq!(
+            container.build(source_id)?.text(),
+            format!("[Container]\nImage=example.invalid/app\nAppArmor={authored}\n")
+        );
+    }
+
+    let mut duplicate = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    duplicate.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+    duplicate.push_container(ContainerKey::AppArmor, value("first")?)?;
+    assert!(matches!(
+        duplicate.push_container(ContainerKey::AppArmor, value("second")?),
+        Err(RenderError::DuplicateSingleton(key)) if key == "AppArmor"
+    ));
+    Ok(())
+}
+
+#[test]
+fn no_new_privileges_builder_preserves_one_exact_opaque_physical_value() -> Result<(), Box<dyn std::error::Error>> {
+    for (source_id, authored) in [
+        (SourceId::new(129), "true"),
+        (SourceId::new(130), "yes"),
+        (SourceId::new(131), "false"),
+        (SourceId::new(132), ""),
+        (SourceId::new(133), r#""true""#),
+        (SourceId::new(134), " %i "),
+        (SourceId::new(135), "not-a-boolean"),
+    ] {
+        let mut container = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+        container.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+        container.push_container(ContainerKey::NoNewPrivileges, value(authored)?)?;
+        assert_eq!(
+            container.build(source_id)?.text(),
+            format!("[Container]\nImage=example.invalid/app\nNoNewPrivileges={authored}\n")
+        );
+    }
+
+    let mut duplicate = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    duplicate.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+    duplicate.push_container(ContainerKey::NoNewPrivileges, value("true")?)?;
+    assert!(matches!(
+        duplicate.push_container(ContainerKey::NoNewPrivileges, value("false")?),
+        Err(RenderError::DuplicateSingleton(key)) if key == "NoNewPrivileges"
+    ));
+    Ok(())
+}
+
+#[test]
+fn seccomp_profile_builder_preserves_one_exact_opaque_physical_value() -> Result<(), Box<dyn std::error::Error>> {
+    for (source_id, authored) in [
+        (SourceId::new(136), "unconfined"),
+        (SourceId::new(137), "/tmp/profile.json"),
+        (SourceId::new(138), ""),
+        (SourceId::new(139), r#""/tmp/Authored Profile.json""#),
+        (SourceId::new(140), " %h/profiles/%i.json "),
+        (SourceId::new(141), "malformed:value"),
+    ] {
+        let mut container = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+        container.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+        container.push_container(ContainerKey::SeccompProfile, value(authored)?)?;
+        assert_eq!(
+            container.build(source_id)?.text(),
+            format!("[Container]\nImage=example.invalid/app\nSeccompProfile={authored}\n")
+        );
+    }
+
+    let mut duplicate = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    duplicate.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+    duplicate.push_container(ContainerKey::SeccompProfile, value("unconfined")?)?;
+    assert!(matches!(
+        duplicate.push_container(ContainerKey::SeccompProfile, value("/tmp/profile.json")?),
+        Err(RenderError::DuplicateSingleton(key)) if key == "SeccompProfile"
+    ));
+    Ok(())
+}
+
+#[test]
+fn security_label_disable_builder_preserves_one_exact_opaque_physical_value() -> Result<(), Box<dyn std::error::Error>>
+{
+    for (source_id, authored) in [
+        (SourceId::new(142), "true"),
+        (SourceId::new(143), "false"),
+        (SourceId::new(144), ""),
+        (SourceId::new(145), r#""true""#),
+        (SourceId::new(146), " %i "),
+        (SourceId::new(147), "not-a-boolean"),
+    ] {
+        let mut container = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+        container.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+        container.push_container(ContainerKey::SecurityLabelDisable, value(authored)?)?;
+        assert_eq!(
+            container.build(source_id)?.text(),
+            format!("[Container]\nImage=example.invalid/app\nSecurityLabelDisable={authored}\n")
+        );
+    }
+
+    let mut duplicate = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    duplicate.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+    duplicate.push_container(ContainerKey::SecurityLabelDisable, value("true")?)?;
+    assert!(matches!(
+        duplicate.push_container(ContainerKey::SecurityLabelDisable, value("false")?),
+        Err(RenderError::DuplicateSingleton(key)) if key == "SecurityLabelDisable"
+    ));
+    Ok(())
+}
+
+#[test]
+fn security_label_file_type_builder_preserves_one_exact_opaque_physical_value() -> Result<(), Box<dyn std::error::Error>>
+{
+    for (source_id, authored) in [
+        (SourceId::new(148), "container_file_t"),
+        (SourceId::new(149), ""),
+        (SourceId::new(150), r#""custom_file_t""#),
+        (SourceId::new(151), " custom file type "),
+        (SourceId::new(152), "%i_file_t"),
+        (SourceId::new(153), "malformed:type"),
+    ] {
+        let mut container = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+        container.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+        container.push_container(ContainerKey::SecurityLabelFileType, value(authored)?)?;
+        assert_eq!(
+            container.build(source_id)?.text(),
+            format!("[Container]\nImage=example.invalid/app\nSecurityLabelFileType={authored}\n")
+        );
+    }
+
+    let mut duplicate = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    duplicate.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+    duplicate.push_container(ContainerKey::SecurityLabelFileType, value("container_file_t")?)?;
+    assert!(matches!(
+        duplicate.push_container(ContainerKey::SecurityLabelFileType, value("custom_file_t")?),
+        Err(RenderError::DuplicateSingleton(key)) if key == "SecurityLabelFileType"
+    ));
+    Ok(())
+}
+
+#[test]
+fn security_label_level_builder_preserves_one_exact_opaque_physical_value() -> Result<(), Box<dyn std::error::Error>> {
+    for (source_id, authored) in [
+        (SourceId::new(154), "s0:c1,c2"),
+        (SourceId::new(155), ""),
+        (SourceId::new(156), r#""s0:c3,c4""#),
+        (SourceId::new(157), " s0:c5,c6 "),
+        (SourceId::new(158), "%i:c7,c8"),
+        (SourceId::new(159), "malformed level"),
+    ] {
+        let mut container = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+        container.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+        container.push_container(ContainerKey::SecurityLabelLevel, value(authored)?)?;
+        assert_eq!(
+            container.build(source_id)?.text(),
+            format!("[Container]\nImage=example.invalid/app\nSecurityLabelLevel={authored}\n")
+        );
+    }
+
+    let mut duplicate = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    duplicate.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+    duplicate.push_container(ContainerKey::SecurityLabelLevel, value("s0:c1,c2")?)?;
+    assert!(matches!(
+        duplicate.push_container(ContainerKey::SecurityLabelLevel, value("s0:c3,c4")?),
+        Err(RenderError::DuplicateSingleton(key)) if key == "SecurityLabelLevel"
+    ));
+    Ok(())
+}
+
+#[test]
+fn security_label_nested_builder_preserves_one_exact_opaque_physical_value() -> Result<(), Box<dyn std::error::Error>> {
+    for (source_id, authored) in [
+        (SourceId::new(160), "true"),
+        (SourceId::new(161), "false"),
+        (SourceId::new(162), ""),
+        (SourceId::new(163), r#""true""#),
+        (SourceId::new(164), " false "),
+        (SourceId::new(165), "%i"),
+        (SourceId::new(166), "not-a-boolean"),
+    ] {
+        let mut container = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+        container.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+        container.push_container(ContainerKey::SecurityLabelNested, value(authored)?)?;
+        assert_eq!(
+            container.build(source_id)?.text(),
+            format!("[Container]\nImage=example.invalid/app\nSecurityLabelNested={authored}\n")
+        );
+    }
+
+    let mut duplicate = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    duplicate.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+    duplicate.push_container(ContainerKey::SecurityLabelNested, value("true")?)?;
+    assert!(matches!(
+        duplicate.push_container(ContainerKey::SecurityLabelNested, value("false")?),
+        Err(RenderError::DuplicateSingleton(key)) if key == "SecurityLabelNested"
+    ));
+    Ok(())
+}
+
+#[test]
+fn security_label_type_builder_preserves_one_exact_opaque_physical_value() -> Result<(), Box<dyn std::error::Error>> {
+    for (source_id, authored) in [
+        (SourceId::new(167), "container_t"),
+        (SourceId::new(168), ""),
+        (SourceId::new(169), r#""custom_t""#),
+        (SourceId::new(170), " custom type "),
+        (SourceId::new(171), "%i_t"),
+        (SourceId::new(172), "malformed:type"),
+    ] {
+        let mut container = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+        container.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+        container.push_container(ContainerKey::SecurityLabelType, value(authored)?)?;
+        assert_eq!(
+            container.build(source_id)?.text(),
+            format!("[Container]\nImage=example.invalid/app\nSecurityLabelType={authored}\n")
+        );
+    }
+
+    let mut duplicate = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    duplicate.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+    duplicate.push_container(ContainerKey::SecurityLabelType, value("container_t")?)?;
+    assert!(matches!(
+        duplicate.push_container(ContainerKey::SecurityLabelType, value("custom_t")?),
+        Err(RenderError::DuplicateSingleton(key)) if key == "SecurityLabelType"
+    ));
+    Ok(())
+}
+
+#[test]
+fn mask_builder_preserves_repeated_exact_opaque_physical_values_in_order() -> Result<(), Box<dyn std::error::Error>> {
+    let authored = [
+        "/pre/one:/pre/two",
+        "",
+        r#""/quoted/path:%h/private""#,
+        " malformed::path ",
+        "/proc/acpi:/sys/firmware",
+        "/proc/acpi:/sys/firmware",
+    ];
+    let mut container = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    container.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+    for entry in authored {
+        container.push_container(ContainerKey::Mask, value(entry)?)?;
+    }
+    let generated = container.build(SourceId::new(173))?;
+    assert_eq!(
+        generated.text(),
+        concat!(
+            "[Container]\n",
+            "Image=example.invalid/app\n",
+            "Mask=/pre/one:/pre/two\n",
+            "Mask=\n",
+            "Mask=\"/quoted/path:%h/private\"\n",
+            "Mask= malformed::path \n",
+            "Mask=/proc/acpi:/sys/firmware\n",
+            "Mask=/proc/acpi:/sys/firmware\n",
+        )
+    );
+    Ok(())
+}
+
+#[test]
+fn unmask_builder_preserves_repeated_exact_opaque_physical_values_in_order() -> Result<(), Box<dyn std::error::Error>> {
+    let authored = [
+        "/pre/one:/pre/two",
+        "/pre/one:/pre/two",
+        "",
+        "ALL",
+        "/proc/acpi:/sys/firmware",
+        r#""/quoted/%h/*:/sys/*""#,
+        "%h/private:/proc/*",
+        " whitespace : value ",
+        "malformed::path:",
+    ];
+    let mut container = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    container.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+    for entry in authored {
+        container.push_container(ContainerKey::Unmask, value(entry)?)?;
+    }
+    let generated = container.build(SourceId::new(174))?;
+    assert_eq!(
+        generated.text(),
+        concat!(
+            "[Container]\n",
+            "Image=example.invalid/app\n",
+            "Unmask=/pre/one:/pre/two\n",
+            "Unmask=/pre/one:/pre/two\n",
+            "Unmask=\n",
+            "Unmask=ALL\n",
+            "Unmask=/proc/acpi:/sys/firmware\n",
+            "Unmask=\"/quoted/%h/*:/sys/*\"\n",
+            "Unmask=%h/private:/proc/*\n",
+            "Unmask= whitespace : value \n",
+            "Unmask=malformed::path:\n",
+        )
+    );
+    Ok(())
+}
+
+#[test]
 fn refuses_a_generated_container_without_a_workload_source() {
     let builder = QuadletDocumentBuilder::new(QuadletUnitType::Container);
     let result = builder.build(SourceId::new(85));

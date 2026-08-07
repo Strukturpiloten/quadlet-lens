@@ -1,0 +1,3 @@
+[Container]
+Image=registry.example.invalid/apparmor:1
+AppArmor=quadlet-lens-profile

@@ -1,0 +1,3 @@
+[Container]
+Image=registry.example.invalid/security-label-level:1
+SecurityLabelLevel=s0:c1,c2

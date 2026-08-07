@@ -77,6 +77,242 @@ const DEVICE_EMPTY_OR_ALTERNATE_FORMS: &[&str] = &[
     "--device=/dev/null:/dev/final-null:r",
     "--device=/dev/zero:/dev/final-zero:w",
 ];
+const DNS_ARGUMENTS: &[&str] = &["--dns 9.9.9.9", "--dns 2001:4860:4860::8888"];
+const DNS_PRE_RESET_VALUES: &[&str] = &["1.1.1.1"];
+const DNS_EMPTY_OR_ALTERNATE_FORMS: &[&str] = &[
+    "--dns=",
+    "--dns \"\"",
+    "--dns ''",
+    "--dns=9.9.9.9",
+    "--dns=2001:4860:4860::8888",
+    "--dns \"9.9.9.9\"",
+    "--dns \"2001:4860:4860::8888\"",
+    "--dns '9.9.9.9'",
+    "--dns '2001:4860:4860::8888'",
+];
+const DNS_OPTION_ARGUMENTS: &[&str] = &["--dns-option ndots:1", "--dns-option use-vc"];
+const DNS_OPTION_PRE_RESET_VALUES: &[&str] = &["rotate"];
+const DNS_OPTION_EMPTY_OR_ALTERNATE_FORMS: &[&str] = &[
+    "--dns-option=",
+    "--dns-option \"\"",
+    "--dns-option ''",
+    "--dns-option=ndots:1",
+    "--dns-option=use-vc",
+    "--dns-option \"ndots:1\"",
+    "--dns-option \"use-vc\"",
+    "--dns-option 'ndots:1'",
+    "--dns-option 'use-vc'",
+];
+const DNS_SEARCH_ARGUMENTS: &[&str] = &["--dns-search dc1.example.com", "--dns-search ."];
+const DNS_SEARCH_PRE_RESET_VALUES: &[&str] = &["pre.example.com"];
+const DNS_SEARCH_EMPTY_OR_ALTERNATE_FORMS: &[&str] = &[
+    "--dns-search=",
+    "--dns-search \"\"",
+    "--dns-search ''",
+    "--dns-search=dc1.example.com",
+    "--dns-search=.",
+    "--dns-search \"dc1.example.com\"",
+    "--dns-search \".\"",
+    "--dns-search 'dc1.example.com'",
+    "--dns-search '.'",
+];
+const EXPOSE_ARGUMENTS: &[&str] = &[
+    "--expose 3000",
+    "--expose 8080-8085",
+    "--expose 9090/tcp",
+    "--expose 5353/udp",
+];
+const EXPOSE_PRE_RESET_VALUES: &[&str] = &["1000"];
+const EXPOSE_EMPTY_OR_ALTERNATE_FORMS: &[&str] = &[
+    "--expose=",
+    "--expose \"\"",
+    "--expose ''",
+    "--expose=3000",
+    "--expose=8080-8085",
+    "--expose=9090/tcp",
+    "--expose=5353/udp",
+    "--expose \"3000\"",
+    "--expose \"8080-8085\"",
+    "--expose \"9090/tcp\"",
+    "--expose \"5353/udp\"",
+    "--expose '3000'",
+    "--expose '8080-8085'",
+    "--expose '9090/tcp'",
+    "--expose '5353/udp'",
+];
+const ANNOTATION_ARGUMENTS: &[&str] = &[
+    "--annotation io.github.strukturpiloten.quadlet-lens.alpha=one",
+    "--annotation io.github.strukturpiloten.quadlet-lens.beta=two",
+];
+const ANNOTATION_PRE_RESET_VALUES: &[&str] = &["org.example.pre=one"];
+const ANNOTATION_EMPTY_OR_ALTERNATE_FORMS: &[&str] = &[
+    "--annotation=",
+    "--annotation \"\"",
+    "--annotation ''",
+    "--annotation key-only",
+    "--annotation=io.github.strukturpiloten.quadlet-lens.alpha=one",
+    "--annotation=io.github.strukturpiloten.quadlet-lens.beta=two",
+    "--annotation \"io.github.strukturpiloten.quadlet-lens.alpha=one\"",
+    "--annotation \"io.github.strukturpiloten.quadlet-lens.beta=two\"",
+    "--annotation 'io.github.strukturpiloten.quadlet-lens.alpha=one'",
+    "--annotation 'io.github.strukturpiloten.quadlet-lens.beta=two'",
+];
+const APPARMOR_ARGUMENT: &str = "--security-opt apparmor=quadlet-lens-profile";
+const APPARMOR_UNRELATED_OR_ALTERNATE_FORMS: &[&str] = &[
+    "--security-opt=",
+    "--security-opt \"apparmor=quadlet-lens-profile\"",
+    "--security-opt 'apparmor=quadlet-lens-profile'",
+    "apparmor=unconfined",
+    "label=",
+    "seccomp=",
+    "mask=",
+];
+const NO_NEW_PRIVILEGES_ARGUMENT: &str = "--security-opt=no-new-privileges";
+const NO_NEW_PRIVILEGES_UNRELATED_OR_ALTERNATE_FORMS: &[&str] = &[
+    "--security-opt no-new-privileges",
+    "--security-opt=\"no-new-privileges\"",
+    "--security-opt='no-new-privileges'",
+    "--security-opt=no-new-privileges=true",
+    "--security-opt=no-new-privileges=false",
+    "apparmor=",
+    "label=",
+    "seccomp=",
+    "mask=",
+];
+const SECURITY_LABEL_DISABLE_ARGUMENT: &str = "--security-opt label=disable";
+const SECURITY_LABEL_DISABLE_UNRELATED_OR_ALTERNATE_FORMS: &[&str] = &[
+    "--security-opt=label=disable",
+    "--security-opt \"label=disable\"",
+    "--security-opt 'label=disable'",
+    "--security-opt label=disable=true",
+    "--security-opt label=disable=false",
+    "label=nested",
+    "label=type:",
+    "label=level:",
+    "label=filetype:",
+    "apparmor=",
+    "seccomp=",
+    "no-new-privileges",
+    "mask=",
+];
+const SECURITY_LABEL_FILE_TYPE_ARGUMENT: &str = "--security-opt label=filetype:container_file_t";
+const SECURITY_LABEL_FILE_TYPE_UNRELATED_OR_ALTERNATE_FORMS: &[&str] = &[
+    "--security-opt=label=filetype:container_file_t",
+    "--security-opt \"label=filetype:container_file_t\"",
+    "--security-opt 'label=filetype:container_file_t'",
+    "--security-opt label=filetype=container_file_t",
+    "label=filetype:custom_file_t",
+    "label=disable",
+    "label=nested",
+    "label=type:",
+    "label=level:",
+    "apparmor=",
+    "seccomp=",
+    "no-new-privileges",
+    "mask=",
+];
+const SECURITY_LABEL_LEVEL_ARGUMENT: &str = "--security-opt label=level:s0:c1,c2";
+const SECURITY_LABEL_LEVEL_UNRELATED_OR_ALTERNATE_FORMS: &[&str] = &[
+    "--security-opt=label=level:s0:c1,c2",
+    "--security-opt \"label=level:s0:c1,c2\"",
+    "--security-opt 'label=level:s0:c1,c2'",
+    "--security-opt label=level=s0:c1,c2",
+    "label=level:s0:c3,c4",
+    "label=disable",
+    "label=nested",
+    "label=type:",
+    "label=filetype:",
+    "apparmor=",
+    "seccomp=",
+    "no-new-privileges",
+    "mask=",
+];
+const SECURITY_LABEL_NESTED_ARGUMENT: &str = "--security-opt label=nested";
+const SECURITY_LABEL_NESTED_UNRELATED_OR_ALTERNATE_FORMS: &[&str] = &[
+    "--security-opt=label=nested",
+    "--security-opt \"label=nested\"",
+    "--security-opt 'label=nested'",
+    "--security-opt label=nested=true",
+    "--security-opt label=nested=false",
+    "label=disable",
+    "label=type:",
+    "label=level:",
+    "label=filetype:",
+    "apparmor=",
+    "seccomp=",
+    "no-new-privileges",
+    "mask=",
+];
+const SECURITY_LABEL_TYPE_ARGUMENT: &str = "--security-opt label=type:container_t";
+const SECURITY_LABEL_TYPE_UNRELATED_OR_ALTERNATE_FORMS: &[&str] = &[
+    "--security-opt=label=type:container_t",
+    "--security-opt \"label=type:container_t\"",
+    "--security-opt 'label=type:container_t'",
+    "--security-opt label=type=container_t",
+    "label=type:custom_t",
+    "label=disable",
+    "label=nested",
+    "label=level:",
+    "label=filetype:",
+    "apparmor=",
+    "seccomp=",
+    "no-new-privileges",
+    "mask=",
+];
+const MASK_ARGUMENT: &str = "--security-opt mask=/proc/acpi:/sys/firmware";
+const MASK_UNRELATED_OR_ALTERNATE_FORMS: &[&str] = &[
+    "--security-opt=mask=/proc/acpi:/sys/firmware",
+    "--security-opt \"mask=/proc/acpi:/sys/firmware\"",
+    "--security-opt 'mask=/proc/acpi:/sys/firmware'",
+    "mask=/pre/one:/pre/two",
+    "mask=/pre/three",
+    "mask=\"",
+    "mask='",
+    "unmask=",
+    "label=",
+    "apparmor=",
+    "seccomp=",
+    "no-new-privileges",
+];
+const UNMASK_ARGUMENTS: &[&str] = &[
+    "--security-opt unmask=ALL",
+    "--security-opt unmask=/proc/acpi:/sys/firmware",
+];
+const UNMASK_UNRELATED_OR_ALTERNATE_FORMS: &[&str] = &[
+    "--security-opt=unmask=ALL",
+    "--security-opt=unmask=/proc/acpi:/sys/firmware",
+    "--security-opt \"unmask=ALL\"",
+    "--security-opt \"unmask=/proc/acpi:/sys/firmware\"",
+    "--security-opt 'unmask=ALL'",
+    "--security-opt 'unmask=/proc/acpi:/sys/firmware'",
+    "unmask=/pre/one:/pre/two",
+    "unmask=/pre/three/*",
+    "unmask=\"",
+    "unmask='",
+    "--security-opt mask=",
+    "label=",
+    "apparmor=",
+    "seccomp=",
+    "no-new-privileges",
+];
+const SECCOMP_PROFILE_CASES: &[(&str, &str)] = &[
+    ("seccomp-unconfined.service", "--security-opt seccomp=unconfined"),
+    (
+        "seccomp-json-path.service",
+        "--security-opt seccomp=/tmp/quadlet-lens-profile.json",
+    ),
+];
+const SECCOMP_PROFILE_UNRELATED_OR_ALTERNATE_FORMS: &[&str] = &[
+    "--security-opt=seccomp=",
+    "--security-opt \"seccomp=",
+    "--security-opt 'seccomp=",
+    "seccomp=\"",
+    "seccomp='",
+    "apparmor=",
+    "label=",
+    "no-new-privileges",
+    "mask=",
+];
 const MEMORY_ARGUMENT: &str = "--memory 16777216b";
 const MEMORY_EMPTY_OR_ALTERNATE_FORMS: &[&str] = &[
     "--memory=",
@@ -116,6 +352,16 @@ struct GeneratorSource {
     commit: String,
     #[serde(default)]
     smoke: bool,
+}
+
+struct SecurityLabelFixtures {
+    disable: (PathBuf, Vec<String>),
+    file_type: (PathBuf, Vec<String>),
+    level: (PathBuf, Vec<String>),
+    nested: (PathBuf, Vec<String>),
+    process_type: (PathBuf, Vec<String>),
+    mask: (PathBuf, Vec<String>),
+    unmask: (PathBuf, Vec<String>),
 }
 
 #[test]
@@ -220,6 +466,13 @@ fn supported_generators_match_the_first_conversion_fixture() -> Result<(), Strin
     let expected = expected_fragments(&fixture)?;
     let memory_fixture = memory_fixture_directory()?;
     let memory_expected = expected_fragments(&memory_fixture)?;
+    let apparmor_fixture = apparmor_fixture_directory()?;
+    let apparmor_expected = expected_fragments(&apparmor_fixture)?;
+    let no_new_privileges_fixture = no_new_privileges_fixture_directory()?;
+    let no_new_privileges_expected = expected_fragments(&no_new_privileges_fixture)?;
+    let seccomp_profile_fixture = seccomp_profile_fixture_directory()?;
+    let seccomp_profile_expected = expected_fragments(&seccomp_profile_fixture)?;
+    let security_labels = load_security_label_fixtures()?;
     for image in selected_images {
         eprintln!("testing Podman {} with {}", image.version, image.reference);
         verify_image_version(&engine, image)?;
@@ -227,6 +480,22 @@ fn supported_generators_match_the_first_conversion_fixture() -> Result<(), Strin
         verify_generator_output(&image.version, &expected, &output)?;
         let memory_output = run_generator_raw(&engine, image, &memory_fixture)?;
         verify_memory_generator_output(&image.version, &memory_expected, &memory_output)?;
+        let apparmor_output = run_generator_raw(&engine, image, &apparmor_fixture)?;
+        verify_apparmor_generator_output(&image.version, &apparmor_expected, &apparmor_output)?;
+        let no_new_privileges_output = run_generator(&engine, image, &no_new_privileges_fixture)?;
+        verify_no_new_privileges_generator_output(
+            &image.version,
+            &no_new_privileges_expected,
+            &no_new_privileges_output,
+        )?;
+        let seccomp_profile_output = run_generator(&engine, image, &seccomp_profile_fixture)?;
+        verify_seccomp_profile_generator_output(&image.version, &seccomp_profile_expected, &seccomp_profile_output)?;
+        verify_image_security_label_disable(&engine, image, &security_labels.disable)?;
+        verify_image_security_label_file_type(&engine, image, &security_labels.file_type)?;
+        verify_image_security_label_level(&engine, image, &security_labels.level)?;
+        verify_image_security_label_nested(&engine, image, &security_labels.nested)?;
+        verify_image_security_label_type(&engine, image, &security_labels.process_type)?;
+        verify_image_path_security_options(&engine, image, &security_labels)?;
     }
     for source in selected_sources {
         eprintln!("testing Podman {} source at {}", source.version, source.commit);
@@ -237,6 +506,40 @@ fn supported_generators_match_the_first_conversion_fixture() -> Result<(), Strin
         let memory_output =
             run_source_generator(&engine, &matrix.builder_reference, source, &generator, &memory_fixture)?;
         verify_memory_generator_output(&source.version, &memory_expected, &memory_output)?;
+        let apparmor_output = run_source_generator(
+            &engine,
+            &matrix.builder_reference,
+            source,
+            &generator,
+            &apparmor_fixture,
+        )?;
+        verify_apparmor_generator_output(&source.version, &apparmor_expected, &apparmor_output)?;
+        let no_new_privileges_output = run_source_generator(
+            &engine,
+            &matrix.builder_reference,
+            source,
+            &generator,
+            &no_new_privileges_fixture,
+        )?;
+        verify_no_new_privileges_generator_output(
+            &source.version,
+            &no_new_privileges_expected,
+            &no_new_privileges_output,
+        )?;
+        let seccomp_profile_output = run_source_generator(
+            &engine,
+            &matrix.builder_reference,
+            source,
+            &generator,
+            &seccomp_profile_fixture,
+        )?;
+        verify_seccomp_profile_generator_output(&source.version, &seccomp_profile_expected, &seccomp_profile_output)?;
+        verify_source_security_label_disable(&engine, &matrix, source, &generator, &security_labels.disable)?;
+        verify_source_security_label_file_type(&engine, &matrix, source, &generator, &security_labels.file_type)?;
+        verify_source_security_label_level(&engine, &matrix, source, &generator, &security_labels.level)?;
+        verify_source_security_label_nested(&engine, &matrix, source, &generator, &security_labels.nested)?;
+        verify_source_security_label_type(&engine, &matrix, source, &generator, &security_labels.process_type)?;
+        verify_source_path_security_options(&engine, &matrix, source, &generator, &security_labels)?;
     }
     Ok(())
 }
@@ -280,6 +583,277 @@ fn memory_fixture_directory() -> Result<PathBuf, String> {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/memory-supported-range");
     path.canonicalize()
         .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn apparmor_fixture_directory() -> Result<PathBuf, String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/apparmor-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn no_new_privileges_fixture_directory() -> Result<PathBuf, String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/no-new-privileges-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn seccomp_profile_fixture_directory() -> Result<PathBuf, String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/seccomp-profile-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn security_label_disable_fixture_directory() -> Result<PathBuf, String> {
+    let path =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/security-label-disable-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn load_security_label_disable_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = security_label_disable_fixture_directory()?;
+    let expected = expected_fragments(&fixture)?;
+    Ok((fixture, expected))
+}
+
+fn security_label_file_type_fixture_directory() -> Result<PathBuf, String> {
+    let path =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/security-label-file-type-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn load_security_label_file_type_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = security_label_file_type_fixture_directory()?;
+    let expected = expected_fragments(&fixture)?;
+    Ok((fixture, expected))
+}
+
+fn security_label_level_fixture_directory() -> Result<PathBuf, String> {
+    let path =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/security-label-level-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn load_security_label_level_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = security_label_level_fixture_directory()?;
+    let expected = expected_fragments(&fixture)?;
+    Ok((fixture, expected))
+}
+
+fn security_label_nested_fixture_directory() -> Result<PathBuf, String> {
+    let path =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/security-label-nested-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn load_security_label_nested_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = security_label_nested_fixture_directory()?;
+    let expected = expected_fragments(&fixture)?;
+    Ok((fixture, expected))
+}
+
+fn security_label_type_fixture_directory() -> Result<PathBuf, String> {
+    let path =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/security-label-type-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn load_security_label_type_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = security_label_type_fixture_directory()?;
+    let expected = expected_fragments(&fixture)?;
+    Ok((fixture, expected))
+}
+
+fn mask_fixture_directory() -> Result<PathBuf, String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/mask-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn load_mask_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = mask_fixture_directory()?;
+    let expected = expected_fragments(&fixture)?;
+    Ok((fixture, expected))
+}
+
+fn unmask_fixture_directory() -> Result<PathBuf, String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/unmask-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn load_unmask_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = unmask_fixture_directory()?;
+    let expected = expected_fragments(&fixture)?;
+    Ok((fixture, expected))
+}
+
+fn load_security_label_fixtures() -> Result<SecurityLabelFixtures, String> {
+    Ok(SecurityLabelFixtures {
+        disable: load_security_label_disable_fixture()?,
+        file_type: load_security_label_file_type_fixture()?,
+        level: load_security_label_level_fixture()?,
+        nested: load_security_label_nested_fixture()?,
+        process_type: load_security_label_type_fixture()?,
+        mask: load_mask_fixture()?,
+        unmask: load_unmask_fixture()?,
+    })
+}
+
+fn verify_image_security_label_disable(
+    engine: &str,
+    image: &GeneratorImage,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_generator(engine, image, &fixture.0)?;
+    verify_security_label_disable_generator_output(&image.version, &fixture.1, &output)
+}
+
+fn verify_source_security_label_disable(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_source_generator(engine, &matrix.builder_reference, source, generator, &fixture.0)?;
+    verify_security_label_disable_generator_output(&source.version, &fixture.1, &output)
+}
+
+fn verify_image_security_label_file_type(
+    engine: &str,
+    image: &GeneratorImage,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_generator(engine, image, &fixture.0)?;
+    verify_security_label_file_type_generator_output(&image.version, &fixture.1, &output)
+}
+
+fn verify_source_security_label_file_type(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_source_generator(engine, &matrix.builder_reference, source, generator, &fixture.0)?;
+    verify_security_label_file_type_generator_output(&source.version, &fixture.1, &output)
+}
+
+fn verify_image_security_label_level(
+    engine: &str,
+    image: &GeneratorImage,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_generator(engine, image, &fixture.0)?;
+    verify_security_label_level_generator_output(&image.version, &fixture.1, &output)
+}
+
+fn verify_source_security_label_level(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_source_generator(engine, &matrix.builder_reference, source, generator, &fixture.0)?;
+    verify_security_label_level_generator_output(&source.version, &fixture.1, &output)
+}
+
+fn verify_image_security_label_nested(
+    engine: &str,
+    image: &GeneratorImage,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_generator(engine, image, &fixture.0)?;
+    verify_security_label_nested_generator_output(&image.version, &fixture.1, &output)
+}
+
+fn verify_source_security_label_nested(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_source_generator(engine, &matrix.builder_reference, source, generator, &fixture.0)?;
+    verify_security_label_nested_generator_output(&source.version, &fixture.1, &output)
+}
+
+fn verify_image_security_label_type(
+    engine: &str,
+    image: &GeneratorImage,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_generator(engine, image, &fixture.0)?;
+    verify_security_label_type_generator_output(&image.version, &fixture.1, &output)
+}
+
+fn verify_source_security_label_type(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_source_generator(engine, &matrix.builder_reference, source, generator, &fixture.0)?;
+    verify_security_label_type_generator_output(&source.version, &fixture.1, &output)
+}
+
+fn verify_image_mask(engine: &str, image: &GeneratorImage, fixture: &(PathBuf, Vec<String>)) -> Result<(), String> {
+    let output = run_generator(engine, image, &fixture.0)?;
+    verify_mask_generator_output(&image.version, &fixture.1, &output)
+}
+
+fn verify_image_path_security_options(
+    engine: &str,
+    image: &GeneratorImage,
+    fixtures: &SecurityLabelFixtures,
+) -> Result<(), String> {
+    verify_image_mask(engine, image, &fixtures.mask)?;
+    verify_image_unmask(engine, image, &fixtures.unmask)
+}
+
+fn verify_source_mask(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_source_generator(engine, &matrix.builder_reference, source, generator, &fixture.0)?;
+    verify_mask_generator_output(&source.version, &fixture.1, &output)
+}
+
+fn verify_image_unmask(engine: &str, image: &GeneratorImage, fixture: &(PathBuf, Vec<String>)) -> Result<(), String> {
+    let output = run_generator(engine, image, &fixture.0)?;
+    verify_unmask_generator_output(&image.version, &fixture.1, &output)
+}
+
+fn verify_source_unmask(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_source_generator(engine, &matrix.builder_reference, source, generator, &fixture.0)?;
+    verify_unmask_generator_output(&source.version, &fixture.1, &output)
+}
+
+fn verify_source_path_security_options(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixtures: &SecurityLabelFixtures,
+) -> Result<(), String> {
+    verify_source_mask(engine, matrix, source, generator, &fixtures.mask)?;
+    verify_source_unmask(engine, matrix, source, generator, &fixtures.unmask)
 }
 
 fn expected_fragments(fixture: &Path) -> Result<Vec<String>, String> {
@@ -599,6 +1173,11 @@ fn verify_generator_output(version: &str, expected: &[String], output: &Output) 
     verify_sysctl_argument(version, &generated, output)?;
     verify_ulimit_arguments(version, &generated, output)?;
     verify_device_arguments(version, &generated, output)?;
+    verify_dns_arguments(version, &generated, output)?;
+    verify_dns_option_arguments(version, &generated, output)?;
+    verify_dns_search_arguments(version, &generated, output)?;
+    verify_expose_arguments(version, &generated, output)?;
+    verify_annotation_arguments(version, &generated, output)?;
     verify_quoted_label_encoding(version, &generated, output)?;
     Ok(())
 }
@@ -1060,6 +1639,836 @@ fn verify_device_arguments(version: &str, generated: &str, output: &Output) -> R
     }
 
     eprintln!("Podman {version} AddDevice: LookupAllStrv reset leaves exactly two ordered final --device arguments");
+    Ok(())
+}
+
+fn verify_dns_arguments(version: &str, generated: &str, output: &Output) -> Result<(), String> {
+    let generated_unit = generated_unit(version, generated, "dns.service", output)?;
+    let podman_run = generated_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} generator output for dns.service is missing its Podman run command\nstdout:\n{generated}\nstderr:\n{}",
+                String::from_utf8_lossy(&output.stderr)
+            )
+        })?;
+
+    let mut positions = Vec::with_capacity(DNS_ARGUMENTS.len());
+    for argument in DNS_ARGUMENTS {
+        let matches: Vec<_> = podman_run
+            .match_indices(argument)
+            .map(|(position, _)| position)
+            .collect();
+        if matches.len() != 1 {
+            return Err(format!(
+                "Podman {version} generator output for dns.service must contain `{argument}` exactly once; found {}\nstdout:\n{generated}\nstderr:\n{}",
+                matches.len(),
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
+        positions.push(matches[0]);
+    }
+
+    let all_dns_count = podman_run.matches("--dns").count();
+    let pre_reset_values: Vec<_> = DNS_PRE_RESET_VALUES
+        .iter()
+        .copied()
+        .filter(|value| podman_run.contains(value))
+        .collect();
+    let empty_or_alternate_forms: Vec<_> = DNS_EMPTY_OR_ALTERNATE_FORMS
+        .iter()
+        .copied()
+        .filter(|form| podman_run.contains(form))
+        .collect();
+    if all_dns_count != DNS_ARGUMENTS.len()
+        || !positions.windows(2).all(|pair| pair[0] < pair[1])
+        || !pre_reset_values.is_empty()
+        || !empty_or_alternate_forms.is_empty()
+    {
+        return Err(format!(
+            "Podman {version} generator output for dns.service must contain exactly two ordered post-reset DNS arguments, no duplicates, no pre-reset value, and no empty/equals/quoted/alternate form; found all-dns={all_dns_count}, positions={positions:?}, pre-reset={pre_reset_values:?}, empty-or-alternate={empty_or_alternate_forms:?}\nstdout:\n{generated}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+
+    eprintln!(
+        "Podman {version} DNS: LookupAll reset leaves exactly two ordered --dns 9.9.9.9 and --dns 2001:4860:4860::8888 arguments"
+    );
+    Ok(())
+}
+
+fn verify_dns_option_arguments(version: &str, generated: &str, output: &Output) -> Result<(), String> {
+    let generated_unit = generated_unit(version, generated, "dns-option.service", output)?;
+    let podman_run = generated_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} generator output for dns-option.service is missing its Podman run command\nstdout:\n{generated}\nstderr:\n{}",
+                String::from_utf8_lossy(&output.stderr)
+            )
+        })?;
+
+    let mut positions = Vec::with_capacity(DNS_OPTION_ARGUMENTS.len());
+    for argument in DNS_OPTION_ARGUMENTS {
+        let matches: Vec<_> = podman_run
+            .match_indices(argument)
+            .map(|(position, _)| position)
+            .collect();
+        if matches.len() != 1 {
+            return Err(format!(
+                "Podman {version} generator output for dns-option.service must contain `{argument}` exactly once; found {}\nstdout:\n{generated}\nstderr:\n{}",
+                matches.len(),
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
+        positions.push(matches[0]);
+    }
+
+    let all_dns_option_count = podman_run.matches("--dns-option").count();
+    let pre_reset_values: Vec<_> = DNS_OPTION_PRE_RESET_VALUES
+        .iter()
+        .copied()
+        .filter(|value| podman_run.contains(value))
+        .collect();
+    let empty_or_alternate_forms: Vec<_> = DNS_OPTION_EMPTY_OR_ALTERNATE_FORMS
+        .iter()
+        .copied()
+        .filter(|form| podman_run.contains(form))
+        .collect();
+    if all_dns_option_count != DNS_OPTION_ARGUMENTS.len()
+        || !positions.windows(2).all(|pair| pair[0] < pair[1])
+        || !pre_reset_values.is_empty()
+        || !empty_or_alternate_forms.is_empty()
+    {
+        return Err(format!(
+            "Podman {version} generator output for dns-option.service must contain exactly two ordered post-reset DNSOption arguments, no duplicates, no pre-reset value, and no empty/equals/quoted/alternate form; found all-dns-option={all_dns_option_count}, positions={positions:?}, pre-reset={pre_reset_values:?}, empty-or-alternate={empty_or_alternate_forms:?}\nstdout:\n{generated}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+
+    eprintln!(
+        "Podman {version} DNSOption: LookupAll reset leaves exactly two ordered --dns-option ndots:1 and --dns-option use-vc arguments"
+    );
+    Ok(())
+}
+
+fn verify_dns_search_arguments(version: &str, generated: &str, output: &Output) -> Result<(), String> {
+    let generated_unit = generated_unit(version, generated, "dns-search.service", output)?;
+    let podman_run = generated_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} generator output for dns-search.service is missing its Podman run command\nstdout:\n{generated}\nstderr:\n{}",
+                String::from_utf8_lossy(&output.stderr)
+            )
+        })?;
+
+    let mut positions = Vec::with_capacity(DNS_SEARCH_ARGUMENTS.len());
+    for argument in DNS_SEARCH_ARGUMENTS {
+        let matches: Vec<_> = podman_run
+            .match_indices(argument)
+            .map(|(position, _)| position)
+            .collect();
+        if matches.len() != 1 {
+            return Err(format!(
+                "Podman {version} generator output for dns-search.service must contain `{argument}` exactly once; found {}\nstdout:\n{generated}\nstderr:\n{}",
+                matches.len(),
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
+        positions.push(matches[0]);
+    }
+
+    let all_dns_search_count = podman_run.matches("--dns-search").count();
+    let pre_reset_values: Vec<_> = DNS_SEARCH_PRE_RESET_VALUES
+        .iter()
+        .copied()
+        .filter(|value| podman_run.contains(value))
+        .collect();
+    let empty_or_alternate_forms: Vec<_> = DNS_SEARCH_EMPTY_OR_ALTERNATE_FORMS
+        .iter()
+        .copied()
+        .filter(|form| podman_run.contains(form))
+        .collect();
+    if all_dns_search_count != DNS_SEARCH_ARGUMENTS.len()
+        || !positions.windows(2).all(|pair| pair[0] < pair[1])
+        || !pre_reset_values.is_empty()
+        || !empty_or_alternate_forms.is_empty()
+    {
+        return Err(format!(
+            "Podman {version} generator output for dns-search.service must contain exactly two ordered post-reset DNSSearch arguments, no duplicates, no pre-reset value, and no empty/equals/quoted/alternate form; found all-dns-search={all_dns_search_count}, positions={positions:?}, pre-reset={pre_reset_values:?}, empty-or-alternate={empty_or_alternate_forms:?}\nstdout:\n{generated}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+
+    eprintln!(
+        "Podman {version} DNSSearch: LookupAll reset leaves exactly two ordered --dns-search dc1.example.com and --dns-search . arguments"
+    );
+    Ok(())
+}
+
+fn verify_expose_arguments(version: &str, generated: &str, output: &Output) -> Result<(), String> {
+    let generated_unit = generated_unit(version, generated, "expose-host-port.service", output)?;
+    let podman_run = generated_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} generator output for expose-host-port.service is missing its Podman run command\nstdout:\n{generated}\nstderr:\n{}",
+                String::from_utf8_lossy(&output.stderr)
+            )
+        })?;
+
+    let mut positions = Vec::with_capacity(EXPOSE_ARGUMENTS.len());
+    for argument in EXPOSE_ARGUMENTS {
+        let matches: Vec<_> = podman_run
+            .match_indices(argument)
+            .map(|(position, _)| position)
+            .collect();
+        if matches.len() != 1 {
+            return Err(format!(
+                "Podman {version} generator output for expose-host-port.service must contain `{argument}` exactly once; found {}\nstdout:\n{generated}\nstderr:\n{}",
+                matches.len(),
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
+        positions.push(matches[0]);
+    }
+
+    let all_expose_count = podman_run.matches("--expose").count();
+    let pre_reset_values: Vec<_> = EXPOSE_PRE_RESET_VALUES
+        .iter()
+        .copied()
+        .filter(|value| podman_run.contains(value))
+        .collect();
+    let empty_or_alternate_forms: Vec<_> = EXPOSE_EMPTY_OR_ALTERNATE_FORMS
+        .iter()
+        .copied()
+        .filter(|form| podman_run.contains(form))
+        .collect();
+    if all_expose_count != EXPOSE_ARGUMENTS.len()
+        || !positions.windows(2).all(|pair| pair[0] < pair[1])
+        || !pre_reset_values.is_empty()
+        || !empty_or_alternate_forms.is_empty()
+    {
+        return Err(format!(
+            "Podman {version} generator output for expose-host-port.service must contain exactly four ordered post-reset ExposeHostPort arguments, no duplicate, no pre-reset value, and no empty/equals/quoted/alternate form; found all-expose={all_expose_count}, positions={positions:?}, pre-reset={pre_reset_values:?}, empty-or-alternate={empty_or_alternate_forms:?}\nstdout:\n{generated}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+
+    eprintln!(
+        "Podman {version} ExposeHostPort: LookupAll reset leaves exactly four ordered --expose 3000, 8080-8085, 9090/tcp, and 5353/udp arguments"
+    );
+    Ok(())
+}
+
+fn verify_annotation_arguments(version: &str, generated: &str, output: &Output) -> Result<(), String> {
+    let generated_unit = generated_unit(version, generated, "annotation.service", output)?;
+    let podman_run = generated_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} generator output for annotation.service is missing its Podman run command\nstdout:\n{generated}\nstderr:\n{}",
+                String::from_utf8_lossy(&output.stderr)
+            )
+        })?;
+
+    let mut positions = Vec::with_capacity(ANNOTATION_ARGUMENTS.len());
+    for argument in ANNOTATION_ARGUMENTS {
+        let matches: Vec<_> = podman_run
+            .match_indices(argument)
+            .map(|(position, _)| position)
+            .collect();
+        if matches.len() != 1 {
+            return Err(format!(
+                "Podman {version} generator output for annotation.service must contain `{argument}` exactly once; found {}\nstdout:\n{generated}\nstderr:\n{}",
+                matches.len(),
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
+        positions.push(matches[0]);
+    }
+
+    let all_annotation_count = podman_run.matches("--annotation").count();
+    let pre_reset_values: Vec<_> = ANNOTATION_PRE_RESET_VALUES
+        .iter()
+        .copied()
+        .filter(|value| podman_run.contains(value))
+        .collect();
+    let empty_or_alternate_forms: Vec<_> = ANNOTATION_EMPTY_OR_ALTERNATE_FORMS
+        .iter()
+        .copied()
+        .filter(|form| podman_run.contains(form))
+        .collect();
+    if all_annotation_count != ANNOTATION_ARGUMENTS.len()
+        || !positions.windows(2).all(|pair| pair[0] < pair[1])
+        || !pre_reset_values.is_empty()
+        || !empty_or_alternate_forms.is_empty()
+    {
+        return Err(format!(
+            "Podman {version} generator output for annotation.service must contain exactly two ordered post-reset Annotation arguments, no duplicate, no pre-reset key, and no empty/equals/quoted/key-only/alternate form; found all-annotation={all_annotation_count}, positions={positions:?}, pre-reset={pre_reset_values:?}, empty-or-alternate={empty_or_alternate_forms:?}\nstdout:\n{generated}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+
+    eprintln!(
+        "Podman {version} Annotation: environment-style reset leaves exactly two sorted --annotation key=value arguments"
+    );
+    Ok(())
+}
+
+fn verify_apparmor_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    let generated = String::from_utf8(output.stdout.clone())
+        .map_err(|error| format!("{version} generator emitted non-UTF-8 output: {error}"))?;
+    let diagnostics = String::from_utf8_lossy(&output.stderr);
+    if parsed < PodmanVersion::new(5, 8, 0) {
+        let argument_count = generated.matches("apparmor=").count();
+        let rejected = !output.status.success()
+            && diagnostics.contains("unsupported key 'AppArmor'")
+            && !generated.contains("---apparmor.service---");
+        if argument_count != 0 || !rejected {
+            return Err(format!(
+                "Podman {version} predates native AppArmor support and must reject the fixture without emitting an AppArmor argument; found arguments={argument_count}, status={}\nstdout:\n{generated}\nstderr:\n{diagnostics}",
+                output.status
+            ));
+        }
+        eprintln!("Podman {version} AppArmor: unsupported key is rejected with no generated unit or argument");
+        return Ok(());
+    }
+
+    ensure_success(version, "AppArmor generator", output)?;
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} AppArmor generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            ));
+        }
+    }
+    let generated_unit = generated_unit(version, &generated, "apparmor.service", output)?;
+    let podman_run = generated_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} generator output for apparmor.service is missing its Podman run command\nstdout:\n{generated}\nstderr:\n{}",
+                String::from_utf8_lossy(&output.stderr)
+            )
+        })?;
+    let expected_count = podman_run.matches(APPARMOR_ARGUMENT).count();
+    let all_security_opt_count = podman_run.matches("--security-opt").count();
+    let unrelated_or_alternate: Vec<_> = APPARMOR_UNRELATED_OR_ALTERNATE_FORMS
+        .iter()
+        .copied()
+        .filter(|form| podman_run.contains(form))
+        .collect();
+    if expected_count != 1 || all_security_opt_count != 1 || !unrelated_or_alternate.is_empty() {
+        return Err(format!(
+            "Podman {version} generator output for apparmor.service must contain exactly one separate `{APPARMOR_ARGUMENT}` occurrence and no equals, quoted, unconfined, label, seccomp, mask, or other security-option form; found expected={expected_count}, all-security-opt={all_security_opt_count}, unrelated-or-alternate={unrelated_or_alternate:?}\nstdout:\n{generated}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+    eprintln!(
+        "Podman {version} AppArmor: one profile emits exactly one separate --security-opt apparmor=profile argument"
+    );
+    Ok(())
+}
+
+fn verify_no_new_privileges_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    ensure_success(version, "NoNewPrivileges generator", output)?;
+    let generated = String::from_utf8(output.stdout.clone())
+        .map_err(|error| format!("{version} generator emitted non-UTF-8 output: {error}"))?;
+    let diagnostics = String::from_utf8_lossy(&output.stderr);
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} NoNewPrivileges generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            ));
+        }
+    }
+
+    let true_unit = generated_unit(version, &generated, "no-new-privileges-true.service", output)?;
+    let false_unit = generated_unit(version, &generated, "no-new-privileges-false.service", output)?;
+    let true_run = true_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} NoNewPrivileges true unit is missing its Podman run command\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            )
+        })?;
+    let false_run = false_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} NoNewPrivileges false unit is missing its Podman run command\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            )
+        })?;
+
+    let expected_count = true_run.matches(NO_NEW_PRIVILEGES_ARGUMENT).count();
+    let true_security_opt_count = true_run.matches("--security-opt").count();
+    let false_security_opt_count = false_run.matches("--security-opt").count();
+    let total_expected_count = generated.matches(NO_NEW_PRIVILEGES_ARGUMENT).count();
+    let unrelated_or_alternate: Vec<_> = NO_NEW_PRIVILEGES_UNRELATED_OR_ALTERNATE_FORMS
+        .iter()
+        .copied()
+        .filter(|form| true_run.contains(form) || false_run.contains(form))
+        .collect();
+    if expected_count != 1
+        || true_security_opt_count != 1
+        || false_security_opt_count != 0
+        || total_expected_count != 1
+        || !unrelated_or_alternate.is_empty()
+    {
+        return Err(format!(
+            "Podman {version} NoNewPrivileges output must contain exactly one equals-form argument in the true unit, no security option in the false unit, and no separate, quoted, alternate, duplicate, or unrelated security-option form; found expected-in-true={expected_count}, true-security-options={true_security_opt_count}, false-security-options={false_security_opt_count}, expected-total={total_expected_count}, unrelated-or-alternate={unrelated_or_alternate:?}\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+        ));
+    }
+    eprintln!("Podman {version} NoNewPrivileges: true emits exactly one equals-form security option; false emits none");
+    Ok(())
+}
+
+fn verify_seccomp_profile_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    ensure_success(version, "SeccompProfile generator", output)?;
+    let generated = String::from_utf8(output.stdout.clone())
+        .map_err(|error| format!("{version} generator emitted non-UTF-8 output: {error}"))?;
+    let diagnostics = String::from_utf8_lossy(&output.stderr);
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} SeccompProfile generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            ));
+        }
+    }
+
+    let mut expected_total = 0;
+    let mut security_opt_total = 0;
+    for (unit_name, argument) in SECCOMP_PROFILE_CASES {
+        let unit = generated_unit(version, &generated, unit_name, output)?;
+        let podman_run = unit
+            .lines()
+            .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+            .ok_or_else(|| {
+                format!(
+                    "Podman {version} SeccompProfile unit {unit_name} is missing its Podman run command\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+                )
+            })?;
+        let expected_count = podman_run.matches(argument).count();
+        let security_opt_count = podman_run.matches("--security-opt").count();
+        let unrelated_or_alternate: Vec<_> = SECCOMP_PROFILE_UNRELATED_OR_ALTERNATE_FORMS
+            .iter()
+            .copied()
+            .filter(|form| podman_run.contains(form))
+            .collect();
+        if expected_count != 1 || security_opt_count != 1 || !unrelated_or_alternate.is_empty() {
+            return Err(format!(
+                "Podman {version} SeccompProfile unit {unit_name} must contain exactly one separate `{argument}` and no equals, quoted, unrelated, alternate, or duplicate security-option form; found expected={expected_count}, all-security-opt={security_opt_count}, unrelated-or-alternate={unrelated_or_alternate:?}\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            ));
+        }
+        expected_total += expected_count;
+        security_opt_total += security_opt_count;
+    }
+
+    let generated_expected_total: usize = SECCOMP_PROFILE_CASES
+        .iter()
+        .map(|(_, argument)| generated.matches(argument).count())
+        .sum();
+    let generated_security_opt_total = generated.matches("--security-opt").count();
+    if expected_total != SECCOMP_PROFILE_CASES.len()
+        || security_opt_total != SECCOMP_PROFILE_CASES.len()
+        || generated_expected_total != SECCOMP_PROFILE_CASES.len()
+        || generated_security_opt_total != SECCOMP_PROFILE_CASES.len()
+    {
+        return Err(format!(
+            "Podman {version} SeccompProfile output must contain exactly one scoped separate security option per isolated unit and exactly two total; found scoped-expected={expected_total}, scoped-security-opt={security_opt_total}, total-expected={generated_expected_total}, total-security-opt={generated_security_opt_total}\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+        ));
+    }
+    eprintln!(
+        "Podman {version} SeccompProfile: isolated unconfined and JSON path each emit exactly one separate security option"
+    );
+    Ok(())
+}
+
+fn verify_security_label_disable_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    ensure_success(version, "SecurityLabelDisable generator", output)?;
+    let generated = String::from_utf8(output.stdout.clone())
+        .map_err(|error| format!("{version} generator emitted non-UTF-8 output: {error}"))?;
+    let diagnostics = String::from_utf8_lossy(&output.stderr);
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} SecurityLabelDisable generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            ));
+        }
+    }
+
+    let true_unit = generated_unit(version, &generated, "security-label-disable-true.service", output)?;
+    let false_unit = generated_unit(version, &generated, "security-label-disable-false.service", output)?;
+    let true_run = true_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} SecurityLabelDisable true unit is missing its Podman run command\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            )
+        })?;
+    let false_run = false_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} SecurityLabelDisable false unit is missing its Podman run command\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            )
+        })?;
+
+    let expected_count = true_run.matches(SECURITY_LABEL_DISABLE_ARGUMENT).count();
+    let true_security_opt_count = true_run.matches("--security-opt").count();
+    let false_security_opt_count = false_run.matches("--security-opt").count();
+    let total_expected_count = generated.matches(SECURITY_LABEL_DISABLE_ARGUMENT).count();
+    let total_security_opt_count = generated.matches("--security-opt").count();
+    let unrelated_or_alternate: Vec<_> = SECURITY_LABEL_DISABLE_UNRELATED_OR_ALTERNATE_FORMS
+        .iter()
+        .copied()
+        .filter(|form| true_run.contains(form) || false_run.contains(form))
+        .collect();
+    if expected_count != 1
+        || true_security_opt_count != 1
+        || false_security_opt_count != 0
+        || total_expected_count != 1
+        || total_security_opt_count != 1
+        || !unrelated_or_alternate.is_empty()
+    {
+        return Err(format!(
+            "Podman {version} SecurityLabelDisable output must contain exactly one separate argument in the true unit, no security option in the false unit, exactly one security option total, and no equals, quoted, alternate, duplicate, or unrelated form; found expected-in-true={expected_count}, true-security-options={true_security_opt_count}, false-security-options={false_security_opt_count}, expected-total={total_expected_count}, security-options-total={total_security_opt_count}, unrelated-or-alternate={unrelated_or_alternate:?}\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+        ));
+    }
+    eprintln!(
+        "Podman {version} SecurityLabelDisable: true emits exactly one separate security option; false emits none"
+    );
+    Ok(())
+}
+
+fn verify_security_label_file_type_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    ensure_success(version, "SecurityLabelFileType generator", output)?;
+    let generated = String::from_utf8(output.stdout.clone())
+        .map_err(|error| format!("{version} generator emitted non-UTF-8 output: {error}"))?;
+    let diagnostics = String::from_utf8_lossy(&output.stderr);
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} SecurityLabelFileType generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            ));
+        }
+    }
+
+    let unit = generated_unit(version, &generated, "security-label-file-type.service", output)?;
+    let podman_run = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} SecurityLabelFileType unit is missing its Podman run command\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            )
+        })?;
+    let expected_count = podman_run.matches(SECURITY_LABEL_FILE_TYPE_ARGUMENT).count();
+    let security_opt_count = podman_run.matches("--security-opt").count();
+    let total_expected_count = generated.matches(SECURITY_LABEL_FILE_TYPE_ARGUMENT).count();
+    let total_security_opt_count = generated.matches("--security-opt").count();
+    let unrelated_or_alternate: Vec<_> = SECURITY_LABEL_FILE_TYPE_UNRELATED_OR_ALTERNATE_FORMS
+        .iter()
+        .copied()
+        .filter(|form| podman_run.contains(form))
+        .collect();
+    if expected_count != 1
+        || security_opt_count != 1
+        || total_expected_count != 1
+        || total_security_opt_count != 1
+        || !unrelated_or_alternate.is_empty()
+    {
+        return Err(format!(
+            "Podman {version} SecurityLabelFileType output must contain exactly one separate `{SECURITY_LABEL_FILE_TYPE_ARGUMENT}`, exactly one security option total, and no equals, quoted, alternate, unrelated, or duplicate form; found expected={expected_count}, scoped-security-options={security_opt_count}, expected-total={total_expected_count}, security-options-total={total_security_opt_count}, unrelated-or-alternate={unrelated_or_alternate:?}\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+        ));
+    }
+    eprintln!("Podman {version} SecurityLabelFileType: exactly one separate file-type security option");
+    Ok(())
+}
+
+fn verify_security_label_level_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    ensure_success(version, "SecurityLabelLevel generator", output)?;
+    let generated = String::from_utf8(output.stdout.clone())
+        .map_err(|error| format!("{version} generator emitted non-UTF-8 output: {error}"))?;
+    let diagnostics = String::from_utf8_lossy(&output.stderr);
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} SecurityLabelLevel generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            ));
+        }
+    }
+
+    let unit = generated_unit(version, &generated, "security-label-level.service", output)?;
+    let podman_run = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} SecurityLabelLevel unit is missing its Podman run command\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            )
+        })?;
+    let expected_count = podman_run.matches(SECURITY_LABEL_LEVEL_ARGUMENT).count();
+    let security_opt_count = podman_run.matches("--security-opt").count();
+    let total_expected_count = generated.matches(SECURITY_LABEL_LEVEL_ARGUMENT).count();
+    let total_security_opt_count = generated.matches("--security-opt").count();
+    let unrelated_or_alternate: Vec<_> = SECURITY_LABEL_LEVEL_UNRELATED_OR_ALTERNATE_FORMS
+        .iter()
+        .copied()
+        .filter(|form| podman_run.contains(form))
+        .collect();
+    if expected_count != 1
+        || security_opt_count != 1
+        || total_expected_count != 1
+        || total_security_opt_count != 1
+        || !unrelated_or_alternate.is_empty()
+    {
+        return Err(format!(
+            "Podman {version} SecurityLabelLevel output must contain exactly one separate `{SECURITY_LABEL_LEVEL_ARGUMENT}`, exactly one security option total, and no equals, quoted, alternate, unrelated, or duplicate form; found expected={expected_count}, scoped-security-options={security_opt_count}, expected-total={total_expected_count}, security-options-total={total_security_opt_count}, unrelated-or-alternate={unrelated_or_alternate:?}\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+        ));
+    }
+    eprintln!("Podman {version} SecurityLabelLevel: exactly one separate label-level security option");
+    Ok(())
+}
+
+fn verify_security_label_nested_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    ensure_success(version, "SecurityLabelNested generator", output)?;
+    let generated = String::from_utf8(output.stdout.clone())
+        .map_err(|error| format!("{version} generator emitted non-UTF-8 output: {error}"))?;
+    let diagnostics = String::from_utf8_lossy(&output.stderr);
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} SecurityLabelNested generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            ));
+        }
+    }
+
+    let true_unit = generated_unit(version, &generated, "security-label-nested-true.service", output)?;
+    let false_unit = generated_unit(version, &generated, "security-label-nested-false.service", output)?;
+    let true_run = true_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} SecurityLabelNested true unit is missing its Podman run command\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            )
+        })?;
+    let false_run = false_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} SecurityLabelNested false unit is missing its Podman run command\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            )
+        })?;
+
+    let expected_count = true_run.matches(SECURITY_LABEL_NESTED_ARGUMENT).count();
+    let true_security_opt_count = true_run.matches("--security-opt").count();
+    let false_security_opt_count = false_run.matches("--security-opt").count();
+    let total_expected_count = generated.matches(SECURITY_LABEL_NESTED_ARGUMENT).count();
+    let total_security_opt_count = generated.matches("--security-opt").count();
+    let unrelated_or_alternate: Vec<_> = SECURITY_LABEL_NESTED_UNRELATED_OR_ALTERNATE_FORMS
+        .iter()
+        .copied()
+        .filter(|form| true_run.contains(form) || false_run.contains(form))
+        .collect();
+    if expected_count != 1
+        || true_security_opt_count != 1
+        || false_security_opt_count != 0
+        || total_expected_count != 1
+        || total_security_opt_count != 1
+        || !unrelated_or_alternate.is_empty()
+    {
+        return Err(format!(
+            "Podman {version} SecurityLabelNested output must contain exactly one separate argument in the true unit, no security option in the false unit, exactly one security option total, and no equals, quoted, alternate, duplicate, or unrelated form; found expected-in-true={expected_count}, true-security-options={true_security_opt_count}, false-security-options={false_security_opt_count}, expected-total={total_expected_count}, security-options-total={total_security_opt_count}, unrelated-or-alternate={unrelated_or_alternate:?}\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+        ));
+    }
+    eprintln!(
+        "Podman {version} SecurityLabelNested: true emits exactly one separate security option; false emits none"
+    );
+    Ok(())
+}
+
+fn verify_security_label_type_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    ensure_success(version, "SecurityLabelType generator", output)?;
+    let generated = String::from_utf8(output.stdout.clone())
+        .map_err(|error| format!("{version} generator emitted non-UTF-8 output: {error}"))?;
+    let diagnostics = String::from_utf8_lossy(&output.stderr);
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} SecurityLabelType generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            ));
+        }
+    }
+
+    let unit = generated_unit(version, &generated, "security-label-type.service", output)?;
+    let podman_run = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} SecurityLabelType unit is missing its Podman run command\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            )
+        })?;
+    let expected_count = podman_run.matches(SECURITY_LABEL_TYPE_ARGUMENT).count();
+    let security_opt_count = podman_run.matches("--security-opt").count();
+    let total_expected_count = generated.matches(SECURITY_LABEL_TYPE_ARGUMENT).count();
+    let total_security_opt_count = generated.matches("--security-opt").count();
+    let unrelated_or_alternate: Vec<_> = SECURITY_LABEL_TYPE_UNRELATED_OR_ALTERNATE_FORMS
+        .iter()
+        .copied()
+        .filter(|form| podman_run.contains(form))
+        .collect();
+    if expected_count != 1
+        || security_opt_count != 1
+        || total_expected_count != 1
+        || total_security_opt_count != 1
+        || !unrelated_or_alternate.is_empty()
+    {
+        return Err(format!(
+            "Podman {version} SecurityLabelType output must contain exactly one separate `{SECURITY_LABEL_TYPE_ARGUMENT}`, exactly one security option total, and no equals, quoted, alternate, unrelated, or duplicate form; found expected={expected_count}, scoped-security-options={security_opt_count}, expected-total={total_expected_count}, security-options-total={total_security_opt_count}, unrelated-or-alternate={unrelated_or_alternate:?}\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+        ));
+    }
+    eprintln!("Podman {version} SecurityLabelType: exactly one separate process-type security option");
+    Ok(())
+}
+
+fn verify_mask_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    ensure_success(version, "Mask generator", output)?;
+    let generated = String::from_utf8(output.stdout.clone())
+        .map_err(|error| format!("{version} generator emitted non-UTF-8 output: {error}"))?;
+    let diagnostics = String::from_utf8_lossy(&output.stderr);
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} Mask generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            ));
+        }
+    }
+
+    let unit = generated_unit(version, &generated, "mask.service", output)?;
+    let podman_run = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} Mask unit is missing its Podman run command\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            )
+        })?;
+    let expected_count = podman_run.matches(MASK_ARGUMENT).count();
+    let security_opt_count = podman_run.matches("--security-opt").count();
+    let total_expected_count = generated.matches(MASK_ARGUMENT).count();
+    let total_security_opt_count = generated.matches("--security-opt").count();
+    let unrelated_or_alternate: Vec<_> = MASK_UNRELATED_OR_ALTERNATE_FORMS
+        .iter()
+        .copied()
+        .filter(|form| podman_run.contains(form))
+        .collect();
+    if expected_count != 1
+        || security_opt_count != 1
+        || total_expected_count != 1
+        || total_security_opt_count != 1
+        || !unrelated_or_alternate.is_empty()
+    {
+        return Err(format!(
+            "Podman {version} Mask output must contain exactly one final separate `{MASK_ARGUMENT}`, exactly one security option total, and no pre-reset, empty, equals, quoted, alternate, unrelated, or duplicate form; found expected={expected_count}, scoped-security-options={security_opt_count}, expected-total={total_expected_count}, security-options-total={total_security_opt_count}, unrelated-or-alternate={unrelated_or_alternate:?}\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+        ));
+    }
+    eprintln!("Podman {version} Mask: reset leaves exactly one separate final colon-path security option");
+    Ok(())
+}
+
+fn verify_unmask_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    ensure_success(version, "Unmask generator", output)?;
+    let generated = String::from_utf8(output.stdout.clone())
+        .map_err(|error| format!("{version} generator emitted non-UTF-8 output: {error}"))?;
+    let diagnostics = String::from_utf8_lossy(&output.stderr);
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} Unmask generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            ));
+        }
+    }
+
+    let unit = generated_unit(version, &generated, "unmask.service", output)?;
+    let podman_run = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} Unmask unit is missing its Podman run command\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            )
+        })?;
+    let argument_counts: Vec<_> = UNMASK_ARGUMENTS
+        .iter()
+        .map(|argument| podman_run.matches(argument).count())
+        .collect();
+    let total_argument_counts: Vec<_> = UNMASK_ARGUMENTS
+        .iter()
+        .map(|argument| generated.matches(argument).count())
+        .collect();
+    let first_position = podman_run.find(UNMASK_ARGUMENTS[0]);
+    let second_position = podman_run.find(UNMASK_ARGUMENTS[1]);
+    let security_opt_count = podman_run.matches("--security-opt").count();
+    let total_security_opt_count = generated.matches("--security-opt").count();
+    let unrelated_or_alternate: Vec<_> = UNMASK_UNRELATED_OR_ALTERNATE_FORMS
+        .iter()
+        .copied()
+        .filter(|form| podman_run.contains(form))
+        .collect();
+    if argument_counts != [1, 1]
+        || total_argument_counts != [1, 1]
+        || !matches!((first_position, second_position), (Some(first), Some(second)) if first < second)
+        || security_opt_count != 2
+        || total_security_opt_count != 2
+        || !unrelated_or_alternate.is_empty()
+    {
+        return Err(format!(
+            "Podman {version} Unmask output must contain only two ordered final separate arguments `{}` then `{}`, exactly once each, and no pre-reset, empty, equals, quoted, alternate, unrelated, or duplicate form; found scoped-counts={argument_counts:?}, total-counts={total_argument_counts:?}, positions=({first_position:?}, {second_position:?}), scoped-security-options={security_opt_count}, security-options-total={total_security_opt_count}, unrelated-or-alternate={unrelated_or_alternate:?}\nstdout:\n{generated}\nstderr:\n{diagnostics}",
+            UNMASK_ARGUMENTS[0], UNMASK_ARGUMENTS[1]
+        ));
+    }
+    eprintln!("Podman {version} Unmask: reset leaves exactly two separate ordered final security options");
     Ok(())
 }
 

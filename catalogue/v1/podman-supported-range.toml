@@ -375,6 +375,627 @@ test = "generators::supported_generators_match_the_first_conversion_fixture"
 gap = "The dry-run fixture proves only post-reset command construction and does not access or validate devices."
 
 [[evidence]]
+id = "podman-5-4-container-dns"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#dns"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Container-unit manual documents DNS as a repeatable native key and shows DNS=192.168.55.1 mapping to --dns=192.168.55.1."
+test = "capabilities::supported_range_records_repeatable_container_dns"
+gap = "QuadletLens preserves authored DNS values opaquely and does not validate addresses, inspect resolver state, start a container, or claim runtime, network, rootless, pod, or cross-format behavior."
+
+[[evidence]]
+id = "podman-6-0-2-container-dns"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-systemd.unit.5.html#dns"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Container-unit manual retains DNS as a repeatable native key and its mapping to Podman --dns."
+test = "capabilities::supported_range_records_repeatable_container_dns"
+gap = "QuadletLens preserves authored DNS values opaquely and does not validate addresses, inspect resolver state, start a container, or claim runtime, network, rootless, pod, or cross-format behavior."
+
+[[evidence]]
+id = "podman-5-4-container-dns-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L641-L651"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 source maps KeyDNS to --dns through the repeated-string command helper."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Tagged source and dry-run generated command text establish command construction only, not resolver, network, or runtime behavior."
+
+[[evidence]]
+id = "podman-6-0-2-container-dns-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L706-L716"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 source retains the KeyDNS to --dns repeated-string command mapping."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Tagged source and dry-run generated command text establish command construction only, not resolver, network, or runtime behavior."
+
+[[evidence]]
+id = "podman-5-4-container-dns-lookup-all-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L2027-L2034"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 repeated-string helper obtains each DNS value with LookupAll and appends it as one unchanged logical --dns value without tokenization or address validation."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens likewise preserves each authored physical value opaquely; the source observation does not prove target acceptance or runtime resolver behavior."
+
+[[evidence]]
+id = "podman-6-0-2-container-dns-lookup-all-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L2091-L2098"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 repeated-string helper retains LookupAll and appends every DNS value as one unchanged logical --dns value."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens likewise preserves each authored physical value opaquely; the source observation does not prove target acceptance or runtime resolver behavior."
+
+[[evidence]]
+id = "podman-5-4-container-dns-reset-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/parser/unitfile.go#L760-L793"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 parser source makes LookupAll clear earlier logical DNS values at an empty assignment and return only values authored after the reset."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The generator fixture proves post-reset command construction only and does not execute a container or inspect resolver state."
+
+[[evidence]]
+id = "podman-6-0-2-container-dns-reset-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/parser/unitfile.go#L769-L802"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 parser source retains LookupAll empty-assignment reset behavior for repeated DNS values."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The generator fixture proves post-reset command construction only and does not execute a container or inspect resolver state."
+
+[[evidence]]
+id = "podman-5-4-container-dns-option"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#dnsoption"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Container-unit manual documents DNSOption as a repeatable native key mapped to Podman --dns-option."
+test = "capabilities::supported_range_records_repeatable_container_dns_option"
+gap = "QuadletLens preserves authored DNSOption values opaquely and does not validate resolver-option grammar, inspect resolver state, start a container, or claim runtime, network, rootless, pod, network-unit, build-unit, or cross-format behavior."
+
+[[evidence]]
+id = "podman-6-0-2-container-dns-option"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-systemd.unit.5.html#dnsoption"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Container-unit manual retains DNSOption as a repeatable native key and its mapping to Podman --dns-option."
+test = "capabilities::supported_range_records_repeatable_container_dns_option"
+gap = "QuadletLens preserves authored DNSOption values opaquely and does not validate resolver-option grammar, inspect resolver state, start a container, or claim runtime, network, rootless, pod, network-unit, build-unit, or cross-format behavior."
+
+[[evidence]]
+id = "podman-5-4-container-dns-option-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L641-L651"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 source maps KeyDNSOption to --dns-option through the repeated-string command helper."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Tagged source and dry-run generated command text establish command construction only, not resolver, network, or runtime behavior."
+
+[[evidence]]
+id = "podman-6-0-2-container-dns-option-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L706-L716"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 source retains the KeyDNSOption to --dns-option repeated-string command mapping."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Tagged source and dry-run generated command text establish command construction only, not resolver, network, or runtime behavior."
+
+[[evidence]]
+id = "podman-5-4-container-dns-option-lookup-all-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L2027-L2034"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 repeated-string helper obtains each DNSOption value with LookupAll and appends it as one unchanged logical --dns-option value without whitespace tokenization, unquoting, or grammar validation."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens likewise preserves each authored physical value opaquely; the source observation does not prove target acceptance or runtime resolver behavior."
+
+[[evidence]]
+id = "podman-6-0-2-container-dns-option-lookup-all-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L2091-L2098"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 repeated-string helper retains LookupAll and appends every DNSOption value as one unchanged logical --dns-option value without tokenization."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens likewise preserves each authored physical value opaquely; the source observation does not prove target acceptance or runtime resolver behavior."
+
+[[evidence]]
+id = "podman-5-4-container-dns-option-reset-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/parser/unitfile.go#L760-L793"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 parser source makes LookupAll clear earlier logical DNSOption values at an empty assignment and return only values authored after the reset."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The generator fixture proves post-reset command construction only and does not execute a container or inspect resolver state."
+
+[[evidence]]
+id = "podman-6-0-2-container-dns-option-reset-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/parser/unitfile.go#L769-L802"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 parser source retains LookupAll empty-assignment reset behavior for repeated DNSOption values."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The generator fixture proves post-reset command construction only and does not execute a container or inspect resolver state."
+
+[[evidence]]
+id = "podman-5-4-container-dns-search"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#dnssearch"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Container-unit manual documents DNSSearch as a repeatable native key mapped to Podman --dns-search, including the native special dot value for disabling the DNS search list."
+test = "capabilities::supported_range_records_repeatable_container_dns_search"
+gap = "QuadletLens preserves authored DNSSearch values opaquely and does not implement domain parsing or special dot semantics, inspect resolver state, start a container, or claim runtime, network, rootless, pod, build-unit, or cross-format behavior."
+
+[[evidence]]
+id = "podman-6-0-2-container-dns-search"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-systemd.unit.5.html#dnssearch"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Container-unit manual retains repeatable DNSSearch, its --dns-search mapping, and the native special dot value."
+test = "capabilities::supported_range_records_repeatable_container_dns_search"
+gap = "QuadletLens preserves authored DNSSearch values opaquely and does not implement domain parsing or special dot semantics, inspect resolver state, start a container, or claim runtime, network, rootless, pod, build-unit, or cross-format behavior."
+
+[[evidence]]
+id = "podman-5-4-container-dns-search-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L641-L651"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 source maps KeyDNSSearch to --dns-search through the repeated-string command helper."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Tagged source and dry-run generated command text establish command construction only, not resolver, network, or runtime behavior."
+
+[[evidence]]
+id = "podman-6-0-2-container-dns-search-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L706-L716"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 source retains the KeyDNSSearch to --dns-search repeated-string command mapping."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Tagged source and dry-run generated command text establish command construction only, not resolver, network, or runtime behavior."
+
+[[evidence]]
+id = "podman-5-4-container-dns-search-lookup-all-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L2027-L2034"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 repeated-string helper obtains each DNSSearch value with LookupAll and appends it as one unchanged logical --dns-search value without whitespace tokenization, unquoting, or domain parsing."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens likewise preserves each authored physical value opaquely; the source observation does not prove target acceptance or runtime resolver behavior."
+
+[[evidence]]
+id = "podman-6-0-2-container-dns-search-lookup-all-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L2091-L2098"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 repeated-string helper retains LookupAll and appends every DNSSearch value as one unchanged logical --dns-search value without tokenization."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens likewise preserves each authored physical value opaquely; the source observation does not prove target acceptance or runtime resolver behavior."
+
+[[evidence]]
+id = "podman-5-4-container-dns-search-reset-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/parser/unitfile.go#L760-L793"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 parser source makes LookupAll clear earlier logical DNSSearch values at an empty assignment and return only values authored after the reset."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The generator fixture proves post-reset command construction only and does not execute a container or inspect resolver state."
+
+[[evidence]]
+id = "podman-6-0-2-container-dns-search-reset-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/parser/unitfile.go#L769-L802"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 parser source retains LookupAll empty-assignment reset behavior for repeated DNSSearch values."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The generator fixture proves post-reset command construction only and does not execute a container or inspect resolver state."
+
+[[evidence]]
+id = "podman-5-4-container-expose-host-port"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/docs/source/markdown/podman-systemd.unit.5.md#L495-L500"
+target = "5.4.0"
+claim = "The tagged Podman 5.4.0 Container-unit manual documents repeatable ExposeHostPort values as a port or port range with optional tcp or udp protocol and maps them to Podman --expose."
+test = "capabilities::supported_range_records_repeatable_container_expose_host_port"
+gap = "QuadletLens preserves authored values opaquely and does not implement the documented grammar, expose networking behavior, runtime inspection, or cross-format semantics."
+
+[[evidence]]
+id = "podman-6-0-2-container-expose-host-port"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/docs/source/markdown/podman-systemd.unit.5.md#L577-L582"
+target = "6.0.2"
+claim = "The tagged Podman 6.0.2 Container-unit manual retains repeatable ExposeHostPort, its port or range with optional tcp or udp protocol grammar, and its Podman --expose mapping."
+test = "capabilities::supported_range_records_repeatable_container_expose_host_port"
+gap = "QuadletLens preserves authored values opaquely and does not implement the documented grammar, expose networking behavior, runtime inspection, or cross-format semantics."
+
+[[evidence]]
+id = "podman-5-4-container-expose-cli"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/docs/source/markdown/options/expose.md"
+target = "5.4.0"
+claim = "The tagged Podman 5.4.0 CLI option documentation accepts a port or range with optional protocol, lists tcp, udp, and sctp, and states that --expose alone has no effect on networking."
+test = "capabilities::supported_range_records_repeatable_container_expose_host_port"
+gap = "Tagged Quadlet source rejects the CLI-documented sctp suffix; QuadletLens retains such authored text for diagnostics but does not claim it as a generator-compatible native value."
+
+[[evidence]]
+id = "podman-6-0-2-container-expose-cli"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/docs/source/markdown/options/expose.md"
+target = "6.0.2"
+claim = "The tagged Podman 6.0.2 CLI option documentation retains tcp, udp, and sctp protocol spellings and states that --expose alone has no effect on networking."
+test = "capabilities::supported_range_records_repeatable_container_expose_host_port"
+gap = "Tagged Quadlet source still rejects the CLI-documented sctp suffix; QuadletLens retains such authored text for diagnostics but does not claim it as a generator-compatible native value."
+
+[[evidence]]
+id = "podman-5-4-container-expose-host-port-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L789-L797"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 source obtains every ExposeHostPort value with LookupAll, trims surrounding whitespace, rejects values not matched by the Quadlet regex, and emits each accepted value as a separate --expose argument."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens deliberately preserves raw physical values and does not copy the generator regex or trim authored text; the dry-run fixture tests only accepted command construction."
+
+[[evidence]]
+id = "podman-6-0-2-container-expose-host-port-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L864-L872"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 source retains LookupAll, surrounding-whitespace trimming, regex rejection, and one separate --expose argument for each accepted ExposeHostPort value."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens deliberately preserves raw physical values and does not copy the generator regex or trim authored text; the dry-run fixture tests only accepted command construction."
+
+[[evidence]]
+id = "podman-5-4-container-expose-host-port-regex-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L195"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 source declares the Quadlet ExposeHostPort regex as `\\d+(-\\d+)?(/udp|/tcp)?$`: it permits only tcp or udp suffixes and is not anchored at the beginning."
+test = "capabilities::supported_range_records_repeatable_container_expose_host_port"
+gap = "The model retains SCTP and invalid values opaquely; it does not emulate this target regex or claim that its missing leading anchor is a supported value form."
+
+[[evidence]]
+id = "podman-6-0-2-container-expose-host-port-regex-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L225"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 source retains the Quadlet regex `\\d+(-\\d+)?(/udp|/tcp)?$`, including its tcp-or-udp-only suffix and missing leading anchor."
+test = "capabilities::supported_range_records_repeatable_container_expose_host_port"
+gap = "The model retains SCTP and invalid values opaquely; it does not emulate this target regex or claim that its missing leading anchor is a supported value form."
+
+[[evidence]]
+id = "podman-5-4-container-expose-host-port-reset-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/parser/unitfile.go#L760-L795"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 parser source makes LookupAll clear earlier logical ExposeHostPort values at an empty assignment and return only values after the reset."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The dry-run fixture proves only post-reset command construction and does not execute a container or inspect networking."
+
+[[evidence]]
+id = "podman-5-4-container-annotation"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/docs/source/markdown/podman-systemd.unit.5.md#L392-L397"
+target = "5.4.0"
+claim = "The tagged Podman 5.4.0 Container-unit manual documents repeatable Annotation values as lists of key=value OCI annotation items similar to Environment."
+test = "capabilities::supported_range_records_repeatable_container_annotation"
+gap = "QuadletLens preserves every authored physical value opaquely and does not split lists, parse assignments, validate OCI names or values, or claim runtime annotation behavior."
+
+[[evidence]]
+id = "podman-6-0-2-container-annotation"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/docs/source/markdown/podman-systemd.unit.5.md#L470-L475"
+target = "6.0.2"
+claim = "The tagged Podman 6.0.2 Container-unit manual retains repeatable Annotation values as lists of key=value OCI annotation items similar to Environment."
+test = "capabilities::supported_range_records_repeatable_container_annotation"
+gap = "QuadletLens preserves every authored physical value opaquely and does not split lists, parse assignments, validate OCI names or values, or claim runtime annotation behavior."
+
+[[evidence]]
+id = "podman-5-4-container-annotation-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L807-L808"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 source reads effective Annotation assignments through LookupAllKeyVal and emits the resulting sorted key/value map as repeated --annotation arguments."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The target tokenizes, unquotes, deduplicates by key, and sorts effective assignments; QuadletLens deliberately preserves raw authored entries, duplicates, and order instead of copying those target semantics."
+
+[[evidence]]
+id = "podman-6-0-2-container-annotation-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L875-L882"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 source retains environment-style Annotation lookup and sorted repeated --annotation key=value command construction."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The target tokenizes, unquotes, deduplicates by key, and sorts effective assignments; QuadletLens deliberately preserves raw authored entries, duplicates, and order instead of copying those target semantics."
+
+[[evidence]]
+id = "podman-5-4-container-annotation-reset-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/parser/unitfile.go#L760-L862"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 parser source makes the LookupAll layer beneath LookupAllKeyVal clear earlier Annotation entries at an empty assignment before parsing later key/value items."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The generator fixture proves effective post-reset command construction only and does not execute a container or inspect OCI annotations."
+
+[[evidence]]
+id = "podman-6-0-2-container-annotation-reset-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/parser/unitfile.go#L769-L871"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 parser source retains the LookupAll empty-assignment reset underneath environment-style Annotation parsing."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The generator fixture proves effective post-reset command construction only and does not execute a container or inspect OCI annotations."
+
+[[evidence]]
+id = "podman-6-0-2-container-expose-host-port-reset-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/parser/unitfile.go#L769-L805"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 parser source retains LookupAll empty-assignment reset behavior for repeated ExposeHostPort values."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The dry-run fixture proves only post-reset command construction and does not execute a container or inspect networking."
+
+[[evidence]]
+id = "podman-5-4-container-apparmor"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/docs/source/markdown/podman-systemd.unit.5.md"
+target = "5.4.0"
+claim = "The tagged Podman 5.4.0 Container-unit manual documents AppArmor as a container confinement profile and maps an alternate profile to separate --security-opt and apparmor=profile arguments; exact 5.4 generators nevertheless reject the key, so the documentation does not establish native availability."
+test = "capabilities::supported_range_records_singleton_container_apparmor"
+gap = "The endpoint manual does not establish parser helper or reset behavior, profile validity, host AppArmor availability, or effective runtime confinement."
+
+[[evidence]]
+id = "podman-6-0-2-container-apparmor"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/docs/source/markdown/podman-systemd.unit.5.md#L352-L352"
+target = "6.0.2"
+claim = "The tagged Podman 6.0.2 Container-unit manual retains the AppArmor alternate-profile mapping to separate --security-opt and apparmor=profile arguments and documents unconfined as disabling AppArmor confinement."
+test = "capabilities::supported_range_records_singleton_container_apparmor"
+gap = "The manual does not validate authored profile names or establish effective host/runtime confinement."
+
+[[evidence]]
+id = "podman-6-0-2-container-apparmor-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L790-L792"
+target = "6.0.2"
+claim = "The cached exact Podman 6.0.2 source checkout reads one effective AppArmor value with singleton Lookup, ignores an absent or empty effective value, and appends separate --security-opt and apparmor=value arguments."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The corresponding 5.4.0 helper and reset source was not available locally; QuadletLens preserves every authored assignment and reports repeats rather than implementing upstream effective-value selection."
+
+[[evidence]]
+id = "podman-5-4-container-no-new-privileges"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#nonewprivileges"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Container-unit manual documents NoNewPrivileges as a boolean, defaulting to false, and maps true to Podman's no-new-privileges security option."
+test = "capabilities::supported_range_records_singleton_container_no_new_privileges"
+gap = "The native model intentionally preserves every authored one-line value without interpreting systemd booleans. The generator evidence covers literal true and false only and does not establish runtime or kernel effects."
+
+[[evidence]]
+id = "podman-6-0-2-container-no-new-privileges"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/docs/source/markdown/podman-container.unit.5.md.in#L248-L252"
+target = "6.0.2"
+claim = "The tagged Podman 6.0.2 Container-unit manual retains NoNewPrivileges as a boolean defaulting to false, emitting the no-new-privileges security option when enabled."
+test = "capabilities::supported_range_records_singleton_container_no_new_privileges"
+gap = "The generator fixture runs no workload and does not inspect effective process privileges or kernel state."
+
+[[evidence]]
+id = "podman-6-0-2-container-no-new-privileges-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L760-L763"
+target = "6.0.2"
+claim = "The cached exact Podman 6.0.2 source reads NoNewPrivileges through boolean lookup with false as the default and appends exactly one equals-form --security-opt=no-new-privileges argument only when the effective value is true."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens preserves authored duplicates, blanks, quotes, whitespace, specifiers, and invalid values rather than implementing upstream effective boolean lookup; generated command text does not establish runtime or kernel effects."
+
+[[evidence]]
+id = "podman-5-4-container-security-label-disable"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#securitylabeldisable"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Quadlet manual documents singleton Container SecurityLabelDisable as a boolean that turns off label separation for the container."
+test = "capabilities::supported_range_records_singleton_container_security_label_disable"
+gap = "The native model intentionally preserves every authored one-line value without interpreting systemd booleans. The manual does not establish SELinux availability, label state, or runtime effects."
+
+[[evidence]]
+id = "podman-6-0-2-container-security-label-disable"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-systemd.unit.5.html#securitylabeldisable"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Quadlet manual retains singleton Container SecurityLabelDisable as a boolean that turns off label separation for the container."
+test = "capabilities::supported_range_records_singleton_container_security_label_disable"
+gap = "The manual does not establish SELinux availability, effective label state, or runtime behavior."
+
+[[evidence]]
+id = "podman-6-0-2-container-security-label-disable-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L765-L768"
+target = "6.0.2"
+claim = "The pinned exact Podman 6.0.2 source reads SecurityLabelDisable through boolean lookup with false as the default and appends exactly one separate --security-opt and label=disable argument pair only when the effective value is true."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens preserves authored duplicates, blanks, quotes, whitespace, specifiers, and invalid values rather than implementing upstream effective boolean lookup; generated command text does not establish SELinux or runtime effects."
+
+[[evidence]]
+id = "podman-5-4-container-security-label-file-type"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#securitylabelfiletype"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Quadlet manual documents singleton Container SecurityLabelFileType as the SELinux file-type label used for container files."
+test = "capabilities::supported_range_records_singleton_container_security_label_file_type"
+gap = "The native model preserves every physical authored value and does not validate SELinux types, inspect host policy, or establish runtime label behavior."
+
+[[evidence]]
+id = "podman-6-0-2-container-security-label-file-type"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-systemd.unit.5.html#securitylabelfiletype"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Quadlet manual retains singleton Container SecurityLabelFileType as the SELinux file-type label used for container files."
+test = "capabilities::supported_range_records_singleton_container_security_label_file_type"
+gap = "The manual does not establish whether an authored type exists in host policy or the effective runtime file label."
+
+[[evidence]]
+id = "podman-6-0-2-container-security-label-file-type-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L770-L778"
+target = "6.0.2"
+claim = "The pinned exact Podman 6.0.2 source reads one effective SecurityLabelFileType value and appends exactly one separate --security-opt and label=filetype:value argument pair when the value is non-empty."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens preserves authored duplicates, blanks, quotes, whitespace, specifiers, and malformed text rather than reproducing upstream last-value, unquoting, trimming, or empty-value handling; generated command text does not validate SELinux types or runtime labels."
+
+[[evidence]]
+id = "podman-5-4-container-security-label-level"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#securitylabellevel"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Quadlet manual documents singleton Container SecurityLabelLevel as the SELinux label level applied to the container."
+test = "capabilities::supported_range_records_singleton_container_security_label_level"
+gap = "The native model preserves every physical authored value and does not validate MLS/MCS syntax, inspect host policy, or establish runtime label behavior."
+
+[[evidence]]
+id = "podman-6-0-2-container-security-label-level"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-systemd.unit.5.html#securitylabellevel"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Quadlet manual retains singleton Container SecurityLabelLevel as the SELinux label level applied to the container."
+test = "capabilities::supported_range_records_singleton_container_security_label_level"
+gap = "The manual does not validate MLS/MCS syntax or establish host policy, effective runtime labels, or runtime behavior."
+
+[[evidence]]
+id = "podman-6-0-2-container-security-label-level-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L780-L788"
+target = "6.0.2"
+claim = "The pinned exact Podman 6.0.2 source reads one effective SecurityLabelLevel value and appends exactly one separate --security-opt and label=level:value argument pair when the value is non-empty."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens preserves authored duplicates, blanks, quotes, whitespace, specifiers, and malformed text rather than reproducing upstream last-value, unquoting, trimming, or empty-value handling; generated command text does not validate MLS/MCS syntax or runtime labels."
+
+[[evidence]]
+id = "podman-5-4-container-security-label-nested"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#securitylabelnested"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Quadlet manual documents singleton Container SecurityLabelNested as a boolean that enables nested container security labeling."
+test = "capabilities::supported_range_records_singleton_container_security_label_nested"
+gap = "The native model intentionally preserves every authored one-line value without interpreting systemd booleans. The manual does not establish SELinux availability, effective label state, nested-container operation, or runtime behavior."
+
+[[evidence]]
+id = "podman-6-0-2-container-security-label-nested"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-systemd.unit.5.html#securitylabelnested"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Quadlet manual retains singleton Container SecurityLabelNested as a boolean that enables nested container security labeling."
+test = "capabilities::supported_range_records_singleton_container_security_label_nested"
+gap = "The manual does not establish SELinux availability, effective label state, nested-container operation, or runtime behavior."
+
+[[evidence]]
+id = "podman-6-0-2-container-security-label-nested-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L770-L773"
+target = "6.0.2"
+claim = "The pinned exact Podman 6.0.2 source reads SecurityLabelNested through boolean lookup with false as the default and appends exactly one separate --security-opt and label=nested argument pair only when the effective value is true."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens preserves authored duplicates, blanks, quotes, whitespace, specifiers, and invalid values rather than implementing upstream effective boolean lookup; generated command text does not establish SELinux or runtime effects."
+
+[[evidence]]
+id = "podman-5-4-container-security-label-type"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#securitylabeltype"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Quadlet manual documents singleton Container SecurityLabelType as the SELinux process-type label applied to the container; this establishes that introduction occurred no later than the supported 5.4.0 floor, not an exact earlier introduction release."
+test = "capabilities::supported_range_records_singleton_container_security_label_type"
+gap = "Podman releases before 5.4.0 were not reviewed to determine the exact introduction version. The native model preserves every physical authored value and does not validate SELinux types, inspect host policy, or establish runtime label behavior."
+
+[[evidence]]
+id = "podman-6-0-2-container-security-label-type"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-systemd.unit.5.html#securitylabeltype"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Quadlet manual retains singleton Container SecurityLabelType as the SELinux process-type label applied to container processes."
+test = "capabilities::supported_range_records_singleton_container_security_label_type"
+gap = "The manual does not establish whether an authored type exists in host policy or the effective runtime process label."
+
+[[evidence]]
+id = "podman-6-0-2-container-security-label-type-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L775-L778"
+target = "6.0.2"
+claim = "The pinned exact Podman 6.0.2 source reads the last effective SecurityLabelType value through singleton Lookup, ignores an absent or empty effective value, and appends exactly one separate --security-opt and label=type:value argument pair when non-empty."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens preserves authored duplicates, blanks, quotes, whitespace, specifiers, and malformed text rather than reproducing upstream last-value, unquoting, trimming, or empty-value handling; generated command text does not validate SELinux types or runtime labels."
+
+[[evidence]]
+id = "podman-5-4-container-mask"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#mask"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Quadlet manual documents Container Mask as a colon-separated path list mapped to Podman's mask security option; this establishes that introduction occurred no later than the supported 5.4.0 floor, not an exact earlier introduction release."
+test = "capabilities::supported_range_records_repeatable_container_mask"
+gap = "Podman releases before 5.4.0 were not reviewed to determine the exact introduction version. The manual does not establish reset behavior, quoting, malformed-path handling, host acceptance, runtime effects, or cross-format semantics."
+
+[[evidence]]
+id = "podman-6-0-2-container-mask"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-systemd.unit.5.html#mask"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Quadlet manual retains Container Mask as a colon-separated path list mapped to Podman's mask security option."
+test = "capabilities::supported_range_records_repeatable_container_mask"
+gap = "The manual does not establish reset behavior, quoting, malformed-path handling, host acceptance, runtime effects, or cross-format semantics."
+
+[[evidence]]
+id = "podman-5-4-container-mask-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L810-L813"
+target = "5.4.0"
+claim = "The pinned exact Podman 5.4.0 source reads effective repeated Mask values through LookupAllArgs and appends one separate --security-opt and mask=value argument pair for each returned value."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens preserves every physical authored assignment rather than implementing LookupAllArgs tokenization and reset semantics; command construction does not establish path validity or runtime effects."
+
+[[evidence]]
+id = "podman-6-0-2-container-mask-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L885-L888"
+target = "6.0.2"
+claim = "The pinned exact Podman 6.0.2 source retains LookupAllArgs processing and appends one separate --security-opt and mask=value argument pair for each effective repeated Mask value."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens preserves every physical authored assignment rather than implementing LookupAllArgs tokenization and reset semantics; command construction does not establish path validity or runtime effects."
+
+[[evidence]]
+id = "podman-5-4-container-unmask"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#unmask"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Quadlet manual documents repeatable Container Unmask path-list or ALL values mapped to Podman's unmask security option; this establishes introduction no later than the supported 5.4.0 floor, not an exact earlier introduction release."
+test = "capabilities::supported_range_records_repeatable_container_unmask"
+gap = "Podman releases before 5.4.0 were not reviewed to determine the exact introduction version. The manual does not establish reset or tokenization behavior, path expansion or acceptance, host state, runtime effects, privileges, or cross-format semantics."
+
+[[evidence]]
+id = "podman-6-0-2-container-unmask"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-systemd.unit.5.html#unmask"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Quadlet manual retains repeatable Container Unmask path-list, wildcard, and ALL forms mapped to Podman's unmask security option."
+test = "capabilities::supported_range_records_repeatable_container_unmask"
+gap = "QuadletLens preserves wildcard, quoted, specifier-bearing, whitespace-bearing, and malformed values as opaque source text; it does not implement documented path expansion or validate host or runtime effects."
+
+[[evidence]]
+id = "podman-5-4-container-unmask-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L815-L818"
+target = "5.4.0"
+claim = "The pinned exact Podman 5.4.0 source reads effective repeated Unmask values through LookupAllArgs and appends one separate --security-opt and unmask=value argument pair for each returned value."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens preserves every physical authored assignment rather than implementing LookupAllArgs tokenization and reset semantics; command construction does not establish path validity, host state, privilege, filesystem, or runtime effects."
+
+[[evidence]]
+id = "podman-6-0-2-container-unmask-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L890-L893"
+target = "6.0.2"
+claim = "The pinned exact Podman 6.0.2 source retains LookupAllArgs processing and appends one separate --security-opt and unmask=value argument pair for each effective repeated Unmask value."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens preserves every physical authored assignment rather than implementing LookupAllArgs tokenization and reset semantics; command construction does not establish path validity, host state, privilege, filesystem, or runtime effects."
+
+[[evidence]]
 id = "podman-5-4-container-capability-command-source"
 verification = "documentation"
 url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L742-L751"
@@ -620,8 +1241,158 @@ id = "podman-5-4-through-current-first-conversion-generators"
 verification = "generator"
 url = "https://github.com/containers/podman/releases"
 versions = { minimum = "5.4.0", maximum = "6.0.2" }
-claim = "Every Podman patch release from 5.4.0 through 6.0.2 generates the expected container, pod, network, volume, systemd dependency-ordering, container-name, add-host, isolated container hostname, isolated positive and zero container shared-memory sizes, one pod-owned shared-memory size with a joined container, four ordered lowercase capability-drop arguments from three repeated entries and no capability-add argument in that isolated unit, four ordered lowercase capability-add arguments from three repeated entries and no capability-drop argument in that isolated unit, exactly one capability-drop all before one capability-add cap_net_bind_service with no other capability arguments in a combined unit, exactly one post-reset --tmpfs /data:mode=755,uid=1009,gid=1009 argument with no pre-reset or extra tmpfs form, exactly one post-reset --sysctl net.ipv4.ip_forward=1 argument with neither pre-reset setting nor any other --sysctl form, exactly two ordered post-reset --ulimit nproc=4096:8192 and --ulimit stack=-1:-1 arguments with neither pre-reset value nor duplicate, empty, or alternate form, and exactly two ordered post-reset --device /dev/null:/dev/final-null:r and --device /dev/zero:/dev/final-zero:w arguments with neither pre-reset mapping nor empty or alternate form, image and rootfs workload sources, JSON-array entrypoint, RunInit=true as exactly one --init argument, RunInit=false as exactly one --init=false argument, named and numeric stop signals, positive and zero stop timeout, isolated always/missing/never/newer pull-policy arguments, isolated positive and -1 PID-limit arguments, command, environment, environment-file, repeated/empty/quote-bearing label, secret mount/environment options, port, mount, resource-reference, container and pod user-namespace, health-command, health-timing, health-readiness, restart, and PodmanArgs fragments. Each appropriate shared-memory unit contains exactly one matching --shm-size form, and the joined container does not duplicate the pod-owned argument. The entrypoint presentation changes from separate arguments through 5.8.1 to an equals argument from 5.8.2; both carry the same JSON array. The known quote-bearing label whitespace encodings are also verified explicitly. The harness uses digest-pinned official immutable images through 5.8.2 and builds later exact release commits with a digest-pinned builder."
+claim = "Every Podman patch release from 5.4.0 through 6.0.2 generates the expected container, pod, network, volume, systemd dependency-ordering, container-name, add-host, isolated container hostname, isolated positive and zero container shared-memory sizes, one pod-owned shared-memory size with a joined container, four ordered lowercase capability-drop arguments from three repeated entries and no capability-add argument in that isolated unit, four ordered lowercase capability-add arguments from three repeated entries and no capability-drop argument in that isolated unit, exactly one capability-drop all before one capability-add cap_net_bind_service with no other capability arguments in a combined unit, exactly one post-reset --tmpfs /data:mode=755,uid=1009,gid=1009 argument with no pre-reset or extra tmpfs form, exactly one post-reset --sysctl net.ipv4.ip_forward=1 argument with neither pre-reset setting nor any other --sysctl form, exactly two ordered post-reset --ulimit nproc=4096:8192 and --ulimit stack=-1:-1 arguments with neither pre-reset value nor duplicate, empty, or alternate form, exactly two ordered post-reset --device /dev/null:/dev/final-null:r and --device /dev/zero:/dev/final-zero:w arguments with neither pre-reset mapping nor empty or alternate form, exactly two ordered post-reset --dns 9.9.9.9 and --dns 2001:4860:4860::8888 arguments, exactly two ordered post-reset --dns-option ndots:1 and --dns-option use-vc arguments, and exactly two ordered post-reset --dns-search dc1.example.com and --dns-search . arguments, with no respective pre-reset, duplicate, empty, equals, quoted, or alternate forms, image and rootfs workload sources, JSON-array entrypoint, RunInit=true as exactly one --init argument, RunInit=false as exactly one --init=false argument, named and numeric stop signals, positive and zero stop timeout, isolated always/missing/never/newer pull-policy arguments, isolated positive and -1 PID-limit arguments, command, environment, environment-file, repeated/empty/quote-bearing label, secret mount/environment options, port, mount, resource-reference, container and pod user-namespace, health-command, health-timing, health-readiness, restart, and PodmanArgs fragments. Each appropriate shared-memory unit contains exactly one matching --shm-size form, and the joined container does not duplicate the pod-owned argument. The entrypoint presentation changes from separate arguments through 5.8.1 to an equals argument from 5.8.2; both carry the same JSON array. The known quote-bearing label whitespace encodings are also verified explicitly. The harness uses digest-pinned official immutable images through 5.8.2 and builds later exact release commits with a digest-pinned builder."
 test = "generators::supported_generators_match_the_first_conversion_fixture"
+
+[[evidence]]
+id = "podman-5-4-through-current-container-expose-host-port-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every Podman patch release from 5.4.0 through 6.0.2 emits exactly four ordered final post-reset --expose arguments for 3000, 8080-8085, 9090/tcp, and 5353/udp, exactly four total, with no pre-reset 1000, duplicate, empty, equals, quoted, or alternate form."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+
+[[evidence]]
+id = "podman-5-4-through-current-container-annotation-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every Podman patch release from 5.4.0 through 6.0.2 emits exactly two ordered final post-reset --annotation arguments for io.github.strukturpiloten.quadlet-lens.alpha=one and io.github.strukturpiloten.quadlet-lens.beta=two, exactly two total, with no pre-reset key, duplicate, empty, equals, quoted, key-only, or alternate form."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+
+[[evidence]]
+id = "podman-5-4-through-5-7-container-apparmor-rejection"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "5.7.1" }
+claim = "All 11 recorded Podman patch releases from 5.4.0 through 5.7.1 reject AppArmor as an unsupported Container key, generate no apparmor.service unit, and emit no AppArmor argument."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+
+[[evidence]]
+id = "podman-5-8-through-current-container-apparmor-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.8.0", maximum = "6.0.2" }
+claim = "All nine recorded Podman patch releases from 5.8.0 through 6.0.2 emit exactly one separate --security-opt apparmor=quadlet-lens-profile occurrence for the isolated AppArmor fixture, with no equals, quoted, unconfined, label, seccomp, mask, or other security-option form."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The dry-run fixture executes no workload and establishes no profile existence, host AppArmor state, parser reset behavior, or effective runtime confinement."
+
+[[evidence]]
+id = "podman-5-4-through-current-container-no-new-privileges-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every Podman patch release from 5.4.0 through 6.0.2 generates both isolated NoNewPrivileges units: literal true emits exactly one equals-form --security-opt=no-new-privileges argument in the true unit, while literal false emits no --security-opt argument in the false unit. No separate, quoted, alternate, duplicate, or unrelated security-option form is present."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The fixture invokes only the dry-run generator. It does not start a container, inspect process or kernel state, or establish runtime no-new-privileges behavior."
+
+[[evidence]]
+id = "podman-5-4-through-current-container-security-label-disable-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every Podman patch release from 5.4.0 through 6.0.2 generates both isolated SecurityLabelDisable units: literal true emits exactly one separate --security-opt label=disable argument in the true unit, while literal false emits no --security-opt argument in the false unit. Exactly one security option appears in total, with no equals, quoted, alternate, duplicate, or unrelated form."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The fixture invokes only the dry-run generator. It does not start a container, inspect security labels, establish host SELinux availability, or claim runtime behavior."
+
+[[evidence]]
+id = "podman-5-4-through-current-container-security-label-file-type-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every Podman patch release from 5.4.0 through 6.0.2 emits exactly one separate --security-opt label=filetype:container_file_t argument for the isolated SecurityLabelFileType fixture, with no equals, quoted, alternate, unrelated, or duplicate form."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The fixture invokes only the dry-run generator. It does not start a container, validate the SELinux type, inspect host policy or effective labels, or establish runtime behavior."
+
+[[evidence]]
+id = "podman-5-4-through-current-container-security-label-level-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every Podman patch release from 5.4.0 through 6.0.2 emits exactly one separate --security-opt label=level:s0:c1,c2 argument for the isolated SecurityLabelLevel fixture, with no equals, quoted, alternate, unrelated, or duplicate form."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The fixture invokes only the dry-run generator. It does not start a container, validate MLS/MCS syntax, inspect host policy or effective labels, or establish runtime behavior."
+
+[[evidence]]
+id = "podman-5-4-through-current-container-security-label-nested-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every Podman patch release from 5.4.0 through 6.0.2 generates both isolated SecurityLabelNested units: literal true emits exactly one separate --security-opt label=nested argument in the true unit, while literal false emits no --security-opt argument in the false unit. Exactly one security option appears in total, with no equals, quoted, alternate, duplicate, or unrelated form."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The fixture invokes only the dry-run generator. It does not start a container, inspect security labels, establish host SELinux availability, run a nested container, or claim runtime behavior."
+
+[[evidence]]
+id = "podman-5-4-through-current-container-security-label-type-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every Podman patch release from 5.4.0 through 6.0.2 emits exactly one separate --security-opt label=type:container_t argument for the isolated SecurityLabelType fixture, with no equals, quoted, alternate, unrelated, or duplicate form."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The fixture invokes only the dry-run generator. It does not start a container, validate the SELinux type, inspect host policy or effective labels, or establish runtime behavior."
+
+[[evidence]]
+id = "podman-5-4-through-current-container-mask-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every Podman patch release from 5.4.0 through 6.0.2 applies the isolated Mask fixture's blank reset and emits exactly one separate --security-opt mask=/proc/acpi:/sys/firmware argument for its final colon-path value, with no pre-reset, empty, equals, quoted, alternate, unrelated, or duplicate form."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The fixture invokes only the dry-run generator. It does not start a container, validate or inspect paths, establish host acceptance, test masking, or claim runtime security behavior."
+
+[[evidence]]
+id = "podman-5-4-through-current-container-unmask-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every Podman patch release from 5.4.0 through 6.0.2 applies the isolated Unmask fixture's blank reset and emits exactly two ordered separate arguments, --security-opt unmask=ALL followed by --security-opt unmask=/proc/acpi:/sys/firmware, exactly once each, with no pre-reset, empty, equals, quoted, alternate, unrelated, or duplicate form."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The fixture invokes only the dry-run generator. It does not start a container, expand, validate, inspect, or access paths, inspect host state, test rootless or rootful operation, unmask a filesystem path, or claim runtime security or privilege behavior."
+
+[[evidence]]
+id = "podman-5-4-container-seccomp-profile"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#seccompprofile"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Quadlet manual documents singleton Container SeccompProfile as either the pathname of a JSON seccomp profile or the exact value unconfined, with omission selecting Podman's default policy."
+test = "capabilities::supported_range_records_singleton_container_seccomp_profile"
+gap = "The manual does not establish profile-file existence or JSON validity, whitespace, quoting, specifier expansion, last-value selection, runtime syscall filtering, or host-kernel behavior."
+
+[[evidence]]
+id = "podman-6-0-2-container-seccomp-profile"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-systemd.unit.5.html#seccompprofile"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Quadlet manual retains singleton Container SeccompProfile as a JSON-profile pathname or unconfined, with omission selecting Podman's default policy."
+test = "capabilities::supported_range_records_singleton_container_seccomp_profile"
+gap = "The manual does not establish profile-file existence or JSON validity, whitespace, quoting, specifier expansion, duplicate handling, runtime syscall filtering, or host-kernel behavior."
+
+[[evidence]]
+id = "podman-6-0-2-container-seccomp-profile-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L803-L813"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 source obtains one effective SeccompProfile value and appends separate --security-opt and seccomp=value arguments when it is present."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Source inspection does not establish profile validity, runtime syscall filtering, host-kernel behavior, or cross-format equivalence."
+
+[[evidence]]
+id = "podman-6-0-2-container-seccomp-profile-lookup-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/parser/unitfile.go#L596-L608"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 parser source implements singleton Lookup by selecting the last physical value and applying systemd-compatible unquoting and whitespace handling."
+test = "model::seccomp_profile_is_a_container_only_opaque_singleton_with_recoverable_duplicates"
+gap = "QuadletLens intentionally preserves every physical authored value and does not emulate this upstream effective-value behavior."
+
+[[evidence]]
+id = "podman-5-4-through-current-container-seccomp-profile-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every recorded Podman patch release from 5.4.0 through 6.0.2 emits exactly one separate --security-opt seccomp=unconfined or --security-opt seccomp=/tmp/quadlet-lens-profile.json argument in each isolated fixture unit, with no equals-form, quoted, unrelated, alternate, or duplicate security option."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The fixtures invoke only the dry-run generator. They do not read or validate the JSON profile, start a workload, inspect syscall filtering, or establish host-kernel, rootless, or cross-format behavior."
 
 [[capability]]
 id = "systemd.section.pass-through"
@@ -881,6 +1652,153 @@ sections = ["Container"]
 value_forms = ["positive-ascii-decimal-bytes", "positive-ascii-decimal-b-k-m-g"]
 native = { minimum = "5.5.0", maximum = "6.0.2" }
 evidence = ["podman-5-5-container-memory", "podman-6-0-2-container-memory", "podman-5-5-memory-introduction", "podman-5-5-container-memory-command-source", "podman-6-0-2-container-memory-command-source", "podman-5-5-container-memory-last-value-source", "podman-6-0-2-container-memory-last-value-source", "podman-5-4-memory-generator-rejection", "podman-5-5-through-current-memory-generators"]
+
+[[capability]]
+id = "quadlet.container.dns"
+description = "Opaque authored container DNS resolver values passed to the native repeatable Quadlet key without parsing, normalization, address validation, or runtime interpretation."
+unit_types = ["container"]
+sections = ["Container"]
+repeatable = true
+value_forms = ["opaque-one-line-resolver-value"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-dns", "podman-6-0-2-container-dns", "podman-5-4-container-dns-command-source", "podman-6-0-2-container-dns-command-source", "podman-5-4-container-dns-lookup-all-source", "podman-6-0-2-container-dns-lookup-all-source", "podman-5-4-container-dns-reset-source", "podman-6-0-2-container-dns-reset-source", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
+id = "quadlet.container.dns-option"
+description = "Opaque authored container DNS resolver options passed to the native repeatable Quadlet key without splitting, unquoting, normalization, grammar validation, or runtime interpretation."
+unit_types = ["container"]
+sections = ["Container"]
+repeatable = true
+value_forms = ["opaque-one-line-resolver-option"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-dns-option", "podman-6-0-2-container-dns-option", "podman-5-4-container-dns-option-command-source", "podman-6-0-2-container-dns-option-command-source", "podman-5-4-container-dns-option-lookup-all-source", "podman-6-0-2-container-dns-option-lookup-all-source", "podman-5-4-container-dns-option-reset-source", "podman-6-0-2-container-dns-option-reset-source", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
+id = "quadlet.container.dns-search"
+description = "Opaque authored container DNS search values passed to the native repeatable Quadlet key without splitting, unquoting, normalization, domain parsing, special dot interpretation, or runtime behavior."
+unit_types = ["container"]
+sections = ["Container"]
+repeatable = true
+value_forms = ["opaque-one-line-dns-search-value"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-dns-search", "podman-6-0-2-container-dns-search", "podman-5-4-container-dns-search-command-source", "podman-6-0-2-container-dns-search-command-source", "podman-5-4-container-dns-search-lookup-all-source", "podman-6-0-2-container-dns-search-lookup-all-source", "podman-5-4-container-dns-search-reset-source", "podman-6-0-2-container-dns-search-reset-source", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
+id = "quadlet.container.expose-host-port"
+description = "Opaque authored container host ports or ranges passed to the native repeatable Quadlet key without splitting, trimming, regex validation, protocol normalization, networking behavior, or runtime interpretation."
+unit_types = ["container"]
+sections = ["Container"]
+repeatable = true
+value_forms = ["opaque-one-line-expose-host-port-value"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-expose-host-port", "podman-6-0-2-container-expose-host-port", "podman-5-4-container-expose-cli", "podman-6-0-2-container-expose-cli", "podman-5-4-container-expose-host-port-command-source", "podman-6-0-2-container-expose-host-port-command-source", "podman-5-4-container-expose-host-port-regex-source", "podman-6-0-2-container-expose-host-port-regex-source", "podman-5-4-container-expose-host-port-reset-source", "podman-6-0-2-container-expose-host-port-reset-source", "podman-5-4-through-current-container-expose-host-port-generators"]
+
+[[capability]]
+id = "quadlet.container.annotation"
+description = "Opaque authored OCI annotation text passed to the native repeatable container key without splitting, unquoting, parsing key/value assignments, deduplicating, sorting, validating OCI names or values, or applying runtime interpretation."
+unit_types = ["container"]
+sections = ["Container"]
+repeatable = true
+value_forms = ["opaque-one-line-annotation-value"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-annotation", "podman-6-0-2-container-annotation", "podman-5-4-container-annotation-command-source", "podman-6-0-2-container-annotation-command-source", "podman-5-4-container-annotation-reset-source", "podman-6-0-2-container-annotation-reset-source", "podman-5-4-through-current-container-annotation-generators"]
+
+[[capability]]
+id = "quadlet.container.apparmor"
+description = "Opaque authored AppArmor confinement-profile text passed to the native singleton container key without profile validation or runtime-confinement interpretation."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["opaque-one-line-apparmor-profile"]
+native = { minimum = "5.8.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-apparmor", "podman-6-0-2-container-apparmor", "podman-6-0-2-container-apparmor-command-source", "podman-5-4-through-5-7-container-apparmor-rejection", "podman-5-8-through-current-container-apparmor-generators"]
+
+[[capability.unsupported]]
+versions = { minimum = "5.4.0", maximum = "5.7.1" }
+summary = "Exact recorded generators reject AppArmor as an unsupported Container key before Podman 5.8.0."
+evidence = ["podman-5-4-through-5-7-container-apparmor-rejection"]
+
+[[capability]]
+id = "quadlet.container.no-new-privileges"
+description = "Opaque authored no-new-privileges text accepted at the native singleton container key; the evidenced safe caller forms are literal true and false."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["literal-true-or-false"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-no-new-privileges", "podman-6-0-2-container-no-new-privileges", "podman-6-0-2-container-no-new-privileges-command-source", "podman-5-4-through-current-container-no-new-privileges-generators"]
+
+[[capability]]
+id = "quadlet.container.seccomp-profile"
+description = "Opaque authored seccomp-profile text accepted at the native singleton container key without path, JSON, profile, runtime, or upstream effective-value interpretation."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["opaque-one-line-seccomp-profile"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-seccomp-profile", "podman-6-0-2-container-seccomp-profile", "podman-6-0-2-container-seccomp-profile-command-source", "podman-6-0-2-container-seccomp-profile-lookup-source", "podman-5-4-through-current-container-seccomp-profile-generators"]
+
+[[capability]]
+id = "quadlet.container.security-label-disable"
+description = "Opaque authored security-label-disable text accepted at the native singleton container key; the evidenced safe caller forms are literal true and false, without SELinux or runtime interpretation."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["literal-true-or-false"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-security-label-disable", "podman-6-0-2-container-security-label-disable", "podman-6-0-2-container-security-label-disable-command-source", "podman-5-4-through-current-container-security-label-disable-generators"]
+
+[[capability]]
+id = "quadlet.container.security-label-file-type"
+description = "Opaque authored SELinux file-type label text accepted at the native singleton container key without type validation, host-policy inspection, runtime interpretation, or upstream effective-value emulation."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["opaque-one-line-security-label-file-type"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-security-label-file-type", "podman-6-0-2-container-security-label-file-type", "podman-6-0-2-container-security-label-file-type-command-source", "podman-5-4-through-current-container-security-label-file-type-generators"]
+
+[[capability]]
+id = "quadlet.container.security-label-level"
+description = "Opaque authored SELinux MLS/MCS label-level text accepted at the native singleton container key without syntax validation, host-policy inspection, runtime interpretation, or upstream effective-value emulation."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["opaque-one-line-security-label-level"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-security-label-level", "podman-6-0-2-container-security-label-level", "podman-6-0-2-container-security-label-level-command-source", "podman-5-4-through-current-container-security-label-level-generators"]
+
+[[capability]]
+id = "quadlet.container.security-label-nested"
+description = "Opaque authored security-label-nested text accepted at the native singleton container key; the evidenced safe caller forms are literal true and false, without boolean, SELinux, nested-container, or runtime interpretation."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["literal-true-or-false"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-security-label-nested", "podman-6-0-2-container-security-label-nested", "podman-6-0-2-container-security-label-nested-command-source", "podman-5-4-through-current-container-security-label-nested-generators"]
+
+[[capability]]
+id = "quadlet.container.security-label-type"
+description = "Opaque authored SELinux process-type label text accepted at the native singleton container key without type validation, host-policy inspection, runtime interpretation, or upstream effective-value emulation."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["opaque-one-line-security-label-type"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-security-label-type", "podman-6-0-2-container-security-label-type", "podman-6-0-2-container-security-label-type-command-source", "podman-5-4-through-current-container-security-label-type-generators"]
+
+[[capability]]
+id = "quadlet.container.mask"
+description = "Opaque authored container mask path-list text accepted at the native repeatable key without path parsing, validation, normalization, deduplication, host inspection, runtime interpretation, or upstream effective-value emulation."
+unit_types = ["container"]
+sections = ["Container"]
+repeatable = true
+value_forms = ["opaque-one-line-mask-path-list"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-mask", "podman-6-0-2-container-mask", "podman-5-4-container-mask-command-source", "podman-6-0-2-container-mask-command-source", "podman-5-4-through-current-container-mask-generators"]
+
+[[capability]]
+id = "quadlet.container.unmask"
+description = "Opaque authored container unmask text accepted at the native repeatable key without parsing, normalization, path expansion or validation, deduplication, host inspection, privilege or filesystem interpretation, runtime effects, or upstream effective-value emulation."
+unit_types = ["container"]
+sections = ["Container"]
+repeatable = true
+value_forms = ["opaque-one-line-unmask-path-list-or-all"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-unmask", "podman-6-0-2-container-unmask", "podman-5-4-container-unmask-command-source", "podman-6-0-2-container-unmask-command-source", "podman-5-4-through-current-container-unmask-generators"]
 
 [[capability]]
 id = "quadlet.container.exec"

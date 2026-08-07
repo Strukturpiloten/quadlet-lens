@@ -1,0 +1,4 @@
+---security-label-disable-true.service---
+SourcePath=/fixtures/security-label-disable-true.container
+---security-label-disable-false.service---
+SourcePath=/fixtures/security-label-disable-false.container

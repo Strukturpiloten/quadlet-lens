@@ -1,0 +1,7 @@
+[Container]
+Image=registry.example.invalid/annotation:1
+Annotation=org.example.pre=one
+Annotation=org.example.pre=one
+Annotation=
+Annotation=io.github.strukturpiloten.quadlet-lens.alpha=one
+Annotation=io.github.strukturpiloten.quadlet-lens.beta=two

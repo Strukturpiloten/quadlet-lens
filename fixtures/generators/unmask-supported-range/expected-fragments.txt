@@ -1,0 +1,7 @@
+---unmask.service---
+SourcePath=/fixtures/unmask.container
+Image=registry.example.invalid/unmask:1
+Unmask=/pre/one:/pre/two
+Unmask=/pre/three/*
+Unmask=ALL
+Unmask=/proc/acpi:/sys/firmware

@@ -1,0 +1,3 @@
+[Container]
+Image=registry.example.invalid/seccomp-json-path:1
+SeccompProfile=/tmp/quadlet-lens-profile.json

@@ -1,0 +1,7 @@
+[Container]
+Image=registry.example.invalid/dns-search:1
+DNSSearch=pre.example.com
+DNSSearch=pre.example.com
+DNSSearch=
+DNSSearch=dc1.example.com
+DNSSearch=.

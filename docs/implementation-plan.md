@@ -254,6 +254,14 @@ recorded patches through 6.0.2 emit exactly one final `--memory 16777216b`, whil
 generators reject or exclude the unsupported key and emit no memory argument. Runtime cgroup,
 page-size, swap, host-memory, rootless, and cross-format behavior remain outside this native slice.
 
+QuadletLens now types the native networking, annotation, and security keys added in
+`ContainerKey` ordinals 41–55. Repeatable values preserve order, duplicates, and resets; singleton
+values use the standard duplicate diagnostic. The 20-patch generator matrix covers Podman
+5.4.0–6.0.2, with AppArmor explicitly unsupported through 5.7.1 and native from 5.8.0.
+
+This slice establishes native parsing, construction, capability, and dry-run command evidence only.
+It does not validate host policy, inspect runtime state, or define Compose/BoxFerry mappings.
+
 ## T6: First end-to-end milestone
 
 Status: in progress. BoxFerry coordinates this task. Compose import and the first Quadlet export

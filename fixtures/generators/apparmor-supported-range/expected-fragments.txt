@@ -1,0 +1,2 @@
+---apparmor.service---
+SourcePath=/fixtures/apparmor.container

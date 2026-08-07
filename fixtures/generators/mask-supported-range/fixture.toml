@@ -1,0 +1,18 @@
+schema = 1
+id = "mask-supported-range"
+suite = "generators"
+description = "Exercises pre-reset Mask entries, a blank reset assignment, and one final colon-path value across the complete supported Podman generator range."
+secrets_reviewed = true
+files = ["expected-fragments.txt", "mask.container"]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "The harness mounts this directory read-only with host-container label separation disabled and invokes only exact Podman Quadlet generators in dry-run mode. It does not start the generated service, access the authored paths, or run a container workload."
+
+[expectations]
+summary = "Every recorded Podman release applies the blank reset and emits exactly one separate --security-opt mask=/proc/acpi:/sys/firmware argument for the final colon-path value, with no pre-reset, empty, equals, quoted, alternate, unrelated, or duplicate security-option form."

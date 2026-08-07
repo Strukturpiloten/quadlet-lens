@@ -1,0 +1,4 @@
+---security-label-nested-true.service---
+SourcePath=/fixtures/security-label-nested-true.container
+---security-label-nested-false.service---
+SourcePath=/fixtures/security-label-nested-false.container
