@@ -39,8 +39,10 @@ A record can include:
 - automated-test evidence and known gaps
 
 Catalogue files are validated against a strict versioned TOML schema. Unknown fields, duplicate
-identifiers, inverted or uncovered ranges, missing evidence, and documentation-only claims without
-an explicit evidence gap are rejected.
+identifiers, inverted or uncovered ranges, overlapping native/unsupported declarations, missing
+evidence, and documentation-only claims without an explicit evidence gap are rejected. An
+evidence-backed `unsupported` range is explicit data, distinct from `unknown` when evidence cannot
+establish behavior.
 
 `value_forms` describes the caller representations for which a support claim has evidence. It does
 not imply that the syntax parser, typed model, or shared `EntryValue` builder validates that
@@ -206,7 +208,24 @@ unsupported key and emits no memory argument. This establishes native recognitio
 command construction only, not cgroup enforcement, page rounding, swap interaction, host-memory
 availability, rootless behavior, runtime inspection, or Compose/BoxFerry equivalence.
 
+Container `DNS`, `DNSOption`, and `DNSSearch` are native repeatable capabilities across
+Podman 5.4.0–6.0.2. `ExposeHostPort` is native over the same range; tagged Quadlet accepts TCP/UDP
+while the Podman CLI also documents SCTP, so `/sctp` remains preserved but not claimed as
+generator-compatible. The full matrix verifies ordered post-reset command construction only.
+
 Exact runtime detection can narrow validation to one version, but generated project files should normally declare their intended portable range.
+
+The security and metadata capabilities use the following reviewed ranges:
+
+| Keys | Native range | Evidence summary |
+| --- | --- | --- |
+| `Annotation` | 5.4.0–6.0.2 | Repeatable reset and sorted final command arguments |
+| `AppArmor` | 5.8.0–6.0.2 | Explicitly unsupported through 5.7.1 |
+| `NoNewPrivileges`, `SeccompProfile`, `SecurityLabel*` | 5.4.0–6.0.2 | Singleton/boolean command construction |
+| `Mask`, `Unmask` | 5.4.0–6.0.2 | Repeatable reset/tokenization command construction; earlier introduction unknown |
+
+Parsed and constructed values remain opaque. Generator fixtures do not validate profiles, OCI or
+SELinux policy, paths, host state, runtime effects, or cross-format semantics.
 
 ## Patch releases and distribution backports
 

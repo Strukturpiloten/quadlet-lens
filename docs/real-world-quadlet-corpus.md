@@ -76,7 +76,8 @@ makes the next typed promotions concrete:
 2. logging: `LogDriver` and repeatable `LogOpt`;
 3. security and host integration: capabilities, devices, security-label keys, seccomp, sysctls,
    temporary filesystems, and ulimits; container/pod `ShmSize` plus container `DropCapability`,
-   `AddCapability`, `Tmpfs`, `Sysctl`, `Ulimit`, `AddDevice`, and `Memory` are already typed and generator-verified, while target tmpfs-option
+   the promoted lifecycle, resource, networking, metadata, and security keys are already typed and
+   generator-verified, while target tmpfs-option
    validation, rootless/mount behavior, runtime privilege effects, and remaining security
    interactions remain open;
 4. richer pod/network/volume keys, continuing with network `Driver`;

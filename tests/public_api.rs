@@ -3,6 +3,7 @@
 use quadlet_lens::capability::{CapabilityCatalogue, PodmanTarget, PodmanVersion, SupportClassification};
 use quadlet_lens::model::{
     ContainerKey, EntryKind, NamedQuadletDocument, PodKey, QuadletDocument, QuadletDocumentSet, QuadletUnitType,
+    ValueKind,
 };
 use quadlet_lens::path::{PathForm, classify_path};
 use quadlet_lens::render::{
@@ -56,10 +57,25 @@ fn growing_public_key_enums_preserve_published_discriminants() {
             ContainerKey::Ulimit as isize,
             ContainerKey::AddDevice as isize,
             ContainerKey::Memory as isize,
+            ContainerKey::DNS as isize,
+            ContainerKey::DNSOption as isize,
+            ContainerKey::DNSSearch as isize,
+            ContainerKey::ExposeHostPort as isize,
+            ContainerKey::Annotation as isize,
+            ContainerKey::AppArmor as isize,
+            ContainerKey::NoNewPrivileges as isize,
+            ContainerKey::SeccompProfile as isize,
+            ContainerKey::SecurityLabelDisable as isize,
+            ContainerKey::SecurityLabelFileType as isize,
+            ContainerKey::SecurityLabelLevel as isize,
+            ContainerKey::SecurityLabelNested as isize,
+            ContainerKey::SecurityLabelType as isize,
+            ContainerKey::Mask as isize,
+            ContainerKey::Unmask as isize,
         ],
         [
             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28,
-            29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
+            29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55,
         ]
     );
     assert_eq!(
@@ -497,6 +513,525 @@ fn container_add_device_uses_repeatable_raw_public_values() -> Result<(), Box<dy
         catalogue
             .evaluate("quadlet.container.add-device", target)
             .classification(),
+        SupportClassification::Native
+    );
+    Ok(())
+}
+
+#[test]
+fn container_dns_uses_repeatable_raw_public_values() -> Result<(), Box<dyn std::error::Error>> {
+    let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    generated.push_container(ContainerKey::Image, EntryValue::new("example.invalid/application:1")?)?;
+    for authored in [
+        "1.1.1.1",
+        "1.1.1.1",
+        "",
+        "9.9.9.9",
+        "2001:4860:4860::8888",
+        r#""Authored Resolver""#,
+        "%h",
+    ] {
+        generated.push_container(ContainerKey::DNS, EntryValue::new(authored)?)?;
+    }
+    let generated = generated.build(SourceId::new(19))?;
+    assert_eq!(
+        generated
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::DNS))
+            .map(|entry| entry.value().primary().text())
+            .collect::<Vec<_>>(),
+        [
+            "1.1.1.1",
+            "1.1.1.1",
+            "",
+            "9.9.9.9",
+            "2001:4860:4860::8888",
+            r#""Authored Resolver""#,
+            "%h",
+        ]
+    );
+
+    let catalogue = CapabilityCatalogue::supported_range()?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    assert_eq!(
+        catalogue.evaluate("quadlet.container.dns", target).classification(),
+        SupportClassification::Native
+    );
+    Ok(())
+}
+
+#[test]
+fn container_dns_option_uses_repeatable_raw_public_values() -> Result<(), Box<dyn std::error::Error>> {
+    let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    generated.push_container(ContainerKey::Image, EntryValue::new("example.invalid/application:1")?)?;
+    for authored in [
+        "rotate",
+        "rotate",
+        "",
+        "ndots:1",
+        "use-vc",
+        r#""Authored Option""#,
+        "%h",
+    ] {
+        generated.push_container(ContainerKey::DNSOption, EntryValue::new(authored)?)?;
+    }
+    let generated = generated.build(SourceId::new(20))?;
+    assert_eq!(
+        generated
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::DNSOption))
+            .map(|entry| entry.value().primary().text())
+            .collect::<Vec<_>>(),
+        [
+            "rotate",
+            "rotate",
+            "",
+            "ndots:1",
+            "use-vc",
+            r#""Authored Option""#,
+            "%h"
+        ]
+    );
+
+    let catalogue = CapabilityCatalogue::supported_range()?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    assert_eq!(
+        catalogue
+            .evaluate("quadlet.container.dns-option", target)
+            .classification(),
+        SupportClassification::Native
+    );
+    Ok(())
+}
+
+#[test]
+fn container_dns_search_uses_repeatable_raw_public_values() -> Result<(), Box<dyn std::error::Error>> {
+    let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    generated.push_container(ContainerKey::Image, EntryValue::new("example.invalid/application:1")?)?;
+    for authored in [
+        "pre.example.com",
+        "pre.example.com",
+        "",
+        "dc1.example.com",
+        ".",
+        r#""Authored Search""#,
+        "%h",
+    ] {
+        generated.push_container(ContainerKey::DNSSearch, EntryValue::new(authored)?)?;
+    }
+    let generated = generated.build(SourceId::new(21))?;
+    assert_eq!(
+        generated
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::DNSSearch))
+            .map(|entry| entry.value().primary().text())
+            .collect::<Vec<_>>(),
+        [
+            "pre.example.com",
+            "pre.example.com",
+            "",
+            "dc1.example.com",
+            ".",
+            r#""Authored Search""#,
+            "%h"
+        ]
+    );
+
+    let catalogue = CapabilityCatalogue::supported_range()?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    assert_eq!(
+        catalogue
+            .evaluate("quadlet.container.dns-search", target)
+            .classification(),
+        SupportClassification::Native
+    );
+    Ok(())
+}
+
+#[test]
+fn container_expose_host_port_uses_repeatable_raw_public_values() -> Result<(), Box<dyn std::error::Error>> {
+    let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    generated.push_container(ContainerKey::Image, EntryValue::new("example.invalid/application:1")?)?;
+    for authored in [
+        "1000",
+        "1000",
+        "",
+        "3000",
+        "8080-8085",
+        "9090/tcp",
+        "5353/udp",
+        "5353/sctp",
+        r#""Authored Port""#,
+        "%i",
+        "not-a-port",
+    ] {
+        generated.push_container(ContainerKey::ExposeHostPort, EntryValue::new(authored)?)?;
+    }
+    let generated = generated.build(SourceId::new(22))?;
+    assert_eq!(
+        generated
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::ExposeHostPort))
+            .map(|entry| entry.value().primary().text())
+            .collect::<Vec<_>>(),
+        [
+            "1000",
+            "1000",
+            "",
+            "3000",
+            "8080-8085",
+            "9090/tcp",
+            "5353/udp",
+            "5353/sctp",
+            r#""Authored Port""#,
+            "%i",
+            "not-a-port",
+        ]
+    );
+
+    let catalogue = CapabilityCatalogue::supported_range()?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    assert_eq!(
+        catalogue
+            .evaluate("quadlet.container.expose-host-port", target)
+            .classification(),
+        SupportClassification::Native
+    );
+    Ok(())
+}
+
+#[test]
+fn container_annotation_uses_repeatable_raw_public_values() -> Result<(), Box<dyn std::error::Error>> {
+    let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    generated.push_container(ContainerKey::Image, EntryValue::new("example.invalid/application:1")?)?;
+    for authored in [
+        "org.example.name=first",
+        "org.example.name=first",
+        "",
+        "org.example.name=final",
+        r#""org.example.quoted=Authored Value""#,
+        "org.example.specifier=%i",
+        "key-only",
+        "malformed = value ",
+    ] {
+        generated.push_container(ContainerKey::Annotation, EntryValue::new(authored)?)?;
+    }
+    let generated = generated.build(SourceId::new(23))?;
+    assert_eq!(
+        generated
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::Annotation))
+            .map(|entry| entry.value().primary().text())
+            .collect::<Vec<_>>(),
+        [
+            "org.example.name=first",
+            "org.example.name=first",
+            "",
+            "org.example.name=final",
+            r#""org.example.quoted=Authored Value""#,
+            "org.example.specifier=%i",
+            "key-only",
+            "malformed = value ",
+        ]
+    );
+
+    let catalogue = CapabilityCatalogue::supported_range()?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    assert_eq!(
+        catalogue
+            .evaluate("quadlet.container.annotation", target)
+            .classification(),
+        SupportClassification::Native
+    );
+    Ok(())
+}
+
+#[test]
+fn container_apparmor_uses_a_singleton_raw_public_value() -> Result<(), Box<dyn std::error::Error>> {
+    let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    generated.push_container(ContainerKey::Image, EntryValue::new("example.invalid/application:1")?)?;
+    generated.push_container(ContainerKey::AppArmor, EntryValue::new(r#""profile:with %i""#)?)?;
+    assert!(matches!(
+        generated.push_container(ContainerKey::AppArmor, EntryValue::new("unconfined")?),
+        Err(quadlet_lens::render::RenderError::DuplicateSingleton(key)) if key == "AppArmor"
+    ));
+    let generated = generated.build(SourceId::new(24))?;
+    assert!(generated.document().entries().any(|entry| {
+        entry.kind() == EntryKind::Container(ContainerKey::AppArmor)
+            && entry.value().primary().text() == r#""profile:with %i""#
+    }));
+
+    let catalogue = CapabilityCatalogue::supported_range()?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 8, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    assert_eq!(
+        catalogue
+            .evaluate("quadlet.container.apparmor", target)
+            .classification(),
+        SupportClassification::Native
+    );
+    Ok(())
+}
+
+#[test]
+fn container_no_new_privileges_uses_a_singleton_raw_public_value() -> Result<(), Box<dyn std::error::Error>> {
+    let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    generated.push_container(ContainerKey::Image, EntryValue::new("example.invalid/application:1")?)?;
+    generated.push_container(ContainerKey::NoNewPrivileges, EntryValue::new(r#""yes""#)?)?;
+    assert!(matches!(
+        generated.push_container(ContainerKey::NoNewPrivileges, EntryValue::new("false")?),
+        Err(quadlet_lens::render::RenderError::DuplicateSingleton(key)) if key == "NoNewPrivileges"
+    ));
+    let generated = generated.build(SourceId::new(25))?;
+    assert!(generated.document().entries().any(|entry| {
+        entry.kind() == EntryKind::Container(ContainerKey::NoNewPrivileges)
+            && entry.value().primary().text() == r#""yes""#
+            && entry.value_kind() == ValueKind::Opaque
+    }));
+
+    let catalogue = CapabilityCatalogue::supported_range()?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    assert_eq!(
+        catalogue
+            .evaluate("quadlet.container.no-new-privileges", target)
+            .classification(),
+        SupportClassification::Native
+    );
+    Ok(())
+}
+
+#[test]
+fn container_seccomp_profile_uses_a_singleton_raw_public_value() -> Result<(), Box<dyn std::error::Error>> {
+    let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    generated.push_container(ContainerKey::Image, EntryValue::new("example.invalid/application:1")?)?;
+    generated.push_container(
+        ContainerKey::SeccompProfile,
+        EntryValue::new(r#""%h/profiles/profile.json""#)?,
+    )?;
+    assert!(matches!(
+        generated.push_container(ContainerKey::SeccompProfile, EntryValue::new("unconfined")?),
+        Err(quadlet_lens::render::RenderError::DuplicateSingleton(key)) if key == "SeccompProfile"
+    ));
+    let generated = generated.build(SourceId::new(26))?;
+    assert!(generated.document().entries().any(|entry| {
+        entry.kind() == EntryKind::Container(ContainerKey::SeccompProfile)
+            && entry.value().primary().text() == r#""%h/profiles/profile.json""#
+            && entry.value_kind() == ValueKind::Opaque
+    }));
+
+    let catalogue = CapabilityCatalogue::supported_range()?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    assert_eq!(
+        catalogue
+            .evaluate("quadlet.container.seccomp-profile", target)
+            .classification(),
+        SupportClassification::Native
+    );
+    Ok(())
+}
+
+#[test]
+fn container_security_label_disable_uses_a_singleton_raw_public_value() -> Result<(), Box<dyn std::error::Error>> {
+    let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    generated.push_container(ContainerKey::Image, EntryValue::new("example.invalid/application:1")?)?;
+    generated.push_container(ContainerKey::SecurityLabelDisable, EntryValue::new(r#""yes""#)?)?;
+    assert!(matches!(
+        generated.push_container(ContainerKey::SecurityLabelDisable, EntryValue::new("false")?),
+        Err(quadlet_lens::render::RenderError::DuplicateSingleton(key)) if key == "SecurityLabelDisable"
+    ));
+    let generated = generated.build(SourceId::new(27))?;
+    assert!(generated.document().entries().any(|entry| {
+        entry.kind() == EntryKind::Container(ContainerKey::SecurityLabelDisable)
+            && entry.value().primary().text() == r#""yes""#
+            && entry.value_kind() == ValueKind::Opaque
+    }));
+
+    let catalogue = CapabilityCatalogue::supported_range()?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    assert_eq!(
+        catalogue
+            .evaluate("quadlet.container.security-label-disable", target)
+            .classification(),
+        SupportClassification::Native
+    );
+    Ok(())
+}
+
+#[test]
+fn container_security_label_file_type_uses_a_singleton_raw_public_value() -> Result<(), Box<dyn std::error::Error>> {
+    let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    generated.push_container(ContainerKey::Image, EntryValue::new("example.invalid/application:1")?)?;
+    generated.push_container(ContainerKey::SecurityLabelFileType, EntryValue::new(r#""%i_file_t""#)?)?;
+    assert!(matches!(
+        generated.push_container(ContainerKey::SecurityLabelFileType, EntryValue::new("container_file_t")?),
+        Err(quadlet_lens::render::RenderError::DuplicateSingleton(key)) if key == "SecurityLabelFileType"
+    ));
+    let generated = generated.build(SourceId::new(28))?;
+    assert!(generated.document().entries().any(|entry| {
+        entry.kind() == EntryKind::Container(ContainerKey::SecurityLabelFileType)
+            && entry.value().primary().text() == r#""%i_file_t""#
+            && entry.value_kind() == ValueKind::Opaque
+    }));
+
+    let catalogue = CapabilityCatalogue::supported_range()?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    assert_eq!(
+        catalogue
+            .evaluate("quadlet.container.security-label-file-type", target)
+            .classification(),
+        SupportClassification::Native
+    );
+    Ok(())
+}
+
+#[test]
+fn container_security_label_level_uses_a_singleton_raw_public_value() -> Result<(), Box<dyn std::error::Error>> {
+    let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    generated.push_container(ContainerKey::Image, EntryValue::new("example.invalid/application:1")?)?;
+    generated.push_container(ContainerKey::SecurityLabelLevel, EntryValue::new(r#""%i:c1,c2""#)?)?;
+    assert!(matches!(
+        generated.push_container(ContainerKey::SecurityLabelLevel, EntryValue::new("s0:c1,c2")?),
+        Err(quadlet_lens::render::RenderError::DuplicateSingleton(key)) if key == "SecurityLabelLevel"
+    ));
+    let generated = generated.build(SourceId::new(29))?;
+    assert!(generated.document().entries().any(|entry| {
+        entry.kind() == EntryKind::Container(ContainerKey::SecurityLabelLevel)
+            && entry.value().primary().text() == r#""%i:c1,c2""#
+            && entry.value_kind() == ValueKind::Opaque
+    }));
+
+    let catalogue = CapabilityCatalogue::supported_range()?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    assert_eq!(
+        catalogue
+            .evaluate("quadlet.container.security-label-level", target)
+            .classification(),
+        SupportClassification::Native
+    );
+    Ok(())
+}
+
+#[test]
+fn container_security_label_nested_uses_a_singleton_raw_public_value() -> Result<(), Box<dyn std::error::Error>> {
+    let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    generated.push_container(ContainerKey::Image, EntryValue::new("example.invalid/application:1")?)?;
+    generated.push_container(ContainerKey::SecurityLabelNested, EntryValue::new(r#""%i""#)?)?;
+    assert!(matches!(
+        generated.push_container(ContainerKey::SecurityLabelNested, EntryValue::new("true")?),
+        Err(quadlet_lens::render::RenderError::DuplicateSingleton(key)) if key == "SecurityLabelNested"
+    ));
+    let generated = generated.build(SourceId::new(30))?;
+    assert!(generated.document().entries().any(|entry| {
+        entry.kind() == EntryKind::Container(ContainerKey::SecurityLabelNested)
+            && entry.value().primary().text() == r#""%i""#
+            && entry.value_kind() == ValueKind::Opaque
+    }));
+
+    let catalogue = CapabilityCatalogue::supported_range()?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    assert_eq!(
+        catalogue
+            .evaluate("quadlet.container.security-label-nested", target)
+            .classification(),
+        SupportClassification::Native
+    );
+    Ok(())
+}
+
+#[test]
+fn container_security_label_type_uses_a_singleton_raw_public_value() -> Result<(), Box<dyn std::error::Error>> {
+    let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    generated.push_container(ContainerKey::Image, EntryValue::new("example.invalid/application:1")?)?;
+    generated.push_container(ContainerKey::SecurityLabelType, EntryValue::new(r#""%i_t""#)?)?;
+    assert!(matches!(
+        generated.push_container(ContainerKey::SecurityLabelType, EntryValue::new("container_t")?),
+        Err(quadlet_lens::render::RenderError::DuplicateSingleton(key)) if key == "SecurityLabelType"
+    ));
+    let generated = generated.build(SourceId::new(31))?;
+    assert!(generated.document().entries().any(|entry| {
+        entry.kind() == EntryKind::Container(ContainerKey::SecurityLabelType)
+            && entry.value().primary().text() == r#""%i_t""#
+            && entry.value_kind() == ValueKind::Opaque
+    }));
+
+    let catalogue = CapabilityCatalogue::supported_range()?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    assert_eq!(
+        catalogue
+            .evaluate("quadlet.container.security-label-type", target)
+            .classification(),
+        SupportClassification::Native
+    );
+    Ok(())
+}
+
+#[test]
+fn container_mask_uses_repeatable_raw_public_values() -> Result<(), Box<dyn std::error::Error>> {
+    let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    generated.push_container(ContainerKey::Image, EntryValue::new("example.invalid/application:1")?)?;
+    for authored in ["/pre/one", "", r#""%h/private:%t/shared""#, "/proc/acpi:/sys/firmware"] {
+        generated.push_container(ContainerKey::Mask, EntryValue::new(authored)?)?;
+    }
+    let generated = generated.build(SourceId::new(32))?;
+    assert_eq!(
+        generated
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::Mask))
+            .map(|entry| {
+                assert_eq!(entry.value_kind(), ValueKind::Opaque);
+                entry.value().primary().text()
+            })
+            .collect::<Vec<_>>(),
+        ["/pre/one", "", r#""%h/private:%t/shared""#, "/proc/acpi:/sys/firmware"]
+    );
+
+    let catalogue = CapabilityCatalogue::supported_range()?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    assert_eq!(
+        catalogue.evaluate("quadlet.container.mask", target).classification(),
+        SupportClassification::Native
+    );
+    Ok(())
+}
+
+#[test]
+fn container_unmask_uses_repeatable_raw_public_values() -> Result<(), Box<dyn std::error::Error>> {
+    let authored = [
+        "/pre/one",
+        "/pre/one",
+        "",
+        "ALL",
+        r#""%h/private:/proc/*""#,
+        "/proc/acpi:/sys/firmware",
+    ];
+    let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    generated.push_container(ContainerKey::Image, EntryValue::new("example.invalid/application:1")?)?;
+    for value in authored {
+        generated.push_container(ContainerKey::Unmask, EntryValue::new(value)?)?;
+    }
+    let generated = generated.build(SourceId::new(33))?;
+    assert_eq!(
+        generated
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::Unmask))
+            .map(|entry| {
+                assert_eq!(entry.value_kind(), ValueKind::Opaque);
+                entry.value().primary().text()
+            })
+            .collect::<Vec<_>>(),
+        authored
+    );
+
+    let catalogue = CapabilityCatalogue::supported_range()?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    assert_eq!(
+        catalogue.evaluate("quadlet.container.unmask", target).classification(),
         SupportClassification::Native
     );
     Ok(())

@@ -15,11 +15,9 @@ defines its representation boundary.
 | `.network`   | `[Network]`      | `NetworkName`               |
 | `.volume`    | `[Volume]`       | `VolumeName`                |
 
-Typed container keys are `AddHost`, `ContainerName`, `Image`, `Rootfs`, `Entrypoint`, `RunInit`, `StopSignal`, `StopTimeout`, `Pull`, `PidsLimit`, `HostName`, `ShmSize`, `DropCapability`, `AddCapability`, `Tmpfs`, `Sysctl`, `Ulimit`, `AddDevice`, `Memory`, `Exec`, `Environment`, `EnvironmentFile`, `Label`, `Secret`,
-`User`, `Group`, `UserNS`, `GroupAdd`, `WorkingDir`, `ReadOnly`, `PublishPort`, `Volume`,
-`Network`, `Pod`, `HealthCmd`, `HealthInterval`, `HealthRetries`, `HealthStartPeriod`,
-`HealthTimeout`, `Notify`, and `PodmanArgs`. Typed pod keys are `AddHost`, `PodName`, `PublishPort`,
-`Network`, `Volume`, `UserNS`, and `ShmSize`.
+The typed boundary currently contains 56 container keys, seven pod keys, and one key each for
+network and volume units. The exact key lists live in the
+[specification coverage ledger](roadmap.md#specification-coverage-ledger).
 
 `[Unit]`, `[Service]`, and `[Install]` are recognized as generic systemd sections. Parsed keys are
 not restricted by a closed enum. Programmatic generation additionally offers typed `Requires`,
@@ -172,6 +170,18 @@ singletons produce the ordinary model diagnostic, while programmatic constructio
 second assignment. `Memory::new` is an additive safe path for positive ASCII-decimal amounts with
 no suffix or one lowercase `b`, `k`, `m`, or `g`; it preserves leading zeros and arbitrary
 precision without parsing. Pod `Memory` remains an unknown preserved entry.
+
+Container `DNS`, `DNSOption`, `DNSSearch`, `ExposeHostPort`, `Annotation`, `Mask`,
+and `Unmask` are typed repeatable keys with opaque one-line values. Omission, resets, duplicates,
+order, quoting, specifiers, malformed text, and exact spelling remain source-aware.
+
+Container `AppArmor`, `NoNewPrivileges`, `SeccompProfile`, and the five
+`SecurityLabel*` keys are typed opaque singletons. Duplicate authored lines produce `QLM0004`;
+the builder rejects a second singleton.
+
+QuadletLens does not parse addresses, ports, OCI assignments, booleans, profiles, SELinux values,
+or paths for these keys. Unsupported scopes remain unknown and preserved, and generator evidence
+does not imply host or runtime behavior.
 
 ## Document sets and dependency graph
 

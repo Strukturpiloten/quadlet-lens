@@ -109,6 +109,16 @@ or one lowercase `b`, `k`, `m`, or `g`, retaining leading zeros and arbitrary pr
 parsing. It does not accept zero or make runtime, cgroup, page-size, swap, host-memory, rootless, or
 cross-format claims. `PodKey` intentionally has no `Memory` variant.
 
+`DNS`, `DNSOption`, `DNSSearch`, `ExposeHostPort`, `Annotation`, `Mask`, and
+`Unmask` are repeatable `ContainerKey` variants. The builder preserves each physical-line-safe
+`EntryValue` in insertion order, including duplicates and reset assignments.
+
+`AppArmor`, `NoNewPrivileges`, `SeccompProfile`, and the five `SecurityLabel*` variants are
+singletons. Their values remain opaque and a second assignment is rejected.
+
+The builder performs no address, port, OCI, boolean, profile, SELinux, path, filesystem, host, or
+runtime validation. Unsupported scopes expose no typed construction key.
+
 `ContainerKey::Secret` is repeatable. Its exact value may select mounted-file or environment
 exposure and carry target, UID, GID, and mode options; the builder preserves those options without
 reading the referenced Podman secret.
@@ -127,13 +137,10 @@ document, and complete parse result.
 
 ## Value boundary
 
-`EntryValue` is exact authored text on one physical line. It rejects NUL bytes and line endings,
-but deliberately does not validate, quote, or normalize key-specific grammar. A caller that writes
-`AddHost=`, `Environment=`, `Label=`, `Secret=`, `Entrypoint=`, `RunInit=`, `StopSignal=`,
-`StopTimeout=`, `Pull=`, `PidsLimit=`, `HostName=`, `ShmSize=`, `DropCapability=`,
-`AddCapability=`, `Tmpfs=`, `Sysctl=`, `Ulimit=`, `AddDevice=`, `Memory=`, `Exec=`, an identity/context key, a health-check
-or readiness key, a systemd unit dependency, `PublishPort=`, or `Volume=` must select the appropriate native
-systemd/Podman spelling.
+`EntryValue` is exact authored text on one physical line. It rejects NUL bytes and line endings
+but does not validate, quote, or normalize key-specific grammar. Callers select the appropriate
+native spelling for the typed keys in the
+[specification coverage ledger](roadmap.md#specification-coverage-ledger).
 
 This is an explicit boundary, not a claim that all value forms are interchangeable. Future
 key-specific constructors can add stronger guarantees once exact Podman-version behavior and
@@ -190,6 +197,11 @@ builder.push_container(
     ContainerKey::AddDevice,
     EntryValue::new("/dev/null:/dev/null:r")?,
 )?;
+builder.push_container(
+    ContainerKey::Mask,
+    EntryValue::new("/proc/acpi:/sys/firmware")?,
+)?;
+builder.push_container(ContainerKey::Unmask, EntryValue::new("ALL")?)?;
 builder.push_container(
     ContainerKey::Environment,
     EntryValue::new("APP_ENV=production")?,

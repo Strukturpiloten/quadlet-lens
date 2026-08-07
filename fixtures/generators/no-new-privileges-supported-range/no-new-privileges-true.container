@@ -1,0 +1,3 @@
+[Container]
+Image=registry.example.invalid/no-new-privileges-true:1
+NoNewPrivileges=true

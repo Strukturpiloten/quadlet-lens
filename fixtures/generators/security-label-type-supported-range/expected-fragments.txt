@@ -1,0 +1,2 @@
+---security-label-type.service---
+SourcePath=/fixtures/security-label-type.container

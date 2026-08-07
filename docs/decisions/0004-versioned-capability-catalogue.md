@@ -2,6 +2,7 @@
 
 - Status: accepted
 - Date: 2026-08-02
+- Additive amendment: 2026-08-07
 
 > Amended by [ADR 0006](0006-rolling-support-window-and-generator-evidence.md): Podman 5.4.0 is the
 > fixed support minimum, while finite catalogue and generator evidence can expand toward rolling
@@ -32,6 +33,9 @@ also must not be presented as if an exact generator had executed successfully.
    later versions as untested assumptions.
 7. Known broken ranges take precedence over native support. A fallback is selected only when it
    covers the complete requested range.
+8. Records may declare evidence-backed unsupported ranges. They classify only target ranges they
+   completely cover, cite exact evidence, and must not overlap native coverage; partial crossings
+   remain unknown. This keeps observed generator rejection distinct from missing evidence.
 
 ## Evidence for the first baseline
 

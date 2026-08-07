@@ -1,0 +1,3 @@
+[Container]
+Image=registry.example.invalid/security-label-file-type:1
+SecurityLabelFileType=container_file_t

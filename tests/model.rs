@@ -2,8 +2,8 @@
 
 use quadlet_lens::diagnostic::Severity;
 use quadlet_lens::model::{
-    ContainerKey, EntryKind, NetworkKey, PodKey, QuadletDocument, QuadletUnitType, SectionKind, UnitReferenceKind,
-    ValueKind, VolumeKey,
+    ContainerKey, EntryKind, NetworkKey, PodKey, QuadletDocument, QuadletUnitType, SectionKind, TypedEntry,
+    UnitReferenceKind, ValueKind, VolumeKey,
 };
 use quadlet_lens::path::PathForm;
 use quadlet_lens::source::SourceId;
@@ -53,53 +53,7 @@ fn container_model_retains_order_repetition_unknowns_and_generic_systemd() -> Re
             _ => None,
         })
         .collect();
-    assert_eq!(
-        known,
-        [
-            ContainerKey::ContainerName,
-            ContainerKey::AddHost,
-            ContainerKey::AddHost,
-            ContainerKey::Image,
-            ContainerKey::Entrypoint,
-            ContainerKey::RunInit,
-            ContainerKey::StopSignal,
-            ContainerKey::StopTimeout,
-            ContainerKey::Pull,
-            ContainerKey::PidsLimit,
-            ContainerKey::HostName,
-            ContainerKey::ShmSize,
-            ContainerKey::Memory,
-            ContainerKey::Exec,
-            ContainerKey::Environment,
-            ContainerKey::Environment,
-            ContainerKey::EnvironmentFile,
-            ContainerKey::Label,
-            ContainerKey::Label,
-            ContainerKey::Label,
-            ContainerKey::Label,
-            ContainerKey::Secret,
-            ContainerKey::Secret,
-            ContainerKey::User,
-            ContainerKey::Group,
-            ContainerKey::UserNS,
-            ContainerKey::GroupAdd,
-            ContainerKey::GroupAdd,
-            ContainerKey::WorkingDir,
-            ContainerKey::ReadOnly,
-            ContainerKey::PublishPort,
-            ContainerKey::Volume,
-            ContainerKey::Volume,
-            ContainerKey::Network,
-            ContainerKey::Pod,
-            ContainerKey::HealthCmd,
-            ContainerKey::Notify,
-            ContainerKey::HealthInterval,
-            ContainerKey::HealthRetries,
-            ContainerKey::HealthStartPeriod,
-            ContainerKey::HealthTimeout,
-            ContainerKey::PodmanArgs,
-        ]
-    );
+    assert_eq!(known, expected_fixture_core_container_keys());
     assert_eq!(
         result
             .document()
@@ -114,7 +68,7 @@ fn container_model_retains_order_repetition_unknowns_and_generic_systemd() -> Re
         .document()
         .entries()
         .filter(|entry| entry.key().text() == "After")
-        .map(quadlet_lens::model::TypedEntry::source_line)
+        .map(TypedEntry::source_line)
         .collect();
     assert!(after_lines.len() == 2 && after_lines[0] < after_lines[1]);
     Ok(())
@@ -221,6 +175,8 @@ fn container_model_classifies_native_references_paths_and_continuations() -> Res
     assert_fixture_memory(&result)?;
     assert_fixture_ulimits(&result);
     assert_fixture_add_devices(&result);
+    assert_fixture_networking_values(&result);
+    assert_fixture_security_singletons(&result)?;
     Ok(())
 }
 
@@ -579,6 +535,345 @@ fn add_device_omission_reset_duplicates_order_case_quotes_specifiers_whitespace_
             && entry.key().text() == "AddDevice"
             && entry.value().primary().text() == "/dev/null:/dev/null:r"
     }));
+    Ok(())
+}
+
+#[test]
+fn dns_omission_reset_duplicates_order_case_quoting_specifiers_and_raw_values_remain_distinct() -> Result<(), String> {
+    for (source_id, authored) in [
+        (SourceId::new(126), &[][..]),
+        (SourceId::new(127), &["1.1.1.1"][..]),
+        (
+            SourceId::new(128),
+            &[
+                "1.1.1.1",
+                "1.1.1.1",
+                "",
+                "9.9.9.9",
+                "2001:4860:4860::8888",
+                r#""Authored Resolver""#,
+                "%h",
+                "Vendor_Defined_DNS",
+            ][..],
+        ),
+    ] {
+        let mut source = "[Container]\nImage=example.invalid/app\n".to_owned();
+        for value in authored {
+            source.push_str("DNS=");
+            source.push_str(value);
+            source.push('\n');
+        }
+        let result = QuadletDocument::parse(QuadletUnitType::Container, source_id, source.clone())
+            .map_err(|error| error.to_string())?;
+        assert!(result.is_valid(), "{:#?}", result.model_diagnostics());
+        assert_eq!(result.syntax().document().render_preserved(), source);
+        let observed: Vec<_> = result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::DNS))
+            .map(|entry| {
+                assert_eq!(entry.value_kind(), ValueKind::Opaque);
+                entry.value().primary().text()
+            })
+            .collect();
+        assert_eq!(observed, authored);
+    }
+
+    let wrong_case = QuadletDocument::parse(
+        QuadletUnitType::Container,
+        SourceId::new(129),
+        "[Container]\nImage=example.invalid/app\nDns=1.1.1.1\n",
+    )
+    .map_err(|error| error.to_string())?;
+    assert!(
+        wrong_case
+            .document()
+            .entries()
+            .any(|entry| entry.kind() == EntryKind::Unknown && entry.key().text() == "Dns")
+    );
+
+    for (unit_type, source_id, source) in [
+        (QuadletUnitType::Pod, SourceId::new(130), "[Pod]\nDNS=1.1.1.1\n"),
+        (QuadletUnitType::Network, SourceId::new(131), "[Network]\nDNS=1.1.1.1\n"),
+    ] {
+        let result = QuadletDocument::parse(unit_type, source_id, source).map_err(|error| error.to_string())?;
+        assert!(result.document().entries().any(|entry| {
+            entry.kind() == EntryKind::Unknown
+                && entry.key().text() == "DNS"
+                && entry.value().primary().text() == "1.1.1.1"
+        }));
+    }
+    Ok(())
+}
+
+#[test]
+fn dns_option_omission_reset_duplicates_order_quoting_specifiers_whitespace_and_raw_values_remain_distinct()
+-> Result<(), String> {
+    for (source_id, authored) in [
+        (SourceId::new(132), &[][..]),
+        (SourceId::new(133), &["rotate"][..]),
+        (
+            SourceId::new(134),
+            &[
+                "rotate",
+                "rotate",
+                "",
+                "ndots:1",
+                "use-vc",
+                r#""Authored Option""#,
+                "%h",
+                "Vendor Defined Option",
+            ][..],
+        ),
+    ] {
+        let mut source = "[Container]\nImage=example.invalid/app\n".to_owned();
+        for value in authored {
+            source.push_str("DNSOption=");
+            source.push_str(value);
+            source.push('\n');
+        }
+        let result = QuadletDocument::parse(QuadletUnitType::Container, source_id, source.clone())
+            .map_err(|error| error.to_string())?;
+        assert!(result.is_valid(), "{:#?}", result.model_diagnostics());
+        assert_eq!(result.syntax().document().render_preserved(), source);
+        let observed: Vec<_> = result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::DNSOption))
+            .map(|entry| {
+                assert_eq!(entry.value_kind(), ValueKind::Opaque);
+                entry.value().primary().text()
+            })
+            .collect();
+        assert_eq!(observed, authored);
+    }
+
+    let wrong_case = QuadletDocument::parse(
+        QuadletUnitType::Container,
+        SourceId::new(135),
+        "[Container]\nImage=example.invalid/app\nDnsOption=rotate\n",
+    )
+    .map_err(|error| error.to_string())?;
+    assert!(
+        wrong_case
+            .document()
+            .entries()
+            .any(|entry| { entry.kind() == EntryKind::Unknown && entry.key().text() == "DnsOption" })
+    );
+
+    for (unit_type, source_id, source) in [
+        (QuadletUnitType::Pod, SourceId::new(136), "[Pod]\nDNSOption=rotate\n"),
+        (
+            QuadletUnitType::Network,
+            SourceId::new(137),
+            "[Network]\nDNSOption=rotate\n",
+        ),
+    ] {
+        let result = QuadletDocument::parse(unit_type, source_id, source).map_err(|error| error.to_string())?;
+        assert!(result.document().entries().any(|entry| {
+            entry.kind() == EntryKind::Unknown
+                && entry.key().text() == "DNSOption"
+                && entry.value().primary().text() == "rotate"
+        }));
+    }
+    assert_eq!(QuadletUnitType::from_extension("build"), None);
+    Ok(())
+}
+
+#[test]
+fn dns_search_omission_reset_duplicates_order_quoting_specifiers_and_raw_values_remain_distinct() -> Result<(), String>
+{
+    for (source_id, authored) in [
+        (SourceId::new(138), &[][..]),
+        (SourceId::new(139), &["example.com"][..]),
+        (
+            SourceId::new(140),
+            &[
+                "pre.example.com",
+                "pre.example.com",
+                "",
+                "dc1.example.com",
+                ".",
+                r#""Authored Search""#,
+                "%h",
+                "Vendor Defined Search",
+            ][..],
+        ),
+    ] {
+        let mut source = "[Container]\nImage=example.invalid/app\n".to_owned();
+        for value in authored {
+            source.push_str("DNSSearch=");
+            source.push_str(value);
+            source.push('\n');
+        }
+        let result = QuadletDocument::parse(QuadletUnitType::Container, source_id, source.clone())
+            .map_err(|error| error.to_string())?;
+        assert!(result.is_valid(), "{:#?}", result.model_diagnostics());
+        assert_eq!(result.syntax().document().render_preserved(), source);
+        let observed: Vec<_> = result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::DNSSearch))
+            .map(|entry| {
+                assert_eq!(entry.value_kind(), ValueKind::Opaque);
+                entry.value().primary().text()
+            })
+            .collect();
+        assert_eq!(observed, authored);
+    }
+
+    let wrong_case = QuadletDocument::parse(
+        QuadletUnitType::Container,
+        SourceId::new(141),
+        "[Container]\nImage=example.invalid/app\nDnsSearch=example.com\n",
+    )
+    .map_err(|error| error.to_string())?;
+    assert!(
+        wrong_case
+            .document()
+            .entries()
+            .any(|entry| { entry.kind() == EntryKind::Unknown && entry.key().text() == "DnsSearch" })
+    );
+
+    let pod = QuadletDocument::parse(
+        QuadletUnitType::Pod,
+        SourceId::new(142),
+        "[Pod]\nDNSSearch=example.com\n",
+    )
+    .map_err(|error| error.to_string())?;
+    assert!(pod.document().entries().any(|entry| {
+        entry.kind() == EntryKind::Unknown
+            && entry.key().text() == "DNSSearch"
+            && entry.value().primary().text() == "example.com"
+    }));
+    assert_eq!(QuadletUnitType::from_extension("build"), None);
+    Ok(())
+}
+
+#[test]
+fn expose_host_port_omission_reset_duplicates_order_quotes_specifiers_invalid_and_sctp_remain_distinct()
+-> Result<(), String> {
+    for (source_id, authored) in [
+        (SourceId::new(143), &[][..]),
+        (SourceId::new(144), &["8080"][..]),
+        (
+            SourceId::new(145),
+            &[
+                "1000",
+                "1000",
+                "",
+                "3000",
+                "8080-8085",
+                "9090/tcp",
+                "5353/udp",
+                "5353/sctp",
+                r#""Authored Port""#,
+                "%i",
+                "not-a-port",
+            ][..],
+        ),
+    ] {
+        let mut source = "[Container]\nImage=example.invalid/app\n".to_owned();
+        for value in authored {
+            source.push_str("ExposeHostPort=");
+            source.push_str(value);
+            source.push('\n');
+        }
+        let result = QuadletDocument::parse(QuadletUnitType::Container, source_id, source.clone())
+            .map_err(|error| error.to_string())?;
+        assert!(result.is_valid(), "{:#?}", result.model_diagnostics());
+        assert_eq!(result.syntax().document().render_preserved(), source);
+        let observed: Vec<_> = result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::ExposeHostPort))
+            .map(|entry| {
+                assert_eq!(entry.value_kind(), ValueKind::Opaque);
+                entry.value().primary().text()
+            })
+            .collect();
+        assert_eq!(observed, authored);
+    }
+
+    let wrong_case = QuadletDocument::parse(
+        QuadletUnitType::Container,
+        SourceId::new(146),
+        "[Container]\nImage=example.invalid/app\nExposehostport=8080\n",
+    )
+    .map_err(|error| error.to_string())?;
+    assert!(
+        wrong_case
+            .document()
+            .entries()
+            .any(|entry| { entry.kind() == EntryKind::Unknown && entry.key().text() == "Exposehostport" })
+    );
+
+    let pod = QuadletDocument::parse(QuadletUnitType::Pod, SourceId::new(147), "[Pod]\nExposeHostPort=8080\n")
+        .map_err(|error| error.to_string())?;
+    assert!(pod.document().entries().any(|entry| {
+        entry.kind() == EntryKind::Unknown
+            && entry.key().text() == "ExposeHostPort"
+            && entry.value().primary().text() == "8080"
+    }));
+    Ok(())
+}
+
+#[test]
+fn annotation_is_container_only_repeatable_opaque_and_preserves_every_physical_value() -> Result<(), String> {
+    for (source_id, authored) in [
+        (SourceId::new(148), &[][..]),
+        (SourceId::new(149), &["org.example.name=one"][..]),
+        (
+            SourceId::new(150),
+            &[
+                "org.example.name=first",
+                "org.example.name=first",
+                "",
+                "org.example.name=final",
+                r#""org.example.quoted=Authored Value""#,
+                "org.example.specifier=%i",
+                "key-only",
+                "malformed = value ",
+            ][..],
+        ),
+    ] {
+        let mut source = "[Container]\nImage=example.invalid/app\n".to_owned();
+        for value in authored {
+            source.push_str("Annotation=");
+            source.push_str(value);
+            source.push('\n');
+        }
+        let result = QuadletDocument::parse(QuadletUnitType::Container, source_id, source.clone())
+            .map_err(|error| error.to_string())?;
+        assert!(result.is_valid(), "{:#?}", result.model_diagnostics());
+        assert_eq!(result.syntax().document().render_preserved(), source);
+        let observed: Vec<_> = result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::Annotation))
+            .map(|entry| {
+                assert_eq!(entry.value_kind(), ValueKind::Opaque);
+                entry.value().primary().text()
+            })
+            .collect();
+        assert_eq!(observed, authored);
+    }
+
+    let other_sections = QuadletDocument::parse(
+        QuadletUnitType::Container,
+        SourceId::new(151),
+        "[Container]\nImage=example.invalid/app\n[Build]\nAnnotation=org.example.build=value\n[Service]\nAnnotation=org.example.service=value\n",
+    )
+    .map_err(|error| error.to_string())?;
+    assert_eq!(
+        other_sections
+            .document()
+            .entries()
+            .filter(|entry| entry.key().text() == "Annotation")
+            .map(TypedEntry::kind)
+            .collect::<Vec<_>>(),
+        [EntryKind::Unknown, EntryKind::GenericSystemd]
+    );
     Ok(())
 }
 
@@ -1104,6 +1399,12 @@ fn network_and_volume_models_retain_known_and_future_fields() -> Result<(), Stri
             ("Ulimit", "core=0:0"),
             ("AddDevice", "/dev/null:/dev/null:r"),
             ("Memory", "16m"),
+            ("DNS", "1.1.1.1"),
+            ("DNSOption", "rotate"),
+            ("DNSSearch", "example.com"),
+            ("ExposeHostPort", "8080"),
+            ("AppArmor", "unconfined"),
+            ("SeccompProfile", "unconfined"),
             ("FuturePodKey", "future-value")
         ]
     );
@@ -1113,7 +1414,7 @@ fn network_and_volume_models_retain_known_and_future_fields() -> Result<(), Stri
             .entries()
             .filter(|entry| entry.kind() == EntryKind::Unknown)
             .count(),
-        1
+        2
     );
     assert_eq!(
         volume
@@ -1167,6 +1468,744 @@ fn model_diagnostics_are_source_aware_and_recoverable() -> Result<(), String> {
             .collect::<Vec<_>>(),
         ["QLM0001"]
     );
+    Ok(())
+}
+
+#[test]
+fn apparmor_is_a_container_only_opaque_singleton_with_recoverable_duplicates() -> Result<(), String> {
+    let source = concat!(
+        "[Container]\n",
+        "Image=example.invalid/app\n",
+        "AppArmor=unconfined\n",
+        "AppArmor=\n",
+        "AppArmor=\"Authored Profile\"\n",
+        "AppArmor= profile:with %i \n",
+        "AppArmor=malformed:value:extra\n",
+        "apparmor=case-sensitive-unknown\n",
+        "[Build]\n",
+        "AppArmor=build-unknown\n",
+    );
+    let result = QuadletDocument::parse(QuadletUnitType::Container, SourceId::new(140), source)
+        .map_err(|error| error.to_string())?;
+    assert!(result.is_valid());
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::AppArmor))
+            .map(|entry| {
+                assert_eq!(entry.value_kind(), ValueKind::Opaque);
+                entry.value().primary().text()
+            })
+            .collect::<Vec<_>>(),
+        [
+            "unconfined",
+            "",
+            r#""Authored Profile""#,
+            "profile:with %i ",
+            "malformed:value:extra",
+        ]
+    );
+    assert_eq!(
+        result
+            .model_diagnostics()
+            .iter()
+            .map(|diagnostic| diagnostic.code().as_str())
+            .collect::<Vec<_>>(),
+        ["QLM0004", "QLM0004", "QLM0004", "QLM0004"]
+    );
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Unknown)
+            .map(|entry| (entry.key().text(), entry.value().primary().text()))
+            .collect::<Vec<_>>(),
+        [("apparmor", "case-sensitive-unknown"), ("AppArmor", "build-unknown")]
+    );
+    Ok(())
+}
+
+#[test]
+fn no_new_privileges_is_a_container_only_opaque_singleton_with_recoverable_duplicates() -> Result<(), String> {
+    let source = concat!(
+        "[Container]\n",
+        "Image=example.invalid/app\n",
+        "NoNewPrivileges=true\n",
+        "NoNewPrivileges=yes\n",
+        "NoNewPrivileges=false\n",
+        "NoNewPrivileges=\n",
+        "NoNewPrivileges=\"true\"\n",
+        "NoNewPrivileges= %i \n",
+        "NoNewPrivileges=not-a-boolean\n",
+        "nonewprivileges=case-sensitive-unknown\n",
+        "[Build]\n",
+        "NoNewPrivileges=build-unknown\n",
+    );
+    let result = QuadletDocument::parse(QuadletUnitType::Container, SourceId::new(149), source)
+        .map_err(|error| error.to_string())?;
+    assert!(result.is_valid());
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::NoNewPrivileges))
+            .map(|entry| {
+                assert_eq!(entry.value_kind(), ValueKind::Opaque);
+                entry.value().primary().text()
+            })
+            .collect::<Vec<_>>(),
+        ["true", "yes", "false", "", r#""true""#, "%i ", "not-a-boolean"]
+    );
+    assert_eq!(
+        result
+            .model_diagnostics()
+            .iter()
+            .map(|diagnostic| diagnostic.code().as_str())
+            .collect::<Vec<_>>(),
+        ["QLM0004", "QLM0004", "QLM0004", "QLM0004", "QLM0004", "QLM0004"]
+    );
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Unknown)
+            .map(|entry| (entry.key().text(), entry.value().primary().text()))
+            .collect::<Vec<_>>(),
+        [
+            ("nonewprivileges", "case-sensitive-unknown"),
+            ("NoNewPrivileges", "build-unknown")
+        ]
+    );
+
+    let pod = QuadletDocument::parse(
+        QuadletUnitType::Pod,
+        SourceId::new(150),
+        "[Pod]\nNoNewPrivileges=true\n",
+    )
+    .map_err(|error| error.to_string())?;
+    assert!(pod.document().entries().any(|entry| {
+        entry.kind() == EntryKind::Unknown
+            && entry.key().text() == "NoNewPrivileges"
+            && entry.value().primary().text() == "true"
+    }));
+    Ok(())
+}
+
+#[test]
+fn seccomp_profile_is_a_container_only_opaque_singleton_with_recoverable_duplicates() -> Result<(), String> {
+    let source = concat!(
+        "[Container]\n",
+        "Image=example.invalid/app\n",
+        "SeccompProfile=unconfined\n",
+        "SeccompProfile=/tmp/profile.json\n",
+        "SeccompProfile=\n",
+        "SeccompProfile=\"\"\n",
+        "SeccompProfile= \"/tmp/Authored Profile.json\" \n",
+        "SeccompProfile=%h/profiles/%i.json\n",
+        "SeccompProfile=malformed:value\n",
+        "seccompprofile=case-sensitive-unknown\n",
+        "[Build]\n",
+        "SeccompProfile=build-unknown\n",
+        "[Service]\n",
+        "SeccompProfile=service-unknown\n",
+    );
+    let result = QuadletDocument::parse(QuadletUnitType::Container, SourceId::new(151), source)
+        .map_err(|error| error.to_string())?;
+    assert!(result.is_valid());
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::SeccompProfile))
+            .map(|entry| {
+                assert_eq!(entry.value_kind(), ValueKind::Opaque);
+                entry.value().primary().text()
+            })
+            .collect::<Vec<_>>(),
+        [
+            "unconfined",
+            "/tmp/profile.json",
+            "",
+            "\"\"",
+            r#""/tmp/Authored Profile.json" "#,
+            "%h/profiles/%i.json",
+            "malformed:value",
+        ]
+    );
+    assert_eq!(
+        result
+            .model_diagnostics()
+            .iter()
+            .map(|diagnostic| diagnostic.code().as_str())
+            .collect::<Vec<_>>(),
+        ["QLM0004", "QLM0004", "QLM0004", "QLM0004", "QLM0004", "QLM0004"]
+    );
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Unknown)
+            .map(|entry| (entry.key().text(), entry.value().primary().text()))
+            .collect::<Vec<_>>(),
+        [
+            ("seccompprofile", "case-sensitive-unknown"),
+            ("SeccompProfile", "build-unknown"),
+        ]
+    );
+    assert!(result.document().entries().any(|entry| {
+        entry.kind() == EntryKind::GenericSystemd
+            && entry.key().text() == "SeccompProfile"
+            && entry.value().primary().text() == "service-unknown"
+    }));
+
+    let pod = QuadletDocument::parse(
+        QuadletUnitType::Pod,
+        SourceId::new(152),
+        "[Pod]\nSeccompProfile=unconfined\n",
+    )
+    .map_err(|error| error.to_string())?;
+    assert!(pod.document().entries().any(|entry| {
+        entry.kind() == EntryKind::Unknown
+            && entry.key().text() == "SeccompProfile"
+            && entry.value().primary().text() == "unconfined"
+    }));
+    Ok(())
+}
+
+#[test]
+fn security_label_disable_is_a_container_only_opaque_singleton_with_recoverable_duplicates() -> Result<(), String> {
+    let source = concat!(
+        "[Container]\n",
+        "Image=example.invalid/app\n",
+        "SecurityLabelDisable=true\n",
+        "SecurityLabelDisable=false\n",
+        "SecurityLabelDisable=\n",
+        "SecurityLabelDisable=\"true\"\n",
+        "SecurityLabelDisable= \" false \" \n",
+        "SecurityLabelDisable=%i\n",
+        "SecurityLabelDisable=not-a-boolean\n",
+        "securitylabeldisable=case-sensitive-unknown\n",
+        "[Build]\n",
+        "SecurityLabelDisable=build-unknown\n",
+        "[Service]\n",
+        "SecurityLabelDisable=service-unknown\n",
+    );
+    let result = QuadletDocument::parse(QuadletUnitType::Container, SourceId::new(153), source)
+        .map_err(|error| error.to_string())?;
+    assert!(result.is_valid());
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::SecurityLabelDisable))
+            .map(|entry| {
+                assert_eq!(entry.value_kind(), ValueKind::Opaque);
+                entry.value().primary().text()
+            })
+            .collect::<Vec<_>>(),
+        ["true", "false", "", r#""true""#, r#"" false " "#, "%i", "not-a-boolean"]
+    );
+    assert_eq!(
+        result
+            .model_diagnostics()
+            .iter()
+            .map(|diagnostic| diagnostic.code().as_str())
+            .collect::<Vec<_>>(),
+        ["QLM0004", "QLM0004", "QLM0004", "QLM0004", "QLM0004", "QLM0004"]
+    );
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Unknown)
+            .map(|entry| (entry.key().text(), entry.value().primary().text()))
+            .collect::<Vec<_>>(),
+        [
+            ("securitylabeldisable", "case-sensitive-unknown"),
+            ("SecurityLabelDisable", "build-unknown"),
+        ]
+    );
+    assert!(result.document().entries().any(|entry| {
+        entry.kind() == EntryKind::GenericSystemd
+            && entry.key().text() == "SecurityLabelDisable"
+            && entry.value().primary().text() == "service-unknown"
+    }));
+
+    let pod = QuadletDocument::parse(
+        QuadletUnitType::Pod,
+        SourceId::new(154),
+        "[Pod]\nSecurityLabelDisable=true\n",
+    )
+    .map_err(|error| error.to_string())?;
+    assert!(pod.document().entries().any(|entry| {
+        entry.kind() == EntryKind::Unknown
+            && entry.key().text() == "SecurityLabelDisable"
+            && entry.value().primary().text() == "true"
+    }));
+    Ok(())
+}
+
+#[test]
+fn security_label_file_type_is_a_container_only_opaque_singleton_with_recoverable_duplicates() -> Result<(), String> {
+    let source = concat!(
+        "[Container]\n",
+        "Image=example.invalid/app\n",
+        "SecurityLabelFileType=container_file_t\n",
+        "SecurityLabelFileType=custom_file_t\n",
+        "SecurityLabelFileType=\n",
+        "SecurityLabelFileType=\"container_file_t\"\n",
+        "SecurityLabelFileType= custom file type \n",
+        "SecurityLabelFileType=%i_file_t\n",
+        "SecurityLabelFileType=malformed:type\n",
+        "securitylabelfiletype=case-sensitive-unknown\n",
+        "[Build]\n",
+        "SecurityLabelFileType=build-unknown\n",
+        "[Service]\n",
+        "SecurityLabelFileType=service-unknown\n",
+    );
+    let result = QuadletDocument::parse(QuadletUnitType::Container, SourceId::new(155), source)
+        .map_err(|error| error.to_string())?;
+    assert!(result.is_valid());
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::SecurityLabelFileType))
+            .map(|entry| {
+                assert_eq!(entry.value_kind(), ValueKind::Opaque);
+                entry.value().primary().text()
+            })
+            .collect::<Vec<_>>(),
+        [
+            "container_file_t",
+            "custom_file_t",
+            "",
+            r#""container_file_t""#,
+            "custom file type ",
+            "%i_file_t",
+            "malformed:type",
+        ]
+    );
+    assert_eq!(
+        result
+            .model_diagnostics()
+            .iter()
+            .map(|diagnostic| diagnostic.code().as_str())
+            .collect::<Vec<_>>(),
+        ["QLM0004", "QLM0004", "QLM0004", "QLM0004", "QLM0004", "QLM0004"]
+    );
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Unknown)
+            .map(|entry| (entry.key().text(), entry.value().primary().text()))
+            .collect::<Vec<_>>(),
+        [
+            ("securitylabelfiletype", "case-sensitive-unknown"),
+            ("SecurityLabelFileType", "build-unknown"),
+        ]
+    );
+    assert!(result.document().entries().any(|entry| {
+        entry.kind() == EntryKind::GenericSystemd
+            && entry.key().text() == "SecurityLabelFileType"
+            && entry.value().primary().text() == "service-unknown"
+    }));
+
+    let pod = QuadletDocument::parse(
+        QuadletUnitType::Pod,
+        SourceId::new(156),
+        "[Pod]\nSecurityLabelFileType=container_file_t\n",
+    )
+    .map_err(|error| error.to_string())?;
+    assert!(pod.document().entries().any(|entry| {
+        entry.kind() == EntryKind::Unknown
+            && entry.key().text() == "SecurityLabelFileType"
+            && entry.value().primary().text() == "container_file_t"
+    }));
+    Ok(())
+}
+
+#[test]
+fn security_label_level_is_a_container_only_opaque_singleton_with_recoverable_duplicates() -> Result<(), String> {
+    let source = concat!(
+        "[Container]\n",
+        "Image=example.invalid/app\n",
+        "SecurityLabelLevel=s0:c1,c2\n",
+        "SecurityLabelLevel=s0:c3,c4\n",
+        "SecurityLabelLevel=\n",
+        "SecurityLabelLevel=\"s0:c5,c6\"\n",
+        "SecurityLabelLevel= s0 : c7,c8 \n",
+        "SecurityLabelLevel=%i:c9,c10\n",
+        "SecurityLabelLevel=malformed level\n",
+        "securitylabellevel=case-sensitive-unknown\n",
+        "[Build]\n",
+        "SecurityLabelLevel=build-unknown\n",
+        "[Service]\n",
+        "SecurityLabelLevel=service-unknown\n",
+    );
+    let result = QuadletDocument::parse(QuadletUnitType::Container, SourceId::new(157), source)
+        .map_err(|error| error.to_string())?;
+    assert!(result.is_valid());
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::SecurityLabelLevel))
+            .map(|entry| {
+                assert_eq!(entry.value_kind(), ValueKind::Opaque);
+                entry.value().primary().text()
+            })
+            .collect::<Vec<_>>(),
+        [
+            "s0:c1,c2",
+            "s0:c3,c4",
+            "",
+            r#""s0:c5,c6""#,
+            "s0 : c7,c8 ",
+            "%i:c9,c10",
+            "malformed level",
+        ]
+    );
+    assert_eq!(
+        result
+            .model_diagnostics()
+            .iter()
+            .map(|diagnostic| diagnostic.code().as_str())
+            .collect::<Vec<_>>(),
+        ["QLM0004", "QLM0004", "QLM0004", "QLM0004", "QLM0004", "QLM0004"]
+    );
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Unknown)
+            .map(|entry| (entry.key().text(), entry.value().primary().text()))
+            .collect::<Vec<_>>(),
+        [
+            ("securitylabellevel", "case-sensitive-unknown"),
+            ("SecurityLabelLevel", "build-unknown"),
+        ]
+    );
+    assert!(result.document().entries().any(|entry| {
+        entry.kind() == EntryKind::GenericSystemd
+            && entry.key().text() == "SecurityLabelLevel"
+            && entry.value().primary().text() == "service-unknown"
+    }));
+
+    let pod = QuadletDocument::parse(
+        QuadletUnitType::Pod,
+        SourceId::new(158),
+        "[Pod]\nSecurityLabelLevel=s0:c1,c2\n",
+    )
+    .map_err(|error| error.to_string())?;
+    assert!(pod.document().entries().any(|entry| {
+        entry.kind() == EntryKind::Unknown
+            && entry.key().text() == "SecurityLabelLevel"
+            && entry.value().primary().text() == "s0:c1,c2"
+    }));
+    Ok(())
+}
+
+#[test]
+fn security_label_nested_is_a_container_only_opaque_singleton_with_recoverable_duplicates() -> Result<(), String> {
+    let source = concat!(
+        "[Container]\n",
+        "Image=example.invalid/app\n",
+        "SecurityLabelNested=true\n",
+        "SecurityLabelNested=false\n",
+        "SecurityLabelNested=\n",
+        "SecurityLabelNested=\"true\"\n",
+        "SecurityLabelNested= false \n",
+        "SecurityLabelNested=%i\n",
+        "SecurityLabelNested=not-a-boolean\n",
+        "securitylabelnested=case-sensitive-unknown\n",
+        "[Build]\n",
+        "SecurityLabelNested=build-unknown\n",
+        "[Service]\n",
+        "SecurityLabelNested=service-unknown\n",
+    );
+    let result = QuadletDocument::parse(QuadletUnitType::Container, SourceId::new(159), source)
+        .map_err(|error| error.to_string())?;
+    assert!(result.is_valid());
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::SecurityLabelNested))
+            .map(|entry| {
+                assert_eq!(entry.value_kind(), ValueKind::Opaque);
+                entry.value().primary().text()
+            })
+            .collect::<Vec<_>>(),
+        ["true", "false", "", r#""true""#, "false ", "%i", "not-a-boolean"]
+    );
+    assert_eq!(
+        result
+            .model_diagnostics()
+            .iter()
+            .map(|diagnostic| diagnostic.code().as_str())
+            .collect::<Vec<_>>(),
+        ["QLM0004", "QLM0004", "QLM0004", "QLM0004", "QLM0004", "QLM0004"]
+    );
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Unknown)
+            .map(|entry| (entry.key().text(), entry.value().primary().text()))
+            .collect::<Vec<_>>(),
+        [
+            ("securitylabelnested", "case-sensitive-unknown"),
+            ("SecurityLabelNested", "build-unknown"),
+        ]
+    );
+    assert!(result.document().entries().any(|entry| {
+        entry.kind() == EntryKind::GenericSystemd
+            && entry.key().text() == "SecurityLabelNested"
+            && entry.value().primary().text() == "service-unknown"
+    }));
+
+    let pod = QuadletDocument::parse(
+        QuadletUnitType::Pod,
+        SourceId::new(160),
+        "[Pod]\nSecurityLabelNested=true\n",
+    )
+    .map_err(|error| error.to_string())?;
+    assert!(pod.document().entries().any(|entry| {
+        entry.kind() == EntryKind::Unknown
+            && entry.key().text() == "SecurityLabelNested"
+            && entry.value().primary().text() == "true"
+    }));
+    Ok(())
+}
+
+#[test]
+fn security_label_type_is_a_container_only_opaque_singleton_with_recoverable_duplicates() -> Result<(), String> {
+    let source = concat!(
+        "[Container]\n",
+        "Image=example.invalid/app\n",
+        "SecurityLabelType=container_t\n",
+        "SecurityLabelType=custom_t\n",
+        "SecurityLabelType=\n",
+        "SecurityLabelType=\"container_t\"\n",
+        "SecurityLabelType= custom type \n",
+        "SecurityLabelType=%i_t\n",
+        "SecurityLabelType=malformed:type\n",
+        "securitylabeltype=case-sensitive-unknown\n",
+        "[Build]\n",
+        "SecurityLabelType=build-unknown\n",
+        "[Service]\n",
+        "SecurityLabelType=service-unknown\n",
+    );
+    let result = QuadletDocument::parse(QuadletUnitType::Container, SourceId::new(161), source)
+        .map_err(|error| error.to_string())?;
+    assert!(result.is_valid());
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::SecurityLabelType))
+            .map(|entry| {
+                assert_eq!(entry.value_kind(), ValueKind::Opaque);
+                entry.value().primary().text()
+            })
+            .collect::<Vec<_>>(),
+        [
+            "container_t",
+            "custom_t",
+            "",
+            r#""container_t""#,
+            "custom type ",
+            "%i_t",
+            "malformed:type",
+        ]
+    );
+    assert_eq!(
+        result
+            .model_diagnostics()
+            .iter()
+            .map(|diagnostic| diagnostic.code().as_str())
+            .collect::<Vec<_>>(),
+        ["QLM0004", "QLM0004", "QLM0004", "QLM0004", "QLM0004", "QLM0004"]
+    );
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Unknown)
+            .map(|entry| (entry.key().text(), entry.value().primary().text()))
+            .collect::<Vec<_>>(),
+        [
+            ("securitylabeltype", "case-sensitive-unknown"),
+            ("SecurityLabelType", "build-unknown"),
+        ]
+    );
+    assert!(result.document().entries().any(|entry| {
+        entry.kind() == EntryKind::GenericSystemd
+            && entry.key().text() == "SecurityLabelType"
+            && entry.value().primary().text() == "service-unknown"
+    }));
+
+    let pod = QuadletDocument::parse(
+        QuadletUnitType::Pod,
+        SourceId::new(162),
+        "[Pod]\nSecurityLabelType=container_t\n",
+    )
+    .map_err(|error| error.to_string())?;
+    assert!(pod.document().entries().any(|entry| {
+        entry.kind() == EntryKind::Unknown
+            && entry.key().text() == "SecurityLabelType"
+            && entry.value().primary().text() == "container_t"
+    }));
+    Ok(())
+}
+
+#[test]
+fn mask_is_container_only_repeatable_and_preserves_every_opaque_physical_value() -> Result<(), String> {
+    let authored = [
+        "/pre/one:/pre/two",
+        "/pre/one:/pre/two",
+        "",
+        r#""/quoted/path:/quoted/other""#,
+        "%h/private:%t/shared",
+        "relative path:other path",
+        "/malformed::path:",
+        "/proc/acpi:/sys/firmware",
+    ];
+    let mut source = "[Container]\nImage=example.invalid/app\n".to_owned();
+    for value in authored {
+        source.push_str("Mask=");
+        source.push_str(value);
+        source.push('\n');
+    }
+    source.push_str(concat!(
+        "mask=case-sensitive-unknown\n",
+        "[Build]\n",
+        "Mask=build-unknown\n",
+        "[Service]\n",
+        "Mask=service-unknown\n",
+    ));
+
+    let result = QuadletDocument::parse(QuadletUnitType::Container, SourceId::new(163), source.clone())
+        .map_err(|error| error.to_string())?;
+    assert!(result.is_valid(), "{:#?}", result.model_diagnostics());
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::Mask))
+            .map(|entry| {
+                assert_eq!(entry.value_kind(), ValueKind::Opaque);
+                entry.value().primary().text()
+            })
+            .collect::<Vec<_>>(),
+        authored
+    );
+    assert!(result.model_diagnostics().is_empty());
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Unknown)
+            .map(|entry| (entry.key().text(), entry.value().primary().text()))
+            .collect::<Vec<_>>(),
+        [("mask", "case-sensitive-unknown"), ("Mask", "build-unknown")]
+    );
+    assert!(result.document().entries().any(|entry| {
+        entry.kind() == EntryKind::GenericSystemd
+            && entry.key().text() == "Mask"
+            && entry.value().primary().text() == "service-unknown"
+    }));
+
+    let pod = QuadletDocument::parse(
+        QuadletUnitType::Pod,
+        SourceId::new(164),
+        "[Pod]\nMask=/proc/acpi:/sys/firmware\n",
+    )
+    .map_err(|error| error.to_string())?;
+    assert!(pod.document().entries().any(|entry| {
+        entry.kind() == EntryKind::Unknown
+            && entry.key().text() == "Mask"
+            && entry.value().primary().text() == "/proc/acpi:/sys/firmware"
+    }));
+    Ok(())
+}
+
+#[test]
+fn unmask_is_container_only_repeatable_and_preserves_every_opaque_physical_value() -> Result<(), String> {
+    let authored = [
+        "/pre/one:/pre/two",
+        "/pre/one:/pre/two",
+        "",
+        "ALL",
+        "/proc/acpi:/sys/firmware",
+        r#""/quoted/%h/*:/sys/*""#,
+        "%h/private:/proc/*",
+        "/proc/acpi : /sys/firmware ",
+        "malformed::path:",
+    ];
+    let mut source = "[Container]\nImage=example.invalid/app\n".to_owned();
+    for value in authored {
+        source.push_str("Unmask=");
+        source.push_str(value);
+        source.push('\n');
+    }
+    source.push_str(concat!(
+        "unmask=case-sensitive-unknown\n",
+        "[Build]\n",
+        "Unmask=build-unknown\n",
+        "[Service]\n",
+        "Unmask=service-unknown\n",
+    ));
+
+    let result = QuadletDocument::parse(QuadletUnitType::Container, SourceId::new(165), source.clone())
+        .map_err(|error| error.to_string())?;
+    assert!(result.is_valid(), "{:#?}", result.model_diagnostics());
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::Unmask))
+            .map(|entry| {
+                assert_eq!(entry.value_kind(), ValueKind::Opaque);
+                entry.value().primary().text()
+            })
+            .collect::<Vec<_>>(),
+        authored
+    );
+    assert!(result.model_diagnostics().is_empty());
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Unknown)
+            .map(|entry| (entry.key().text(), entry.value().primary().text()))
+            .collect::<Vec<_>>(),
+        [("unmask", "case-sensitive-unknown"), ("Unmask", "build-unknown")]
+    );
+    assert!(result.document().entries().any(|entry| {
+        entry.kind() == EntryKind::GenericSystemd
+            && entry.key().text() == "Unmask"
+            && entry.value().primary().text() == "service-unknown"
+    }));
+
+    let pod = QuadletDocument::parse(QuadletUnitType::Pod, SourceId::new(166), "[Pod]\nUnmask=ALL\n")
+        .map_err(|error| error.to_string())?;
+    assert!(pod.document().entries().any(|entry| {
+        entry.kind() == EntryKind::Unknown && entry.key().text() == "Unmask" && entry.value().primary().text() == "ALL"
+    }));
     Ok(())
 }
 
@@ -1266,6 +2305,61 @@ fn assert_value_kind(
     Ok(())
 }
 
+fn expected_fixture_core_container_keys() -> &'static [ContainerKey] {
+    &[
+        ContainerKey::ContainerName,
+        ContainerKey::AddHost,
+        ContainerKey::AddHost,
+        ContainerKey::Image,
+        ContainerKey::Entrypoint,
+        ContainerKey::RunInit,
+        ContainerKey::StopSignal,
+        ContainerKey::StopTimeout,
+        ContainerKey::Pull,
+        ContainerKey::PidsLimit,
+        ContainerKey::HostName,
+        ContainerKey::ShmSize,
+        ContainerKey::Memory,
+        ContainerKey::AppArmor,
+        ContainerKey::NoNewPrivileges,
+        ContainerKey::SeccompProfile,
+        ContainerKey::SecurityLabelDisable,
+        ContainerKey::SecurityLabelFileType,
+        ContainerKey::SecurityLabelLevel,
+        ContainerKey::SecurityLabelNested,
+        ContainerKey::SecurityLabelType,
+        ContainerKey::Exec,
+        ContainerKey::Environment,
+        ContainerKey::Environment,
+        ContainerKey::EnvironmentFile,
+        ContainerKey::Label,
+        ContainerKey::Label,
+        ContainerKey::Label,
+        ContainerKey::Label,
+        ContainerKey::Secret,
+        ContainerKey::Secret,
+        ContainerKey::User,
+        ContainerKey::Group,
+        ContainerKey::UserNS,
+        ContainerKey::GroupAdd,
+        ContainerKey::GroupAdd,
+        ContainerKey::WorkingDir,
+        ContainerKey::ReadOnly,
+        ContainerKey::PublishPort,
+        ContainerKey::Volume,
+        ContainerKey::Volume,
+        ContainerKey::Network,
+        ContainerKey::Pod,
+        ContainerKey::HealthCmd,
+        ContainerKey::Notify,
+        ContainerKey::HealthInterval,
+        ContainerKey::HealthRetries,
+        ContainerKey::HealthStartPeriod,
+        ContainerKey::HealthTimeout,
+        ContainerKey::PodmanArgs,
+    ]
+}
+
 fn is_extended_opaque_container_key(key: ContainerKey) -> bool {
     matches!(
         key,
@@ -1275,6 +2369,13 @@ fn is_extended_opaque_container_key(key: ContainerKey) -> bool {
             | ContainerKey::Sysctl
             | ContainerKey::Ulimit
             | ContainerKey::AddDevice
+            | ContainerKey::DNS
+            | ContainerKey::DNSOption
+            | ContainerKey::DNSSearch
+            | ContainerKey::ExposeHostPort
+            | ContainerKey::Annotation
+            | ContainerKey::Mask
+            | ContainerKey::Unmask
     )
 }
 
@@ -1327,11 +2428,219 @@ fn assert_fixture_memory(result: &quadlet_lens::model::QuadletParseResult) -> Re
     Ok(())
 }
 
+fn assert_fixture_apparmor(result: &quadlet_lens::model::QuadletParseResult) -> Result<(), String> {
+    assert_eq!(
+        container_entry(result, ContainerKey::AppArmor, 0)?
+            .value()
+            .primary()
+            .text(),
+        "unconfined"
+    );
+    Ok(())
+}
+
+fn assert_fixture_no_new_privileges(result: &quadlet_lens::model::QuadletParseResult) -> Result<(), String> {
+    assert_eq!(
+        container_entry(result, ContainerKey::NoNewPrivileges, 0)?
+            .value()
+            .primary()
+            .text(),
+        "true"
+    );
+    Ok(())
+}
+
+fn assert_fixture_seccomp_profile(result: &quadlet_lens::model::QuadletParseResult) -> Result<(), String> {
+    assert_eq!(
+        container_entry(result, ContainerKey::SeccompProfile, 0)?
+            .value()
+            .primary()
+            .text(),
+        "unconfined"
+    );
+    Ok(())
+}
+
+fn assert_fixture_security_label_disable(result: &quadlet_lens::model::QuadletParseResult) -> Result<(), String> {
+    assert_eq!(
+        container_entry(result, ContainerKey::SecurityLabelDisable, 0)?
+            .value()
+            .primary()
+            .text(),
+        "true"
+    );
+    Ok(())
+}
+
+fn assert_fixture_security_label_file_type(result: &quadlet_lens::model::QuadletParseResult) -> Result<(), String> {
+    assert_eq!(
+        container_entry(result, ContainerKey::SecurityLabelFileType, 0)?
+            .value()
+            .primary()
+            .text(),
+        "container_file_t"
+    );
+    Ok(())
+}
+
+fn assert_fixture_security_label_level(result: &quadlet_lens::model::QuadletParseResult) -> Result<(), String> {
+    assert_eq!(
+        container_entry(result, ContainerKey::SecurityLabelLevel, 0)?
+            .value()
+            .primary()
+            .text(),
+        "s0:c1,c2"
+    );
+    Ok(())
+}
+
+fn assert_fixture_security_label_nested(result: &quadlet_lens::model::QuadletParseResult) -> Result<(), String> {
+    assert_eq!(
+        container_entry(result, ContainerKey::SecurityLabelNested, 0)?
+            .value()
+            .primary()
+            .text(),
+        "true"
+    );
+    Ok(())
+}
+
+fn assert_fixture_security_label_type(result: &quadlet_lens::model::QuadletParseResult) -> Result<(), String> {
+    assert_eq!(
+        container_entry(result, ContainerKey::SecurityLabelType, 0)?
+            .value()
+            .primary()
+            .text(),
+        "container_t"
+    );
+    Ok(())
+}
+
+fn assert_fixture_masks(result: &quadlet_lens::model::QuadletParseResult) {
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::Mask))
+            .map(|entry| entry.value().primary().text())
+            .collect::<Vec<_>>(),
+        ["/pre/mask", "", "/proc/acpi:/sys/firmware"]
+    );
+}
+
+fn assert_fixture_unmasks(result: &quadlet_lens::model::QuadletParseResult) {
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::Unmask))
+            .map(|entry| entry.value().primary().text())
+            .collect::<Vec<_>>(),
+        ["/pre/unmask", "", "ALL", "/proc/acpi:/sys/firmware"]
+    );
+}
+
+fn assert_fixture_security_singletons(result: &quadlet_lens::model::QuadletParseResult) -> Result<(), String> {
+    assert_fixture_apparmor(result)?;
+    assert_fixture_no_new_privileges(result)?;
+    assert_fixture_seccomp_profile(result)?;
+    assert_fixture_security_label_disable(result)?;
+    assert_fixture_security_label_file_type(result)?;
+    assert_fixture_security_label_level(result)?;
+    assert_fixture_security_label_nested(result)?;
+    assert_fixture_security_label_type(result)?;
+    assert_fixture_masks(result);
+    assert_fixture_unmasks(result);
+    Ok(())
+}
+
+fn assert_fixture_dns(result: &quadlet_lens::model::QuadletParseResult) {
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::DNS))
+            .map(|entry| entry.value().primary().text())
+            .collect::<Vec<_>>(),
+        ["1.1.1.1", "1.1.1.1", "", "9.9.9.9", "2001:4860:4860::8888"]
+    );
+}
+
+fn assert_fixture_networking_values(result: &quadlet_lens::model::QuadletParseResult) {
+    assert_fixture_dns(result);
+    assert_fixture_dns_options(result);
+    assert_fixture_dns_searches_and_exposed_host_ports(result);
+    assert_fixture_annotations(result);
+}
+
+fn assert_fixture_dns_options(result: &quadlet_lens::model::QuadletParseResult) {
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::DNSOption))
+            .map(|entry| entry.value().primary().text())
+            .collect::<Vec<_>>(),
+        ["rotate", "rotate", "", "ndots:1", "use-vc"]
+    );
+}
+
+fn assert_fixture_dns_searches_and_exposed_host_ports(result: &quadlet_lens::model::QuadletParseResult) {
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::DNSSearch))
+            .map(|entry| entry.value().primary().text())
+            .collect::<Vec<_>>(),
+        ["pre.example.com", "pre.example.com", "", "dc1.example.com", "."]
+    );
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::ExposeHostPort))
+            .map(|entry| entry.value().primary().text())
+            .collect::<Vec<_>>(),
+        [
+            "1000",
+            "1000",
+            "",
+            "3000",
+            "8080-8085",
+            "9090/tcp",
+            "5353/udp",
+            "5353/sctp"
+        ]
+    );
+}
+
+fn assert_fixture_annotations(result: &quadlet_lens::model::QuadletParseResult) {
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::Annotation))
+            .map(|entry| entry.value().primary().text())
+            .collect::<Vec<_>>(),
+        [
+            "org.example.name=first",
+            "org.example.name=first",
+            "",
+            "org.example.name=final",
+            r#""org.example.quoted=Authored Value""#,
+            "org.example.specifier=%i",
+            "key-only",
+            "malformed = value",
+        ]
+    );
+}
+
 fn container_entry(
     result: &quadlet_lens::model::QuadletParseResult,
     key: ContainerKey,
     occurrence: usize,
-) -> Result<&quadlet_lens::model::TypedEntry, String> {
+) -> Result<&TypedEntry, String> {
     result
         .document()
         .entries()

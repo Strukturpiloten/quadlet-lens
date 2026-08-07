@@ -1,0 +1,9 @@
+[Container]
+Image=registry.example.invalid/expose-host-port:1
+ExposeHostPort=1000
+ExposeHostPort=1000
+ExposeHostPort=
+ExposeHostPort=3000
+ExposeHostPort=8080-8085
+ExposeHostPort=9090/tcp
+ExposeHostPort=5353/udp

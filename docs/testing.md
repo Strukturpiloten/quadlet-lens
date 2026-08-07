@@ -72,6 +72,14 @@ It deliberately authors no leading `-`. All four isolated fixtures exercise gene
 never start a container. See the
 [matrix documentation](generator-matrix.md).
 
+The promoted networking, annotation, and security fixtures cover ordered post-reset output,
+singleton/boolean command construction, and unsupported-version behavior across the complete
+20-patch matrix. AppArmor is rejected through 5.7.1 and accepted from 5.8.0. Model/render tests
+separately protect opaque values, duplicates, malformed text, and scope.
+
+These fixtures are dry-run command evidence: they start no workload and do not inspect resolver,
+OCI, profile, SELinux, path, filesystem, host, runtime, or cross-format behavior.
+
 `Memory` uses a separate version-scoped fixture because it was introduced in Podman 5.5.0. The
 three 5.4.x generators must reject or exclude it and emit no memory argument. Every one of the 17
 recorded releases from 5.5.0 through 6.0.2 must apply singleton last-value behavior to an earlier
@@ -127,8 +135,10 @@ or grammar validation, plus repeatable opaque container `AddDevice`
 omission/order/case/quoting/specifier/whitespace/reset/duplicate/leading-dash preservation without
 splitting, unquoting, device validation, or runtime interpretation, singleton container `Memory`
 omission/raw/empty/quoted/specifier/duplicate preservation with ordinary singleton diagnostics
-while pod `Memory` remains unknown, singleton
-pod `UserNS`, generic systemd sections, repeated and unknown
+while pod `Memory` remains unknown. The promoted networking, annotation, and security keys are
+tested as opaque repeatable or singleton values for ordering, resets, duplicates, malformed text,
+scope, and standard diagnostics without key-specific or runtime interpretation. The suite also
+checks singleton pod `UserNS`, generic systemd sections, repeated and unknown
 entries, continuation segments, `%h` and unit-relative paths, native
 unit references, explicit supported suffixes, required fields, singleton diagnostics, foreign
 native sections, and source labels. Its document-set cases protect exact basename resolution,
@@ -139,9 +149,10 @@ The generation suite constructs `.container`, `.network`, and `.volume` document
 deterministic output, reparses every result, and resolves the generated cross-file graph. It also
 protects explicit container names, repeated AddHost, environment, label, secret, systemd, and exact
 capability-drop/add, tmpfs, sysctl, and ulimit entries, including raw empty native resets, plus all document-builder
-rejection paths, including duplicate stop-lifecycle, pull-policy,
+rejection paths, including duplicate lifecycle, policy, and promoted security singletons,
 process-ID-limit, hostname, and container/pod shared-memory singletons. The exact repeatable
-boundary also covers raw host-device mappings and reset assignments. The focused PID-limit,
+boundary also covers raw host-device mappings, DNS resolver values, DNS resolver options, and mask
+path lists with reset assignments. The focused PID-limit,
 shared-memory, and container-memory helpers' ASCII-decimal validation and arbitrary-precision preservation are tested
 separately while the raw boundary preserves authored zero and noncanonical text.
 

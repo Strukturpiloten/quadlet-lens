@@ -1,0 +1,18 @@
+schema = 1
+id = "no-new-privileges-supported-range"
+suite = "generators"
+description = "Exercises isolated literal true and false NoNewPrivileges singleton values across the complete supported Podman generator range."
+secrets_reviewed = true
+files = ["expected-fragments.txt", "no-new-privileges-false.container", "no-new-privileges-true.container"]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "The harness mounts this directory read-only with label separation disabled and invokes only exact Podman Quadlet generators in dry-run mode. It does not start generated services or container workloads."
+
+[expectations]
+summary = "Every recorded Podman release generates both units, emits exactly one equals-form --security-opt=no-new-privileges argument in the true unit, emits no security option in the false unit, and emits no separate, quoted, alternate, duplicate, or unrelated security-option form."

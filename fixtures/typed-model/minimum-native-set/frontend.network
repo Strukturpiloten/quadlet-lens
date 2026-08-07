@@ -3,6 +3,7 @@ Description=Example frontend network
 
 [Network]
 NetworkName=example-frontend
+DNSOption=rotate
 FutureNetworkKey=future-value
 
 [Install]

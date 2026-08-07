@@ -1,0 +1,7 @@
+[Container]
+Image=registry.example.invalid/dns:1
+DNS=1.1.1.1
+DNS=1.1.1.1
+DNS=
+DNS=9.9.9.9
+DNS=2001:4860:4860::8888

@@ -1,0 +1,6 @@
+[Container]
+Image=registry.example.invalid/mask:1
+Mask=/pre/one:/pre/two
+Mask=/pre/three
+Mask=
+Mask=/proc/acpi:/sys/firmware

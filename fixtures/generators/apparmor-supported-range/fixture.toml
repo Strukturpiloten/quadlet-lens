@@ -1,0 +1,18 @@
+schema = 1
+id = "apparmor-supported-range"
+suite = "generators"
+description = "Isolates the Podman 5.8.0 AppArmor introduction boundary from the all-supported-version first-conversion fixture."
+secrets_reviewed = true
+files = ["apparmor.container", "expected-fragments.txt"]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "The harness mounts this directory read-only and invokes only exact Podman Quadlet generators in dry-run mode; no workload or AppArmor profile is installed or executed."
+
+[expectations]
+summary = "Podman 5.4.0 through 5.7.1 reject AppArmor with no generated unit or security option; Podman 5.8.0 through 6.0.2 emit exactly one separate --security-opt apparmor=quadlet-lens-profile occurrence and no unrelated security option."

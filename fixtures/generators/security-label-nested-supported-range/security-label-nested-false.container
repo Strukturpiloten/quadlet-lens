@@ -1,0 +1,3 @@
+[Container]
+Image=registry.example.invalid/security-label-nested-false:1
+SecurityLabelNested=false

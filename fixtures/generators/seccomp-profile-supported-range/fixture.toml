@@ -1,0 +1,18 @@
+schema = 1
+id = "seccomp-profile-supported-range"
+suite = "generators"
+description = "Exercises isolated unconfined and JSON-path SeccompProfile singleton values across the complete supported Podman generator range."
+secrets_reviewed = true
+files = ["expected-fragments.txt", "seccomp-json-path.container", "seccomp-unconfined.container"]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "The harness mounts this directory read-only with label separation disabled and invokes only exact Podman Quadlet generators in dry-run mode. It neither provides nor reads the authored JSON path and does not start generated services or container workloads."
+
+[expectations]
+summary = "Every recorded Podman release generates both isolated units and emits exactly one separate --security-opt seccomp=value argument in each owning unit, exactly two total, with no equals-form, quotes, unrelated, alternate, or duplicate security option."

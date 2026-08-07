@@ -49,6 +49,9 @@ External fixtures and behavior-oracle results must record source, version, comma
 - Add parser, renderer, capability-boundary, and real-generator tests with behavior changes.
 - Record Podman tag/commit, documentation source, and observed generator behavior for capability updates.
 - Update documentation and compatibility claims in the same change.
+- Keep release notes and changelog entries concise: summarize user-visible feature families and
+  link to canonical technical documentation instead of repeating model, fixture, and test details.
+  Follow `docs/releasing.md`.
 - Pin every GitHub Action to its full commit SHA and append its exact release tag as a comment. Verify new pins upstream; Renovate must preserve and update both values.
 
 ## Canonical development commands

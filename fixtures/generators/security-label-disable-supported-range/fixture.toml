@@ -1,0 +1,18 @@
+schema = 1
+id = "security-label-disable-supported-range"
+suite = "generators"
+description = "Exercises isolated literal true and false SecurityLabelDisable singleton values across the complete supported Podman generator range."
+secrets_reviewed = true
+files = ["expected-fragments.txt", "security-label-disable-false.container", "security-label-disable-true.container"]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "The harness mounts this directory read-only with host-container label separation disabled and invokes only exact Podman Quadlet generators in dry-run mode. It does not start generated services or container workloads."
+
+[expectations]
+summary = "Every recorded Podman release generates both units, emits exactly one separate --security-opt label=disable argument in the true unit, emits no security option in the false unit, emits no equals, quoted, alternate, duplicate, or unrelated security-option form, and emits exactly one security option total."

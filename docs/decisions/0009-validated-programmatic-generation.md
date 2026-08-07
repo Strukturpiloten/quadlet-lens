@@ -2,7 +2,7 @@
 
 - Status: accepted
 - Date: 2026-08-03
-- Additive amendments: 2026-08-03, 2026-08-05, and 2026-08-06
+- Additive amendments: 2026-08-03, 2026-08-05, 2026-08-06, and 2026-08-07
 
 ## Context
 
@@ -52,6 +52,11 @@ QuadletLens provides a programmatic document builder that:
   device existence, or applying runtime semantics;
 - retains container `Memory` as an opaque singleton without applying runtime, cgroup, swap,
   page-size, host-memory, rootless, or cross-format semantics;
+- retains the promoted repeatable networking, annotation, Mask, and Unmask keys as opaque
+  physical-line-safe values in insertion order, including duplicates and reset assignments;
+- retains AppArmor, no-new-privileges, seccomp, and SELinux-label keys as opaque singletons;
+- performs no key-specific address, port, OCI, boolean, profile, SELinux, path, filesystem, host,
+  runtime, or cross-format interpretation for these additions;
 - rejects native keys from the wrong unit type and repeated singleton keys;
 - retains repeatable entries in insertion order;
 - emits sections in deterministic `[Unit]`, native, `[Service]`, `[Install]` order;

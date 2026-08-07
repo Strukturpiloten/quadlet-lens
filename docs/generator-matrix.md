@@ -68,17 +68,19 @@ empty `Ulimit=` reset, then `Ulimit=nproc=4096:8192` and `Ulimit=stack=-1:-1`,
 an isolated container with one pre-reset `AddDevice=` line containing
 `/dev/null:/dev/pre-null:r /dev/zero:/dev/pre-zero:w`, an empty reset, then one final line
 containing `/dev/null:/dev/final-null:r /dev/zero:/dev/final-zero:w`,
+isolated post-reset fixtures for `DNS`, `DNSOption`, `DNSSearch`, `ExposeHostPort`,
+`Annotation`, `Mask`, and `Unmask`,
+isolated singleton fixtures for AppArmor, no-new-privileges, seccomp, and each SELinux-label key,
 environment and systemd specifiers, absolute and unit-relative environment files, repeated
-container labels, repeated mounted
-and environment-variable secrets with options, repeatable container and pod host mappings
-including `host-gateway`, container and pod membership, the container user/group and user
-namespace, the pod's shared user namespace, supplementary groups, working directory, read-only
-root filesystem, supported port spellings, native and external networks, named/anonymous/relative and `.volume`
-mounts, SELinux mount-option spelling, health commands including `none`, regular health timings,
-`Notify=healthy` readiness, generic systemd `Requires`/`Wants`/`After` dependency ordering and
-restart behavior, continued `PodmanArgs`, and generated cross-unit dependencies. These are
-generator claims; actual activation, failure propagation, rootless/rootful, and SELinux enforcement
-remain runtime evidence.
+container labels, repeated mounted and environment-variable secrets with options, repeatable
+container and pod host mappings including `host-gateway`, container and pod membership, the
+container user/group and user namespace, the pod's shared user namespace, supplementary groups,
+working directory, read-only root filesystem, supported port spellings, native and external
+networks, named/anonymous/relative and `.volume` mounts, SELinux mount-option spelling, health
+commands including `none`, regular health timings, `Notify=healthy` readiness, generic systemd
+`Requires`/`Wants`/`After` dependency ordering and restart behavior, continued `PodmanArgs`,
+and generated cross-unit dependencies. These are generator claims; actual activation, failure
+propagation, rootless/rootful, and SELinux enforcement remain runtime evidence.
 
 `Memory` uses a separate fixture because the native key was introduced in Podman 5.5.0 and must
 not make the existing all-20 first-conversion fixture conditional. It authors an earlier
@@ -258,6 +260,24 @@ leading `-`, invokes only the dry-run generator, and starts no workload. It esta
 runtime access, rootless, SELinux, cgroup, host-device-existence, or symlink behavior. Pod
 `AddDevice`, Compose, and BoxFerry mapping remain outside this evidence.
 
+The promoted fixtures record the following dry-run expectations across the full matrix:
+
+| Fixture group | Required result |
+| --- | --- |
+| DNS, DNS option, DNS search | Ordered final values after an empty reset |
+| ExposeHostPort | Four ordered TCP/UDP-compatible values after reset |
+| Annotation | Two final key-sorted assignments after reset |
+| AppArmor | Rejected through 5.7.1; one separate option from 5.8.0 |
+| NoNewPrivileges and boolean label keys | One option for true; none for false |
+| Seccomp and valued label keys | One isolated separate option per value |
+| Mask | One final path-list option after reset |
+| Unmask | Ordered `ALL` and path-list options after reset |
+
+The model preserves raw physical values and does not emulate the generator's effective lookup,
+sorting, reset, or tokenization rules. These fixtures start no workload and establish no resolver,
+OCI, profile, SELinux, path, filesystem, host, runtime, or cross-format behavior. Exact source,
+commands, and expected fragments remain recorded in the fixture manifests and capability catalogue.
+
 The memory-limit observation keeps introduction, singleton lookup, and generated command text
 separate. The upstream
 [`quadlet: support Memory=` change](https://github.com/containers/podman/commit/543be25ef35d3127eeea6a34e16e758ad6fd4418)
@@ -289,7 +309,7 @@ QUADLET_LENS_CONTAINER_ENGINE=docker cargo ci-generators
 ```
 
 The smoke lane tests 5.4.0, the official-image boundary at 5.8.2, and current stable 6.0.2. The full
-lane tests the unchanged first-conversion fixture on all 20 patch releases and the separate Memory
+lane tests the first-conversion fixture on all 20 patch releases and the separate Memory
 fixture on the same three unsupported 5.4.x boundaries plus all 17 supported 5.5.0-through-6.0.2
 patches: 14 digest-pinned official images and six exact source builds. It
 belongs in the scheduled/manual GitHub workflow rather than pull-request CI.

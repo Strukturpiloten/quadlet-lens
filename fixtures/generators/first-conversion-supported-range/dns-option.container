@@ -1,0 +1,7 @@
+[Container]
+Image=registry.example.invalid/dns-option:1
+DNSOption=rotate
+DNSOption=rotate
+DNSOption=
+DNSOption=ndots:1
+DNSOption=use-vc

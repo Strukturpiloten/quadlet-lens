@@ -288,6 +288,34 @@ pub struct KnownBugRecord {
     evidence: Vec<String>,
 }
 
+/// Evidence-backed range where a capability has no native representation.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct UnsupportedRecord {
+    versions: VersionRange,
+    summary: String,
+    evidence: Vec<String>,
+}
+
+impl UnsupportedRecord {
+    /// Returns the exact unsupported version range.
+    #[must_use]
+    pub const fn versions(&self) -> VersionRange {
+        self.versions
+    }
+
+    /// Returns why the capability is classified as unsupported.
+    #[must_use]
+    pub fn summary(&self) -> &str {
+        &self.summary
+    }
+
+    /// Returns supporting evidence identifiers.
+    #[must_use]
+    pub fn evidence(&self) -> &[String] {
+        &self.evidence
+    }
+}
+
 impl KnownBugRecord {
     /// Returns the broken range.
     #[must_use]
@@ -323,6 +351,7 @@ pub struct CapabilityRecord {
     removed_from: Option<PodmanVersion>,
     fallbacks: Vec<FallbackRecord>,
     known_bugs: Vec<KnownBugRecord>,
+    unsupported: Vec<UnsupportedRecord>,
     evidence: Vec<String>,
 }
 
@@ -397,6 +426,12 @@ impl CapabilityRecord {
     #[must_use]
     pub fn known_bugs(&self) -> &[KnownBugRecord] {
         &self.known_bugs
+    }
+
+    /// Returns evidence-backed ranges with no native representation.
+    #[must_use]
+    pub fn unsupported_ranges(&self) -> &[UnsupportedRecord] {
+        &self.unsupported
     }
 
     /// Returns direct evidence identifiers.
@@ -657,6 +692,17 @@ fn evaluate_record(record: &CapabilityRecord, range: VersionRange, assumes_later
             Some(bug.summary.clone()),
         );
     }
+    if let Some(unsupported) = record.unsupported.iter().find(|item| item.versions.covers(range)) {
+        return make_evaluation(
+            &record.id,
+            SupportClassification::Unsupported,
+            range,
+            assumes_later,
+            None,
+            unsupported.evidence.clone(),
+            Some(unsupported.summary.clone()),
+        );
+    }
     if record.removed_from.is_some_and(|version| version <= range.minimum()) {
         return make_evaluation(
             &record.id,
@@ -816,6 +862,10 @@ fn parse_capabilities(
         }
         let fallbacks = parse_fallbacks(&item.id, item.fallback, coverage, evidence_ids)?;
         let known_bugs = parse_bugs(&item.id, item.known_bug, coverage, evidence_ids)?;
+        let unsupported = parse_unsupported(&item.id, item.unsupported, coverage, evidence_ids)?;
+        if native.is_some_and(|native| unsupported.iter().any(|item| item.versions.overlaps(native))) {
+            return Err(CatalogueError::InvalidRange(format!("{}.unsupported", item.id)));
+        }
         if native.is_none() && fallbacks.is_empty() && removed_from.is_none() {
             return Err(CatalogueError::InvalidField(format!("{}.support", item.id)));
         }
@@ -832,6 +882,7 @@ fn parse_capabilities(
             removed_from,
             fallbacks,
             known_bugs,
+            unsupported,
             evidence: item.evidence,
         });
     }
@@ -880,6 +931,29 @@ fn parse_bugs(
             }
             validate_evidence(&field, &item.evidence, evidence_ids)?;
             Ok(KnownBugRecord {
+                versions: parse_covered_range(&field, &item.versions, coverage)?,
+                summary: item.summary,
+                evidence: item.evidence,
+            })
+        })
+        .collect()
+}
+
+fn parse_unsupported(
+    owner: &str,
+    raw: Vec<RawUnsupported>,
+    coverage: VersionRange,
+    evidence_ids: &BTreeSet<&str>,
+) -> Result<Vec<UnsupportedRecord>, CatalogueError> {
+    raw.into_iter()
+        .enumerate()
+        .map(|(index, item)| {
+            let field = format!("{owner}.unsupported[{index}]");
+            if item.summary.is_empty() {
+                return Err(CatalogueError::InvalidField(field));
+            }
+            validate_evidence(&field, &item.evidence, evidence_ids)?;
+            Ok(UnsupportedRecord {
                 versions: parse_covered_range(&field, &item.versions, coverage)?,
                 summary: item.summary,
                 evidence: item.evidence,
@@ -1024,6 +1098,8 @@ struct RawCapability {
     #[serde(default)]
     known_bug: Vec<RawKnownBug>,
     #[serde(default)]
+    unsupported: Vec<RawUnsupported>,
+    #[serde(default)]
     evidence: Vec<String>,
 }
 
@@ -1040,6 +1116,15 @@ struct RawFallback {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct RawKnownBug {
+    versions: RawRange,
+    summary: String,
+    #[serde(default)]
+    evidence: Vec<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RawUnsupported {
     versions: RawRange,
     summary: String,
     #[serde(default)]

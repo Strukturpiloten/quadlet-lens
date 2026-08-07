@@ -1,0 +1,18 @@
+schema = 1
+id = "security-label-file-type-supported-range"
+suite = "generators"
+description = "Exercises one isolated SecurityLabelFileType singleton value across the complete supported Podman generator range."
+secrets_reviewed = true
+files = ["expected-fragments.txt", "security-label-file-type.container"]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "The harness mounts this directory read-only with host-container label separation disabled and invokes only exact Podman Quadlet generators in dry-run mode. It does not start the generated service or a container workload."
+
+[expectations]
+summary = "Every recorded Podman release emits exactly one separate --security-opt label=filetype:container_file_t argument, with no equals, quoted, alternate, unrelated, or duplicate security-option form."

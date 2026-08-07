@@ -71,6 +71,18 @@ Container `Memory` is an opaque singleton boundary introduced natively in Podman
 duplicates, empty assignments, quoting, specifiers, and exact one-line values remain source-aware;
 the model does not infer runtime limits or cross-format equivalence. A focused positive-decimal
 construction helper is additive to the unchanged raw-value boundary. Pod `Memory` remains unknown.
+Container `DNS`, `DNSOption`, `DNSSearch`, `ExposeHostPort`, `Annotation`, `Mask`,
+and `Unmask` are opaque repeatable boundaries. They preserve every physical value, reset
+assignment, duplicate, and source order without key-specific parsing or runtime interpretation.
+
+Container `AppArmor`, `NoNewPrivileges`, `SeccompProfile`, and the five
+`SecurityLabel*` keys are opaque singletons. Duplicate authored assignments receive the standard
+singleton diagnostic; programmatic construction rejects a second value.
+
+These keys are typed only in their documented `[Container]` scope. Other scopes stay unknown and
+preserved. Capability and generator evidence describe target command construction separately from
+the source-aware model.
+
 Generic `[Unit]`, `[Service]`, and `[Install]` entries remain open-ended. Unknown sections and keys
 remain explicit entries rather than validation losses.
 

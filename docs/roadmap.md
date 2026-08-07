@@ -23,7 +23,7 @@ that the syntax parser rejects it.
 
 | Section/unit | Current keys | Typed keys | Syntax-preserved only |
 | --- | ---: | ---: | ---: |
-| `[Container]` / `.container` | 90 | 41 | 49 |
+| `[Container]` / `.container` | 90 | 56 | 34 |
 | `[Pod]` / `.pod` | 25 | 7 | 18 |
 | `[Network]` / `.network` | 18 | 1 | 17 |
 | `[Volume]` / `.volume` | 16 | 1 | 15 |
@@ -38,23 +38,22 @@ evidence are separate layers documented in [Native coverage](coverage.md).
 
 ### Missing `[Container]` keys
 
-The following 49 current keys are syntax-preserved but not typed:
+The following 34 current keys are syntax-preserved but not typed:
 
-`Annotation`, `AppArmor`, `AutoUpdate`, `CgroupsMode`,
-`ContainersConfModule`, `DNS`, `DNSOption`, `DNSSearch`, `EnvironmentHost`,
-`ExposeHostPort`, `GIDMap`, `GlobalArgs`, `HealthLogDestination`,
+`AutoUpdate`, `CgroupsMode`,
+`ContainersConfModule`, `EnvironmentHost`,
+`GIDMap`, `GlobalArgs`, `HealthLogDestination`,
 `HealthMaxLogCount`, `HealthMaxLogSize`, `HealthOnFailure`, `HealthStartupCmd`,
 `HealthStartupInterval`, `HealthStartupRetries`, `HealthStartupSuccess`,
 `HealthStartupTimeout`, `HttpProxy`, `ImageVolume`, `IP`, `IP6`, `LogDriver`,
-`LogOpt`, `Mask`, `Mount`, `NetworkAlias`, `NoNewPrivileges`,
+`LogOpt`, `Mount`, `NetworkAlias`,
 `ReadOnlyTmpfs`, `ReloadCmd`, `ReloadSignal`, `Retry`, `RetryDelay`,
-`SeccompProfile`, `SecurityLabelDisable`, `SecurityLabelFileType`, `SecurityLabelLevel`,
-`SecurityLabelNested`, `SecurityLabelType`, `ServiceName`, `StartWithPod`,
-`SubGIDMap`, `SubUIDMap`, `Timezone`, `UIDMap`, and `Unmask`.
+`ServiceName`, `StartWithPod`,
+`SubGIDMap`, `SubUIDMap`, `Timezone`, and `UIDMap`.
 
-The 41 typed keys are `AddHost`, `ContainerName`, `Image`, `Rootfs`, `Entrypoint`, `RunInit`,
+The 56 typed keys are `AddHost`, `ContainerName`, `Image`, `Rootfs`, `Entrypoint`, `RunInit`,
 `StopSignal`, `StopTimeout`, `Pull`, `PidsLimit`, `HostName`, `ShmSize`, `DropCapability`,
-`AddCapability`, `Tmpfs`, `Sysctl`, `Ulimit`, `AddDevice`, `Memory`, `Exec`, `Environment`, `EnvironmentFile`, `Label`, `Secret`, `User`, `Group`,
+`AddCapability`, `Tmpfs`, `Sysctl`, `Ulimit`, `AddDevice`, `Memory`, `DNS`, `DNSOption`, `DNSSearch`, `ExposeHostPort`, `Annotation`, `AppArmor`, `NoNewPrivileges`, `SeccompProfile`, `SecurityLabelDisable`, `SecurityLabelFileType`, `SecurityLabelLevel`, `SecurityLabelNested`, `SecurityLabelType`, `Mask`, `Unmask`, `Exec`, `Environment`, `EnvironmentFile`, `Label`, `Secret`, `User`, `Group`,
 `UserNS`, `GroupAdd`, `WorkingDir`, `ReadOnly`, `PublishPort`, `Volume`, `Network`, `Pod`,
 `HealthCmd`, `Notify`, `HealthInterval`, `HealthRetries`, `HealthStartPeriod`, `HealthTimeout`, and
 `PodmanArgs`.
@@ -179,8 +178,12 @@ only for a concrete consumer scenario and must retain their native ordering/repe
 - [x] Type singleton container `Memory`, preserve raw values and duplicate diagnostics, add positive
   arbitrary-precision decimal construction, prove 5.4.x rejection/exclusion, and verify exactly one
   explicit-byte argument across all 17 Podman 5.5.0-through-6.0.2 patches without runtime claims.
-- [ ] Type remaining capability interactions, AppArmor/seccomp, SELinux
-  label controls, masks/unmasks, no-new-privileges, and UID/GID maps.
+- [x] Type and generator-verify container DNS, exposed-port, and annotation keys across the
+  reviewed Podman range.
+- [x] Type and generator-verify AppArmor, no-new-privileges, seccomp, and SELinux-label keys.
+- [x] Type and generator-verify repeatable Mask and Unmask values with reset evidence.
+- [ ] Type remaining capability interactions, SELinux label controls, and UID/GID
+  maps.
 - [ ] Type image-volume and read-only-tmpfs behavior; extend `Tmpfs` only when a concrete
   target-aware option or runtime contract is defined.
 - [ ] Type health logging, failure actions, and the separate startup-health family.

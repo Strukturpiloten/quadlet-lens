@@ -1,0 +1,18 @@
+schema = 1
+id = "unmask-supported-range"
+suite = "generators"
+description = "Exercises pre-reset Unmask values, a blank reset assignment, and final ALL and colon-path values across the complete supported Podman generator range."
+secrets_reviewed = true
+files = ["expected-fragments.txt", "unmask.container"]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "The harness mounts this directory read-only with host-container label separation disabled and invokes only exact Podman Quadlet generators in dry-run mode. It does not run the generated service, expand or validate paths, inspect host state, access authored paths, unmask filesystems, or run a container workload."
+
+[expectations]
+summary = "Every recorded Podman release applies the blank reset and emits only two ordered separate arguments, --security-opt unmask=ALL followed by --security-opt unmask=/proc/acpi:/sys/firmware, exactly once each, with no pre-reset, empty, equals, quoted, alternate, unrelated, or duplicate security-option form."

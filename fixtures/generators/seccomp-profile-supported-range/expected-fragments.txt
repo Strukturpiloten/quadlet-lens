@@ -1,0 +1,4 @@
+---seccomp-unconfined.service---
+SourcePath=/fixtures/seccomp-unconfined.container
+---seccomp-json-path.service---
+SourcePath=/fixtures/seccomp-json-path.container

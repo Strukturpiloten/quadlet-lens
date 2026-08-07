@@ -39,6 +39,16 @@ SourcePath=/fixtures/sysctl.container
 SourcePath=/fixtures/ulimit.container
 ---device.service---
 SourcePath=/fixtures/device.container
+---dns.service---
+SourcePath=/fixtures/dns.container
+---dns-option.service---
+SourcePath=/fixtures/dns-option.container
+---dns-search.service---
+SourcePath=/fixtures/dns-search.container
+---expose-host-port.service---
+SourcePath=/fixtures/expose-host-port.container
+---annotation.service---
+SourcePath=/fixtures/annotation.container
 ---worker.service---
 SourcePath=/fixtures/worker.container
 Requires=app.service
