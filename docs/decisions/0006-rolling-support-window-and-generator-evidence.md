@@ -44,7 +44,15 @@ official immutable images through 5.8.2 and six exact source builds thereafter. 
 first-conversion container, pod, network, volume, generic systemd, image, command, environment,
 environment-file, port, mount, resource-reference, health-command, health timing,
 `Notify=healthy` readiness, `Requires`/`Wants`/`After` dependency ordering, restart, and
-`PodmanArgs` fragments. It also verifies repeated container labels, container user/group, distinct container and pod user namespaces, repeated
+`PodmanArgs` fragments, including isolated exact `PodmanArgs=--interactive`, `PodmanArgs=--tty`,
+`PodmanArgs=--privileged`, and `PodmanArgs=--privileged=false` forms. The privileged two-unit
+fixture requires exactly one respective argument immediately before each image and rejects
+`--privileged=true`, positional false, short, quoted, bundled, alternate, duplicate, and
+conflicting forms. Endpoint Quadlet manuals, tagged command placement, and Podman CLI
+boolean/default documentation support the finite 5.4.0-through-6.0.2 claim without adding a
+dedicated `Privileged` model key or wrapper. This establishes generated command text only, not
+runtime privileges, devices, LSM, seccomp, rootless, or cross-format equivalence. It also verifies
+repeated container labels, container user/group, distinct container and pod user namespaces, repeated
 supplementary groups, working directories, read-only root filesystems, and an isolated container
 hostname argument. Separate positive and zero container shared-memory fixtures and a pod-owned
 shared-memory fixture with a joined container require one matching generated `--shm-size` argument
@@ -100,7 +108,10 @@ is explicitly rejected through 5.7.1 and accepted from 5.8.0.
 
 The fixtures run only the generator. They do not validate profiles or paths, inspect host state,
 start workloads, or establish resolver, OCI, security-policy, filesystem, runtime, or cross-format
-behavior.
+behavior. In particular, the `PodmanArgs=--interactive`, `PodmanArgs=--tty`,
+`PodmanArgs=--privileged`, and `PodmanArgs=--privileged=false` fixtures establish command text
+only; they do not establish runtime stdin, attachment, TTY, stdout, stderr, pipe, privileges,
+devices, LSM, seccomp, rootless, or cross-format behavior.
 
 Referenced `.image`/`.build` units, remaining native keys, runtime, rootless/rootful, and SELinux
 semantics retain narrower evidence even inside the generator-covered range.

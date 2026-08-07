@@ -476,6 +476,51 @@ const MEMORY_EMPTY_OR_ALTERNATE_FORMS: &[&str] = &[
     "--memory \"16777216b\"",
     "--memory 32m",
 ];
+const INTERACTIVE_ARGUMENT: &str = "--interactive";
+const INTERACTIVE_IMAGE: &str = "registry.example.invalid/interactive:1";
+const INTERACTIVE_ALTERNATE_FORMS: &[&str] = &[
+    "--interactive=",
+    "--interactive=true",
+    "--interactive=false",
+    "--interactive \"\"",
+    "--interactive ''",
+    "--interactive=\"\"",
+    "--interactive=''",
+    "\"--interactive\"",
+    "'--interactive'",
+];
+const TTY_ARGUMENT: &str = "--tty";
+const TTY_IMAGE: &str = "registry.example.invalid/tty:1";
+const TTY_ALTERNATE_FORMS: &[&str] = &[
+    "--tty=",
+    "--tty=true",
+    "--tty=false",
+    "--tty \"\"",
+    "--tty ''",
+    "--tty=\"\"",
+    "--tty=''",
+    "\"--tty\"",
+    "'--tty'",
+];
+const PRIVILEGED_TRUE_ARGUMENT: &str = "--privileged";
+const PRIVILEGED_FALSE_ARGUMENT: &str = "--privileged=false";
+const PRIVILEGED_TRUE_IMAGE: &str = "registry.example.invalid/privileged-true:1";
+const PRIVILEGED_FALSE_IMAGE: &str = "registry.example.invalid/privileged-false:1";
+const PRIVILEGED_ALTERNATE_FORMS: &[&str] = &[
+    "--privileged=true",
+    "--privileged true",
+    "--privileged false",
+    "--privileged=\"true\"",
+    "--privileged=\"false\"",
+    "--privileged='true'",
+    "--privileged='false'",
+    "--privileged \"true\"",
+    "--privileged \"false\"",
+    "--privileged 'true'",
+    "--privileged 'false'",
+    "\"--privileged\"",
+    "'--privileged'",
+];
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -521,6 +566,9 @@ struct SecurityLabelFixtures {
 
 struct GeneratorFixtures {
     memory: (PathBuf, Vec<String>),
+    interactive: (PathBuf, Vec<String>),
+    tty: (PathBuf, Vec<String>),
+    privileged: (PathBuf, Vec<String>),
     logging: (PathBuf, Vec<String>),
     network_identity: (PathBuf, Vec<String>),
     network_driver_options: (PathBuf, Vec<String>),
@@ -762,6 +810,26 @@ fn memory_fixture_directory() -> Result<PathBuf, String> {
         .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
 }
 
+fn interactive_fixture_directory() -> Result<PathBuf, String> {
+    let path =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/podman-args-interactive-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn tty_fixture_directory() -> Result<PathBuf, String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/podman-args-tty-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn privileged_fixture_directory() -> Result<PathBuf, String> {
+    let path =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/podman-args-privileged-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
 fn logging_fixture_directory() -> Result<PathBuf, String> {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/container-logging-supported-range");
     path.canonicalize()
@@ -846,9 +914,30 @@ fn load_memory_fixture() -> Result<(PathBuf, Vec<String>), String> {
     Ok((fixture, expected))
 }
 
+fn load_interactive_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = interactive_fixture_directory()?;
+    let expected = expected_fragments(&fixture)?;
+    Ok((fixture, expected))
+}
+
+fn load_tty_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = tty_fixture_directory()?;
+    let expected = expected_fragments(&fixture)?;
+    Ok((fixture, expected))
+}
+
+fn load_privileged_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = privileged_fixture_directory()?;
+    let expected = expected_fragments(&fixture)?;
+    Ok((fixture, expected))
+}
+
 fn load_generator_fixtures() -> Result<GeneratorFixtures, String> {
     Ok(GeneratorFixtures {
         memory: load_memory_fixture()?,
+        interactive: load_interactive_fixture()?,
+        tty: load_tty_fixture()?,
+        privileged: load_privileged_fixture()?,
         logging: load_logging_fixture()?,
         network_identity: load_network_identity_fixture()?,
         network_driver_options: load_network_driver_options_fixture()?,
@@ -934,6 +1023,9 @@ fn verify_image_isolated_fixtures(
     fixtures: &GeneratorFixtures,
 ) -> Result<(), String> {
     verify_image_memory(engine, image, &fixtures.memory)?;
+    verify_image_interactive(engine, image, &fixtures.interactive)?;
+    verify_image_tty(engine, image, &fixtures.tty)?;
+    verify_image_privileged(engine, image, &fixtures.privileged)?;
     verify_image_logging(engine, image, &fixtures.logging)?;
     verify_image_network_identity(engine, image, &fixtures.network_identity)?;
     verify_image_network_driver_options(engine, image, &fixtures.network_driver_options)?;
@@ -964,6 +1056,9 @@ fn verify_source_isolated_fixtures(
     fixtures: &GeneratorFixtures,
 ) -> Result<(), String> {
     verify_source_memory(engine, matrix, source, generator, &fixtures.memory)?;
+    verify_source_interactive(engine, matrix, source, generator, &fixtures.interactive)?;
+    verify_source_tty(engine, matrix, source, generator, &fixtures.tty)?;
+    verify_source_privileged(engine, matrix, source, generator, &fixtures.privileged)?;
     verify_source_logging(engine, matrix, source, generator, &fixtures.logging)?;
     verify_source_network_identity(engine, matrix, source, generator, &fixtures.network_identity)?;
     verify_source_network_driver_options(engine, matrix, source, generator, &fixtures.network_driver_options)?;
@@ -978,6 +1073,62 @@ fn verify_source_isolated_fixtures(
 fn verify_image_logging(engine: &str, image: &GeneratorImage, fixture: &(PathBuf, Vec<String>)) -> Result<(), String> {
     let output = run_generator(engine, image, &fixture.0)?;
     verify_logging_generator_output(&image.version, &fixture.1, &output)
+}
+
+fn verify_image_interactive(
+    engine: &str,
+    image: &GeneratorImage,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_generator(engine, image, &fixture.0)?;
+    verify_interactive_generator_output(&image.version, &fixture.1, &output)
+}
+
+fn verify_source_interactive(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_source_generator(engine, &matrix.builder_reference, source, generator, &fixture.0)?;
+    verify_interactive_generator_output(&source.version, &fixture.1, &output)
+}
+
+fn verify_image_tty(engine: &str, image: &GeneratorImage, fixture: &(PathBuf, Vec<String>)) -> Result<(), String> {
+    let output = run_generator(engine, image, &fixture.0)?;
+    verify_tty_generator_output(&image.version, &fixture.1, &output)
+}
+
+fn verify_source_tty(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_source_generator(engine, &matrix.builder_reference, source, generator, &fixture.0)?;
+    verify_tty_generator_output(&source.version, &fixture.1, &output)
+}
+
+fn verify_image_privileged(
+    engine: &str,
+    image: &GeneratorImage,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_generator(engine, image, &fixture.0)?;
+    verify_privileged_generator_output(&image.version, &fixture.1, &output)
+}
+
+fn verify_source_privileged(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_source_generator(engine, &matrix.builder_reference, source, generator, &fixture.0)?;
+    verify_privileged_generator_output(&source.version, &fixture.1, &output)
 }
 
 fn verify_source_logging(
@@ -1839,6 +1990,177 @@ fn verify_memory_generator_output(version: &str, expected: &[String], output: &O
         ));
     }
     eprintln!("Podman {version} Memory: last effective assignment emits exactly one --memory 16777216b argument");
+    Ok(())
+}
+
+fn verify_interactive_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let generated = String::from_utf8(output.stdout.clone())
+        .map_err(|error| format!("{version} interactive generator emitted non-UTF-8 output: {error}"))?;
+    let diagnostics = String::from_utf8_lossy(&output.stderr);
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} interactive generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            ));
+        }
+    }
+    let generated_unit = generated_unit(version, &generated, "interactive.service", output)?;
+    let podman_run = generated_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} generator output for interactive.service is missing its Podman run command\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            )
+        })?;
+    let expected_pair = format!("{INTERACTIVE_ARGUMENT} {INTERACTIVE_IMAGE}");
+    let expected_count = podman_run.matches(&expected_pair).count();
+    let all_long_count = podman_run.matches(INTERACTIVE_ARGUMENT).count();
+    let short_forms: Vec<_> = podman_run
+        .split_whitespace()
+        .filter(|token| {
+            let unquoted = token.trim_matches(|character| character == '"' || character == '\'');
+            unquoted.starts_with("-i") && !unquoted.starts_with("--")
+        })
+        .collect();
+    let alternate_forms: Vec<_> = INTERACTIVE_ALTERNATE_FORMS
+        .iter()
+        .copied()
+        .filter(|form| podman_run.contains(form))
+        .collect();
+    if expected_count != 1 || all_long_count != 1 || !short_forms.is_empty() || !alternate_forms.is_empty() {
+        return Err(format!(
+            "Podman {version} generator output for interactive.service must place exactly one separate `{INTERACTIVE_ARGUMENT}` immediately before `{INTERACTIVE_IMAGE}` with no short, equals, quoted, alternate, or duplicate form; found expected-pair={expected_count}, all-long={all_long_count}, short={short_forms:?}, alternate={alternate_forms:?}\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+        ));
+    }
+    eprintln!(
+        "Podman {version} PodmanArgs: exactly one separate --interactive argument immediately precedes the image"
+    );
+    Ok(())
+}
+
+fn verify_tty_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let generated = String::from_utf8(output.stdout.clone())
+        .map_err(|error| format!("{version} TTY generator emitted non-UTF-8 output: {error}"))?;
+    let diagnostics = String::from_utf8_lossy(&output.stderr);
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} TTY generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            ));
+        }
+    }
+    let generated_unit = generated_unit(version, &generated, "tty.service", output)?;
+    let podman_run = generated_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} generator output for tty.service is missing its Podman run command\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            )
+        })?;
+    let expected_pair = format!("{TTY_ARGUMENT} {TTY_IMAGE}");
+    let expected_count = podman_run.matches(&expected_pair).count();
+    let all_long_count = podman_run.matches(TTY_ARGUMENT).count();
+    let short_or_combined_forms: Vec<_> = podman_run
+        .split_whitespace()
+        .filter(|token| {
+            let unquoted = token.trim_matches(|character| character == '"' || character == '\'');
+            unquoted.starts_with('-') && !unquoted.starts_with("--") && unquoted.trim_start_matches('-').contains('t')
+        })
+        .collect();
+    let alternate_forms: Vec<_> = TTY_ALTERNATE_FORMS
+        .iter()
+        .copied()
+        .filter(|form| podman_run.contains(form))
+        .collect();
+    if expected_count != 1 || all_long_count != 1 || !short_or_combined_forms.is_empty() || !alternate_forms.is_empty()
+    {
+        return Err(format!(
+            "Podman {version} generator output for tty.service must place exactly one separate `{TTY_ARGUMENT}` immediately before `{TTY_IMAGE}` with no -t short, combined, equals, quoted, alternate, or duplicate form; found expected-pair={expected_count}, all-long={all_long_count}, short-or-combined={short_or_combined_forms:?}, alternate={alternate_forms:?}\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+        ));
+    }
+    eprintln!("Podman {version} PodmanArgs: exactly one separate --tty argument immediately precedes the image");
+    Ok(())
+}
+
+fn verify_privileged_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let generated = String::from_utf8(output.stdout.clone())
+        .map_err(|error| format!("{version} privileged generator emitted non-UTF-8 output: {error}"))?;
+    let diagnostics = String::from_utf8_lossy(&output.stderr);
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} privileged generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            ));
+        }
+    }
+    verify_privileged_unit(
+        version,
+        &generated,
+        &diagnostics,
+        output,
+        "privileged-true.service",
+        PRIVILEGED_TRUE_ARGUMENT,
+        PRIVILEGED_TRUE_IMAGE,
+    )?;
+    verify_privileged_unit(
+        version,
+        &generated,
+        &diagnostics,
+        output,
+        "privileged-false.service",
+        PRIVILEGED_FALSE_ARGUMENT,
+        PRIVILEGED_FALSE_IMAGE,
+    )?;
+    eprintln!(
+        "Podman {version} PodmanArgs: exactly one separate --privileged and --privileged=false argument each precede their respective images"
+    );
+    Ok(())
+}
+
+fn verify_privileged_unit(
+    version: &str,
+    generated: &str,
+    diagnostics: &str,
+    output: &Output,
+    unit_name: &str,
+    expected_argument: &str,
+    image: &str,
+) -> Result<(), String> {
+    let generated_unit = generated_unit(version, generated, unit_name, output)?;
+    let podman_run = generated_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} generator output for {unit_name} is missing its Podman run command\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            )
+        })?;
+    let expected_pair = format!("{expected_argument} {image}");
+    let expected_count = podman_run.matches(&expected_pair).count();
+    let all_privileged_count = podman_run.matches(PRIVILEGED_TRUE_ARGUMENT).count();
+    let short_or_bundled_forms: Vec<_> = podman_run
+        .split_whitespace()
+        .filter(|token| {
+            let unquoted = token.trim_matches(|character| character == '"' || character == '\'');
+            unquoted.starts_with('-') && !unquoted.starts_with("--") && unquoted.contains('p')
+        })
+        .collect();
+    let alternate_forms: Vec<_> = PRIVILEGED_ALTERNATE_FORMS
+        .iter()
+        .copied()
+        .filter(|form| podman_run.contains(form))
+        .collect();
+    if expected_count != 1
+        || all_privileged_count != 1
+        || !short_or_bundled_forms.is_empty()
+        || !alternate_forms.is_empty()
+    {
+        return Err(format!(
+            "Podman {version} generator output for {unit_name} must place exactly one separate `{expected_argument}` immediately before `{image}` with no --privileged=true, positional false, short, quoted, bundled, alternate, duplicate, or conflicting form; found expected-pair={expected_count}, all-privileged={all_privileged_count}, short-or-bundled={short_or_bundled_forms:?}, alternate={alternate_forms:?}\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+        ));
+    }
     Ok(())
 }
 

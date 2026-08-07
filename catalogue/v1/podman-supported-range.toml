@@ -1542,11 +1542,164 @@ claim = "Every one of the 17 recorded Podman patch releases from 5.5.0 through 6
 test = "generators::supported_generators_match_the_first_conversion_fixture"
 
 [[evidence]]
+id = "podman-5-4-container-podman-args-interactive"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#podmanargs"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Container-unit manual documents repeatable PodmanArgs as arguments appended to podman run immediately before the image, including unsupported-generator escape-hatch features."
+test = "capabilities::supported_range_records_container_podman_args_interactive"
+gap = "The manual describes generated command construction, not runtime stdin, attach, TTY, or other container behavior."
+
+[[evidence]]
+id = "podman-6-0-2-container-podman-args-interactive"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-systemd.unit.5.html#podmanargs"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Container-unit manual retains repeatable PodmanArgs appended to podman run immediately before the image."
+test = "capabilities::supported_range_records_container_podman_args_interactive"
+gap = "The manual describes generated command construction, not runtime stdin, attach, TTY, or other container behavior."
+
+[[evidence]]
+id = "podman-5-4-container-podman-args-interactive-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/v5.4.0/pkg/systemd/quadlet/quadlet.go#L849-L854"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 container-generator source invokes handlePodmanArgs immediately before appending the image to the generated podman run command."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Tagged source and dry-run generated command text do not execute a container or establish stdin, attach, or TTY behavior."
+
+[[evidence]]
+id = "podman-6-0-2-container-podman-args-interactive-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/v6.0.2/pkg/systemd/quadlet/quadlet.go#L924-L929"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 container-generator source retains the immediate handlePodmanArgs call before appending the image to the generated podman run command."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Tagged source and dry-run generated command text do not execute a container or establish stdin, attach, or TTY behavior."
+
+[[evidence]]
+id = "podman-5-4-through-current-container-podman-args-interactive-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every recorded Podman patch release from 5.4.0 through 6.0.2 accepts the isolated PodmanArgs=--interactive fixture and emits exactly one separate --interactive argument immediately before the image, with no short, equals, quoted, alternate, or duplicate form."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The fixture invokes only the dry-run generator. It establishes generated command text, not runtime stdin, attach, TTY, or workload behavior."
+
+[[evidence]]
+id = "podman-5-4-container-podman-args-tty"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#podmanargs"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Container-unit manual documents repeatable PodmanArgs as arguments appended to podman run immediately before the image, including unsupported-generator escape-hatch features."
+test = "capabilities::supported_range_records_container_podman_args_tty"
+gap = "The manual describes generated command construction, not runtime TTY, standard-stream, pipe, or other container behavior."
+
+[[evidence]]
+id = "podman-6-0-2-container-podman-args-tty"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-systemd.unit.5.html#podmanargs"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Container-unit manual retains repeatable PodmanArgs appended to podman run immediately before the image."
+test = "capabilities::supported_range_records_container_podman_args_tty"
+gap = "The manual describes generated command construction, not runtime TTY, standard-stream, pipe, or other container behavior."
+
+[[evidence]]
+id = "podman-5-4-container-podman-args-tty-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/v5.4.0/pkg/systemd/quadlet/quadlet.go#L849-L854"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 container-generator source invokes handlePodmanArgs immediately before appending the image to the generated podman run command."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Tagged source and dry-run generated command text do not execute a container or establish TTY, standard-stream, or pipe behavior."
+
+[[evidence]]
+id = "podman-6-0-2-container-podman-args-tty-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/v6.0.2/pkg/systemd/quadlet/quadlet.go#L924-L929"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 container-generator source retains the immediate handlePodmanArgs call before appending the image to the generated podman run command."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Tagged source and dry-run generated command text do not execute a container or establish TTY, standard-stream, or pipe behavior."
+
+[[evidence]]
+id = "podman-5-4-through-current-container-podman-args-tty-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every recorded Podman patch release from 5.4.0 through 6.0.2 accepts the isolated PodmanArgs=--tty fixture and emits exactly one separate --tty argument immediately before the image, with no -t short, combined, equals, quoted, alternate, or duplicate form."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The fixture invokes only the dry-run generator. It establishes generated command text, not runtime TTY, standard-stream, pipe, or workload behavior."
+
+[[evidence]]
+id = "podman-5-4-container-podman-args-privileged"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#podmanargs"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Container-unit manual documents repeatable PodmanArgs as arguments appended to podman run immediately before the image, including unsupported-generator escape-hatch features."
+test = "capabilities::supported_range_records_container_podman_args_privileged"
+gap = "The manual describes generated command construction, not runtime privileges, devices, LSM, seccomp, rootless, or other container behavior."
+
+[[evidence]]
+id = "podman-6-0-2-container-podman-args-privileged"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-systemd.unit.5.html#podmanargs"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Container-unit manual retains repeatable PodmanArgs appended to podman run immediately before the image."
+test = "capabilities::supported_range_records_container_podman_args_privileged"
+gap = "The manual describes generated command construction, not runtime privileges, devices, LSM, seccomp, rootless, or other container behavior."
+
+[[evidence]]
+id = "podman-5-4-container-podman-args-privileged-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/v5.4.0/pkg/systemd/quadlet/quadlet.go#L849-L854"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 container parser/generator source invokes handlePodmanArgs immediately before appending the image to the generated podman run command."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Tagged source and dry-run generated command text do not execute a container or establish privileged runtime behavior."
+
+[[evidence]]
+id = "podman-6-0-2-container-podman-args-privileged-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/v6.0.2/pkg/systemd/quadlet/quadlet.go#L924-L929"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 container parser/generator source retains the immediate handlePodmanArgs call before appending the image to the generated podman run command."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Tagged source and dry-run generated command text do not execute a container or establish privileged runtime behavior."
+
+[[evidence]]
+id = "podman-5-4-container-podman-args-privileged-cli"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-run.1.html#privileged"
+target = "5.4.0"
+claim = "The Podman 5.4.0 run manual documents --privileged as a boolean option with false as its default and true as the bare-flag form."
+test = "capabilities::supported_range_records_container_podman_args_privileged"
+gap = "The CLI manual records option spelling and default only; it does not establish Quadlet command construction or runtime privilege equivalence."
+
+[[evidence]]
+id = "podman-6-0-2-container-podman-args-privileged-cli"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-run.1.html#privileged"
+target = "6.0.2"
+claim = "The Podman 6.0.2 run manual retains --privileged as a boolean option with false as its default and true as the bare-flag form."
+test = "capabilities::supported_range_records_container_podman_args_privileged"
+gap = "The CLI manual records option spelling and default only; it does not establish Quadlet command construction or runtime privilege equivalence."
+
+[[evidence]]
+id = "podman-5-4-through-current-container-podman-args-privileged-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every recorded Podman patch release from 5.4.0 through 6.0.2 accepts isolated PodmanArgs=--privileged and PodmanArgs=--privileged=false units and emits exactly one respective separate argument immediately before each image, with no --privileged=true, positional false, short, quoted, bundled, alternate, duplicate, or conflicting form."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The fixture invokes only the dry-run generator. It establishes generated command text, not runtime privileges, devices, LSM, seccomp, rootless, or workload behavior."
+
+[[evidence]]
 id = "podman-5-4-through-current-first-conversion-generators"
 verification = "generator"
 url = "https://github.com/containers/podman/releases"
 versions = { minimum = "5.4.0", maximum = "6.0.2" }
-claim = "Every Podman patch release from 5.4.0 through 6.0.2 generates the expected container, pod, network, volume, systemd dependency-ordering, container-name, add-host, isolated container hostname, isolated positive and zero container shared-memory sizes, one pod-owned shared-memory size with a joined container, four ordered lowercase capability-drop arguments from three repeated entries and no capability-add argument in that isolated unit, four ordered lowercase capability-add arguments from three repeated entries and no capability-drop argument in that isolated unit, exactly one capability-drop all before one capability-add cap_net_bind_service with no other capability arguments in a combined unit, exactly one post-reset --tmpfs /data:mode=755,uid=1009,gid=1009 argument with no pre-reset or extra tmpfs form, exactly one post-reset --sysctl net.ipv4.ip_forward=1 argument with neither pre-reset setting nor any other --sysctl form, exactly two ordered post-reset --ulimit nproc=4096:8192 and --ulimit stack=-1:-1 arguments with neither pre-reset value nor duplicate, empty, or alternate form, exactly two ordered post-reset --device /dev/null:/dev/final-null:r and --device /dev/zero:/dev/final-zero:w arguments with neither pre-reset mapping nor empty or alternate form, exactly two ordered post-reset --dns 9.9.9.9 and --dns 2001:4860:4860::8888 arguments, exactly two ordered post-reset --dns-option ndots:1 and --dns-option use-vc arguments, and exactly two ordered post-reset --dns-search dc1.example.com and --dns-search . arguments, with no respective pre-reset, duplicate, empty, equals, quoted, or alternate forms, image and rootfs workload sources, JSON-array entrypoint, RunInit=true as exactly one --init argument, RunInit=false as exactly one --init=false argument, named and numeric stop signals, positive and zero stop timeout, isolated always/missing/never/newer pull-policy arguments, isolated positive and -1 PID-limit arguments, command, environment, environment-file, repeated/empty/quote-bearing label, secret mount/environment options, port, mount, resource-reference, container and pod user-namespace, health-command, health-timing, health-readiness, restart, and PodmanArgs fragments. Each appropriate shared-memory unit contains exactly one matching --shm-size form, and the joined container does not duplicate the pod-owned argument. The entrypoint presentation changes from separate arguments through 5.8.1 to an equals argument from 5.8.2; both carry the same JSON array. The known quote-bearing label whitespace encodings are also verified explicitly. The harness uses digest-pinned official immutable images through 5.8.2 and builds later exact release commits with a digest-pinned builder."
+claim = "Every Podman patch release from 5.4.0 through 6.0.2 generates the expected container, pod, network, volume, systemd dependency-ordering, container-name, add-host, isolated container hostname, isolated positive and zero container shared-memory sizes, one pod-owned shared-memory size with a joined container, four ordered lowercase capability-drop arguments from three repeated entries and no capability-add argument in that isolated unit, four ordered lowercase capability-add arguments from three repeated entries and no capability-drop argument in that isolated unit, exactly one capability-drop all before one capability-add cap_net_bind_service with no other capability arguments in a combined unit, exactly one post-reset --tmpfs /data:mode=755,uid=1009,gid=1009 argument with no pre-reset or extra tmpfs form, exactly one post-reset --sysctl net.ipv4.ip_forward=1 argument with neither pre-reset setting nor any other --sysctl form, exactly two ordered post-reset --ulimit nproc=4096:8192 and --ulimit stack=-1:-1 arguments with neither pre-reset value nor duplicate, empty, or alternate form, exactly two ordered post-reset --device /dev/null:/dev/final-null:r and --device /dev/zero:/dev/final-zero:w arguments with neither pre-reset mapping nor empty or alternate form, exactly two ordered post-reset --dns 9.9.9.9 and --dns 2001:4860:4860::8888 arguments, exactly two ordered post-reset --dns-option ndots:1 and --dns-option use-vc arguments, and exactly two ordered post-reset --dns-search dc1.example.com and --dns-search . arguments, with no respective pre-reset, duplicate, empty, equals, quoted, or alternate forms, image and rootfs workload sources, JSON-array entrypoint, RunInit=true as exactly one --init argument, RunInit=false as exactly one --init=false argument, named and numeric stop signals, positive and zero stop timeout, isolated always/missing/never/newer pull-policy arguments, isolated positive and -1 PID-limit arguments, command, environment, environment-file, repeated/empty/quote-bearing label, secret mount/environment options, port, mount, resource-reference, container and pod user-namespace, health-command, health-timing, health-readiness, restart, generic PodmanArgs fragments, and separately mounted exact PodmanArgs=--interactive, PodmanArgs=--tty, PodmanArgs=--privileged, and PodmanArgs=--privileged=false forms. Each appropriate shared-memory unit contains exactly one matching --shm-size form, and the joined container does not duplicate the pod-owned argument. The entrypoint presentation changes from separate arguments through 5.8.1 to an equals argument from 5.8.2; both carry the same JSON array. The known quote-bearing label whitespace encodings are also verified explicitly. The harness uses digest-pinned official immutable images through 5.8.2 and builds later exact release commits with a digest-pinned builder."
 test = "generators::supported_generators_match_the_first_conversion_fixture"
 
 [[evidence]]
@@ -2942,6 +3095,36 @@ repeatable = true
 value_forms = ["systemd-command-line"]
 native = { minimum = "5.4.0", maximum = "6.0.2" }
 evidence = ["podman-5-4-container", "podman-5-4-through-current-first-conversion-generators"]
+
+[[capability]]
+id = "quadlet.container.podman-args.interactive"
+description = "The exact repeatable Container PodmanArgs=--interactive escape-hatch form, evidenced as generated command text only."
+unit_types = ["container"]
+sections = ["Container"]
+repeatable = true
+value_forms = ["exact-podman-run-interactive-flag"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-podman-args-interactive", "podman-6-0-2-container-podman-args-interactive", "podman-5-4-container-podman-args-interactive-command-source", "podman-6-0-2-container-podman-args-interactive-command-source", "podman-5-4-through-current-container-podman-args-interactive-generators"]
+
+[[capability]]
+id = "quadlet.container.podman-args.tty"
+description = "The exact repeatable Container PodmanArgs=--tty escape-hatch form, evidenced as generated command text only."
+unit_types = ["container"]
+sections = ["Container"]
+repeatable = true
+value_forms = ["exact-podman-run-tty-flag"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-podman-args-tty", "podman-6-0-2-container-podman-args-tty", "podman-5-4-container-podman-args-tty-command-source", "podman-6-0-2-container-podman-args-tty-command-source", "podman-5-4-through-current-container-podman-args-tty-generators"]
+
+[[capability]]
+id = "quadlet.container.podman-args.privileged"
+description = "The exact repeatable Container PodmanArgs=--privileged and PodmanArgs=--privileged=false escape-hatch forms, evidenced as generated command text only."
+unit_types = ["container"]
+sections = ["Container"]
+repeatable = true
+value_forms = ["exact-podman-run-privileged-true-flag", "exact-podman-run-privileged-false-flag"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-podman-args-privileged", "podman-6-0-2-container-podman-args-privileged", "podman-5-4-container-podman-args-privileged-command-source", "podman-6-0-2-container-podman-args-privileged-command-source", "podman-5-4-container-podman-args-privileged-cli", "podman-6-0-2-container-podman-args-privileged-cli", "podman-5-4-through-current-container-podman-args-privileged-generators"]
 
 [[capability]]
 id = "quadlet.container.user"

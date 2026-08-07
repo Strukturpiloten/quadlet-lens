@@ -9,6 +9,9 @@ Versioning for its documented pre-1.0 public API.
 
 ### Added
 
+- Evidence-scoped exact generic `PodmanArgs` forms for `--interactive`, `--tty`,
+  `--privileged`, and `--privileged=false` across Podman 5.4.0 through 6.0.2; this is generated
+  command-text evidence only, not runtime or cross-format equivalence.
 - Native container `LogDriver`/`LogOpt` and `IP`/`IP6`/`NetworkAlias` keys.
 - Native network `Driver`/`Options`/`Internal`/`IPv6`/IPAM/`Label` keys.
 - Native volume `Driver`/`Options`/`Label`/`Device`/`Type`/`Copy` keys.

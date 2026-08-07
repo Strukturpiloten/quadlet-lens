@@ -44,8 +44,8 @@ one of the four typed unit types.
 | `[Volume]` | `VolumeName`, `Driver`, `Options`, `Label`, `Device`, `Type`, `Copy` |
 | `[Unit]`, `[Service]`, `[Install]` | Open-ended generic systemd directives with source/order preservation; typed generation and explicit capability evidence exist for `[Unit]` `Requires=`, `Wants=`, and `After=`, and `[Service]` `Restart=`. |
 
-The current manual contains 29 additional container keys, 18 additional pod keys, 15 additional
-nine network keys, and 14 additional volume keys that are syntax-preserved but not typed. The complete
+The current manual contains exactly 29 additional container keys, 18 pod keys, 8 network keys, and
+9 volume keys that are syntax-preserved but not typed. The complete
 lists, plus every current build, image, kube, artifact, and Quadlet-section key, are maintained in
 the [specification coverage ledger](roadmap.md#specification-coverage-ledger).
 
@@ -89,6 +89,17 @@ The same process subset includes singleton `RunInit`. Authored omission remains 
 without boolean interpretation. For every supported patch release, the generator matrix proves
 that `RunInit=true` emits exactly one `--init` argument and `RunInit=false` emits exactly one
 `--init=false`. It does not establish runtime init behavior.
+
+The generic repeatable `PodmanArgs` escape hatch has evidence-scoped exact
+`PodmanArgs=--interactive`, `PodmanArgs=--tty`, `PodmanArgs=--privileged`, and
+`PodmanArgs=--privileged=false` forms, without adding a `Tty` or `Privileged` key or wrapper. Their
+isolated full generator fixtures require the respective separate argument immediately before the
+image from every recorded Podman 5.4.0 through 6.0.2 release; support is unknown outside that
+finite range. The privileged two-unit fixture rejects `--privileged=true`, positional false,
+short, quoted, bundled, alternate, duplicate, and conflicting spellings. Its endpoint Quadlet
+manual, tagged generator placement, and Podman CLI boolean/default evidence establish generated
+command text only, not runtime privileges, devices, LSM, seccomp, rootless, or cross-format
+equivalence.
 
 The container stop-lifecycle subset includes singleton `StopSignal` and `StopTimeout`. The native
 model retains exact authored one-line values, including zero, while the capability catalogue

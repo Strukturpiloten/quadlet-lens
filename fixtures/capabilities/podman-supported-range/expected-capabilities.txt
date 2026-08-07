@@ -36,6 +36,9 @@ quadlet.container.notify-healthy
 quadlet.container.pids-limit
 quadlet.container.pod
 quadlet.container.podman-args
+quadlet.container.podman-args.interactive
+quadlet.container.podman-args.tty
+quadlet.container.podman-args.privileged
 quadlet.container.pull
 quadlet.container.publish-port
 quadlet.container.read-only

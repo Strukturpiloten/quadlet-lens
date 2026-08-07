@@ -25,8 +25,8 @@ fn supported_range_has_the_reviewed_first_conversion_surface() -> Result<(), Str
         .collect();
     let expected: BTreeSet<_> = EXPECTED_CAPABILITIES.lines().filter(|line| !line.is_empty()).collect();
     assert_eq!(actual, expected);
-    assert_eq!(catalogue.capabilities().len(), 94);
-    assert_eq!(catalogue.evidence().len(), 260);
+    assert_eq!(catalogue.capabilities().len(), 97);
+    assert_eq!(catalogue.evidence().len(), 277);
 
     let documentation: Vec<_> = catalogue
         .evidence()
@@ -34,7 +34,7 @@ fn supported_range_has_the_reviewed_first_conversion_surface() -> Result<(), Str
         .filter(|evidence| evidence.level() == VerificationLevel::Documentation)
         .collect();
     assert!(!documentation.is_empty());
-    assert_eq!(documentation.len(), 229);
+    assert_eq!(documentation.len(), 243);
     assert!(documentation.iter().all(|evidence| evidence.gap().is_some()));
     let generator = catalogue
         .evidence()
@@ -44,6 +44,143 @@ fn supported_range_has_the_reviewed_first_conversion_surface() -> Result<(), Str
     assert_eq!(generator.versions().minimum(), version(5, 4, 0));
     assert_eq!(generator.versions().maximum(), version(6, 0, 2));
     assert_eq!(generator.gap(), None);
+    Ok(())
+}
+
+#[test]
+fn supported_range_records_container_podman_args_interactive() -> Result<(), String> {
+    let catalogue = CapabilityCatalogue::supported_range().map_err(|error| error.to_string())?;
+    let capability = catalogue
+        .capability("quadlet.container.podman-args.interactive")
+        .ok_or_else(|| "container PodmanArgs interactive capability must exist".to_owned())?;
+    assert_eq!(capability.unit_types(), ["container"]);
+    assert_eq!(capability.sections(), ["Container"]);
+    assert!(capability.is_repeatable());
+    assert_eq!(capability.value_forms(), ["exact-podman-run-interactive-flag"]);
+    assert_eq!(
+        capability.evidence(),
+        [
+            "podman-5-4-container-podman-args-interactive",
+            "podman-6-0-2-container-podman-args-interactive",
+            "podman-5-4-container-podman-args-interactive-command-source",
+            "podman-6-0-2-container-podman-args-interactive-command-source",
+            "podman-5-4-through-current-container-podman-args-interactive-generators",
+        ]
+    );
+    let native = capability
+        .native_range()
+        .ok_or_else(|| "container PodmanArgs interactive must have native coverage".to_owned())?;
+    assert_eq!(native.minimum(), version(5, 4, 0));
+    assert_eq!(native.maximum(), version(6, 0, 2));
+
+    for (target, expected) in [
+        (version(5, 3, 0), SupportClassification::Unknown),
+        (version(5, 4, 0), SupportClassification::Native),
+        (version(6, 0, 2), SupportClassification::Native),
+        (version(6, 0, 3), SupportClassification::Unknown),
+    ] {
+        let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
+        assert_eq!(
+            catalogue
+                .evaluate("quadlet.container.podman-args.interactive", target)
+                .classification(),
+            expected
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn supported_range_records_container_podman_args_tty() -> Result<(), String> {
+    let catalogue = CapabilityCatalogue::supported_range().map_err(|error| error.to_string())?;
+    let capability = catalogue
+        .capability("quadlet.container.podman-args.tty")
+        .ok_or_else(|| "container PodmanArgs TTY capability must exist".to_owned())?;
+    assert_eq!(capability.unit_types(), ["container"]);
+    assert_eq!(capability.sections(), ["Container"]);
+    assert!(capability.is_repeatable());
+    assert_eq!(capability.value_forms(), ["exact-podman-run-tty-flag"]);
+    assert_eq!(
+        capability.evidence(),
+        [
+            "podman-5-4-container-podman-args-tty",
+            "podman-6-0-2-container-podman-args-tty",
+            "podman-5-4-container-podman-args-tty-command-source",
+            "podman-6-0-2-container-podman-args-tty-command-source",
+            "podman-5-4-through-current-container-podman-args-tty-generators",
+        ]
+    );
+    let native = capability
+        .native_range()
+        .ok_or_else(|| "container PodmanArgs TTY must have native coverage".to_owned())?;
+    assert_eq!(native.minimum(), version(5, 4, 0));
+    assert_eq!(native.maximum(), version(6, 0, 2));
+
+    for (target, expected) in [
+        (version(5, 3, 0), SupportClassification::Unknown),
+        (version(5, 4, 0), SupportClassification::Native),
+        (version(6, 0, 2), SupportClassification::Native),
+        (version(6, 0, 3), SupportClassification::Unknown),
+    ] {
+        let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
+        assert_eq!(
+            catalogue
+                .evaluate("quadlet.container.podman-args.tty", target)
+                .classification(),
+            expected
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn supported_range_records_container_podman_args_privileged() -> Result<(), String> {
+    let catalogue = CapabilityCatalogue::supported_range().map_err(|error| error.to_string())?;
+    let capability = catalogue
+        .capability("quadlet.container.podman-args.privileged")
+        .ok_or_else(|| "container PodmanArgs privileged capability must exist".to_owned())?;
+    assert_eq!(capability.unit_types(), ["container"]);
+    assert_eq!(capability.sections(), ["Container"]);
+    assert!(capability.is_repeatable());
+    assert_eq!(
+        capability.value_forms(),
+        [
+            "exact-podman-run-privileged-true-flag",
+            "exact-podman-run-privileged-false-flag",
+        ]
+    );
+    assert_eq!(
+        capability.evidence(),
+        [
+            "podman-5-4-container-podman-args-privileged",
+            "podman-6-0-2-container-podman-args-privileged",
+            "podman-5-4-container-podman-args-privileged-command-source",
+            "podman-6-0-2-container-podman-args-privileged-command-source",
+            "podman-5-4-container-podman-args-privileged-cli",
+            "podman-6-0-2-container-podman-args-privileged-cli",
+            "podman-5-4-through-current-container-podman-args-privileged-generators",
+        ]
+    );
+    let native = capability
+        .native_range()
+        .ok_or_else(|| "container PodmanArgs privileged must have native coverage".to_owned())?;
+    assert_eq!(native.minimum(), version(5, 4, 0));
+    assert_eq!(native.maximum(), version(6, 0, 2));
+
+    for (target, expected) in [
+        (version(5, 3, 0), SupportClassification::Unknown),
+        (version(5, 4, 0), SupportClassification::Native),
+        (version(6, 0, 2), SupportClassification::Native),
+        (version(6, 0, 3), SupportClassification::Unknown),
+    ] {
+        let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
+        assert_eq!(
+            catalogue
+                .evaluate("quadlet.container.podman-args.privileged", target)
+                .classification(),
+            expected
+        );
+    }
     Ok(())
 }
 

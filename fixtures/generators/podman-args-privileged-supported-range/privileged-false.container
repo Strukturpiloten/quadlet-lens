@@ -1,0 +1,3 @@
+[Container]
+Image=registry.example.invalid/privileged-false:1
+PodmanArgs=--privileged=false

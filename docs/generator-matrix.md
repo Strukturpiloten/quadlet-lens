@@ -73,6 +73,8 @@ isolated post-reset fixtures for `DNS`, `DNSOption`, `DNSSearch`, `ExposeHostPor
 an isolated network-identity container with singleton `IP` and `IP6`, one `Network=bridge`, two
 pre-reset aliases, an empty reset, and two final aliases,
 isolated singleton fixtures for AppArmor, no-new-privileges, seccomp, and each SELinux-label key,
+isolated generic `PodmanArgs=--interactive`, `PodmanArgs=--tty`, `PodmanArgs=--privileged`, and
+`PodmanArgs=--privileged=false` escape-hatch fixtures,
 environment and systemd specifiers, absolute and unit-relative environment files, repeated
 container labels, repeated mounted and environment-variable secrets with options, repeatable
 container and pod host mappings including `host-gateway`, container and pod membership, the
@@ -96,6 +98,27 @@ Container logging uses a separate all-20 fixture. It authors `LogDriver=k8s-file
 `LogOpt` entries, an empty reset, then final `tag=quadlet-lens-final` and
 `path=/tmp/quadlet-lens-final.log` entries. Each selected smoke, full, or exact-version run requires
 one driver argument and exactly those two ordered final option arguments.
+
+The `PodmanArgs=--interactive` fixture is also isolated and runs across all 20 releases. It
+requires exactly one separate `--interactive` argument immediately before its image, rejecting
+short, equals, quoted, alternate, and duplicate forms. It invokes only the dry-run generator, so
+it proves command text rather than runtime stdin, attach, or TTY behavior.
+
+The `PodmanArgs=--tty` fixture is also isolated and runs across all 20 releases. It requires
+exactly one separate `--tty` argument immediately before its image, rejecting `-t`, combined,
+equals, quoted, alternate, and duplicate forms. It retains generic `PodmanArgs` as the sole public
+API rather than adding a `Tty` key or wrapper. It invokes only the dry-run generator, so it proves
+command text rather than runtime TTY, stdout, stderr, or pipe behavior.
+
+The `PodmanArgs=--privileged` fixture is likewise isolated and runs two units across all 20
+releases: one requires exactly one bare `--privileged` argument and one exactly one
+`--privileged=false` argument, each immediately before its respective image. It rejects
+`--privileged=true`, positional false, short, quoted, bundled, alternate, duplicate, and
+conflicting forms. Generic `PodmanArgs` remains the sole public API; no `Privileged` key or wrapper
+is introduced. Endpoint Quadlet manuals, tagged command-placement source, and Podman CLI
+boolean/default documentation support the finite 5.4.0-through-6.0.2 claim. The dry-run evidence
+is command text only, not runtime privileges, devices, LSM, seccomp, rootless, or cross-format
+equivalence.
 
 Volume Device/Type coverage uses the all-20 volume fixture plus a Type-only negative fixture. It
 requires final `--opt device=tmpfs` and `--opt type=bind` forms, final blank suppression, and

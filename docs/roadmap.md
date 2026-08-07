@@ -23,10 +23,10 @@ that the syntax parser rejects it.
 
 | Section/unit | Current keys | Typed keys | Syntax-preserved only |
 | --- | ---: | ---: | ---: |
-| `[Container]` / `.container` | 90 | 58 | 32 |
+| `[Container]` / `.container` | 90 | 61 | 29 |
 | `[Pod]` / `.pod` | 25 | 7 | 18 |
-| `[Network]` / `.network` | 18 | 3 | 15 |
-| `[Volume]` / `.volume` | 16 | 4 | 12 |
+| `[Network]` / `.network` | 18 | 10 | 8 |
+| `[Volume]` / `.volume` | 16 | 7 | 9 |
 | `[Build]` / `.build` | 28 | 0 | 28 |
 | `[Image]` / `.image` | 18 | 0 | 18 |
 | `[Kube]` / `.kube` | 14 | 0 | 14 |
@@ -137,6 +137,19 @@ only for a concrete consumer scenario and must retain their native ordering/repe
 - [x] Type singleton container `PidsLimit`, preserve omission/zero/raw values, add safe typed
   `-1`/nonzero ASCII-decimal construction without parsing, and verify isolated positive/unlimited
   generator output from Podman 5.4.0 through 6.0.2 without claiming runtime cgroup behavior.
+- [x] Record the exact generic `PodmanArgs=--interactive` escape-hatch form with boundary manuals,
+  tagged source, and one isolated all-20-release generator assertion; retain the existing generic
+  repeatable API and claim generated command text only, not runtime stdin, attach, or TTY behavior.
+- [x] Record the exact generic `PodmanArgs=--tty` escape-hatch form with boundary manuals, tagged
+  source, and one isolated all-20-release generator assertion; retain the existing generic
+  repeatable API without a `Tty` key or wrapper, and claim generated command text only, not runtime
+  TTY, stdout, stderr, or pipe behavior.
+- [x] Record the exact generic `PodmanArgs=--privileged` and `PodmanArgs=--privileged=false`
+  escape-hatch forms with endpoint Quadlet manuals, tagged command placement, Podman CLI
+  boolean/default evidence, and one isolated all-20-release two-unit generator assertion; retain
+  the existing generic repeatable API without a `Privileged` key or wrapper, support only the
+  finite 5.4.0-through-6.0.2 range, and claim command text only—not runtime privileges, devices,
+  LSM, seccomp, rootless, or cross-format equivalence.
 - [ ] Type container `Retry` and `RetryDelay` with Podman 5.4-to-current evidence.
 - [ ] Type `ServiceName`, `ReloadCmd`, and `ReloadSignal` without confusing Podman resource names,
   Quadlet basenames, and generated systemd unit names.

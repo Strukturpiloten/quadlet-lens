@@ -118,6 +118,18 @@ relies on Podman's default private UTS namespace and proves exactly one emitted 
 namespace, the pod hostname wins; runtime hostname inspection and that precedence remain outside
 generator evidence.
 
+The generic repeatable container `PodmanArgs` escape hatch remains the sole public native API for
+arguments that have no dedicated Quadlet key; there is no separate `Tty` or `Privileged` key or
+wrapper. Its separately evidenced exact `PodmanArgs=--interactive`, `PodmanArgs=--tty`,
+`PodmanArgs=--privileged`, and `PodmanArgs=--privileged=false` forms are native from Podman 5.4.0
+through 6.0.2 and unknown outside that finite range. The two privileged forms each appear exactly
+once as a separate argument immediately before their respective image in every recorded generator;
+the assertion rejects `--privileged=true`, positional false, short, quoted, bundled, alternate,
+duplicate, and conflicting forms. Boundary endpoint manuals, tagged generator placement, and
+Podman CLI boolean/default documentation support the claim. These capabilities record generated
+command text only; they do not claim runtime privileges, devices, LSM, seccomp, rootless, or
+cross-format equivalence.
+
 The separate container and pod `ShmSize` capabilities cover a non-negative ASCII-decimal amount
 with either unitless bytes or one lowercase `b`, `k`, `m`, or `g` suffix. The focused constructor
 retains leading zeros and arbitrary-precision spelling without integer parsing, while parsed and
