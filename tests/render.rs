@@ -2,8 +2,8 @@
 
 use quadlet_lens::{
     model::{
-        ContainerKey, EntryKind, NamedQuadletDocument, NetworkKey, PodKey, QuadletDocumentSet, QuadletUnitType,
-        VolumeKey,
+        BuildKey, ContainerKey, EntryKind, NamedQuadletDocument, NetworkKey, PodKey, QuadletDocumentSet,
+        QuadletUnitType, VolumeKey,
     },
     render::{
         EntryValue, Memory, MemoryError, PidsLimit, PidsLimitError, QuadletDocumentBuilder, RenderError, ShmSize,
@@ -117,6 +117,133 @@ fn builds_a_deterministic_first_conversion_document_set() -> Result<(), Box<dyn 
     assert!(documents.is_valid(), "{:#?}", documents.diagnostics());
     assert!(documents.graph().is_complete());
     assert_eq!(documents.graph().edges().len(), 2);
+    Ok(())
+}
+
+#[test]
+fn build_builder_preserves_repeated_tags_and_files_and_rejects_duplicate_working_directory()
+-> Result<(), Box<dyn std::error::Error>> {
+    let mut build = QuadletDocumentBuilder::new(QuadletUnitType::Build);
+    build.push_build(BuildKey::ImageTag, value("localhost/example:primary")?)?;
+    build.push_build(BuildKey::ImageTag, value("localhost/example:secondary")?)?;
+    build.push_build(BuildKey::Network, value("host")?)?;
+    build.push_build(BuildKey::Network, value("none")?)?;
+    build.push_build(BuildKey::Network, value("frontend.network")?)?;
+    build.push_build(BuildKey::Label, value("build.label=one")?)?;
+    build.push_build(BuildKey::Label, value("empty=")?)?;
+    build.push_build(BuildKey::BuildArg, value("KEY=one")?)?;
+    build.push_build(BuildKey::BuildArg, value("EMPTY=")?)?;
+    build.push_build(BuildKey::BuildArg, value("bare text stays opaque")?)?;
+    build.push_build(
+        BuildKey::Secret,
+        value("id=quadlet-lens-one,src=/run/quadlet-lens-placeholder-one")?,
+    )?;
+    build.push_build(
+        BuildKey::Secret,
+        value("id=quadlet-lens-two,src=/run/quadlet-lens-placeholder-two")?,
+    )?;
+    build.push_build(BuildKey::File, value("Containerfile.first")?)?;
+    build.push_build(BuildKey::File, value("")?)?;
+    build.push_build(BuildKey::File, value("https://example.invalid/Containerfile?ref=main")?)?;
+    build.push_build(BuildKey::Target, value("build-stage")?)?;
+    build.push_build(BuildKey::SetWorkingDirectory, value("unit")?)?;
+    build.push_build(BuildKey::Arch, value("arm64")?)?;
+    build.push_build(BuildKey::Variant, value("v8")?)?;
+    build.push_build(BuildKey::Pull, value("always")?)?;
+    build.push_build(BuildKey::Retry, value("4")?)?;
+    build.push_build(BuildKey::RetryDelay, value("7s")?)?;
+    build.push_build(BuildKey::TLSVerify, value("true")?)?;
+    build.push_build(BuildKey::ForceRM, value("true")?)?;
+    build.push_build(BuildKey::GroupAdd, value("1234")?)?;
+    build.push_build(BuildKey::GroupAdd, value("5678")?)?;
+    build.push_build(BuildKey::DNS, value("9.9.9.9")?)?;
+    build.push_build(BuildKey::DNS, value("2001:4860:4860::8888")?)?;
+    build.push_build(BuildKey::DNSOption, value("")?)?;
+    build.push_build(BuildKey::DNSOption, value("ndots:1")?)?;
+    build.push_build(BuildKey::DNSOption, value("use-vc")?)?;
+    build.push_build(BuildKey::DNSSearch, value("")?)?;
+    build.push_build(BuildKey::DNSSearch, value("corp.example")?)?;
+    build.push_build(BuildKey::DNSSearch, value(".")?)?;
+    build.push_build(BuildKey::AuthFile, value("/run/quadlet-lens/auth.json")?)?;
+    build.push_build(BuildKey::IgnoreFile, value("./ignored-input")?)?;
+    build.push_build(BuildKey::Annotation, value("org.example.build=one")?)?;
+    build.push_build(BuildKey::Annotation, value("")?)?;
+    build.push_build(BuildKey::Annotation, value("org.example.build=final")?)?;
+    build.push_build(
+        BuildKey::PodmanArgs,
+        value("--build-context extra=container-image://alpine:3.15")?,
+    )?;
+    build.push_build(BuildKey::PodmanArgs, value("--layers")?)?;
+    assert_duplicate_build_singletons(&mut build)?;
+    assert_eq!(
+        build.build(SourceId::new(180))?.text(),
+        concat!(
+            "[Build]\n",
+            "ImageTag=localhost/example:primary\n",
+            "ImageTag=localhost/example:secondary\n",
+            "Network=host\n",
+            "Network=none\n",
+            "Network=frontend.network\n",
+            "Label=build.label=one\n",
+            "Label=empty=\n",
+            "BuildArg=KEY=one\n",
+            "BuildArg=EMPTY=\n",
+            "BuildArg=bare text stays opaque\n",
+            "Secret=id=quadlet-lens-one,src=/run/quadlet-lens-placeholder-one\n",
+            "Secret=id=quadlet-lens-two,src=/run/quadlet-lens-placeholder-two\n",
+            "File=Containerfile.first\n",
+            "File=\n",
+            "File=https://example.invalid/Containerfile?ref=main\n",
+            "Target=build-stage\n",
+            "SetWorkingDirectory=unit\n",
+            "Arch=arm64\n",
+            "Variant=v8\n",
+            "Pull=always\n",
+            "Retry=4\n",
+            "RetryDelay=7s\n",
+            "TLSVerify=true\n",
+            "ForceRM=true\n",
+            "GroupAdd=1234\n",
+            "GroupAdd=5678\n",
+            "DNS=9.9.9.9\n",
+            "DNS=2001:4860:4860::8888\n",
+            "DNSOption=\n",
+            "DNSOption=ndots:1\n",
+            "DNSOption=use-vc\n",
+            "DNSSearch=\n",
+            "DNSSearch=corp.example\n",
+            "DNSSearch=.\n",
+            "AuthFile=/run/quadlet-lens/auth.json\n",
+            "IgnoreFile=./ignored-input\n",
+            "Annotation=org.example.build=one\n",
+            "Annotation=\n",
+            "Annotation=org.example.build=final\n",
+            "PodmanArgs=--build-context extra=container-image://alpine:3.15\n",
+            "PodmanArgs=--layers\n",
+        )
+    );
+    Ok(())
+}
+
+fn assert_duplicate_build_singletons(build: &mut QuadletDocumentBuilder) -> Result<(), Box<dyn std::error::Error>> {
+    for (key, value_text, expected_key) in [
+        (BuildKey::SetWorkingDirectory, "/tmp/other", "SetWorkingDirectory"),
+        (BuildKey::Target, "other-stage", "Target"),
+        (BuildKey::Arch, "amd64", "Arch"),
+        (BuildKey::Variant, "v7", "Variant"),
+        (BuildKey::Pull, "never", "Pull"),
+        (BuildKey::Retry, "5", "Retry"),
+        (BuildKey::RetryDelay, "8s", "RetryDelay"),
+        (BuildKey::TLSVerify, "false", "TLSVerify"),
+        (BuildKey::ForceRM, "false", "ForceRM"),
+        (BuildKey::AuthFile, "/run/quadlet-lens/other-auth.json", "AuthFile"),
+        (BuildKey::IgnoreFile, "./other-ignored-input", "IgnoreFile"),
+    ] {
+        assert!(matches!(
+            build.push_build(key, value(value_text)?),
+            Err(RenderError::DuplicateSingleton(actual)) if actual == expected_key
+        ));
+    }
     Ok(())
 }
 

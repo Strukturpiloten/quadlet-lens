@@ -1,0 +1,2 @@
+---build-podman-args-cap-add-cap-sys-admin-build.service---
+SourcePath=/fixtures/build-podman-args-cap-add-cap-sys-admin.build

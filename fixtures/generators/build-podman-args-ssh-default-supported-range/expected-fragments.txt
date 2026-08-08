@@ -1,0 +1,2 @@
+---build-podman-args-ssh-default-build.service---
+SourcePath=/fixtures/build-podman-args-ssh-default.build

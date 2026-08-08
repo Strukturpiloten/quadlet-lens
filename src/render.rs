@@ -10,8 +10,8 @@ use std::{error::Error, fmt};
 use crate::{
     diagnostic::Diagnostic,
     model::{
-        ContainerKey, EntryKind, NetworkKey, PodKey, QuadletDocument, QuadletParseResult, QuadletUnitType, SectionKind,
-        TypedModelError, VolumeKey,
+        BuildKey, ContainerKey, EntryKind, NetworkKey, PodKey, QuadletDocument, QuadletParseResult, QuadletUnitType,
+        SectionKind, TypedModelError, VolumeKey,
     },
     source::SourceId,
 };
@@ -419,6 +419,27 @@ impl QuadletDocumentBuilder {
         )
     }
 
+    /// Appends a typed `[Build]` entry.
+    ///
+    /// `ImageTag`, `File`, `Network`, `Label`, `BuildArg`, `Secret`, `GroupAdd`, `DNS`, `DNSOption`, `DNSSearch`,
+    /// `Annotation`, and `PodmanArgs` entries remain repeatable and ordered; `SetWorkingDirectory`, `Target`, `Arch`, `Variant`,
+    /// `Pull`, `Retry`, `RetryDelay`, `TLSVerify`, `ForceRM`, `AuthFile`, and `IgnoreFile` are singletons. Values are exact
+    /// physical-line-safe native text and are not interpreted by the builder.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RenderError::WrongUnitType`] for a non-build document and
+    /// [`RenderError::DuplicateSingleton`] for a repeated singleton Build key.
+    pub fn push_build(&mut self, key: BuildKey, value: EntryValue) -> Result<(), RenderError> {
+        self.push_native(
+            QuadletUnitType::Build,
+            SectionKind::Build,
+            EntryKind::Build(key),
+            build_key_name(key),
+            value,
+        )
+    }
+
     /// Appends an open-ended entry to a generic systemd section.
     ///
     /// Generic entries retain insertion order and may repeat because their reset and list behavior
@@ -694,6 +715,34 @@ const fn container_key_name(key: ContainerKey) -> &'static str {
     }
 }
 
+const fn build_key_name(key: BuildKey) -> &'static str {
+    match key {
+        BuildKey::ImageTag => "ImageTag",
+        BuildKey::SetWorkingDirectory => "SetWorkingDirectory",
+        BuildKey::File => "File",
+        BuildKey::Target => "Target",
+        BuildKey::Network => "Network",
+        BuildKey::Label => "Label",
+        BuildKey::BuildArg => "BuildArg",
+        BuildKey::Secret => "Secret",
+        BuildKey::Arch => "Arch",
+        BuildKey::Variant => "Variant",
+        BuildKey::Pull => "Pull",
+        BuildKey::PodmanArgs => "PodmanArgs",
+        BuildKey::Retry => "Retry",
+        BuildKey::RetryDelay => "RetryDelay",
+        BuildKey::TLSVerify => "TLSVerify",
+        BuildKey::ForceRM => "ForceRM",
+        BuildKey::GroupAdd => "GroupAdd",
+        BuildKey::DNS => "DNS",
+        BuildKey::DNSOption => "DNSOption",
+        BuildKey::DNSSearch => "DNSSearch",
+        BuildKey::AuthFile => "AuthFile",
+        BuildKey::IgnoreFile => "IgnoreFile",
+        BuildKey::Annotation => "Annotation",
+    }
+}
+
 const fn pod_key_name(key: PodKey) -> &'static str {
     match key {
         PodKey::AddHost => "AddHost",
@@ -740,6 +789,7 @@ const fn section_name(section: SectionKind) -> &'static str {
         SectionKind::Pod => "Pod",
         SectionKind::Network => "Network",
         SectionKind::Volume => "Volume",
+        SectionKind::Build => "Build",
         SectionKind::Service => "Service",
         SectionKind::Install => "Install",
         SectionKind::Unknown => "Unknown",

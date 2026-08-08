@@ -27,7 +27,7 @@ that the syntax parser rejects it.
 | `[Pod]` / `.pod` | 25 | 7 | 18 |
 | `[Network]` / `.network` | 18 | 10 | 8 |
 | `[Volume]` / `.volume` | 16 | 7 | 9 |
-| `[Build]` / `.build` | 28 | 0 | 28 |
+| `[Build]` / `.build` | 28 | 23 | 5 |
 | `[Image]` / `.image` | 18 | 0 | 18 |
 | `[Kube]` / `.kube` | 14 | 0 | 14 |
 | `[Artifact]` / `.artifact` | 13 | 0 | 13 |
@@ -93,10 +93,23 @@ syntax-preserved but not typed:
 The syntax layer preserves these unit files, but their native unit type, section, keys, builders,
 relationships, capability records, and generator fixtures are open.
 
-- `[Build]`: `Annotation`, `Arch`, `AuthFile`, `BuildArg`, `ContainersConfModule`, `DNS`,
-  `DNSOption`, `DNSSearch`, `Environment`, `File`, `ForceRM`, `GlobalArgs`, `GroupAdd`,
-  `IgnoreFile`, `ImageTag`, `Label`, `Network`, `PodmanArgs`, `Pull`, `Retry`, `RetryDelay`,
-  `Secret`, `ServiceName`, `SetWorkingDirectory`, `Target`, `TLSVerify`, `Variant`, `Volume`.
+- `[Build]`: `ContainersConfModule`,
+  `Environment`, `GlobalArgs`,
+  `ServiceName`, `Volume`. `ImageTag` and repeatable
+  opaque `Network`/`Label`/`File`/`BuildArg`/`Secret`/`GroupAdd`/`DNS`/`DNSOption`/`DNSSearch`/`Annotation`/`PodmanArgs` are typed with full 5.4.0-through-6.0.2
+  generator evidence; singleton `SetWorkingDirectory`/`Target`/`Arch`/`Variant`/`Pull`/`Retry`/`RetryDelay`/`TLSVerify`/`ForceRM`/`AuthFile`/`IgnoreFile` values are also typed;
+  exact `.network` Build references resolve in document sets, while effective-last `File` selection
+  remains target evidence, not Lens normalization. `Label` retains every physical line without
+  parsing, unquoting, duplicate-name selection, map collapse or sorting, or validation; the matrix
+  covers only `build.label=one` and `empty=`. `BuildArg` is explicitly unsupported through 5.6.2,
+  native from 5.7.0 through 6.0.2, and otherwise unknown; it remains opaque with no assignment,
+  environment, secret, bare, or null-value interpretation. `Secret` is native from 5.4.0 through
+  6.0.2 and unknown outside that range; it remains opaque without comma, argument, environment,
+  path, or secret-data interpretation, and its separate fixture uses placeholder paths only. `Arch`
+  and `Variant` preserve raw singleton text without platform parsing, host defaults, or effective-last
+  normalization; their separate fixture asserts one `--arch arm64` and one `--variant v8` without
+  a relative-order claim. `Pull` preserves opaque raw singleton text without policy validation,
+  default selection, normalization, effective-last access, Compose mapping, registry, image-pull, or runtime claims; its separate fixture asserts exactly one `--pull=always` form. `Retry` and `RetryDelay` are unsupported in 5.4.0–5.4.2, native in 5.5.0–6.0.2, and otherwise unknown; their opaque fixture asserts one separate `--retry 4` pair and one separate `--retry-delay 7s` pair before final `.` without a relative-order claim between pairs, and makes no parsing, defaults, effective-last, Compose `dockerfile_inline`, registry, retry/timing, build-success, runtime, or conversion claim. `TLSVerify` is opaque and native in 5.4.0–6.0.2, otherwise unknown; its two-unit fixture asserts one bare `--tls-verify` for true and one `--tls-verify=false` for false before final `.`, without TLS/certificate/registry/pull/build-success/security/provenance/runtime/conversion claims. `ForceRM` is opaque and native in 5.4.0–6.0.2, otherwise unknown; its two-unit fixture asserts one bare `--force-rm` for true and one `--force-rm=false` for false before final `.`, without parsing/default/effective-last, cleanup/failure/execution/default/configuration/cache-equivalence, runtime, or conversion claims. `GroupAdd` is repeatable and native in 5.4.0–6.0.2, otherwise unknown; its fixture asserts ordered separate `--group-add 1234` then `--group-add 5678` pairs before final `.`, without group lookup, keep-groups exclusivity, rootless/user-namespace, runtime, build-execution, Compose privilege-equivalence, or conversion claims. `DNS` is repeatable and native in 5.4.0–6.0.2, otherwise unknown; its fixture asserts ordered separate `--dns 9.9.9.9` then `--dns 2001:4860:4860::8888` pairs before final `.`, without resolver, none-compatibility, resolv.conf, host-DNS, build-execution, Compose endpoint-mapping, or conversion claims.
 - `[Image]`: `AllTags`, `Arch`, `AuthFile`, `CertDir`, `ContainersConfModule`, `Creds`,
   `DecryptionKey`, `GlobalArgs`, `Image`, `ImageTag`, `OS`, `PodmanArgs`, `Policy`, `Retry`,
   `RetryDelay`, `ServiceName`, `TLSVerify`, `Variant`.
@@ -150,7 +163,54 @@ only for a concrete consumer scenario and must retain their native ordering/repe
   the existing generic repeatable API without a `Privileged` key or wrapper, support only the
   finite 5.4.0-through-6.0.2 range, and claim command text only—not runtime privileges, devices,
   LSM, seccomp, rootless, or cross-format equivalence.
-- [ ] Type container `Retry` and `RetryDelay` with Podman 5.4-to-current evidence.
+- [x] Type repeatable Build `PodmanArgs` as opaque physical-line text and record exact
+  `--build-context extra=container-image://alpine:3.15` command placement through the all-20
+  generator matrix, without Compose context lowering, resolution, CLI, build, runtime, or cross-format claims.
+- [x] Record exact Build `PodmanArgs=--ssh=default` command placement through the all-20 generator
+  matrix with endpoint manuals and tagged source; this non-secret fixture claims no keys, sockets,
+  agent, PEM, path, environment, mount, build, runtime, or Compose lowering behavior.
+- [x] Record exact Build `PodmanArgs=--shm-size=32m` command placement through the all-20 generator
+  matrix with endpoint Quadlet/build manuals and tagged source; it adds no native Build `ShmSize`
+  key and claims no Compose/unit equivalence, zero/default, IPC, host/cgroup/memory, build/runtime,
+  or conversion behavior.
+- [x] Record exact Build `PodmanArgs=--add-host=buildhost:192.0.2.10` command placement through
+  the all-20 generator matrix with endpoint Quadlet/build manuals and tagged source; it does not
+  lower Compose list/map hosts, establish IPv6/host-gateway/DNS/`/etc/hosts` semantics, resolve
+  conflicts/defaults, or claim build, runtime, or conversion behavior.
+- [x] Record exact Build `PodmanArgs=--cap-add=CAP_SYS_ADMIN` command placement through the all-20
+  generator matrix with endpoint Quadlet/build manuals and tagged source; it does not establish
+  Compose entitlement equivalence/conversion, actual capability grants, build execution, or
+  LSM/seccomp/rootless/runtime effects.
+- [x] Type singleton Build `Retry` and `RetryDelay` as opaque values; record the 5.4.x rejection
+  boundary and 5.5.0–6.0.2 generator output without retry/timing, runtime, or conversion claims.
+- [x] Type singleton Build `TLSVerify` as an opaque value and verify isolated true/false command
+  construction from Podman 5.4.0 through 6.0.2 without TLS, registry, build-success, security,
+  runtime, or conversion claims.
+- [x] Type singleton Build `ForceRM` as an opaque value and verify isolated true/false command
+  construction from Podman 5.4.0 through 6.0.2 without cleanup, failure, execution, default,
+  configuration, cache-equivalence, runtime, or conversion claims.
+- [x] Type repeatable Build `GroupAdd` as opaque physical-line values and verify ordered separate
+  group arguments from Podman 5.4.0 through 6.0.2 without group lookup, keep-groups exclusivity,
+  rootless/user-namespace, runtime, build-execution, Compose privilege-equivalence, or conversion claims.
+- [x] Type repeatable Build `DNS` as opaque physical-line values and verify ordered separate DNS
+  arguments from Podman 5.4.0 through 6.0.2 without resolver, none-compatibility, resolv.conf,
+  host-DNS, build-execution, Compose endpoint-mapping, or conversion claims.
+- [x] Type repeatable Build `DNSSearch` as opaque physical-line values and verify ordered separate
+  post-reset `--dns-search corp.example` then `--dns-search .` arguments from Podman 5.4.0 through
+  6.0.2, without model reset or dot semantics, domain removal, DNS/resolver work, build execution,
+  Compose mapping, or conversion claims.
+- [x] Type singleton Build `AuthFile` as opaque physical-line text and verify one separate path,
+  generator-effective-last repeated output, and final-empty omission from Podman 5.4.0 through
+  6.0.2, without model normalization, path reads or validation, credential parsing, sensitivity
+  classification, authentication, build success, runtime, Compose mapping, or conversion claims.
+- [x] Type singleton Build `IgnoreFile` as opaque physical-line text; record 5.4.0–5.6.2
+  rejection/exclusion and 5.7.0–6.0.2 one-path, generator-effective-last, and final-empty
+  command construction without model normalization, path or ignore-rule interpretation, build
+  success, runtime, Compose mapping, or conversion claims.
+- [x] Type repeatable Build `Annotation` as opaque physical-line text and record all-20-release
+  target reset, tokenization/unquoting/C-unescaping, duplicate-key-collapse, sorting, and 5.6.0
+  bare/malformed-token behavior without Lens normalization, OCI/image-metadata, build, runtime,
+  Compose mapping, or conversion claims.
 - [ ] Type `ServiceName`, `ReloadCmd`, and `ReloadSignal` without confusing Podman resource names,
   Quadlet basenames, and generated systemd unit names.
 - [ ] Type pod `ExitPolicy`, `StopTimeout`, and `ServiceName` with explicit restart interactions.
@@ -233,7 +293,8 @@ only for a concrete consumer scenario and must retain their native ordering/repe
 ### Next 4: resource and image lifecycle units
 
 - [ ] Complete `[Volume]` typing and capability evidence.
-- [ ] Add `.image` and `.build` native units, references, builders, and exact generator matrices.
+- [ ] Add `.image` native units, references, builders, and exact generator matrices; extend the
+  typed `.build` surface beyond `ImageTag`, `Network`, `Label`, `File`, `SetWorkingDirectory`, and `Target`.
 - [ ] Add `.kube` only after its file-access and Kubernetes-YAML boundary is explicit.
 - [ ] Defer `.artifact` typed support until its experimental contract is stable enough to test
   without presenting a moving target as supported.

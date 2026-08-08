@@ -59,6 +59,65 @@ fn document_set_resolves_container_pod_network_and_volume_dependencies() -> Resu
 }
 
 #[test]
+fn document_set_resolves_a_container_image_to_an_exact_build_unit() -> Result<(), String> {
+    let set = QuadletDocumentSet::new([
+        named(
+            "application.container",
+            QuadletUnitType::Container,
+            181,
+            "[Container]\nImage=application.build\n",
+        )?,
+        named(
+            "application.build",
+            QuadletUnitType::Build,
+            182,
+            "[Build]\nImageTag=localhost/application:latest\nTarget=build-stage\nSetWorkingDirectory=unit\n",
+        )?,
+    ])
+    .map_err(|error| error.to_string())?;
+    assert!(set.is_valid(), "{:#?}", set.diagnostics());
+    assert_eq!(set.graph().references().len(), 1);
+    assert_eq!(set.graph().edges().len(), 1);
+    assert_eq!(set.graph().references()[0].kind(), UnitReferenceKind::Build);
+    assert_eq!(
+        set.graph().references()[0].resolution(),
+        ReferenceResolution::Resolved { document_index: 1 }
+    );
+    assert_eq!(set.graph().edges()[0].target_document(), 1);
+    assert_eq!(
+        set.document("application.build")
+            .map(|document| document.document().unit_type()),
+        Some(QuadletUnitType::Build)
+    );
+    Ok(())
+}
+
+#[test]
+fn document_set_resolves_an_exact_build_network_reference() -> Result<(), String> {
+    let set = QuadletDocumentSet::new([
+        named(
+            "application.build",
+            QuadletUnitType::Build,
+            183,
+            "[Build]\nNetwork=frontend.network\nNetwork=frontend.network:ip=192.0.2.10\nNetwork=frontend.container\n",
+        )?,
+        named("frontend.network", QuadletUnitType::Network, 184, "[Network]\n")?,
+    ])
+    .map_err(|error| error.to_string())?;
+    assert!(set.is_valid(), "{:#?}", set.diagnostics());
+    assert_eq!(set.graph().references().len(), 1);
+    assert_eq!(set.graph().edges().len(), 1);
+    assert_eq!(set.graph().references()[0].kind(), UnitReferenceKind::Network);
+    assert_eq!(set.graph().references()[0].target_name(), "frontend.network");
+    assert_eq!(
+        set.graph().references()[0].resolution(),
+        ReferenceResolution::Resolved { document_index: 1 }
+    );
+    assert_eq!(set.graph().edges()[0].target_document(), 1);
+    Ok(())
+}
+
+#[test]
 fn document_set_reports_missing_ambiguous_and_duplicate_identities() -> Result<(), String> {
     let missing = QuadletDocumentSet::new([named(
         "missing.container",
@@ -112,6 +171,13 @@ fn unit_file_names_are_basenames_with_matching_supported_suffixes() -> Result<()
         UnitFileName::new("application.image"),
         Err(DocumentSetError::UnsupportedUnitFileExtension(_))
     ));
+
+    assert_eq!(
+        UnitFileName::new("application.build")
+            .map_err(|error| error.to_string())?
+            .unit_type(),
+        QuadletUnitType::Build
+    );
 
     let network = named_document(QuadletUnitType::Network, 61, "[Network]\n")?;
     assert!(matches!(

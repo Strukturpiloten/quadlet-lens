@@ -9,15 +9,9 @@ Versioning for its documented pre-1.0 public API.
 
 ### Added
 
-- Evidence-scoped exact generic `PodmanArgs` forms for `--interactive`, `--tty`,
-  `--privileged`, and `--privileged=false` across Podman 5.4.0 through 6.0.2; this is generated
-  command-text evidence only, not runtime or cross-format equivalence.
-- Native container `LogDriver`/`LogOpt` and `IP`/`IP6`/`NetworkAlias` keys.
-- Native network `Driver`/`Options`/`Internal`/`IPv6`/IPAM/`Label` keys.
-- Native volume `Driver`/`Options`/`Label`/`Device`/`Type`/`Copy` keys.
-- Exact capability and generator evidence across all 20 recorded Podman releases from 5.4.0
-  through 6.0.2, including the 5.6.0 network-label bare-token and 6.0.0 volume-options
-  device-prerequisite boundaries.
+- Evidence-scoped generic `PodmanArgs`, container logging/network identity, network, and volume keys with exact capability and dry-run generator evidence across Podman 5.4.0–6.0.2; this does not claim runtime or cross-format equivalence.
+- Consolidated opaque `.build` support includes singleton `AuthFile`/`IgnoreFile` and repeatable `BuildArg`/`Secret`/`GroupAdd`/`DNS`/`DNSOption`/`DNSSearch`/`Annotation`/`PodmanArgs` with finite dry-run command-text evidence; it makes no runtime or cross-format claim.
+- The recorded range retains the 5.6.0 network-label bare-token and 6.0.0 volume-options device-prerequisite boundaries.
 
 ## [0.1.11] - 2026-08-07
 

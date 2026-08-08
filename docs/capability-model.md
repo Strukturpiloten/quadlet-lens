@@ -118,6 +118,167 @@ relies on Podman's default private UTS namespace and proves exactly one emitted 
 namespace, the pod hostname wins; runtime hostname inspection and that precedence remain outside
 generator evidence.
 
+The Build `File` capability is repeatable and opaque from Podman 5.4.0 through 6.0.2. QuadletLens
+retains every authored physical line, including duplicates, empty assignments, quoting, specifiers,
+and order, without path or URL classification, Containerfile resolution, or normalization. Tagged
+5.4.0 and 6.0.2 source observes that the generator selects one last effective value, and the full
+20-release matrix emits one final `--file Containerfile.final` argument. That target behavior is
+evidence only: it is not applied by the source-aware model or builder, and no build, context,
+filesystem, registry, runtime, or cross-format behavior is claimed.
+
+Build `Network` is repeatable and opaque from Podman 5.4.0 through 6.0.2. The endpoint manuals,
+tagged source, and complete generator matrix record the ordered `host`, `none`, and `.network`
+forms, including the generated dependency for the exact `.network` reference. QuadletLens itself
+classifies only that exact lowercase suffix for document-set resolution; it does not parse modes or
+options, normalize text, adopt observed-but-undocumented `.container` reference semantics, or claim
+build-time or runtime networking behavior.
+
+Build `Retry` and `RetryDelay` are opaque singleton values. Podman 5.4.0 through 5.4.2 rejects or
+excludes their isolated fixture, so both capabilities are `unsupported` there; they are native from
+5.5.0 through 6.0.2 and `unknown` outside that finite range. The complete supported 5.5.0-through-
+6.0.2 matrix requires exactly one separate `--retry 4` pair and one separate `--retry-delay 7s`
+pair before the final `.` build context, without asserting an order between those pairs. This does not parse retry
+counts or delays, select defaults, model effective-last behavior, link Compose `dockerfile_inline`,
+access a registry, execute retries or timing, establish build success, inspect runtime behavior, or
+define conversion behavior.
+
+Build `TLSVerify` is an opaque singleton from Podman 5.4.0 through 6.0.2 and `unknown` outside
+that finite range. Its two-unit matrix fixture requires one bare `--tls-verify` for authored `true`
+and one `--tls-verify=false` for authored `false`, each before the final `.` build context. This
+does not add boolean parsing, defaults, or effective-last behavior, and does not establish TLS
+connectivity, certificate validation, registry configuration, image pull, build success, security
+posture, provenance equivalence, runtime behavior, or conversion behavior.
+
+Build `ForceRM` is an opaque singleton from Podman 5.4.0 through 6.0.2 and `unknown` outside
+that finite range. Its two-unit matrix fixture requires one bare `--force-rm` for authored `true`
+and one `--force-rm=false` for authored `false`, each before the final `.` build context. This
+does not add boolean parsing, defaults, or effective-last behavior, and does not establish cleanup
+occurrence, failure behavior, execution, defaults or configuration, cache equivalence, runtime
+behavior, or conversion behavior.
+
+Build `GroupAdd` is repeatable opaque physical-line text from Podman 5.4.0 through 6.0.2 and
+`unknown` outside that finite range. Its fixture requires ordered separate `--group-add 1234` then
+`--group-add 5678` pairs before the final `.` build context, without a relative-order claim against
+map-derived flags. This does not perform group lookup,
+interpret keep-groups exclusivity, rootless or user-namespace behavior, runtime behavior, build
+execution, Compose privilege equivalence, or conversion behavior.
+
+Build `DNS` is repeatable opaque physical-line text from Podman 5.4.0 through 6.0.2 and `unknown`
+outside that finite range. Its fixture requires ordered separate `--dns 9.9.9.9` then
+`--dns 2001:4860:4860::8888` pairs before the final `.` build context, without a relative-order
+claim against map-derived flags. This does not perform resolver work, establish `none`
+compatibility, inspect `resolv.conf` or host DNS, execute a build, map Compose endpoints, or define
+conversion behavior.
+
+Build `DNSSearch` is repeatable opaque physical-line text from Podman 5.4.0 through 6.0.2 and
+`unknown` outside that finite range. Its fixture requires ordered separate `--dns-search
+corp.example` then `--dns-search .` pairs before the final `.` build context, without a
+relative-order claim against map-derived flags. QuadletLens does not apply reset or special-dot
+semantics, perform domain removal, resolve DNS, inspect resolver state, execute a build, map
+Compose values, or define conversion behavior.
+
+Build `AuthFile` is opaque singleton physical-line text from Podman 5.4.0 through 6.0.2 and
+`unknown` outside that finite range. Its fixture proves one separate `--authfile PATH` pair, the
+generator's effective-last result for repeated entries, and final-empty omission only. QuadletLens
+does not normalize those results, validate or read paths, parse credentials, classify content or
+path metadata as sensitive, authenticate to a registry, establish build success, or define runtime,
+Compose, or conversion behavior.
+
+Build `IgnoreFile` is opaque singleton physical-line text, unsupported from Podman 5.4.0 through
+5.6.2, native from 5.7.0 through 6.0.2, and `unknown` outside those ranges. Its fixture proves one
+separate `--ignorefile PATH` pair, generator-effective-last output for repeated entries, and
+final-empty omission only. QuadletLens does not normalize those results, resolve or read paths,
+parse ignore files, infer `.containerignore` or `.dockerignore` defaults, normalize relative paths,
+establish build success, or define runtime, Compose, or conversion behavior.
+
+Build `Annotation` is opaque repeatable physical-line text, native from Podman 5.4.0 through 6.0.2
+and `unknown` outside that range. Its fixture records only the generator's reset, tokenization,
+unquoting, C-unescaping, duplicate-key collapse, sorting, and 5.6.0 bare/malformed-token boundary.
+QuadletLens preserves raw lines in source order without applying those target semantics or claiming
+OCI annotation validity, image metadata, build success, runtime, Compose, or conversion behavior.
+
+Build `Label` is repeatable and opaque from Podman 5.4.0 through 6.0.2. QuadletLens retains every
+physical line and its order without parsing `KEY=VALUE`, unquoting, duplicate-name selection, map
+collapse or sorting, or validation. The full matrix asserts only `build.label=one` and `empty=` as
+separate `--label` arguments. It does not establish bare-label acceptance, duplicate-order or
+collapse behavior, label grammar, build execution, runtime behavior, or cross-format behavior.
+
+Build `Target` is an opaque singleton from Podman 5.4.0 through 6.0.2. Duplicate authored values
+remain retained with the ordinary singleton diagnostic, while generated construction rejects a
+second value. Endpoint manuals, tagged source, and the complete generator matrix record one
+`--target build-stage` argument only; they do not validate a stage name, Containerfile, build, or
+runtime behavior.
+
+Build `BuildArg` is repeatable opaque physical-line text with native evidence from Podman 5.7.0
+through 6.0.2. The exact 5.4.0–5.6.2 generator range rejects or excludes it. Tagged 5.7/5.8
+manuals and generator source record the `--build-arg` mapping; the current manual confirms it,
+while the versioned v6.0.2 manual omits the key as an explicit documentation gap. The isolated
+fixture proves only `key=value` and explicit empty-value `key=` command forms. QuadletLens does not parse assignments,
+resolve environments or secrets, or claim bare/null, build, runtime, or cross-format behavior.
+
+Build `Secret` is repeatable opaque physical-line text with native evidence from Podman 5.4.0
+through 6.0.2 and unknown support outside that finite range. QuadletLens retains every authored
+line and order without splitting comma-separated text, parsing argument names, resolving
+environment forms or paths, or materializing secret data. Tagged 5.4.0 and 6.0.2 generator source
+uses repeated effective values to append `--secret`; the isolated 20-release fixture asserts only
+two separate ordered placeholder-source arguments, with no bare, environment, build, runtime, or
+cross-format claim.
+
+Build `PodmanArgs` is repeatable opaque physical-line text with native evidence from Podman 5.4.0
+through 6.0.2 and unknown support outside that finite range. Boundary manuals and tagged source
+record appended build arguments; isolated all-20 fixtures prove only one separate
+`--build-context extra=container-image://alpine:3.15`, exact `--no-cache`, or equals-form
+`--isolation=chroot` argument immediately before final positional `.`. The isolation fixture rejects
+separate, quoted, alternate, duplicate, and reordered forms; it does not lower Compose, establish
+mode equivalence/defaults, or claim rootless/rootful, namespace, LSM, environment, build, or runtime behavior. A fourth fixture proves exactly one equals-form `--ssh=default` immediately before final positional `.` and rejects separate, quoted, alternate, duplicate, and reordered forms. It does not provide, resolve, inspect, or claim keys, sockets, an agent, PEM data, paths, environments, mounts, builds, runtime state, or Compose lowering. A fifth fixture proves exactly one equals-form `--shm-size=32m` immediately before final positional `.` and rejects separate, quoted, alternate, duplicate, and reordered forms. It adds no native Build `ShmSize` key and does not establish Compose or unit equivalence, zero or omission defaults, IPC selection, host/cgroup/memory behavior, build execution, runtime behavior, or conversion behavior. A sixth fixture proves one ordered terminal `--cache-from
+registry.invalid/quadlet-lens/cache-from --cache-to registry.invalid/quadlet-lens/cache-to .`
+chain. The exact-form cache capabilities are repeatable command-text evidence only, not a cache
+policy or effective cache use. QuadletLens does not split or quote arguments, lower Compose
+`additional_contexts`, `service:`, `no_cache`, or cache forms; parse descriptors or cache types;
+resolve contexts, paths, environments, images, credentials, registries, or services; validate the
+CLI; build; run; or claim cache, image, runtime, or cross-format behavior.
+
+The exact Build `PodmanArgs=--sbom=syft` then
+`PodmanArgs=--sbom-output=/tmp/quadlet-lens-sbom.json` pair is separately native only from Podman
+5.4.0 through 6.0.2 and unknown outside that range. Its full generator matrix proves one ordered
+terminal pair before final positional `.` and rejects missing output, quoted, alternate, duplicate,
+and reordered forms. Endpoint Quadlet `PodmanArgs`, build `--sbom=PRESET`, build `--sbom-output`,
+and tagged `LookupAllArgs` evidence establish forwarding only. It does not lower Compose; create a
+file; download an image; run a scanner; establish SBOM content, PURLs, attestations, publishing,
+provenance, build, runtime, security, or conversion behavior.
+
+The exact Build `PodmanArgs=--ulimit=nproc=4096:8192` form is separately native only from
+Podman 5.4.0 through 6.0.2 and unknown outside that range. Its full generator matrix proves one
+equals-form immediately before final positional `.` and rejects separate, quoted, alternate,
+duplicate, and reordered forms. Endpoint Quadlet `PodmanArgs`, build `--ulimit`, and tagged
+`LookupAllArgs` evidence establish forwarding only. It adds no native Build `Ulimit` key and does
+not establish Compose name, range, or `-1` equivalence; host/rootless/rootful, `RUN`, cgroup,
+default, build, runtime resource-limit enforcement, or conversion behavior.
+
+The exact Build `PodmanArgs=--add-host=buildhost:192.0.2.10` form is separately native only from
+Podman 5.4.0 through 6.0.2 and unknown outside that range. Its full generator matrix proves one
+equals-form immediately before final positional `.` and rejects separate, quoted, alternate,
+duplicate, and reordered forms. Endpoint Quadlet `PodmanArgs`, build `--add-host`, and tagged
+`LookupAllArgs` evidence establish forwarding only. It does not lower Compose list or map
+`extra_hosts` forms; establish IPv6 or `host-gateway` equivalence; alter DNS or `/etc/hosts`;
+resolve conflicts or defaults; execute a build; or establish runtime or conversion behavior.
+
+The exact Build `PodmanArgs=--cap-add=CAP_SYS_ADMIN` form is separately native only from Podman
+5.4.0 through 6.0.2 and unknown outside that range. Its full generator matrix proves one
+equals-form immediately before final positional `.` and rejects separate, quoted, alternate,
+duplicate, and reordered forms. Endpoint Quadlet `PodmanArgs`, build `--cap-add`, and tagged
+`LookupAllArgs` evidence establish forwarding only. It does not establish Compose entitlement
+equivalence or conversion; actual capability grants; build execution; LSM, seccomp, rootless, or
+runtime effects.
+
+Build `Arch` and `Variant` are opaque singletons with native evidence from Podman 5.4.0 through
+6.0.2 and unknown support outside that finite range. Duplicate and blank physical entries remain
+source-aware while programmatic construction rejects a second value. Endpoint manuals and tagged
+source record singleton `--arch` and `--variant` construction. The isolated 20-release fixture
+asserts exactly one `--arch arm64` and one `--variant v8` argument without a relative-order claim.
+QuadletLens does not parse platform grammar, select host defaults, apply effective-last behavior,
+build an image, inspect metadata, or claim runtime or cross-format behavior.
+
 The generic repeatable container `PodmanArgs` escape hatch remains the sole public native API for
 arguments that have no dedicated Quadlet key; there is no separate `Tty` or `Privileged` key or
 wrapper. Its separately evidenced exact `PodmanArgs=--interactive`, `PodmanArgs=--tty`,

@@ -6,7 +6,7 @@ QuadletLens 0.1.1 adds a validated construction boundary for tools that generate
 ## Document construction
 
 `QuadletDocumentBuilder` is created for one `QuadletUnitType`. Typed `push_container`, `push_pod`,
-`push_network`, and `push_volume` methods prevent native keys from being written into the wrong
+`push_network`, `push_volume`, and `push_build` methods prevent native keys from being written into the wrong
 section. `push_systemd` adds open-ended directives to `[Unit]`, `[Service]`, or `[Install]`.
 `push_systemd_unit` provides typed `Requires`, `Wants`, and `After` spellings for the dependency
 subset protected by capability and real-generator evidence.
@@ -18,6 +18,22 @@ directive-specific.
 A generated container requires exactly one workload source. `ContainerKey::Image` selects an image
 or native image/build reference; `ContainerKey::Rootfs` selects a Podman root filesystem. Building
 a document with neither or both returns structured typed-model diagnostics.
+
+For `.build` documents, `BuildKey::ImageTag`, `BuildKey::Network`, `BuildKey::Label`, `BuildKey::File`,
+`BuildKey::BuildArg`, `BuildKey::Secret`, `BuildKey::GroupAdd`, `BuildKey::DNS`, `BuildKey::DNSOption`, `BuildKey::DNSSearch`, `BuildKey::Annotation`, and `BuildKey::PodmanArgs` retain every exact physical-line value in insertion order. `BuildKey::Arch`,
+`BuildKey::Variant`, `BuildKey::Pull`, `BuildKey::Retry`, `BuildKey::RetryDelay`, `BuildKey::TLSVerify`, `BuildKey::ForceRM`, `BuildKey::AuthFile`, and `BuildKey::IgnoreFile` are opaque singletons: construction rejects a second value, without parsing platform, pull-policy, integer, duration, boolean, auth-file path, or ignore-file grammar,
+selecting defaults, or applying generator-effective-last behavior. Build `DNSSearch` does not apply reset or special-dot semantics. Build `Annotation` is not tokenized, unquoted, C-unescaped, reset, collapsed, sorted, OCI-validated, or image-metadata-inferred. Build `AuthFile` is not read or path-validated, and its text is not credential-parsed or sensitivity-classified. Build `IgnoreFile` is not resolved or read, parsed as rules, defaulted, relative-path-normalized, or given effective-last behavior. `Network` is opaque to construction: callers
+choose network modes, options, or exact `.network` basenames, and the builder neither parses nor
+normalizes them. `File` is not path- or URL-classified, and construction does not apply the
+generator's observed effective-last behavior. `Label` does not parse `KEY=VALUE`, unquote, select
+duplicate names, collapse or sort a map, or validate label text. `BuildArg` does not parse key/value
+text or resolve environments or secrets. `Secret` does not split comma-separated text, parse
+argument names, resolve environment forms or paths, or materialize secret data. `PodmanArgs` does not split
+or quote arguments, lower Compose `additional_contexts` or `service:` forms, resolve contexts, paths,
+environments, images, or services, validate a CLI, or infer build/runtime behavior. `SetWorkingDirectory`
+and `Target` are Build singletons. `Pull` neither applies a default nor normalizes spelling or
+exposes effective-last behavior; it does not imply Compose boolean, registry, image-pull, build, or runtime semantics.
+`Target` receives no build-stage grammar validation.
 
 `ContainerKey::ContainerName` optionally selects the exact Podman runtime name. It is a singleton
 and remains separate from the Quadlet filename and generated service identity.

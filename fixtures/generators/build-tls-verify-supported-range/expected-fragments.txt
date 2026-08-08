@@ -1,0 +1,4 @@
+---build-tls-verify-true-build.service---
+SourcePath=/fixtures/build-tls-verify-true.build
+---build-tls-verify-false-build.service---
+SourcePath=/fixtures/build-tls-verify-false.build

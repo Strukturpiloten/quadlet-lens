@@ -130,6 +130,72 @@ singleton/boolean command construction, and unsupported-version behavior across 
 20-patch matrix. AppArmor is rejected through 5.7.1 and accepted from 5.8.0. Model/render tests
 separately protect opaque values, duplicates, malformed text, and scope.
 
+The isolated Build retry fixture records the 5.4.x rejection boundary and supported 5.5.0-through-
+6.0.2 command construction. It requires one separate `--retry 4` pair and one separate
+`--retry-delay 7s` pair before the final `.` context without asserting an order between those pairs.
+It does not parse count/duration text,
+select defaults, model effective-last behavior, link Compose `dockerfile_inline`, contact a registry,
+execute retries or timing, establish build success, start a workload, inspect runtime behavior, or
+claim conversion behavior.
+
+The isolated two-unit Build TLSVerify fixture covers all 20 recorded releases. It requires one bare
+`--tls-verify` for authored `true` and one `--tls-verify=false` for authored `false`, each before
+the final `.` context and without equals, quoted, alternate, duplicate, or post-context forms. It
+does not parse booleans, select defaults, exercise TLS connectivity or certificate validation,
+configure a registry, pull an image, complete a build, establish a security posture or provenance
+equivalence, inspect runtime behavior, or claim conversion behavior.
+
+The isolated two-unit Build ForceRM fixture covers all 20 recorded releases. It requires one bare
+`--force-rm` for authored `true` and one `--force-rm=false` for authored `false`, each before the
+final `.` context and without equals, quoted, alternate, duplicate, or post-context forms. It does
+not parse booleans, select defaults, apply effective-last behavior, establish cleanup occurrence,
+failure behavior, execution, defaults or configuration, cache equivalence, runtime behavior, or
+claim conversion behavior.
+
+The isolated Build GroupAdd fixture covers all 20 recorded releases. It requires ordered separate
+`--group-add 1234` then `--group-add 5678` pairs before the final `.` context, rejecting equals,
+quoted, merged, duplicate, reordered, and post-context forms without a relative-order claim
+against map-derived flags. It does not look up groups, interpret
+keep-groups exclusivity, rootless or user-namespace behavior, runtime behavior, build execution,
+Compose privilege equivalence, or claim conversion behavior.
+
+The isolated Build DNS fixture covers all 20 recorded releases. It requires ordered separate
+`--dns 9.9.9.9` then `--dns 2001:4860:4860::8888` pairs before the final `.` context, rejecting
+equals, quoted, empty, merged, duplicate, reordered, and post-context forms without a
+relative-order claim against map-derived flags. It does not resolve DNS, establish `none`
+compatibility, inspect `resolv.conf` or host DNS, execute a build, map Compose endpoints, or claim
+conversion behavior.
+
+The isolated Build DNSSearch fixture covers all 20 recorded releases. It requires ordered separate
+`--dns-search corp.example` then `--dns-search .` pairs before the final `.` context, rejecting
+old, empty, equals, quoted, merged, duplicate, reordered, and post-context forms without a
+relative-order claim against map-derived flags. It does not apply reset or dot semantics in the
+Lens model, remove domains, resolve DNS, inspect resolver state, execute a build, map Compose
+values, or claim conversion behavior.
+
+The isolated Build AuthFile fixture covers all 20 recorded releases. It requires exactly one
+separate `--authfile PATH` pair for a single value, effective-last output for repeated entries, and
+no flag after a final empty entry, rejecting equals, quoted, duplicate, alternate, and post-context
+forms. These are generator-only results: the Lens model preserves duplicate physical lines and its
+ordinary singleton diagnostic without normalizing, reading, or validating paths, parsing
+credentials, classifying content or path metadata as sensitive, authenticating, or claiming build
+success, runtime, Compose, or conversion behavior.
+
+The isolated Build IgnoreFile fixture covers all 20 recorded releases. Podman 5.4.0 through 5.6.2
+must reject or exclude it with no `--ignorefile` argument; Podman 5.7.0 through 6.0.2 must emit one
+separate path, effective-last repeated output, and no flag after final empty, rejecting equals,
+quoted, duplicate, alternate, and post-context forms. These are generator-only results: the Lens
+model preserves duplicate physical lines and its ordinary singleton diagnostic without normalizing,
+resolving or reading paths, parsing ignore files, inferring default ignore files, normalizing
+relative paths, or claiming build success, runtime, Compose, or conversion behavior.
+
+The isolated Build Annotation fixture covers all 20 recorded releases. It authors pre-reset values,
+an empty reset, duplicate post-reset keys, quoted and C-escaped text, plus bare and malformed forms.
+The generator emits its tokenized/unquoted/C-unescaped, last-key-collapsed, sorted effective map;
+bare and malformed tokens are omitted through 5.5.2 and emitted from 5.6.0. QuadletLens preserves
+all raw physical lines instead, without OCI validation, image metadata, build, runtime, Compose, or
+conversion claims.
+
 These fixtures are dry-run command evidence: they start no workload and do not inspect resolver,
 OCI, profile, SELinux, path, filesystem, host, runtime, or cross-format behavior.
 
@@ -171,7 +237,34 @@ from Podman 5.4.0 through current 6.0.2, checks required/repeated/path/reference
 the lower and rolling upper coverage boundaries, and uses synthetic evidence to exercise fallback
 and known-bug precedence. Capabilities outside the generator fixture retain explicit evidence gaps.
 
-The typed-model suite protects the initial `.container`, `.pod`, `.network`, and `.volume` surface.
+The typed-model suite protects the initial `.container`, `.pod`, `.network`, `.volume`, and minimal
+`.build` surface. It checks ordered repeated Build `ImageTag`, `Network`, `Label`, `File`, `BuildArg`, `Secret`, `GroupAdd`, `DNS`, `DNSOption`, `DNSSearch`, `Annotation`, and `PodmanArgs` values, singleton
+opaque `SetWorkingDirectory`/`Target`/`Arch`/`Variant`/`Pull`/`Retry`/`RetryDelay`/`TLSVerify`/`ForceRM`/`AuthFile`/`IgnoreFile` values, duplicate singleton diagnostics, unknown Build-key
+preservation, exact `.container` Image-to-`.build` resolution, and exact `.build`
+Network-to-`.network` resolution without interpreting a build context or network mode.
+Build labels additionally retain opaque physical lines, including bare, duplicate, empty, embedded
+equals, quoted, and specifier text, without label parsing or normalization; generator assertions are
+intentionally narrower and cover only `build.label=one` and `empty=`.
+Build arguments retain opaque bare, empty, quoted, and specifier-bearing physical values; the isolated
+generator fixture claims only `key=value` and empty-value `key=` forms from 5.7.0 through 6.0.2.
+Build Secret lines likewise remain opaque with no comma, argument, environment, path, or secret-data
+interpretation; their all-20-version fixture uses placeholder paths and asserts two ordered separate
+`--secret` arguments only. Build Arch and Variant remain opaque singletons without platform parsing,
+defaults, or effective-last normalization; their all-20-version fixture asserts exactly one `--arch arm64`
+and one `--variant v8` without a relative-order assertion.
+Build Pull preserves blank and duplicate physical values without policy parsing; its isolated fixture
+requires exactly one `--pull=always` argument across all 20 releases, while blank omission remains source evidence only.
+Build PodmanArgs retains exact physical lines without argument splitting or context resolution; its all-20 fixtures
+assert one separate `--build-context extra=container-image://alpine:3.15`, exact `--no-cache`, or equals-form
+`--isolation=chroot`/`--ssh=default`/`--shm-size=32m`/`--ulimit=nproc=4096:8192`/`--add-host=buildhost:192.0.2.10`/`--cap-add=CAP_SYS_ADMIN` immediately before final positional `.` only. The isolation, SSH, shared-memory, ulimit, add-host, and cap-add fixtures reject separate, quoted,
+alternate, duplicate, and reordered forms; it does not lower Compose, establish mode equivalence/defaults, or claim rootless/rootful, namespace, LSM, environment, build, runtime, or cross-format behavior. The latter is repeatable command-text evidence, not Compose `no_cache` lowering,
+false/string/interpolation interpretation, cache semantic equivalence, execution, cache, image, runtime, or
+cross-format behavior. The non-secret SSH fixture does not provide, resolve, inspect, or claim keys, sockets, an agent, PEM data, paths, environments, mounts, builds, runtime state, or Compose lowering. The shared-memory fixture adds no native Build `ShmSize` key and does not establish Compose or unit equivalence, zero or omission defaults, IPC selection, host/cgroup/memory behavior, build execution, runtime behavior, or conversion behavior.
+The add-host fixture does not lower Compose list or map `extra_hosts` forms; establish IPv6 or
+`host-gateway` equivalence; alter DNS or `/etc/hosts`; resolve conflicts or defaults; execute a
+build; or establish runtime or conversion behavior.
+The cap-add fixture does not establish Compose entitlement equivalence or conversion; actual
+capability grants; build execution; LSM, seccomp, rootless, or runtime effects.
 It checks native key classification, repeated container/pod `AddHost`, container `Label`/`Secret`,
 and network `Label`
 entries, singleton container `ContainerName`, `RunInit` omission/true/false/raw preservation,

@@ -1,0 +1,5 @@
+[Build]
+ImageTag=localhost/quadlet-lens-build-auth-file-empty
+SetWorkingDirectory=.
+AuthFile=/run/quadlet-lens/earlier-empty-auth.json
+AuthFile=

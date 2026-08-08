@@ -113,6 +113,20 @@ SourcePath=/fixtures/no-health.container
 ---rootfs.service---
 SourcePath=/fixtures/rootfs.container
 --rootfs /var/lib/quadlet-lens-rootfs
+---application-build.service---
+SourcePath=/fixtures/application.build
+Requires=app-network.service
+After=app-network.service
+WorkingDirectory=/fixtures
+--tag localhost/quadlet-lens-build:primary
+--tag localhost/quadlet-lens-build:secondary
+--network host
+--network none
+--network quadlet-lens-network
+--label build.label=one
+--label empty=
+--file Containerfile.final
+--target build-stage
 ---application-pod.service---
 SourcePath=/fixtures/application.pod
 Wants=worker.service

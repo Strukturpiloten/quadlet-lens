@@ -39,6 +39,163 @@ const PIDS_LIMIT_CASES: &[(&str, &str)] = &[
     ("pids-limit-unlimited.service", "--pids-limit -1"),
 ];
 const HOSTNAME_SEPARATE_ARGUMENT: &str = "--hostname app.example";
+const BUILD_IMAGE_TAG_ARGUMENTS: &[&str] = &[
+    "--tag localhost/quadlet-lens-build:primary",
+    "--tag localhost/quadlet-lens-build:secondary",
+];
+const BUILD_NETWORK_ARGUMENTS: &[&str] = &["--network host", "--network none", "--network quadlet-lens-network"];
+const BUILD_LABEL_ARGUMENTS: &[&str] = &["--label build.label=one", "--label empty="];
+const BUILD_NETWORK_DEPENDENCY: &str = "Requires=app-network.service";
+const BUILD_NETWORK_ORDERING: &str = "After=app-network.service";
+const BUILD_FILE_FINAL_ARGUMENT: &str = "--file Containerfile.final";
+const BUILD_FILE_EARLIER_ARGUMENT: &str = "--file Containerfile.first";
+const BUILD_TARGET_ARGUMENT: &str = "--target build-stage";
+const BUILD_WORKING_DIRECTORY: &str = "WorkingDirectory=/fixtures";
+const BUILD_ARG_ARGUMENTS: &[&str] = &["--build-arg key=value", "--build-arg empty="];
+const BUILD_SECRET_ARGUMENTS: &[&str] = &[
+    "--secret id=quadlet-lens-one,src=/run/quadlet-lens-placeholder-one",
+    "--secret id=quadlet-lens-two,src=/run/quadlet-lens-placeholder-two",
+];
+const BUILD_ARCH_ARGUMENT: &str = "--arch arm64";
+const BUILD_VARIANT_ARGUMENT: &str = "--variant v8";
+const BUILD_PULL_ARGUMENT: &str = "--pull=always";
+const BUILD_PODMAN_ARGS_ARGUMENT: &str = "--build-context extra=container-image://alpine:3.15";
+const BUILD_PODMAN_ARGS_CONTEXT: &str = ".";
+const BUILD_PODMAN_ARGS_ALTERNATE_FORMS: &[&str] = &[
+    "--build-context=extra=container-image://alpine:3.15",
+    "--build-context \"extra=container-image://alpine:3.15\"",
+    "--build-context 'extra=container-image://alpine:3.15'",
+    "\"--build-context extra=container-image://alpine:3.15\"",
+    "'--build-context extra=container-image://alpine:3.15'",
+];
+const BUILD_PODMAN_ARGS_NO_CACHE_ARGUMENT: &str = "--no-cache";
+const BUILD_PODMAN_ARGS_NO_CACHE_CONTEXT: &str = ".";
+const BUILD_PODMAN_ARGS_NO_CACHE_ALTERNATE_FORMS: &[&str] = &[
+    "--no-cache=",
+    "--no-cache=true",
+    "--no-cache=false",
+    "--no-cache \"\"",
+    "--no-cache ''",
+    "\"--no-cache\"",
+    "'--no-cache'",
+];
+const BUILD_PODMAN_ARGS_ISOLATION_CHROOT_ARGUMENT: &str = "--isolation=chroot";
+const BUILD_PODMAN_ARGS_ISOLATION_CHROOT_CONTEXT: &str = ".";
+const BUILD_PODMAN_ARGS_ISOLATION_CHROOT_ALTERNATE_FORMS: &[&str] = &[
+    "--isolation chroot",
+    "--isolation=\"chroot\"",
+    "--isolation='chroot'",
+    "--isolation \"chroot\"",
+    "--isolation 'chroot'",
+    "\"--isolation=chroot\"",
+    "'--isolation=chroot'",
+    "--isolation=oci",
+    "--isolation=rootless",
+];
+const BUILD_PODMAN_ARGS_SSH_DEFAULT_ARGUMENT: &str = "--ssh=default";
+const BUILD_PODMAN_ARGS_SSH_DEFAULT_CONTEXT: &str = ".";
+const BUILD_PODMAN_ARGS_SSH_DEFAULT_ALTERNATE_FORMS: &[&str] = &[
+    "--ssh default",
+    "--ssh=default=",
+    "--ssh=\"default\"",
+    "--ssh='default'",
+    "--ssh \"default\"",
+    "--ssh 'default'",
+    "\"--ssh=default\"",
+    "'--ssh=default'",
+    "--ssh=custom",
+];
+const BUILD_PODMAN_ARGS_SHM_SIZE_32M_ARGUMENT: &str = "--shm-size=32m";
+const BUILD_PODMAN_ARGS_SHM_SIZE_32M_CONTEXT: &str = ".";
+const BUILD_PODMAN_ARGS_SHM_SIZE_32M_ALTERNATE_FORMS: &[&str] = &[
+    "--shm-size 32m",
+    "--shm-size=\"32m\"",
+    "--shm-size='32m'",
+    "--shm-size \"32m\"",
+    "--shm-size '32m'",
+    "\"--shm-size=32m\"",
+    "'--shm-size=32m'",
+    "--shm-size=0",
+    "--shm-size=64m",
+];
+const BUILD_PODMAN_ARGS_ULIMIT_NPROC_ARGUMENT: &str = "--ulimit=nproc=4096:8192";
+const BUILD_PODMAN_ARGS_ULIMIT_NPROC_CONTEXT: &str = ".";
+const BUILD_PODMAN_ARGS_ULIMIT_NPROC_ALTERNATE_FORMS: &[&str] = &[
+    "--ulimit nproc=4096:8192",
+    "--ulimit=\"nproc=4096:8192\"",
+    "--ulimit='nproc=4096:8192'",
+    "--ulimit \"nproc=4096:8192\"",
+    "--ulimit 'nproc=4096:8192'",
+    "\"--ulimit=nproc=4096:8192\"",
+    "'--ulimit=nproc=4096:8192'",
+    "--ulimit=nproc=2048:4096",
+    "--ulimit=nproc=8192:8192",
+];
+const BUILD_PODMAN_ARGS_ADD_HOST_BUILDHOST_ARGUMENT: &str = "--add-host=buildhost:192.0.2.10";
+const BUILD_PODMAN_ARGS_ADD_HOST_BUILDHOST_CONTEXT: &str = ".";
+const BUILD_PODMAN_ARGS_ADD_HOST_BUILDHOST_ALTERNATE_FORMS: &[&str] = &[
+    "--add-host buildhost:192.0.2.10",
+    "--add-host=\"buildhost:192.0.2.10\"",
+    "--add-host='buildhost:192.0.2.10'",
+    "--add-host \"buildhost:192.0.2.10\"",
+    "--add-host 'buildhost:192.0.2.10'",
+    "\"--add-host=buildhost:192.0.2.10\"",
+    "'--add-host=buildhost:192.0.2.10'",
+    "--add-host=buildhost:192.0.2.11",
+    "--add-host=otherhost:192.0.2.10",
+    "--add-host=buildhost:host-gateway",
+];
+const BUILD_PODMAN_ARGS_CAP_ADD_CAP_SYS_ADMIN_ARGUMENT: &str = "--cap-add=CAP_SYS_ADMIN";
+const BUILD_PODMAN_ARGS_CAP_ADD_CAP_SYS_ADMIN_CONTEXT: &str = ".";
+const BUILD_PODMAN_ARGS_CAP_ADD_CAP_SYS_ADMIN_ALTERNATE_FORMS: &[&str] = &[
+    "--cap-add CAP_SYS_ADMIN",
+    "--cap-add=\"CAP_SYS_ADMIN\"",
+    "--cap-add='CAP_SYS_ADMIN'",
+    "--cap-add \"CAP_SYS_ADMIN\"",
+    "--cap-add 'CAP_SYS_ADMIN'",
+    "\"--cap-add=CAP_SYS_ADMIN\"",
+    "'--cap-add=CAP_SYS_ADMIN'",
+    "--cap-add=CAP_NET_ADMIN",
+    "--cap-add=ALL",
+];
+const BUILD_PODMAN_ARGS_CACHE_FROM_ARGUMENT: &str = "--cache-from registry.invalid/quadlet-lens/cache-from";
+const BUILD_PODMAN_ARGS_CACHE_TO_ARGUMENT: &str = "--cache-to registry.invalid/quadlet-lens/cache-to";
+const BUILD_PODMAN_ARGS_CACHE_LOCATIONS_CONTEXT: &str = ".";
+const BUILD_PODMAN_ARGS_CACHE_LOCATIONS_ALTERNATE_FORMS: &[&str] = &[
+    "--cache-from=registry.invalid/quadlet-lens/cache-from",
+    "--cache-to=registry.invalid/quadlet-lens/cache-to",
+    "--cache-from \"registry.invalid/quadlet-lens/cache-from\"",
+    "--cache-to \"registry.invalid/quadlet-lens/cache-to\"",
+    "--cache-from 'registry.invalid/quadlet-lens/cache-from'",
+    "--cache-to 'registry.invalid/quadlet-lens/cache-to'",
+    "\"--cache-from registry.invalid/quadlet-lens/cache-from\"",
+    "\"--cache-to registry.invalid/quadlet-lens/cache-to\"",
+    "'--cache-from registry.invalid/quadlet-lens/cache-from'",
+    "'--cache-to registry.invalid/quadlet-lens/cache-to'",
+];
+const BUILD_PODMAN_ARGS_SBOM_PRESET_ARGUMENT: &str = "--sbom=syft";
+const BUILD_PODMAN_ARGS_SBOM_OUTPUT_ARGUMENT: &str = "--sbom-output=/tmp/quadlet-lens-sbom.json";
+const BUILD_PODMAN_ARGS_SBOM_CONTEXT: &str = ".";
+const BUILD_PODMAN_ARGS_SBOM_ALTERNATE_FORMS: &[&str] = &[
+    "--sbom syft",
+    "--sbom=spdx",
+    "--sbom=syft=",
+    "--sbom=\"syft\"",
+    "--sbom='syft'",
+    "--sbom \"syft\"",
+    "--sbom 'syft'",
+    "\"--sbom=syft\"",
+    "'--sbom=syft'",
+    "--sbom-output /tmp/quadlet-lens-sbom.json",
+    "--sbom-output=/tmp/quadlet-lens-sbom.json=",
+    "--sbom-output=\"/tmp/quadlet-lens-sbom.json\"",
+    "--sbom-output='/tmp/quadlet-lens-sbom.json'",
+    "--sbom-output \"/tmp/quadlet-lens-sbom.json\"",
+    "--sbom-output '/tmp/quadlet-lens-sbom.json'",
+    "\"--sbom-output=/tmp/quadlet-lens-sbom.json\"",
+    "'--sbom-output=/tmp/quadlet-lens-sbom.json'",
+    "--sbom-output=/tmp/quadlet-lens-sbom.spdx.json",
+];
 const SHM_SIZE_CASES: &[(&str, &str)] = &[
     ("shm-size-container.service", "--shm-size 67108864b"),
     ("shm-size-zero.service", "--shm-size 0"),
@@ -476,6 +633,125 @@ const MEMORY_EMPTY_OR_ALTERNATE_FORMS: &[&str] = &[
     "--memory \"16777216b\"",
     "--memory 32m",
 ];
+const BUILD_RETRY_FLAG: &str = "--retry";
+const BUILD_RETRY_VALUE: &str = "4";
+const BUILD_RETRY_PAIR: &str = "--retry 4";
+const BUILD_RETRY_DELAY_FLAG: &str = "--retry-delay";
+const BUILD_RETRY_DELAY_VALUE: &str = "7s";
+const BUILD_RETRY_DELAY_PAIR: &str = "--retry-delay 7s";
+const BUILD_RETRY_CONTEXT: &str = ".";
+const BUILD_RETRY_ALTERNATE_FORMS: &[&str] = &[
+    "--retry=4",
+    "--retry=\"4\"",
+    "--retry='4'",
+    "--retry \"4\"",
+    "--retry '4'",
+    "--retry=5",
+    "--retry 5",
+];
+const BUILD_RETRY_DELAY_ALTERNATE_FORMS: &[&str] = &[
+    "--retry-delay=7s",
+    "--retry-delay=\"7s\"",
+    "--retry-delay='7s'",
+    "--retry-delay \"7s\"",
+    "--retry-delay '7s'",
+    "--retry-delay=8s",
+    "--retry-delay 8s",
+];
+const BUILD_TLS_VERIFY_ARGUMENT: &str = "--tls-verify";
+const BUILD_TLS_VERIFY_FALSE_ARGUMENT: &str = "--tls-verify=false";
+const BUILD_TLS_VERIFY_CONTEXT: &str = ".";
+const BUILD_TLS_VERIFY_TRUE_ALTERNATE_FORMS: &[&str] = &[
+    "--tls-verify=true",
+    "--tls-verify=\"true\"",
+    "--tls-verify='true'",
+    "--tls-verify \"true\"",
+    "--tls-verify 'true'",
+    "--tls-verify false",
+];
+const BUILD_TLS_VERIFY_FALSE_ALTERNATE_FORMS: &[&str] = &[
+    "--tls-verify \"false\"",
+    "--tls-verify 'false'",
+    "--tls-verify=\"false\"",
+    "--tls-verify='false'",
+    "--tls-verify=true",
+];
+const BUILD_FORCE_RM_ARGUMENT: &str = "--force-rm";
+const BUILD_FORCE_RM_FALSE_ARGUMENT: &str = "--force-rm=false";
+const BUILD_FORCE_RM_CONTEXT: &str = ".";
+const BUILD_FORCE_RM_TRUE_ALTERNATE_FORMS: &[&str] = &[
+    "--force-rm=true",
+    "--force-rm=\"true\"",
+    "--force-rm='true'",
+    "--force-rm \"true\"",
+    "--force-rm 'true'",
+    "--force-rm false",
+];
+const BUILD_FORCE_RM_FALSE_ALTERNATE_FORMS: &[&str] = &[
+    "--force-rm \"false\"",
+    "--force-rm 'false'",
+    "--force-rm=\"false\"",
+    "--force-rm='false'",
+    "--force-rm=true",
+];
+const BUILD_GROUP_ADD_FLAG: &str = "--group-add";
+const BUILD_GROUP_ADD_FIRST_PAIR: &str = "--group-add 1234";
+const BUILD_GROUP_ADD_SECOND_PAIR: &str = "--group-add 5678";
+const BUILD_GROUP_ADD_CONTEXT: &str = ".";
+const BUILD_GROUP_ADD_ALTERNATE_FORMS: &[&str] = &[
+    "--group-add=1234",
+    "--group-add=5678",
+    "--group-add=\"1234\"",
+    "--group-add=\"5678\"",
+    "--group-add='1234'",
+    "--group-add='5678'",
+    "--group-add \"1234\"",
+    "--group-add \"5678\"",
+    "--group-add '1234'",
+    "--group-add '5678'",
+    "--group-add 1234,5678",
+    "--group-add=1234,5678",
+    "--group-add 1234 5678",
+];
+const BUILD_DNS_FLAG: &str = "--dns";
+const BUILD_DNS_FIRST_PAIR: &str = "--dns 9.9.9.9";
+const BUILD_DNS_SECOND_PAIR: &str = "--dns 2001:4860:4860::8888";
+const BUILD_DNS_CONTEXT: &str = ".";
+const BUILD_DNS_ALTERNATE_FORMS: &[&str] = &[
+    "--dns=9.9.9.9",
+    "--dns=2001:4860:4860::8888",
+    "--dns=\"9.9.9.9\"",
+    "--dns=\"2001:4860:4860::8888\"",
+    "--dns='9.9.9.9'",
+    "--dns='2001:4860:4860::8888'",
+    "--dns \"9.9.9.9\"",
+    "--dns \"2001:4860:4860::8888\"",
+    "--dns '9.9.9.9'",
+    "--dns '2001:4860:4860::8888'",
+    "--dns=",
+    "--dns \"\"",
+    "--dns ''",
+    "--dns 9.9.9.9,2001:4860:4860::8888",
+    "--dns=9.9.9.9,2001:4860:4860::8888",
+    "--dns 9.9.9.9 2001:4860:4860::8888",
+];
+const BUILD_DNS_OPTION_FLAG: &str = "--dns-option";
+const BUILD_DNS_OPTION_FIRST: &str = "--dns-option ndots:1";
+const BUILD_DNS_OPTION_SECOND: &str = "--dns-option use-vc";
+const BUILD_DNS_SEARCH_FLAG: &str = "--dns-search";
+const BUILD_DNS_SEARCH_FIRST: &str = "--dns-search corp.example";
+const BUILD_DNS_SEARCH_SECOND: &str = "--dns-search .";
+const BUILD_AUTH_FILE_FLAG: &str = "--authfile";
+const BUILD_AUTH_FILE_SINGLE: &str = "--authfile /run/quadlet-lens/single-auth.json";
+const BUILD_AUTH_FILE_LAST: &str = "--authfile /run/quadlet-lens/last-auth.json";
+const BUILD_IGNORE_FILE_FLAG: &str = "--ignorefile";
+const BUILD_IGNORE_FILE_SINGLE: &str = "--ignorefile /run/quadlet-lens/single.ignore";
+const BUILD_IGNORE_FILE_LAST: &str = "--ignorefile /run/quadlet-lens/last.ignore";
+const BUILD_ANNOTATION_PRE_RESET_OR_REPLACED: &[&str] = &[
+    "org.example.pre=one",
+    "org.example.pre=two",
+    "org.example.alpha=earlier",
+];
 const INTERACTIVE_ARGUMENT: &str = "--interactive";
 const INTERACTIVE_IMAGE: &str = "registry.example.invalid/interactive:1";
 const INTERACTIVE_ALTERNATE_FORMS: &[&str] = &[
@@ -566,6 +842,30 @@ struct SecurityLabelFixtures {
 
 struct GeneratorFixtures {
     memory: (PathBuf, Vec<String>),
+    build_retry: (PathBuf, Vec<String>),
+    build_tls_verify: (PathBuf, Vec<String>),
+    build_force_rm: (PathBuf, Vec<String>),
+    build_group_add: (PathBuf, Vec<String>),
+    build_dns: (PathBuf, Vec<String>),
+    build_dns_option: (PathBuf, Vec<String>),
+    build_dns_search: (PathBuf, Vec<String>),
+    build_auth_file: (PathBuf, Vec<String>),
+    build_ignore_file: (PathBuf, Vec<String>),
+    build_annotation: (PathBuf, Vec<String>),
+    build_arg: (PathBuf, Vec<String>),
+    build_secret: (PathBuf, Vec<String>),
+    build_platform: (PathBuf, Vec<String>),
+    build_pull: (PathBuf, Vec<String>),
+    build_podman_args: (PathBuf, Vec<String>),
+    build_podman_args_no_cache: (PathBuf, Vec<String>),
+    build_podman_args_isolation_chroot: (PathBuf, Vec<String>),
+    build_podman_args_ssh_default: (PathBuf, Vec<String>),
+    build_podman_args_shm_size_32m: (PathBuf, Vec<String>),
+    build_podman_args_ulimit_nproc: (PathBuf, Vec<String>),
+    build_podman_args_add_host_buildhost: (PathBuf, Vec<String>),
+    build_podman_args_cap_add_cap_sys_admin: (PathBuf, Vec<String>),
+    build_podman_args_cache_locations: (PathBuf, Vec<String>),
+    build_podman_args_sbom: (PathBuf, Vec<String>),
     interactive: (PathBuf, Vec<String>),
     tty: (PathBuf, Vec<String>),
     privileged: (PathBuf, Vec<String>),
@@ -810,6 +1110,159 @@ fn memory_fixture_directory() -> Result<PathBuf, String> {
         .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
 }
 
+fn build_retry_fixture_directory() -> Result<PathBuf, String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/build-retry-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn build_tls_verify_fixture_directory() -> Result<PathBuf, String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/build-tls-verify-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn build_force_rm_fixture_directory() -> Result<PathBuf, String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/build-force-rm-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn build_group_add_fixture_directory() -> Result<PathBuf, String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/build-group-add-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn build_dns_fixture_directory() -> Result<PathBuf, String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/build-dns-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn build_dns_option_fixture_directory() -> Result<PathBuf, String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/build-dns-option-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn build_dns_search_fixture_directory() -> Result<PathBuf, String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/build-dns-search-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn build_auth_file_fixture_directory() -> Result<PathBuf, String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/build-auth-file-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn build_ignore_file_fixture_directory() -> Result<PathBuf, String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/build-ignore-file-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn build_annotation_fixture_directory() -> Result<PathBuf, String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/build-annotation-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn build_arg_fixture_directory() -> Result<PathBuf, String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/build-arg-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn build_secret_fixture_directory() -> Result<PathBuf, String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/build-secret-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn build_platform_fixture_directory() -> Result<PathBuf, String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/build-platform-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn build_pull_fixture_directory() -> Result<PathBuf, String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/build-pull-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn build_podman_args_fixture_directory() -> Result<PathBuf, String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/build-podman-args-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn build_podman_args_no_cache_fixture_directory() -> Result<PathBuf, String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("fixtures/generators/build-podman-args-no-cache-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn build_podman_args_isolation_chroot_fixture_directory() -> Result<PathBuf, String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("fixtures/generators/build-podman-args-isolation-chroot-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn build_podman_args_ssh_default_fixture_directory() -> Result<PathBuf, String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("fixtures/generators/build-podman-args-ssh-default-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn build_podman_args_shm_size_32m_fixture_directory() -> Result<PathBuf, String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("fixtures/generators/build-podman-args-shm-size-32m-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn build_podman_args_ulimit_nproc_fixture_directory() -> Result<PathBuf, String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("fixtures/generators/build-podman-args-ulimit-nproc-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn build_podman_args_add_host_buildhost_fixture_directory() -> Result<PathBuf, String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("fixtures/generators/build-podman-args-add-host-buildhost-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn build_podman_args_cap_add_cap_sys_admin_fixture_directory() -> Result<PathBuf, String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("fixtures/generators/build-podman-args-cap-add-cap-sys-admin-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn build_podman_args_cache_locations_fixture_directory() -> Result<PathBuf, String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("fixtures/generators/build-podman-args-cache-locations-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn build_podman_args_sbom_fixture_directory() -> Result<PathBuf, String> {
+    let path =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/build-podman-args-sbom-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
 fn interactive_fixture_directory() -> Result<PathBuf, String> {
     let path =
         PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/podman-args-interactive-supported-range");
@@ -914,6 +1367,85 @@ fn load_memory_fixture() -> Result<(PathBuf, Vec<String>), String> {
     Ok((fixture, expected))
 }
 
+fn load_build_retry_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = build_retry_fixture_directory()?;
+    let expected = expected_fragments(&fixture)?;
+    Ok((fixture, expected))
+}
+
+fn load_build_tls_verify_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = build_tls_verify_fixture_directory()?;
+    let expected = expected_fragments(&fixture)?;
+    Ok((fixture, expected))
+}
+
+fn load_build_force_rm_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = build_force_rm_fixture_directory()?;
+    let expected = expected_fragments(&fixture)?;
+    Ok((fixture, expected))
+}
+
+fn load_build_group_add_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = build_group_add_fixture_directory()?;
+    let expected = expected_fragments(&fixture)?;
+    Ok((fixture, expected))
+}
+
+fn load_build_dns_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = build_dns_fixture_directory()?;
+    let expected = expected_fragments(&fixture)?;
+    Ok((fixture, expected))
+}
+
+fn load_build_dns_option_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = build_dns_option_fixture_directory()?;
+    Ok((fixture.clone(), expected_fragments(&fixture)?))
+}
+
+fn load_build_dns_search_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = build_dns_search_fixture_directory()?;
+    Ok((fixture.clone(), expected_fragments(&fixture)?))
+}
+
+fn load_build_auth_file_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = build_auth_file_fixture_directory()?;
+    Ok((fixture.clone(), expected_fragments(&fixture)?))
+}
+
+fn load_build_ignore_file_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = build_ignore_file_fixture_directory()?;
+    Ok((fixture.clone(), expected_fragments(&fixture)?))
+}
+
+fn load_build_annotation_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = build_annotation_fixture_directory()?;
+    Ok((fixture.clone(), expected_fragments(&fixture)?))
+}
+
+fn load_build_arg_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = build_arg_fixture_directory()?;
+    let expected = expected_fragments(&fixture)?;
+    Ok((fixture, expected))
+}
+
+fn load_build_secret_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = build_secret_fixture_directory()?;
+    let expected = expected_fragments(&fixture)?;
+    Ok((fixture, expected))
+}
+
+fn load_build_platform_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = build_platform_fixture_directory()?;
+    let expected = expected_fragments(&fixture)?;
+    Ok((fixture, expected))
+}
+
+fn load_build_pull_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = build_pull_fixture_directory()?;
+    let expected = expected_fragments(&fixture)?;
+    Ok((fixture, expected))
+}
+
 fn load_interactive_fixture() -> Result<(PathBuf, Vec<String>), String> {
     let fixture = interactive_fixture_directory()?;
     let expected = expected_fragments(&fixture)?;
@@ -932,9 +1464,93 @@ fn load_privileged_fixture() -> Result<(PathBuf, Vec<String>), String> {
     Ok((fixture, expected))
 }
 
+fn load_build_podman_args_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = build_podman_args_fixture_directory()?;
+    let expected = expected_fragments(&fixture)?;
+    Ok((fixture, expected))
+}
+
+fn load_build_podman_args_no_cache_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = build_podman_args_no_cache_fixture_directory()?;
+    let expected = expected_fragments(&fixture)?;
+    Ok((fixture, expected))
+}
+
+fn load_build_podman_args_isolation_chroot_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = build_podman_args_isolation_chroot_fixture_directory()?;
+    let expected = expected_fragments(&fixture)?;
+    Ok((fixture, expected))
+}
+
+fn load_build_podman_args_ssh_default_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = build_podman_args_ssh_default_fixture_directory()?;
+    let expected = expected_fragments(&fixture)?;
+    Ok((fixture, expected))
+}
+
+fn load_build_podman_args_shm_size_32m_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = build_podman_args_shm_size_32m_fixture_directory()?;
+    let expected = expected_fragments(&fixture)?;
+    Ok((fixture, expected))
+}
+
+fn load_build_podman_args_ulimit_nproc_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = build_podman_args_ulimit_nproc_fixture_directory()?;
+    let expected = expected_fragments(&fixture)?;
+    Ok((fixture, expected))
+}
+
+fn load_build_podman_args_add_host_buildhost_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = build_podman_args_add_host_buildhost_fixture_directory()?;
+    let expected = expected_fragments(&fixture)?;
+    Ok((fixture, expected))
+}
+
+fn load_build_podman_args_cap_add_cap_sys_admin_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = build_podman_args_cap_add_cap_sys_admin_fixture_directory()?;
+    let expected = expected_fragments(&fixture)?;
+    Ok((fixture, expected))
+}
+
+fn load_build_podman_args_cache_locations_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = build_podman_args_cache_locations_fixture_directory()?;
+    let expected = expected_fragments(&fixture)?;
+    Ok((fixture, expected))
+}
+
+fn load_build_podman_args_sbom_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = build_podman_args_sbom_fixture_directory()?;
+    let expected = expected_fragments(&fixture)?;
+    Ok((fixture, expected))
+}
+
 fn load_generator_fixtures() -> Result<GeneratorFixtures, String> {
     Ok(GeneratorFixtures {
         memory: load_memory_fixture()?,
+        build_retry: load_build_retry_fixture()?,
+        build_tls_verify: load_build_tls_verify_fixture()?,
+        build_force_rm: load_build_force_rm_fixture()?,
+        build_group_add: load_build_group_add_fixture()?,
+        build_dns: load_build_dns_fixture()?,
+        build_dns_option: load_build_dns_option_fixture()?,
+        build_dns_search: load_build_dns_search_fixture()?,
+        build_auth_file: load_build_auth_file_fixture()?,
+        build_ignore_file: load_build_ignore_file_fixture()?,
+        build_annotation: load_build_annotation_fixture()?,
+        build_arg: load_build_arg_fixture()?,
+        build_secret: load_build_secret_fixture()?,
+        build_platform: load_build_platform_fixture()?,
+        build_pull: load_build_pull_fixture()?,
+        build_podman_args: load_build_podman_args_fixture()?,
+        build_podman_args_no_cache: load_build_podman_args_no_cache_fixture()?,
+        build_podman_args_isolation_chroot: load_build_podman_args_isolation_chroot_fixture()?,
+        build_podman_args_ssh_default: load_build_podman_args_ssh_default_fixture()?,
+        build_podman_args_shm_size_32m: load_build_podman_args_shm_size_32m_fixture()?,
+        build_podman_args_ulimit_nproc: load_build_podman_args_ulimit_nproc_fixture()?,
+        build_podman_args_add_host_buildhost: load_build_podman_args_add_host_buildhost_fixture()?,
+        build_podman_args_cap_add_cap_sys_admin: load_build_podman_args_cap_add_cap_sys_admin_fixture()?,
+        build_podman_args_cache_locations: load_build_podman_args_cache_locations_fixture()?,
+        build_podman_args_sbom: load_build_podman_args_sbom_fixture()?,
         interactive: load_interactive_fixture()?,
         tty: load_tty_fixture()?,
         privileged: load_privileged_fixture()?,
@@ -1017,12 +1633,271 @@ fn verify_image_memory(engine: &str, image: &GeneratorImage, fixture: &(PathBuf,
     verify_memory_generator_output(&image.version, &fixture.1, &output)
 }
 
+fn verify_image_build_retry(
+    engine: &str,
+    image: &GeneratorImage,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_generator_raw(engine, image, &fixture.0)?;
+    verify_build_retry_generator_output(&image.version, &fixture.1, &output)
+}
+
+fn verify_image_build_tls_verify(
+    engine: &str,
+    image: &GeneratorImage,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_generator_raw(engine, image, &fixture.0)?;
+    verify_build_tls_verify_generator_output(&image.version, &fixture.1, &output)
+}
+
+fn verify_image_build_force_rm(
+    engine: &str,
+    image: &GeneratorImage,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_generator_raw(engine, image, &fixture.0)?;
+    verify_build_force_rm_generator_output(&image.version, &fixture.1, &output)
+}
+
+fn verify_image_build_group_add(
+    engine: &str,
+    image: &GeneratorImage,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_generator_raw(engine, image, &fixture.0)?;
+    verify_build_group_add_generator_output(&image.version, &fixture.1, &output)
+}
+
+fn verify_image_build_dns(
+    engine: &str,
+    image: &GeneratorImage,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_generator_raw(engine, image, &fixture.0)?;
+    verify_build_dns_generator_output(&image.version, &fixture.1, &output)
+}
+
+fn verify_image_build_dns_option(
+    engine: &str,
+    image: &GeneratorImage,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    verify_build_dns_option_generator_output(
+        &image.version,
+        &fixture.1,
+        &run_generator_raw(engine, image, &fixture.0)?,
+    )
+}
+
+fn verify_image_build_dns_search(
+    engine: &str,
+    image: &GeneratorImage,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    verify_build_dns_search_generator_output(
+        &image.version,
+        &fixture.1,
+        &run_generator_raw(engine, image, &fixture.0)?,
+    )
+}
+
+fn verify_image_build_auth_file(
+    engine: &str,
+    image: &GeneratorImage,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    verify_build_auth_file_generator_output(
+        &image.version,
+        &fixture.1,
+        &run_generator_raw(engine, image, &fixture.0)?,
+    )
+}
+
+fn verify_image_build_ignore_file(
+    engine: &str,
+    image: &GeneratorImage,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    verify_build_ignore_file_generator_output(
+        &image.version,
+        &fixture.1,
+        &run_generator_raw(engine, image, &fixture.0)?,
+    )
+}
+
+fn verify_image_build_annotation(
+    engine: &str,
+    image: &GeneratorImage,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    verify_build_annotation_generator_output(
+        &image.version,
+        &fixture.1,
+        &run_generator_raw(engine, image, &fixture.0)?,
+    )
+}
+
+fn verify_image_build_arg(
+    engine: &str,
+    image: &GeneratorImage,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_generator_raw(engine, image, &fixture.0)?;
+    verify_build_arg_generator_output(&image.version, &fixture.1, &output)
+}
+
+fn verify_image_build_secret(
+    engine: &str,
+    image: &GeneratorImage,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_generator_raw(engine, image, &fixture.0)?;
+    verify_build_secret_generator_output(&image.version, &fixture.1, &output)
+}
+
+fn verify_image_build_platform(
+    engine: &str,
+    image: &GeneratorImage,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_generator_raw(engine, image, &fixture.0)?;
+    verify_build_platform_generator_output(&image.version, &fixture.1, &output)
+}
+
+fn verify_image_build_pull(
+    engine: &str,
+    image: &GeneratorImage,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_generator_raw(engine, image, &fixture.0)?;
+    verify_build_pull_generator_output(&image.version, &fixture.1, &output)
+}
+
+fn verify_image_build_podman_args(
+    engine: &str,
+    image: &GeneratorImage,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_generator_raw(engine, image, &fixture.0)?;
+    verify_build_podman_args_generator_output(&image.version, &fixture.1, &output)
+}
+
+fn verify_image_build_podman_args_no_cache(
+    engine: &str,
+    image: &GeneratorImage,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_generator_raw(engine, image, &fixture.0)?;
+    verify_build_podman_args_no_cache_generator_output(&image.version, &fixture.1, &output)
+}
+
+fn verify_image_build_podman_args_isolation_chroot(
+    engine: &str,
+    image: &GeneratorImage,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_generator_raw(engine, image, &fixture.0)?;
+    verify_build_podman_args_isolation_chroot_generator_output(&image.version, &fixture.1, &output)
+}
+
+fn verify_image_build_podman_args_ssh_default(
+    engine: &str,
+    image: &GeneratorImage,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_generator_raw(engine, image, &fixture.0)?;
+    verify_build_podman_args_ssh_default_generator_output(&image.version, &fixture.1, &output)
+}
+
+fn verify_image_build_podman_args_shm_size_32m(
+    engine: &str,
+    image: &GeneratorImage,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_generator_raw(engine, image, &fixture.0)?;
+    verify_build_podman_args_shm_size_32m_generator_output(&image.version, &fixture.1, &output)
+}
+
+fn verify_image_build_podman_args_ulimit_nproc(
+    engine: &str,
+    image: &GeneratorImage,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_generator_raw(engine, image, &fixture.0)?;
+    verify_build_podman_args_ulimit_nproc_generator_output(&image.version, &fixture.1, &output)
+}
+
+fn verify_image_build_podman_args_add_host_buildhost(
+    engine: &str,
+    image: &GeneratorImage,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_generator_raw(engine, image, &fixture.0)?;
+    verify_build_podman_args_add_host_buildhost_generator_output(&image.version, &fixture.1, &output)
+}
+
+fn verify_image_build_podman_args_cap_add_cap_sys_admin(
+    engine: &str,
+    image: &GeneratorImage,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_generator_raw(engine, image, &fixture.0)?;
+    verify_build_podman_args_cap_add_cap_sys_admin_generator_output(&image.version, &fixture.1, &output)
+}
+
+fn verify_image_build_podman_args_cache_locations(
+    engine: &str,
+    image: &GeneratorImage,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_generator_raw(engine, image, &fixture.0)?;
+    verify_build_podman_args_cache_locations_generator_output(&image.version, &fixture.1, &output)
+}
+
+fn verify_image_build_podman_args_sbom(
+    engine: &str,
+    image: &GeneratorImage,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_generator_raw(engine, image, &fixture.0)?;
+    verify_build_podman_args_sbom_generator_output(&image.version, &fixture.1, &output)
+}
+
 fn verify_image_isolated_fixtures(
     engine: &str,
     image: &GeneratorImage,
     fixtures: &GeneratorFixtures,
 ) -> Result<(), String> {
     verify_image_memory(engine, image, &fixtures.memory)?;
+    verify_image_build_retry(engine, image, &fixtures.build_retry)?;
+    verify_image_build_tls_verify(engine, image, &fixtures.build_tls_verify)?;
+    verify_image_build_force_rm(engine, image, &fixtures.build_force_rm)?;
+    verify_image_build_group_add(engine, image, &fixtures.build_group_add)?;
+    verify_image_build_dns(engine, image, &fixtures.build_dns)?;
+    verify_image_build_dns_option(engine, image, &fixtures.build_dns_option)?;
+    verify_image_build_dns_search(engine, image, &fixtures.build_dns_search)?;
+    verify_image_build_auth_file(engine, image, &fixtures.build_auth_file)?;
+    verify_image_build_ignore_file(engine, image, &fixtures.build_ignore_file)?;
+    verify_image_build_annotation(engine, image, &fixtures.build_annotation)?;
+    verify_image_build_arg(engine, image, &fixtures.build_arg)?;
+    verify_image_build_secret(engine, image, &fixtures.build_secret)?;
+    verify_image_build_platform(engine, image, &fixtures.build_platform)?;
+    verify_image_build_pull(engine, image, &fixtures.build_pull)?;
+    verify_image_build_podman_args(engine, image, &fixtures.build_podman_args)?;
+    verify_image_build_podman_args_no_cache(engine, image, &fixtures.build_podman_args_no_cache)?;
+    verify_image_build_podman_args_isolation_chroot(engine, image, &fixtures.build_podman_args_isolation_chroot)?;
+    verify_image_build_podman_args_ssh_default(engine, image, &fixtures.build_podman_args_ssh_default)?;
+    verify_image_build_podman_args_shm_size_32m(engine, image, &fixtures.build_podman_args_shm_size_32m)?;
+    verify_image_build_podman_args_ulimit_nproc(engine, image, &fixtures.build_podman_args_ulimit_nproc)?;
+    verify_image_build_podman_args_add_host_buildhost(engine, image, &fixtures.build_podman_args_add_host_buildhost)?;
+    verify_image_build_podman_args_cap_add_cap_sys_admin(
+        engine,
+        image,
+        &fixtures.build_podman_args_cap_add_cap_sys_admin,
+    )?;
+    verify_image_build_podman_args_cache_locations(engine, image, &fixtures.build_podman_args_cache_locations)?;
+    verify_image_build_podman_args_sbom(engine, image, &fixtures.build_podman_args_sbom)?;
     verify_image_interactive(engine, image, &fixtures.interactive)?;
     verify_image_tty(engine, image, &fixtures.tty)?;
     verify_image_privileged(engine, image, &fixtures.privileged)?;
@@ -1048,6 +1923,285 @@ fn verify_source_memory(
     verify_memory_generator_output(&source.version, &fixture.1, &output)
 }
 
+fn verify_source_build_retry(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?;
+    verify_build_retry_generator_output(&source.version, &fixture.1, &output)
+}
+
+fn verify_source_build_tls_verify(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?;
+    verify_build_tls_verify_generator_output(&source.version, &fixture.1, &output)
+}
+
+fn verify_source_build_force_rm(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?;
+    verify_build_force_rm_generator_output(&source.version, &fixture.1, &output)
+}
+
+fn verify_source_build_group_add(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?;
+    verify_build_group_add_generator_output(&source.version, &fixture.1, &output)
+}
+
+fn verify_source_build_dns(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?;
+    verify_build_dns_generator_output(&source.version, &fixture.1, &output)
+}
+
+fn verify_source_build_dns_option(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    verify_build_dns_option_generator_output(
+        &source.version,
+        &fixture.1,
+        &run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?,
+    )
+}
+
+fn verify_source_build_dns_search(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    verify_build_dns_search_generator_output(
+        &source.version,
+        &fixture.1,
+        &run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?,
+    )
+}
+
+fn verify_source_build_auth_file(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    verify_build_auth_file_generator_output(
+        &source.version,
+        &fixture.1,
+        &run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?,
+    )
+}
+
+fn verify_source_build_ignore_file(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    verify_build_ignore_file_generator_output(
+        &source.version,
+        &fixture.1,
+        &run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?,
+    )
+}
+
+fn verify_source_build_annotation(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    verify_build_annotation_generator_output(
+        &source.version,
+        &fixture.1,
+        &run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?,
+    )
+}
+
+fn verify_source_build_arg(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?;
+    verify_build_arg_generator_output(&source.version, &fixture.1, &output)
+}
+
+fn verify_source_build_secret(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?;
+    verify_build_secret_generator_output(&source.version, &fixture.1, &output)
+}
+
+fn verify_source_build_platform(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?;
+    verify_build_platform_generator_output(&source.version, &fixture.1, &output)
+}
+
+fn verify_source_build_pull(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?;
+    verify_build_pull_generator_output(&source.version, &fixture.1, &output)
+}
+
+fn verify_source_build_podman_args(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?;
+    verify_build_podman_args_generator_output(&source.version, &fixture.1, &output)
+}
+
+fn verify_source_build_podman_args_no_cache(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?;
+    verify_build_podman_args_no_cache_generator_output(&source.version, &fixture.1, &output)
+}
+
+fn verify_source_build_podman_args_isolation_chroot(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?;
+    verify_build_podman_args_isolation_chroot_generator_output(&source.version, &fixture.1, &output)
+}
+
+fn verify_source_build_podman_args_ssh_default(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?;
+    verify_build_podman_args_ssh_default_generator_output(&source.version, &fixture.1, &output)
+}
+
+fn verify_source_build_podman_args_shm_size_32m(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?;
+    verify_build_podman_args_shm_size_32m_generator_output(&source.version, &fixture.1, &output)
+}
+
+fn verify_source_build_podman_args_ulimit_nproc(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?;
+    verify_build_podman_args_ulimit_nproc_generator_output(&source.version, &fixture.1, &output)
+}
+
+fn verify_source_build_podman_args_add_host_buildhost(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?;
+    verify_build_podman_args_add_host_buildhost_generator_output(&source.version, &fixture.1, &output)
+}
+
+fn verify_source_build_podman_args_cap_add_cap_sys_admin(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?;
+    verify_build_podman_args_cap_add_cap_sys_admin_generator_output(&source.version, &fixture.1, &output)
+}
+
+fn verify_source_build_podman_args_cache_locations(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?;
+    verify_build_podman_args_cache_locations_generator_output(&source.version, &fixture.1, &output)
+}
+
+fn verify_source_build_podman_args_sbom(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    let output = run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?;
+    verify_build_podman_args_sbom_generator_output(&source.version, &fixture.1, &output)
+}
+
 fn verify_source_isolated_fixtures(
     engine: &str,
     matrix: &GeneratorMatrix,
@@ -1056,6 +2210,72 @@ fn verify_source_isolated_fixtures(
     fixtures: &GeneratorFixtures,
 ) -> Result<(), String> {
     verify_source_memory(engine, matrix, source, generator, &fixtures.memory)?;
+    verify_source_build_retry(engine, matrix, source, generator, &fixtures.build_retry)?;
+    verify_source_build_tls_verify(engine, matrix, source, generator, &fixtures.build_tls_verify)?;
+    verify_source_build_force_rm(engine, matrix, source, generator, &fixtures.build_force_rm)?;
+    verify_source_build_group_add(engine, matrix, source, generator, &fixtures.build_group_add)?;
+    verify_source_build_dns(engine, matrix, source, generator, &fixtures.build_dns)?;
+    verify_source_build_dns_option(engine, matrix, source, generator, &fixtures.build_dns_option)?;
+    verify_source_build_dns_search(engine, matrix, source, generator, &fixtures.build_dns_search)?;
+    verify_source_build_auth_file(engine, matrix, source, generator, &fixtures.build_auth_file)?;
+    verify_source_build_ignore_file(engine, matrix, source, generator, &fixtures.build_ignore_file)?;
+    verify_source_build_annotation(engine, matrix, source, generator, &fixtures.build_annotation)?;
+    verify_source_build_arg(engine, matrix, source, generator, &fixtures.build_arg)?;
+    verify_source_build_secret(engine, matrix, source, generator, &fixtures.build_secret)?;
+    verify_source_build_platform(engine, matrix, source, generator, &fixtures.build_platform)?;
+    verify_source_build_pull(engine, matrix, source, generator, &fixtures.build_pull)?;
+    verify_source_build_podman_args(engine, matrix, source, generator, &fixtures.build_podman_args)?;
+    verify_source_build_podman_args_no_cache(engine, matrix, source, generator, &fixtures.build_podman_args_no_cache)?;
+    verify_source_build_podman_args_isolation_chroot(
+        engine,
+        matrix,
+        source,
+        generator,
+        &fixtures.build_podman_args_isolation_chroot,
+    )?;
+    verify_source_build_podman_args_ssh_default(
+        engine,
+        matrix,
+        source,
+        generator,
+        &fixtures.build_podman_args_ssh_default,
+    )?;
+    verify_source_build_podman_args_shm_size_32m(
+        engine,
+        matrix,
+        source,
+        generator,
+        &fixtures.build_podman_args_shm_size_32m,
+    )?;
+    verify_source_build_podman_args_ulimit_nproc(
+        engine,
+        matrix,
+        source,
+        generator,
+        &fixtures.build_podman_args_ulimit_nproc,
+    )?;
+    verify_source_build_podman_args_add_host_buildhost(
+        engine,
+        matrix,
+        source,
+        generator,
+        &fixtures.build_podman_args_add_host_buildhost,
+    )?;
+    verify_source_build_podman_args_cap_add_cap_sys_admin(
+        engine,
+        matrix,
+        source,
+        generator,
+        &fixtures.build_podman_args_cap_add_cap_sys_admin,
+    )?;
+    verify_source_build_podman_args_cache_locations(
+        engine,
+        matrix,
+        source,
+        generator,
+        &fixtures.build_podman_args_cache_locations,
+    )?;
+    verify_source_build_podman_args_sbom(engine, matrix, source, generator, &fixtures.build_podman_args_sbom)?;
     verify_source_interactive(engine, matrix, source, generator, &fixtures.interactive)?;
     verify_source_tty(engine, matrix, source, generator, &fixtures.tty)?;
     verify_source_privileged(engine, matrix, source, generator, &fixtures.privileged)?;
@@ -1923,6 +3143,7 @@ fn verify_generator_output(version: &str, expected: &[String], output: &Output) 
     verify_pull_arguments(version, &generated, output)?;
     verify_pids_limit_arguments(version, &generated, output)?;
     verify_hostname_argument(version, &generated, output)?;
+    verify_build_core_arguments(version, &generated, output)?;
     verify_shm_size_arguments(version, &generated, output)?;
     verify_cap_drop_arguments(version, &generated, output)?;
     verify_cap_add_arguments(version, &generated, output)?;
@@ -1937,6 +3158,95 @@ fn verify_generator_output(version: &str, expected: &[String], output: &Output) 
     verify_expose_arguments(version, &generated, output)?;
     verify_annotation_arguments(version, &generated, output)?;
     verify_quoted_label_encoding(version, &generated, output)?;
+    Ok(())
+}
+
+fn verify_build_core_arguments(version: &str, generated: &str, output: &Output) -> Result<(), String> {
+    let generated_unit = generated_unit(version, generated, "application-build.service", output)?;
+    let podman_build = generated_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman build "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} generator output for application-build.service is missing its Podman build command\\nstdout:\\n{generated}\\nstderr:\\n{}",
+                String::from_utf8_lossy(&output.stderr)
+            )
+        })?;
+    let mut positions = Vec::with_capacity(BUILD_IMAGE_TAG_ARGUMENTS.len());
+    for argument in BUILD_IMAGE_TAG_ARGUMENTS {
+        let matches: Vec<_> = podman_build
+            .match_indices(argument)
+            .map(|(position, _)| position)
+            .collect();
+        if matches.len() != 1 {
+            return Err(format!(
+                "Podman {version} generator output for application-build.service must contain `{argument}` exactly once; found {}\\nstdout:\\n{generated}\\nstderr:\\n{}",
+                matches.len(),
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
+        positions.push(matches[0]);
+    }
+    let all_tag_count = podman_build.matches("--tag").count();
+    let mut network_positions = Vec::with_capacity(BUILD_NETWORK_ARGUMENTS.len());
+    for argument in BUILD_NETWORK_ARGUMENTS {
+        let matches: Vec<_> = podman_build
+            .match_indices(argument)
+            .map(|(position, _)| position)
+            .collect();
+        if matches.len() != 1 {
+            return Err(format!(
+                "Podman {version} generator output for application-build.service must contain `{argument}` exactly once; found {}\\nstdout:\\n{generated}\\nstderr:\\n{}",
+                matches.len(),
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
+        network_positions.push(matches[0]);
+    }
+    let all_network_count = podman_build.matches("--network").count();
+    for argument in BUILD_LABEL_ARGUMENTS {
+        let matches: Vec<_> = podman_build.match_indices(argument).collect();
+        if matches.len() != 1 {
+            return Err(format!(
+                "Podman {version} generator output for application-build.service must contain `{argument}` exactly once; found {}\\nstdout:\\n{generated}\\nstderr:\\n{}",
+                matches.len(),
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
+    }
+    let all_label_count = podman_build.matches("--label").count();
+    let file_count = podman_build.matches("--file").count();
+    let target_count = podman_build.matches("--target").count();
+    if all_tag_count != BUILD_IMAGE_TAG_ARGUMENTS.len()
+        || !positions.windows(2).all(|pair| pair[0] < pair[1])
+        || all_network_count != BUILD_NETWORK_ARGUMENTS.len()
+        || !network_positions.windows(2).all(|pair| pair[0] < pair[1])
+        || all_label_count != BUILD_LABEL_ARGUMENTS.len()
+        || podman_build.contains("--label=")
+        || !generated_unit.contains(BUILD_NETWORK_DEPENDENCY)
+        || !generated_unit.contains(BUILD_NETWORK_ORDERING)
+        || file_count != 1
+        || !podman_build.contains(BUILD_FILE_FINAL_ARGUMENT)
+        || podman_build.contains(BUILD_FILE_EARLIER_ARGUMENT)
+        || target_count != 1
+        || !podman_build.contains(BUILD_TARGET_ARGUMENT)
+        || !generated_unit.contains(BUILD_WORKING_DIRECTORY)
+    {
+        return Err(format!(
+            "Podman {version} generator output for application-build.service must contain exactly two ordered tags, three ordered networks, exactly two portable labels without --label= forms, `{BUILD_NETWORK_DEPENDENCY}`, `{BUILD_NETWORK_ORDERING}`, only final `{BUILD_FILE_FINAL_ARGUMENT}`, one `{BUILD_TARGET_ARGUMENT}`, and `{BUILD_WORKING_DIRECTORY}`; found tags={all_tag_count}, tag-positions={positions:?}, networks={all_network_count}, network-positions={network_positions:?}, labels={all_label_count}, equals-label={}, dependency={}, ordering={}, files={file_count}, final-file={}, earlier-file={}, targets={target_count}, target={}, working-directory={}\\nstdout:\\n{generated}\\nstderr:\\n{}",
+            podman_build.contains("--label="),
+            generated_unit.contains(BUILD_NETWORK_DEPENDENCY),
+            generated_unit.contains(BUILD_NETWORK_ORDERING),
+            podman_build.contains(BUILD_FILE_FINAL_ARGUMENT),
+            podman_build.contains(BUILD_FILE_EARLIER_ARGUMENT),
+            podman_build.contains(BUILD_TARGET_ARGUMENT),
+            generated_unit.contains(BUILD_WORKING_DIRECTORY),
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+    eprintln!(
+        "Podman {version} build core: two ordered --tag arguments, three ordered --network arguments with a .network dependency, two portable --label arguments, final File only, one Target, and file working directory"
+    );
     Ok(())
 }
 
@@ -1990,6 +3300,1417 @@ fn verify_memory_generator_output(version: &str, expected: &[String], output: &O
         ));
     }
     eprintln!("Podman {version} Memory: last effective assignment emits exactly one --memory 16777216b argument");
+    Ok(())
+}
+
+fn verify_build_retry_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    let generated = String::from_utf8(output.stdout.clone())
+        .map_err(|error| format!("{version} Build Retry generator emitted non-UTF-8 output: {error}"))?;
+    let diagnostics = String::from_utf8_lossy(&output.stderr);
+    if parsed < PodmanVersion::new(5, 5, 0) {
+        let retry_argument_count = generated.matches("--retry").count();
+        let rejected_or_excluded = !output.status.success()
+            || !generated.contains("---build-retry-build.service---")
+            || diagnostics.contains("Retry");
+        if retry_argument_count != 0 || !rejected_or_excluded {
+            return Err(format!(
+                "Podman {version} predates native Build Retry support and must reject or exclude the fixture without emitting retry arguments; found retry-arguments={retry_argument_count}, status={}\nstdout:\n{generated}\nstderr:\n{diagnostics}",
+                output.status
+            ));
+        }
+        eprintln!("Podman {version} Build Retry: unsupported keys are rejected or excluded with no retry argument");
+        return Ok(());
+    }
+
+    ensure_success(version, "Build Retry generator", output)?;
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} Build Retry generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            ));
+        }
+    }
+    let generated_unit = generated_unit(version, &generated, "build-retry-build.service", output)?;
+    let podman_build = generated_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman build "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} generator output for build-retry-build.service is missing its Podman build command\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            )
+        })?;
+    let retry_positions: Vec<_> = podman_build
+        .match_indices(BUILD_RETRY_PAIR)
+        .map(|(position, _)| position)
+        .collect();
+    let retry_delay_positions: Vec<_> = podman_build
+        .match_indices(BUILD_RETRY_DELAY_PAIR)
+        .map(|(position, _)| position)
+        .collect();
+    let retry_flag_count = podman_build.matches("--retry ").count();
+    let retry_delay_flag_count = podman_build.matches("--retry-delay ").count();
+    let retry_equals_count = podman_build.matches("--retry=").count();
+    let retry_delay_equals_count = podman_build.matches("--retry-delay=").count();
+    let retry_alternates: Vec<_> = BUILD_RETRY_ALTERNATE_FORMS
+        .iter()
+        .copied()
+        .filter(|form| podman_build.contains(form))
+        .collect();
+    let retry_delay_alternates: Vec<_> = BUILD_RETRY_DELAY_ALTERNATE_FORMS
+        .iter()
+        .copied()
+        .filter(|form| podman_build.contains(form))
+        .collect();
+    let terminal_context = format!(" {BUILD_RETRY_CONTEXT}");
+    let context_position = podman_build.rfind(&terminal_context);
+    let pairs_precede_context = context_position.is_some_and(|context_position| {
+        retry_positions
+            .first()
+            .is_some_and(|position| *position < context_position)
+            && retry_delay_positions
+                .first()
+                .is_some_and(|position| *position < context_position)
+    });
+    if retry_positions.len() != 1
+        || retry_delay_positions.len() != 1
+        || retry_flag_count != 1
+        || retry_delay_flag_count != 1
+        || retry_equals_count != 0
+        || retry_delay_equals_count != 0
+        || !retry_alternates.is_empty()
+        || !retry_delay_alternates.is_empty()
+        || !podman_build.ends_with(&terminal_context)
+        || !pairs_precede_context
+    {
+        return Err(format!(
+            "Podman {version} generator output for build-retry-build.service must contain exactly one separate `{BUILD_RETRY_FLAG}` `{BUILD_RETRY_VALUE}` pair and one separate `{BUILD_RETRY_DELAY_FLAG}` `{BUILD_RETRY_DELAY_VALUE}` pair before final positional `{BUILD_RETRY_CONTEXT}`, with no required relative order between pairs and no equals, quoted, alternate, duplicate, or post-context form; found retry-pairs={retry_positions:?}, retry-delay-pairs={retry_delay_positions:?}, retry-flags={retry_flag_count}, retry-delay-flags={retry_delay_flag_count}, retry-equals={retry_equals_count}, retry-delay-equals={retry_delay_equals_count}, retry-alternates={retry_alternates:?}, retry-delay-alternates={retry_delay_alternates:?}, terminal={}, pairs-precede-context={pairs_precede_context}\nstdout:\n{generated}\nstderr:\n{diagnostics}",
+            podman_build.ends_with(&terminal_context),
+        ));
+    }
+    eprintln!(
+        "Podman {version} Build Retry: one separate --retry 4 pair and one separate --retry-delay 7s pair precede the final positional context without a relative-order requirement"
+    );
+    Ok(())
+}
+
+fn verify_build_tls_verify_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let generated = String::from_utf8(output.stdout.clone())
+        .map_err(|error| format!("{version} Build TLSVerify generator emitted non-UTF-8 output: {error}"))?;
+    let diagnostics = String::from_utf8_lossy(&output.stderr);
+    ensure_success(version, "Build TLSVerify generator", output)?;
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} Build TLSVerify generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            ));
+        }
+    }
+    let terminal_context = format!(" {BUILD_TLS_VERIFY_CONTEXT}");
+    for (unit, expected_argument, alternate_forms) in [
+        (
+            "build-tls-verify-true-build.service",
+            BUILD_TLS_VERIFY_ARGUMENT,
+            BUILD_TLS_VERIFY_TRUE_ALTERNATE_FORMS,
+        ),
+        (
+            "build-tls-verify-false-build.service",
+            BUILD_TLS_VERIFY_FALSE_ARGUMENT,
+            BUILD_TLS_VERIFY_FALSE_ALTERNATE_FORMS,
+        ),
+    ] {
+        let generated_unit = generated_unit(version, &generated, unit, output)?;
+        let podman_build = generated_unit
+            .lines()
+            .find(|line| line.starts_with("ExecStart=/usr/bin/podman build "))
+            .ok_or_else(|| {
+                format!(
+                    "Podman {version} generator output for {unit} is missing its Podman build command\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+                )
+            })?;
+        let argument_positions: Vec<_> = podman_build
+            .match_indices(expected_argument)
+            .map(|(position, _)| position)
+            .collect();
+        let all_tls_verify_count = podman_build.matches(BUILD_TLS_VERIFY_ARGUMENT).count();
+        let alternate_forms: Vec<_> = alternate_forms
+            .iter()
+            .copied()
+            .filter(|form| podman_build.contains(form))
+            .collect();
+        let context_position = podman_build.rfind(&terminal_context);
+        let argument_precedes_context = context_position.is_some_and(|context_position| {
+            argument_positions
+                .first()
+                .is_some_and(|position| *position < context_position)
+        });
+        if argument_positions.len() != 1
+            || all_tls_verify_count != 1
+            || !alternate_forms.is_empty()
+            || !podman_build.ends_with(&terminal_context)
+            || !argument_precedes_context
+        {
+            return Err(format!(
+                "Podman {version} generator output for {unit} must contain exactly one `{expected_argument}` before final positional `{BUILD_TLS_VERIFY_CONTEXT}`, with no bare/equals/quoted/alternate/duplicate or post-context form; found expected={argument_positions:?}, all-tls-verify={all_tls_verify_count}, alternates={alternate_forms:?}, terminal={}, precedes-context={argument_precedes_context}\nstdout:\n{generated}\nstderr:\n{diagnostics}",
+                podman_build.ends_with(&terminal_context),
+            ));
+        }
+    }
+    eprintln!(
+        "Podman {version} Build TLSVerify: true emits one bare --tls-verify and false one --tls-verify=false before the final positional context"
+    );
+    Ok(())
+}
+
+fn verify_build_force_rm_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let generated = String::from_utf8(output.stdout.clone())
+        .map_err(|error| format!("{version} Build ForceRM generator emitted non-UTF-8 output: {error}"))?;
+    let diagnostics = String::from_utf8_lossy(&output.stderr);
+    ensure_success(version, "Build ForceRM generator", output)?;
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} Build ForceRM generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            ));
+        }
+    }
+    let terminal_context = format!(" {BUILD_FORCE_RM_CONTEXT}");
+    for (unit, expected_argument, alternate_forms) in [
+        (
+            "build-force-rm-true-build.service",
+            BUILD_FORCE_RM_ARGUMENT,
+            BUILD_FORCE_RM_TRUE_ALTERNATE_FORMS,
+        ),
+        (
+            "build-force-rm-false-build.service",
+            BUILD_FORCE_RM_FALSE_ARGUMENT,
+            BUILD_FORCE_RM_FALSE_ALTERNATE_FORMS,
+        ),
+    ] {
+        let generated_unit = generated_unit(version, &generated, unit, output)?;
+        let podman_build = generated_unit
+            .lines()
+            .find(|line| line.starts_with("ExecStart=/usr/bin/podman build "))
+            .ok_or_else(|| {
+                format!(
+                    "Podman {version} generator output for {unit} is missing its Podman build command\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+                )
+            })?;
+        let argument_positions: Vec<_> = podman_build
+            .match_indices(expected_argument)
+            .map(|(position, _)| position)
+            .collect();
+        let all_force_rm_count = podman_build.matches(BUILD_FORCE_RM_ARGUMENT).count();
+        let alternate_forms: Vec<_> = alternate_forms
+            .iter()
+            .copied()
+            .filter(|form| podman_build.contains(form))
+            .collect();
+        let context_position = podman_build.rfind(&terminal_context);
+        let argument_precedes_context = context_position.is_some_and(|context_position| {
+            argument_positions
+                .first()
+                .is_some_and(|position| *position < context_position)
+        });
+        if argument_positions.len() != 1
+            || all_force_rm_count != 1
+            || !alternate_forms.is_empty()
+            || !podman_build.ends_with(&terminal_context)
+            || !argument_precedes_context
+        {
+            return Err(format!(
+                "Podman {version} generator output for {unit} must contain exactly one `{expected_argument}` before final positional `{BUILD_FORCE_RM_CONTEXT}`, with no bare/equals/quoted/alternate/duplicate or post-context form; found expected={argument_positions:?}, all-force-rm={all_force_rm_count}, alternates={alternate_forms:?}, terminal={}, precedes-context={argument_precedes_context}\nstdout:\n{generated}\nstderr:\n{diagnostics}",
+                podman_build.ends_with(&terminal_context),
+            ));
+        }
+    }
+    eprintln!(
+        "Podman {version} Build ForceRM: true emits one bare --force-rm and false one --force-rm=false before the final positional context"
+    );
+    Ok(())
+}
+
+fn verify_build_group_add_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let generated = String::from_utf8(output.stdout.clone())
+        .map_err(|error| format!("{version} Build GroupAdd generator emitted non-UTF-8 output: {error}"))?;
+    let diagnostics = String::from_utf8_lossy(&output.stderr);
+    ensure_success(version, "Build GroupAdd generator", output)?;
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} Build GroupAdd generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            ));
+        }
+    }
+    let generated_unit = generated_unit(version, &generated, "build-group-add-build.service", output)?;
+    let podman_build = generated_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman build "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} generator output for build-group-add-build.service is missing its Podman build command\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            )
+        })?;
+    let first_positions: Vec<_> = podman_build
+        .match_indices(BUILD_GROUP_ADD_FIRST_PAIR)
+        .map(|(position, _)| position)
+        .collect();
+    let second_positions: Vec<_> = podman_build
+        .match_indices(BUILD_GROUP_ADD_SECOND_PAIR)
+        .map(|(position, _)| position)
+        .collect();
+    let flag_count = podman_build.matches(BUILD_GROUP_ADD_FLAG).count();
+    let alternate_forms: Vec<_> = BUILD_GROUP_ADD_ALTERNATE_FORMS
+        .iter()
+        .copied()
+        .filter(|form| podman_build.contains(form))
+        .collect();
+    let terminal_context = format!(" {BUILD_GROUP_ADD_CONTEXT}");
+    let context_position = podman_build.rfind(&terminal_context);
+    let pairs_are_ordered_before_context = matches!(
+        (first_positions.first(), second_positions.first(), context_position),
+        (Some(first), Some(second), Some(context)) if first < second && second < &context
+    );
+    if first_positions.len() != 1
+        || second_positions.len() != 1
+        || flag_count != 2
+        || !alternate_forms.is_empty()
+        || !podman_build.ends_with(&terminal_context)
+        || !pairs_are_ordered_before_context
+    {
+        return Err(format!(
+            "Podman {version} generator output for build-group-add-build.service must contain exactly one ordered separate `{BUILD_GROUP_ADD_FIRST_PAIR}` then `{BUILD_GROUP_ADD_SECOND_PAIR}` pair before final positional `{BUILD_GROUP_ADD_CONTEXT}`, with no equals, quoted, merged, duplicate, reordered, or post-context form; found first={first_positions:?}, second={second_positions:?}, flags={flag_count}, alternates={alternate_forms:?}, terminal={}, ordered-before-context={pairs_are_ordered_before_context}\nstdout:\n{generated}\nstderr:\n{diagnostics}",
+            podman_build.ends_with(&terminal_context),
+        ));
+    }
+    eprintln!(
+        "Podman {version} Build GroupAdd: ordered separate --group-add 1234 then --group-add 5678 pairs precede the final positional context"
+    );
+    Ok(())
+}
+
+fn verify_build_dns_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let generated = String::from_utf8(output.stdout.clone())
+        .map_err(|error| format!("{version} Build DNS generator emitted non-UTF-8 output: {error}"))?;
+    let diagnostics = String::from_utf8_lossy(&output.stderr);
+    ensure_success(version, "Build DNS generator", output)?;
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} Build DNS generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            ));
+        }
+    }
+    let generated_unit = generated_unit(version, &generated, "build-dns-build.service", output)?;
+    let podman_build = generated_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman build "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} generator output for build-dns-build.service is missing its Podman build command\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            )
+        })?;
+    let first_positions: Vec<_> = podman_build
+        .match_indices(BUILD_DNS_FIRST_PAIR)
+        .map(|(position, _)| position)
+        .collect();
+    let second_positions: Vec<_> = podman_build
+        .match_indices(BUILD_DNS_SECOND_PAIR)
+        .map(|(position, _)| position)
+        .collect();
+    let flag_count = podman_build.matches(BUILD_DNS_FLAG).count();
+    let alternate_forms: Vec<_> = BUILD_DNS_ALTERNATE_FORMS
+        .iter()
+        .copied()
+        .filter(|form| podman_build.contains(form))
+        .collect();
+    let terminal_context = format!(" {BUILD_DNS_CONTEXT}");
+    let context_position = podman_build.rfind(&terminal_context);
+    let pairs_are_ordered_before_context = matches!(
+        (first_positions.first(), second_positions.first(), context_position),
+        (Some(first), Some(second), Some(context)) if first < second && second < &context
+    );
+    if first_positions.len() != 1
+        || second_positions.len() != 1
+        || flag_count != 2
+        || !alternate_forms.is_empty()
+        || !podman_build.ends_with(&terminal_context)
+        || !pairs_are_ordered_before_context
+    {
+        return Err(format!(
+            "Podman {version} generator output for build-dns-build.service must contain exactly one ordered separate `{BUILD_DNS_FIRST_PAIR}` then `{BUILD_DNS_SECOND_PAIR}` pair before final positional `{BUILD_DNS_CONTEXT}`, with no equals, quoted, empty, merged, duplicate, reordered, or post-context form; found first={first_positions:?}, second={second_positions:?}, flags={flag_count}, alternates={alternate_forms:?}, terminal={}, ordered-before-context={pairs_are_ordered_before_context}\nstdout:\n{generated}\nstderr:\n{diagnostics}",
+            podman_build.ends_with(&terminal_context),
+        ));
+    }
+    eprintln!(
+        "Podman {version} Build DNS: ordered separate --dns 9.9.9.9 then --dns 2001:4860:4860::8888 pairs precede the final positional context"
+    );
+    Ok(())
+}
+
+fn verify_build_dns_option_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| error.to_string())?;
+    ensure_success(version, "Build DNSOption generator", output)?;
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} Build DNSOption output is missing `{fragment}`"
+            ));
+        }
+    }
+    let unit = generated_unit(version, &generated, "build-dns-option-build.service", output)?;
+    let command = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman build "))
+        .ok_or_else(|| format!("Podman {version} Build DNSOption command is missing"))?;
+    let first: Vec<_> = command
+        .match_indices(BUILD_DNS_OPTION_FIRST)
+        .map(|(index, _)| index)
+        .collect();
+    let second: Vec<_> = command
+        .match_indices(BUILD_DNS_OPTION_SECOND)
+        .map(|(index, _)| index)
+        .collect();
+    let terminal = " .";
+    let context = command.rfind(terminal);
+    let forbidden = [
+        "--dns-option rotate",
+        "--dns-option=",
+        "--dns-option \"",
+        "--dns-option '",
+        "--dns-option ndots:1,use-vc",
+        "--dns-option=ndots:1",
+        "--dns-option=use-vc",
+        "--dns-option ndots:1 use-vc",
+    ];
+    let ordered = matches!((first.first(), second.first(), context), (Some(a), Some(b), Some(c)) if a < b && b < &c);
+    if first.len() != 1
+        || second.len() != 1
+        || command.matches(BUILD_DNS_OPTION_FLAG).count() != 2
+        || forbidden.iter().any(|form| command.contains(form))
+        || !command.ends_with(terminal)
+        || !ordered
+    {
+        return Err(format!(
+            "Podman {version} Build DNSOption must retain only ordered separate ndots:1 then use-vc pairs before final context, rejecting reset, empty, equals, quoted, merged, duplicate, reordered, and post-context forms\n{command}"
+        ));
+    }
+    eprintln!(
+        "Podman {version} Build DNSOption: reset leaves ordered --dns-option ndots:1 then --dns-option use-vc before the final context"
+    );
+    Ok(())
+}
+
+fn verify_build_dns_search_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| error.to_string())?;
+    ensure_success(version, "Build DNSSearch generator", output)?;
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} Build DNSSearch output is missing `{fragment}`"
+            ));
+        }
+    }
+    let unit = generated_unit(version, &generated, "build-dns-search-build.service", output)?;
+    let command = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman build "))
+        .ok_or_else(|| format!("Podman {version} Build DNSSearch command is missing"))?;
+    let first: Vec<_> = command
+        .match_indices(BUILD_DNS_SEARCH_FIRST)
+        .map(|(index, _)| index)
+        .collect();
+    let second: Vec<_> = command
+        .match_indices(BUILD_DNS_SEARCH_SECOND)
+        .map(|(index, _)| index)
+        .collect();
+    let terminal = " .";
+    let context = command.rfind(terminal);
+    let forbidden = [
+        "--dns-search old.example",
+        "--dns-search=",
+        "--dns-search \"\"",
+        "--dns-search ''",
+        "--dns-search=corp.example",
+        "--dns-search=.",
+        "--dns-search \"corp.example\"",
+        "--dns-search 'corp.example'",
+        "--dns-search \".\"",
+        "--dns-search '.'",
+        "--dns-search corp.example,.",
+        "--dns-search=corp.example,.",
+        "--dns-search corp.example .",
+    ];
+    let ordered = matches!((first.first(), second.first(), context), (Some(a), Some(b), Some(c)) if a < b && b < &c);
+    if first.len() != 1
+        || second.len() != 1
+        || command.matches(BUILD_DNS_SEARCH_FLAG).count() != 2
+        || forbidden.iter().any(|form| command.contains(form))
+        || !command.ends_with(terminal)
+        || !ordered
+    {
+        return Err(format!(
+            "Podman {version} Build DNSSearch must retain only ordered separate corp.example then literal-dot pairs before final context, rejecting reset, empty, equals, quoted, merged, duplicate, reordered, and post-context forms\n{command}"
+        ));
+    }
+    eprintln!(
+        "Podman {version} Build DNSSearch: reset leaves ordered --dns-search corp.example then --dns-search . before the final context"
+    );
+    Ok(())
+}
+
+fn verify_build_auth_file_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| error.to_string())?;
+    ensure_success(version, "Build AuthFile generator", output)?;
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} Build AuthFile output is missing `{fragment}`"
+            ));
+        }
+    }
+    let terminal = " .";
+    let cases = [
+        (
+            "build-auth-file-single-build.service",
+            Some(BUILD_AUTH_FILE_SINGLE),
+            &[
+                "/run/quadlet-lens/last-auth.json",
+                "/run/quadlet-lens/earlier-auth.json",
+                "/run/quadlet-lens/earlier-empty-auth.json",
+            ][..],
+        ),
+        (
+            "build-auth-file-last-build.service",
+            Some(BUILD_AUTH_FILE_LAST),
+            &[
+                "/run/quadlet-lens/single-auth.json",
+                "/run/quadlet-lens/earlier-auth.json",
+                "/run/quadlet-lens/earlier-empty-auth.json",
+            ][..],
+        ),
+        (
+            "build-auth-file-empty-build.service",
+            None,
+            &[
+                "/run/quadlet-lens/single-auth.json",
+                "/run/quadlet-lens/earlier-auth.json",
+                "/run/quadlet-lens/last-auth.json",
+                "/run/quadlet-lens/earlier-empty-auth.json",
+            ][..],
+        ),
+    ];
+    for (unit, expected_argument, rejected_paths) in cases {
+        let generated_unit = generated_unit(version, &generated, unit, output)?;
+        let command = generated_unit
+            .lines()
+            .find(|line| line.starts_with("ExecStart=/usr/bin/podman build "))
+            .ok_or_else(|| format!("Podman {version} Build AuthFile command is missing for {unit}"))?;
+        let expected_count = expected_argument.map_or(0, |argument| command.matches(argument).count());
+        let flag_count = command.matches(BUILD_AUTH_FILE_FLAG).count();
+        let forbidden = [
+            "--authfile=",
+            "--authfile \"",
+            "--authfile '",
+            "\"--authfile",
+            "'--authfile",
+        ];
+        let argument_precedes_context = expected_argument.is_none_or(|argument| {
+            matches!(
+                (command.find(argument), command.rfind(terminal)),
+                (Some(argument_position), Some(context_position)) if argument_position < context_position
+            )
+        });
+        if expected_count != usize::from(expected_argument.is_some())
+            || flag_count != usize::from(expected_argument.is_some())
+            || rejected_paths.iter().any(|path| command.contains(path))
+            || forbidden.iter().any(|form| command.contains(form))
+            || !command.ends_with(terminal)
+            || !argument_precedes_context
+        {
+            return Err(format!(
+                "Podman {version} Build AuthFile command for {unit} must retain only its expected separate pre-context --authfile pair (or no flag after final empty), rejecting equals, quoted, duplicate, alternate, and post-context forms\n{command}"
+            ));
+        }
+    }
+    eprintln!(
+        "Podman {version} Build AuthFile: single value emits one separate pair, repeated values keep only the effective last path, and final empty emits no flag"
+    );
+    Ok(())
+}
+
+fn verify_build_ignore_file_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| error.to_string())?;
+    let diagnostics = String::from_utf8_lossy(&output.stderr);
+    if parsed < PodmanVersion::new(5, 7, 0) {
+        let flag_count = generated.matches(BUILD_IGNORE_FILE_FLAG).count();
+        let rejected_or_excluded = !output.status.success()
+            || !generated.contains("---build-ignore-file-single-build.service---")
+            || diagnostics.contains("IgnoreFile");
+        if rejected_or_excluded {
+            if flag_count != 0 {
+                return Err(format!(
+                    "Podman {version} rejects or excludes IgnoreFile but emitted --ignorefile; found flags={flag_count}\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+                ));
+            }
+            eprintln!("Podman {version} Build IgnoreFile: rejected or excluded with no --ignorefile argument");
+            return Ok(());
+        }
+    }
+
+    ensure_success(version, "Build IgnoreFile generator", output)?;
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} Build IgnoreFile output is missing `{fragment}`"
+            ));
+        }
+    }
+    let terminal = " .";
+    let cases = [
+        (
+            "build-ignore-file-single-build.service",
+            Some(BUILD_IGNORE_FILE_SINGLE),
+            &[
+                "/run/quadlet-lens/last.ignore",
+                "/run/quadlet-lens/earlier.ignore",
+                "/run/quadlet-lens/earlier-empty.ignore",
+            ][..],
+        ),
+        (
+            "build-ignore-file-last-build.service",
+            Some(BUILD_IGNORE_FILE_LAST),
+            &[
+                "/run/quadlet-lens/single.ignore",
+                "/run/quadlet-lens/earlier.ignore",
+                "/run/quadlet-lens/earlier-empty.ignore",
+            ][..],
+        ),
+        (
+            "build-ignore-file-empty-build.service",
+            None,
+            &[
+                "/run/quadlet-lens/single.ignore",
+                "/run/quadlet-lens/earlier.ignore",
+                "/run/quadlet-lens/last.ignore",
+                "/run/quadlet-lens/earlier-empty.ignore",
+            ][..],
+        ),
+    ];
+    for (unit, expected_argument, rejected_paths) in cases {
+        let generated_unit = generated_unit(version, &generated, unit, output)?;
+        let command = generated_unit
+            .lines()
+            .find(|line| line.starts_with("ExecStart=/usr/bin/podman build "))
+            .ok_or_else(|| format!("Podman {version} Build IgnoreFile command is missing for {unit}"))?;
+        let expected_count = expected_argument.map_or(0, |argument| command.matches(argument).count());
+        let flag_count = command.matches(BUILD_IGNORE_FILE_FLAG).count();
+        let forbidden = [
+            "--ignorefile=",
+            "--ignorefile \"",
+            "--ignorefile '",
+            "\"--ignorefile",
+            "'--ignorefile",
+        ];
+        let argument_precedes_context = expected_argument.is_none_or(|argument| {
+            matches!(
+                (command.find(argument), command.rfind(terminal)),
+                (Some(argument_position), Some(context_position)) if argument_position < context_position
+            )
+        });
+        if expected_count != usize::from(expected_argument.is_some())
+            || flag_count != usize::from(expected_argument.is_some())
+            || rejected_paths.iter().any(|path| command.contains(path))
+            || forbidden.iter().any(|form| command.contains(form))
+            || !command.ends_with(terminal)
+            || !argument_precedes_context
+        {
+            return Err(format!(
+                "Podman {version} Build IgnoreFile command for {unit} must retain only its expected separate pre-context --ignorefile pair (or no flag after final empty), rejecting equals, quoted, duplicate, alternate, and post-context forms\n{command}"
+            ));
+        }
+    }
+    eprintln!(
+        "Podman {version} Build IgnoreFile: single value emits one separate pair, repeated values keep only the effective last path, and final empty emits no flag"
+    );
+    Ok(())
+}
+
+fn verify_build_annotation_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| error.to_string())?;
+    ensure_success(version, "Build Annotation generator", output)?;
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} Build Annotation output is missing `{fragment}`"
+            ));
+        }
+    }
+    let generated_unit = generated_unit(version, &generated, "build-annotation-build.service", output)?;
+    let command = generated_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman build "))
+        .ok_or_else(|| format!("Podman {version} Build Annotation command is missing"))?;
+    let encoded_space = if parsed < PodmanVersion::new(5, 5, 0) {
+        " "
+    } else {
+        r"\x20"
+    };
+    let mut expected_arguments = vec!["--annotation =".to_owned()];
+    if parsed >= PodmanVersion::new(5, 6, 0) {
+        expected_arguments.extend(["--annotation bare".to_owned(), "--annotation malformed".to_owned()]);
+    }
+    expected_arguments.extend([
+        "--annotation org.example.alpha=final".to_owned(),
+        format!(r#"--annotation "org.example.escape=literal{encoded_space}text""#),
+        format!(r#"--annotation "org.example.quoted=Authored{encoded_space}Value""#),
+        "--annotation org.example.zeta=first".to_owned(),
+    ]);
+    if parsed >= PodmanVersion::new(5, 6, 0) {
+        expected_arguments.push("--annotation value".to_owned());
+    }
+    let positions: Vec<_> = expected_arguments
+        .iter()
+        .map(|argument| {
+            let matches: Vec<_> = command.match_indices(argument).map(|(position, _)| position).collect();
+            (argument, matches)
+        })
+        .collect();
+    if positions.iter().any(|(_, matches)| matches.len() != 1)
+        || !positions.windows(2).all(|pair| pair[0].1[0] < pair[1].1[0])
+        || command.matches("--annotation").count() != expected_arguments.len()
+        || BUILD_ANNOTATION_PRE_RESET_OR_REPLACED
+            .iter()
+            .any(|value| command.contains(value))
+        || (parsed < PodmanVersion::new(5, 6, 0)
+            && ["--annotation bare", "--annotation malformed", "--annotation value"]
+                .iter()
+                .any(|argument| command.contains(argument)))
+        || !command.ends_with(" .")
+    {
+        return Err(format!(
+            "Podman {version} Build Annotation must emit only the target-reset, tokenized/unquoted/C-unescaped, last-key-collapsed, key-sorted separate --annotation arguments before the final context, with the recorded bare/malformed-token boundary; found {positions:?}\n{command}"
+        ));
+    }
+    eprintln!(
+        "Podman {version} Build Annotation: reset, tokenization/unquoting/C-unescaping, duplicate-key collapse, and sorting preserve the recorded bare/malformed-token boundary"
+    );
+    Ok(())
+}
+
+fn verify_build_arg_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    let generated = String::from_utf8(output.stdout.clone())
+        .map_err(|error| format!("{version} BuildArg generator emitted non-UTF-8 output: {error}"))?;
+    let diagnostics = String::from_utf8_lossy(&output.stderr);
+    if parsed < PodmanVersion::new(5, 7, 0) {
+        let argument_count = generated.matches("--build-arg").count();
+        let rejected_or_excluded = !output.status.success()
+            || !generated.contains("---build-arg-build.service---")
+            || diagnostics.contains("BuildArg");
+        if rejected_or_excluded {
+            if argument_count != 0 {
+                return Err(format!(
+                    "Podman {version} rejects or excludes BuildArg but emitted --build-arg; found build-arg-arguments={argument_count}, status={}\nstdout:\n{generated}\nstderr:\n{diagnostics}",
+                    output.status
+                ));
+            }
+            eprintln!("Podman {version} BuildArg: rejected or excluded with no --build-arg argument");
+            return Ok(());
+        }
+    }
+
+    ensure_success(version, "BuildArg generator", output)?;
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} BuildArg generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            ));
+        }
+    }
+    let generated_unit = generated_unit(version, &generated, "build-arg-build.service", output)?;
+    let podman_build = generated_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman build "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} generator output for build-arg-build.service is missing its Podman build command\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            )
+        })?;
+    let positions: Vec<_> = BUILD_ARG_ARGUMENTS
+        .iter()
+        .map(|argument| {
+            podman_build
+                .match_indices(argument)
+                .map(|(position, _)| position)
+                .collect::<Vec<_>>()
+        })
+        .collect();
+    let all_argument_count = podman_build.matches("--build-arg").count();
+    if positions.iter().any(|matches| matches.len() != 1)
+        || all_argument_count != BUILD_ARG_ARGUMENTS.len()
+        || podman_build.contains("--build-arg=")
+    {
+        return Err(format!(
+            "Podman {version} generator output for build-arg-build.service must contain exactly one separate `{}` and `{}`, with no duplicate or equals form; found positions={positions:?}, all-build-arg={all_argument_count}, equals-form={}\nstdout:\n{generated}\nstderr:\n{diagnostics}",
+            BUILD_ARG_ARGUMENTS[0],
+            BUILD_ARG_ARGUMENTS[1],
+            podman_build.contains("--build-arg=")
+        ));
+    }
+    eprintln!("Podman {version} BuildArg: exact key=value and empty-value key= --build-arg arguments");
+    Ok(())
+}
+
+fn verify_build_secret_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let generated = String::from_utf8(output.stdout.clone())
+        .map_err(|error| format!("{version} Build Secret generator emitted non-UTF-8 output: {error}"))?;
+    let diagnostics = String::from_utf8_lossy(&output.stderr);
+    ensure_success(version, "Build Secret generator", output)?;
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} Build Secret generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            ));
+        }
+    }
+    let generated_unit = generated_unit(version, &generated, "build-secret-build.service", output)?;
+    let podman_build = generated_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman build "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} generator output for build-secret-build.service is missing its Podman build command\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            )
+        })?;
+    let positions: Vec<_> = BUILD_SECRET_ARGUMENTS
+        .iter()
+        .map(|argument| {
+            podman_build
+                .match_indices(argument)
+                .map(|(position, _)| position)
+                .collect::<Vec<_>>()
+        })
+        .collect();
+    let all_argument_count = podman_build.matches("--secret").count();
+    if positions.iter().any(|matches| matches.len() != 1)
+        || positions[0][0] >= positions[1][0]
+        || all_argument_count != BUILD_SECRET_ARGUMENTS.len()
+        || podman_build.contains("--secret=")
+    {
+        return Err(format!(
+            "Podman {version} generator output for build-secret-build.service must contain exactly two separate ordered Build Secret arguments, with no duplicate or equals form; found positions={positions:?}, all-secrets={all_argument_count}, equals-form={}\nstdout:\n{generated}\nstderr:\n{diagnostics}",
+            podman_build.contains("--secret=")
+        ));
+    }
+    eprintln!("Podman {version} Build Secret: two exact ordered --secret arguments");
+    Ok(())
+}
+
+fn verify_build_platform_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let generated = String::from_utf8(output.stdout.clone())
+        .map_err(|error| format!("{version} Build platform generator emitted non-UTF-8 output: {error}"))?;
+    let diagnostics = String::from_utf8_lossy(&output.stderr);
+    ensure_success(version, "Build platform generator", output)?;
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} Build platform generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            ));
+        }
+    }
+    let generated_unit = generated_unit(version, &generated, "build-platform-build.service", output)?;
+    let podman_build = generated_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman build "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} generator output for build-platform-build.service is missing its Podman build command\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            )
+        })?;
+    let arch_count = podman_build.matches(BUILD_ARCH_ARGUMENT).count();
+    let variant_count = podman_build.matches(BUILD_VARIANT_ARGUMENT).count();
+    let all_arch_count = podman_build.matches("--arch").count();
+    let all_variant_count = podman_build.matches("--variant").count();
+    if arch_count != 1
+        || variant_count != 1
+        || all_arch_count != 1
+        || all_variant_count != 1
+        || podman_build.contains("--arch=")
+        || podman_build.contains("--variant=")
+    {
+        return Err(format!(
+            "Podman {version} generator output for build-platform-build.service must contain exactly one separate `{BUILD_ARCH_ARGUMENT}` and exactly one separate `{BUILD_VARIANT_ARGUMENT}`, with no duplicate or equals form; found arch={arch_count}/{all_arch_count}, variant={variant_count}/{all_variant_count}, arch-equals={}, variant-equals={}\nstdout:\n{generated}\nstderr:\n{diagnostics}",
+            podman_build.contains("--arch="),
+            podman_build.contains("--variant=")
+        ));
+    }
+    eprintln!("Podman {version} Build platform: exact --arch arm64 and --variant v8 arguments");
+    Ok(())
+}
+
+fn verify_build_pull_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let generated = String::from_utf8(output.stdout.clone())
+        .map_err(|error| format!("{version} Build Pull generator emitted non-UTF-8 output: {error}"))?;
+    let diagnostics = String::from_utf8_lossy(&output.stderr);
+    ensure_success(version, "Build Pull generator", output)?;
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} Build Pull generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            ));
+        }
+    }
+    let generated_unit = generated_unit(version, &generated, "build-pull-build.service", output)?;
+    let podman_build = generated_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman build "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} generator output for build-pull-build.service is missing its Podman build command\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            )
+        })?;
+    let expected_count = podman_build.matches(BUILD_PULL_ARGUMENT).count();
+    let all_pull_count = podman_build.matches("--pull").count();
+    if expected_count != 1 || all_pull_count != 1 || podman_build.contains("--pull always") {
+        return Err(format!(
+            "Podman {version} generator output for build-pull-build.service must contain exactly one `{BUILD_PULL_ARGUMENT}` and no separate or duplicate pull form; found expected={expected_count}, all-pull={all_pull_count}, separate-form={}\nstdout:\n{generated}\nstderr:\n{diagnostics}",
+            podman_build.contains("--pull always")
+        ));
+    }
+    eprintln!("Podman {version} Build Pull: exactly one --pull=always argument");
+    Ok(())
+}
+
+fn verify_build_podman_args_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    let generated = String::from_utf8(output.stdout.clone())
+        .map_err(|error| format!("{version} Build PodmanArgs generator emitted non-UTF-8 output: {error}"))?;
+    let diagnostics = String::from_utf8_lossy(&output.stderr);
+    ensure_success(version, "Build PodmanArgs generator", output)?;
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} Build PodmanArgs generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            ));
+        }
+    }
+    let generated_unit = generated_unit(version, &generated, "build-podman-args-build.service", output)?;
+    let podman_build = generated_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman build "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} generator output for build-podman-args-build.service is missing its Podman build command\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            )
+        })?;
+    let expected_pair = format!("{BUILD_PODMAN_ARGS_ARGUMENT} {BUILD_PODMAN_ARGS_CONTEXT}");
+    let expected_count = podman_build.matches(&expected_pair).count();
+    let expected_is_terminal = podman_build.ends_with(&expected_pair);
+    let all_build_context_count = podman_build.matches("--build-context").count();
+    let alternate_forms: Vec<_> = BUILD_PODMAN_ARGS_ALTERNATE_FORMS
+        .iter()
+        .copied()
+        .filter(|form| podman_build.contains(form))
+        .collect();
+    if expected_count != 1 || !expected_is_terminal || all_build_context_count != 1 || !alternate_forms.is_empty() {
+        return Err(format!(
+            "Podman {version} generator output for build-podman-args-build.service must end with exactly one separate `{BUILD_PODMAN_ARGS_ARGUMENT}` immediately before final positional `{BUILD_PODMAN_ARGS_CONTEXT}`, with no equals, quoted, alternate, duplicate, or reordered form; found expected-pair={expected_count}, terminal={expected_is_terminal}, all-build-context={all_build_context_count}, alternate={alternate_forms:?}\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+        ));
+    }
+    eprintln!(
+        "Podman {version} Build PodmanArgs: one separate --build-context argument immediately precedes the final positional context"
+    );
+    Ok(())
+}
+
+fn verify_build_podman_args_no_cache_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| {
+        format!("{version} Build PodmanArgs --no-cache generator emitted non-UTF-8 output: {error}")
+    })?;
+    let diagnostics = String::from_utf8_lossy(&output.stderr);
+    ensure_success(version, "Build PodmanArgs --no-cache generator", output)?;
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} Build PodmanArgs --no-cache generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            ));
+        }
+    }
+    let generated_unit = generated_unit(version, &generated, "build-podman-args-no-cache-build.service", output)?;
+    let podman_build = generated_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman build "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} generator output for build-podman-args-no-cache-build.service is missing its Podman build command\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            )
+        })?;
+    let expected_pair = format!("{BUILD_PODMAN_ARGS_NO_CACHE_ARGUMENT} {BUILD_PODMAN_ARGS_NO_CACHE_CONTEXT}");
+    let expected_count = podman_build.matches(&expected_pair).count();
+    let expected_is_terminal = podman_build.ends_with(&expected_pair);
+    let all_no_cache_count = podman_build.matches(BUILD_PODMAN_ARGS_NO_CACHE_ARGUMENT).count();
+    let alternate_forms: Vec<_> = BUILD_PODMAN_ARGS_NO_CACHE_ALTERNATE_FORMS
+        .iter()
+        .copied()
+        .filter(|form| podman_build.contains(form))
+        .collect();
+    if expected_count != 1 || !expected_is_terminal || all_no_cache_count != 1 || !alternate_forms.is_empty() {
+        return Err(format!(
+            "Podman {version} generator output for build-podman-args-no-cache-build.service must end with exactly one separate `{BUILD_PODMAN_ARGS_NO_CACHE_ARGUMENT}` immediately before final positional `{BUILD_PODMAN_ARGS_NO_CACHE_CONTEXT}`, with no equals, quoted, alternate, duplicate, or reordered form; found expected-pair={expected_count}, terminal={expected_is_terminal}, all-no-cache={all_no_cache_count}, alternate={alternate_forms:?}\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+        ));
+    }
+    eprintln!(
+        "Podman {version} Build PodmanArgs --no-cache: one separate --no-cache argument immediately precedes the final positional context"
+    );
+    Ok(())
+}
+
+fn verify_build_podman_args_isolation_chroot_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| {
+        format!("{version} Build PodmanArgs --isolation=chroot generator emitted non-UTF-8 output: {error}")
+    })?;
+    let diagnostics = String::from_utf8_lossy(&output.stderr);
+    ensure_success(version, "Build PodmanArgs --isolation=chroot generator", output)?;
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} Build PodmanArgs --isolation=chroot generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            ));
+        }
+    }
+    let generated_unit = generated_unit(
+        version,
+        &generated,
+        "build-podman-args-isolation-chroot-build.service",
+        output,
+    )?;
+    let podman_build = generated_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman build "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} generator output for build-podman-args-isolation-chroot-build.service is missing its Podman build command\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            )
+        })?;
+    let expected_pair =
+        format!("{BUILD_PODMAN_ARGS_ISOLATION_CHROOT_ARGUMENT} {BUILD_PODMAN_ARGS_ISOLATION_CHROOT_CONTEXT}");
+    let expected_count = podman_build.matches(&expected_pair).count();
+    let expected_is_terminal = podman_build.ends_with(&expected_pair);
+    let all_isolation_count = podman_build
+        .matches(BUILD_PODMAN_ARGS_ISOLATION_CHROOT_ARGUMENT)
+        .count();
+    let alternate_forms: Vec<_> = BUILD_PODMAN_ARGS_ISOLATION_CHROOT_ALTERNATE_FORMS
+        .iter()
+        .copied()
+        .filter(|form| podman_build.contains(form))
+        .collect();
+    if expected_count != 1 || !expected_is_terminal || all_isolation_count != 1 || !alternate_forms.is_empty() {
+        return Err(format!(
+            "Podman {version} generator output for build-podman-args-isolation-chroot-build.service must end with exactly one equals-form `{BUILD_PODMAN_ARGS_ISOLATION_CHROOT_ARGUMENT}` immediately before final positional `{BUILD_PODMAN_ARGS_ISOLATION_CHROOT_CONTEXT}`, with no separate, quoted, alternate, duplicate, or reordered form; found expected-pair={expected_count}, terminal={expected_is_terminal}, all-isolation={all_isolation_count}, alternate={alternate_forms:?}\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+        ));
+    }
+    eprintln!(
+        "Podman {version} Build PodmanArgs --isolation=chroot: one equals-form argument immediately precedes the final positional context"
+    );
+    Ok(())
+}
+
+fn verify_build_podman_args_ssh_default_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| {
+        format!("{version} Build PodmanArgs --ssh=default generator emitted non-UTF-8 output: {error}")
+    })?;
+    let diagnostics = String::from_utf8_lossy(&output.stderr);
+    ensure_success(version, "Build PodmanArgs --ssh=default generator", output)?;
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} Build PodmanArgs --ssh=default generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            ));
+        }
+    }
+    let generated_unit = generated_unit(
+        version,
+        &generated,
+        "build-podman-args-ssh-default-build.service",
+        output,
+    )?;
+    let podman_build = generated_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman build "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} generator output for build-podman-args-ssh-default-build.service is missing its Podman build command\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            )
+        })?;
+    let expected_pair = format!("{BUILD_PODMAN_ARGS_SSH_DEFAULT_ARGUMENT} {BUILD_PODMAN_ARGS_SSH_DEFAULT_CONTEXT}");
+    let expected_count = podman_build.matches(&expected_pair).count();
+    let expected_is_terminal = podman_build.ends_with(&expected_pair);
+    let all_ssh_count = podman_build.matches("--ssh").count();
+    let alternate_forms: Vec<_> = BUILD_PODMAN_ARGS_SSH_DEFAULT_ALTERNATE_FORMS
+        .iter()
+        .copied()
+        .filter(|form| podman_build.contains(form))
+        .collect();
+    if expected_count != 1 || !expected_is_terminal || all_ssh_count != 1 || !alternate_forms.is_empty() {
+        return Err(format!(
+            "Podman {version} generator output for build-podman-args-ssh-default-build.service must end with exactly one equals-form `{BUILD_PODMAN_ARGS_SSH_DEFAULT_ARGUMENT}` immediately before final positional `{BUILD_PODMAN_ARGS_SSH_DEFAULT_CONTEXT}`, with no separate, quoted, alternate, duplicate, or reordered form; found expected-pair={expected_count}, terminal={expected_is_terminal}, all-ssh={all_ssh_count}, alternate={alternate_forms:?}\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+        ));
+    }
+    eprintln!(
+        "Podman {version} Build PodmanArgs --ssh=default: one equals-form argument immediately precedes the final positional context"
+    );
+    Ok(())
+}
+
+fn verify_build_podman_args_shm_size_32m_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| {
+        format!("{version} Build PodmanArgs --shm-size=32m generator emitted non-UTF-8 output: {error}")
+    })?;
+    let diagnostics = String::from_utf8_lossy(&output.stderr);
+    ensure_success(version, "Build PodmanArgs --shm-size=32m generator", output)?;
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} Build PodmanArgs --shm-size=32m generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            ));
+        }
+    }
+    let generated_unit = generated_unit(
+        version,
+        &generated,
+        "build-podman-args-shm-size-32m-build.service",
+        output,
+    )?;
+    let podman_build = generated_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman build "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} generator output for build-podman-args-shm-size-32m-build.service is missing its Podman build command\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            )
+        })?;
+    let expected_pair = format!("{BUILD_PODMAN_ARGS_SHM_SIZE_32M_ARGUMENT} {BUILD_PODMAN_ARGS_SHM_SIZE_32M_CONTEXT}");
+    let expected_count = podman_build.matches(&expected_pair).count();
+    let expected_is_terminal = podman_build.ends_with(&expected_pair);
+    let all_shm_size_count = podman_build.matches("--shm-size").count();
+    let alternate_forms: Vec<_> = BUILD_PODMAN_ARGS_SHM_SIZE_32M_ALTERNATE_FORMS
+        .iter()
+        .copied()
+        .filter(|form| podman_build.contains(form))
+        .collect();
+    if expected_count != 1 || !expected_is_terminal || all_shm_size_count != 1 || !alternate_forms.is_empty() {
+        return Err(format!(
+            "Podman {version} generator output for build-podman-args-shm-size-32m-build.service must end with exactly one equals-form `{BUILD_PODMAN_ARGS_SHM_SIZE_32M_ARGUMENT}` immediately before final positional `{BUILD_PODMAN_ARGS_SHM_SIZE_32M_CONTEXT}`, with no separate, quoted, alternate, duplicate, or reordered form; found expected-pair={expected_count}, terminal={expected_is_terminal}, all-shm-size={all_shm_size_count}, alternate={alternate_forms:?}\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+        ));
+    }
+    eprintln!(
+        "Podman {version} Build PodmanArgs --shm-size=32m: one equals-form argument immediately precedes the final positional context"
+    );
+    Ok(())
+}
+
+fn verify_build_podman_args_ulimit_nproc_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| {
+        format!("{version} Build PodmanArgs --ulimit=nproc=4096:8192 generator emitted non-UTF-8 output: {error}")
+    })?;
+    let diagnostics = String::from_utf8_lossy(&output.stderr);
+    ensure_success(version, "Build PodmanArgs --ulimit=nproc=4096:8192 generator", output)?;
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} Build PodmanArgs --ulimit=nproc=4096:8192 generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            ));
+        }
+    }
+    let generated_unit = generated_unit(
+        version,
+        &generated,
+        "build-podman-args-ulimit-nproc-build.service",
+        output,
+    )?;
+    let podman_build = generated_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman build "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} generator output for build-podman-args-ulimit-nproc-build.service is missing its Podman build command\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            )
+        })?;
+    let expected_pair = format!("{BUILD_PODMAN_ARGS_ULIMIT_NPROC_ARGUMENT} {BUILD_PODMAN_ARGS_ULIMIT_NPROC_CONTEXT}");
+    let expected_count = podman_build.matches(&expected_pair).count();
+    let expected_is_terminal = podman_build.ends_with(&expected_pair);
+    let all_ulimit_count = podman_build.matches("--ulimit").count();
+    let alternate_forms: Vec<_> = BUILD_PODMAN_ARGS_ULIMIT_NPROC_ALTERNATE_FORMS
+        .iter()
+        .copied()
+        .filter(|form| podman_build.contains(form))
+        .collect();
+    if expected_count != 1 || !expected_is_terminal || all_ulimit_count != 1 || !alternate_forms.is_empty() {
+        return Err(format!(
+            "Podman {version} generator output for build-podman-args-ulimit-nproc-build.service must end with exactly one equals-form `{BUILD_PODMAN_ARGS_ULIMIT_NPROC_ARGUMENT}` immediately before final positional `{BUILD_PODMAN_ARGS_ULIMIT_NPROC_CONTEXT}`, with no separate, quoted, alternate, duplicate, or reordered form; found expected-pair={expected_count}, terminal={expected_is_terminal}, all-ulimit={all_ulimit_count}, alternate={alternate_forms:?}\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+        ));
+    }
+    eprintln!(
+        "Podman {version} Build PodmanArgs --ulimit=nproc=4096:8192: one equals-form argument immediately precedes the final positional context"
+    );
+    Ok(())
+}
+
+fn verify_build_podman_args_add_host_buildhost_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| {
+        format!(
+            "{version} Build PodmanArgs --add-host=buildhost:192.0.2.10 generator emitted non-UTF-8 output: {error}"
+        )
+    })?;
+    let diagnostics = String::from_utf8_lossy(&output.stderr);
+    ensure_success(
+        version,
+        "Build PodmanArgs --add-host=buildhost:192.0.2.10 generator",
+        output,
+    )?;
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} Build PodmanArgs --add-host=buildhost:192.0.2.10 generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            ));
+        }
+    }
+    let generated_unit = generated_unit(
+        version,
+        &generated,
+        "build-podman-args-add-host-buildhost-build.service",
+        output,
+    )?;
+    let podman_build = generated_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman build "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} generator output for build-podman-args-add-host-buildhost-build.service is missing its Podman build command\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            )
+        })?;
+    let expected_pair =
+        format!("{BUILD_PODMAN_ARGS_ADD_HOST_BUILDHOST_ARGUMENT} {BUILD_PODMAN_ARGS_ADD_HOST_BUILDHOST_CONTEXT}");
+    let expected_count = podman_build.matches(&expected_pair).count();
+    let expected_is_terminal = podman_build.ends_with(&expected_pair);
+    let all_add_host_count = podman_build.matches("--add-host").count();
+    let alternate_forms: Vec<_> = BUILD_PODMAN_ARGS_ADD_HOST_BUILDHOST_ALTERNATE_FORMS
+        .iter()
+        .copied()
+        .filter(|form| podman_build.contains(form))
+        .collect();
+    if expected_count != 1 || !expected_is_terminal || all_add_host_count != 1 || !alternate_forms.is_empty() {
+        return Err(format!(
+            "Podman {version} generator output for build-podman-args-add-host-buildhost-build.service must end with exactly one equals-form `{BUILD_PODMAN_ARGS_ADD_HOST_BUILDHOST_ARGUMENT}` immediately before final positional `{BUILD_PODMAN_ARGS_ADD_HOST_BUILDHOST_CONTEXT}`, with no separate, quoted, alternate, duplicate, or reordered form; found expected-pair={expected_count}, terminal={expected_is_terminal}, all-add-host={all_add_host_count}, alternate={alternate_forms:?}\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+        ));
+    }
+    eprintln!(
+        "Podman {version} Build PodmanArgs --add-host=buildhost:192.0.2.10: one equals-form argument immediately precedes the final positional context"
+    );
+    Ok(())
+}
+
+fn verify_build_podman_args_cap_add_cap_sys_admin_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| {
+        format!("{version} Build PodmanArgs --cap-add=CAP_SYS_ADMIN generator emitted non-UTF-8 output: {error}")
+    })?;
+    let diagnostics = String::from_utf8_lossy(&output.stderr);
+    ensure_success(version, "Build PodmanArgs --cap-add=CAP_SYS_ADMIN generator", output)?;
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} Build PodmanArgs --cap-add=CAP_SYS_ADMIN generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            ));
+        }
+    }
+    let generated_unit = generated_unit(
+        version,
+        &generated,
+        "build-podman-args-cap-add-cap-sys-admin-build.service",
+        output,
+    )?;
+    let podman_build = generated_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman build "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} generator output for build-podman-args-cap-add-cap-sys-admin-build.service is missing its Podman build command\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            )
+        })?;
+    let expected_pair =
+        format!("{BUILD_PODMAN_ARGS_CAP_ADD_CAP_SYS_ADMIN_ARGUMENT} {BUILD_PODMAN_ARGS_CAP_ADD_CAP_SYS_ADMIN_CONTEXT}");
+    let expected_count = podman_build.matches(&expected_pair).count();
+    let expected_is_terminal = podman_build.ends_with(&expected_pair);
+    let all_cap_add_count = podman_build.matches("--cap-add").count();
+    let alternate_forms: Vec<_> = BUILD_PODMAN_ARGS_CAP_ADD_CAP_SYS_ADMIN_ALTERNATE_FORMS
+        .iter()
+        .copied()
+        .filter(|form| podman_build.contains(form))
+        .collect();
+    if expected_count != 1 || !expected_is_terminal || all_cap_add_count != 1 || !alternate_forms.is_empty() {
+        return Err(format!(
+            "Podman {version} generator output for build-podman-args-cap-add-cap-sys-admin-build.service must end with exactly one equals-form `{BUILD_PODMAN_ARGS_CAP_ADD_CAP_SYS_ADMIN_ARGUMENT}` immediately before final positional `{BUILD_PODMAN_ARGS_CAP_ADD_CAP_SYS_ADMIN_CONTEXT}`, with no separate, quoted, alternate, duplicate, or reordered form; found expected-pair={expected_count}, terminal={expected_is_terminal}, all-cap-add={all_cap_add_count}, alternate={alternate_forms:?}\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+        ));
+    }
+    eprintln!(
+        "Podman {version} Build PodmanArgs --cap-add=CAP_SYS_ADMIN: one equals-form argument immediately precedes the final positional context"
+    );
+    Ok(())
+}
+
+fn verify_build_podman_args_cache_locations_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| {
+        format!("{version} Build PodmanArgs cache-locations generator emitted non-UTF-8 output: {error}")
+    })?;
+    let diagnostics = String::from_utf8_lossy(&output.stderr);
+    ensure_success(version, "Build PodmanArgs cache-locations generator", output)?;
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} Build PodmanArgs cache-locations generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            ));
+        }
+    }
+    let generated_unit = generated_unit(
+        version,
+        &generated,
+        "build-podman-args-cache-locations-build.service",
+        output,
+    )?;
+    let podman_build = generated_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman build "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} generator output for build-podman-args-cache-locations-build.service is missing its Podman build command\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            )
+        })?;
+    let expected_chain = format!(
+        "{BUILD_PODMAN_ARGS_CACHE_FROM_ARGUMENT} {BUILD_PODMAN_ARGS_CACHE_TO_ARGUMENT} {BUILD_PODMAN_ARGS_CACHE_LOCATIONS_CONTEXT}"
+    );
+    let expected_count = podman_build.matches(&expected_chain).count();
+    let expected_is_terminal = podman_build.ends_with(&expected_chain);
+    let cache_from_count = podman_build.matches("--cache-from").count();
+    let cache_to_count = podman_build.matches("--cache-to").count();
+    let alternate_forms: Vec<_> = BUILD_PODMAN_ARGS_CACHE_LOCATIONS_ALTERNATE_FORMS
+        .iter()
+        .copied()
+        .filter(|form| podman_build.contains(form))
+        .collect();
+    if expected_count != 1
+        || !expected_is_terminal
+        || cache_from_count != 1
+        || cache_to_count != 1
+        || !alternate_forms.is_empty()
+    {
+        return Err(format!(
+            "Podman {version} generator output for build-podman-args-cache-locations-build.service must end with exactly one ordered terminal chain `{BUILD_PODMAN_ARGS_CACHE_FROM_ARGUMENT} {BUILD_PODMAN_ARGS_CACHE_TO_ARGUMENT} {BUILD_PODMAN_ARGS_CACHE_LOCATIONS_CONTEXT}`, with no equals, quoted, missing, duplicate, or reordered form; found expected-chain={expected_count}, terminal={expected_is_terminal}, cache-from={cache_from_count}, cache-to={cache_to_count}, alternate={alternate_forms:?}\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+        ));
+    }
+    eprintln!(
+        "Podman {version} Build PodmanArgs cache locations: one ordered --cache-from/--cache-to terminal chain before the final positional context"
+    );
+    Ok(())
+}
+
+fn verify_build_podman_args_sbom_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    let generated = String::from_utf8(output.stdout.clone())
+        .map_err(|error| format!("{version} Build PodmanArgs SBOM generator emitted non-UTF-8 output: {error}"))?;
+    let diagnostics = String::from_utf8_lossy(&output.stderr);
+    ensure_success(version, "Build PodmanArgs SBOM generator", output)?;
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} Build PodmanArgs SBOM generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            ));
+        }
+    }
+    let generated_unit = generated_unit(version, &generated, "build-podman-args-sbom-build.service", output)?;
+    let podman_build = generated_unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman build "))
+        .ok_or_else(|| {
+            format!(
+                "Podman {version} generator output for build-podman-args-sbom-build.service is missing its Podman build command\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            )
+        })?;
+    let expected_pair = format!(
+        "{BUILD_PODMAN_ARGS_SBOM_PRESET_ARGUMENT} {BUILD_PODMAN_ARGS_SBOM_OUTPUT_ARGUMENT} {BUILD_PODMAN_ARGS_SBOM_CONTEXT}"
+    );
+    let expected_count = podman_build.matches(&expected_pair).count();
+    let expected_is_terminal = podman_build.ends_with(&expected_pair);
+    let sbom_preset_count = podman_build
+        .split_whitespace()
+        .filter(|argument| *argument == BUILD_PODMAN_ARGS_SBOM_PRESET_ARGUMENT)
+        .count();
+    let sbom_output_count = podman_build
+        .split_whitespace()
+        .filter(|argument| *argument == BUILD_PODMAN_ARGS_SBOM_OUTPUT_ARGUMENT)
+        .count();
+    let alternate_forms: Vec<_> = BUILD_PODMAN_ARGS_SBOM_ALTERNATE_FORMS
+        .iter()
+        .copied()
+        .filter(|form| podman_build.contains(form))
+        .collect();
+    if expected_count != 1
+        || !expected_is_terminal
+        || sbom_preset_count != 1
+        || sbom_output_count != 1
+        || !alternate_forms.is_empty()
+    {
+        return Err(format!(
+            "Podman {version} generator output for build-podman-args-sbom-build.service must end with exactly one ordered terminal pair `{BUILD_PODMAN_ARGS_SBOM_PRESET_ARGUMENT} {BUILD_PODMAN_ARGS_SBOM_OUTPUT_ARGUMENT}` before final positional `{BUILD_PODMAN_ARGS_SBOM_CONTEXT}`, with no missing output, quoted, alternate, duplicate, or reordered form; found expected-pair={expected_count}, terminal={expected_is_terminal}, sbom={sbom_preset_count}, sbom-output={sbom_output_count}, alternate={alternate_forms:?}\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+        ));
+    }
+    eprintln!(
+        "Podman {version} Build PodmanArgs SBOM: one ordered --sbom/--sbom-output terminal pair before the final positional context"
+    );
     Ok(())
 }
 

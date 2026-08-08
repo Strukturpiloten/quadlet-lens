@@ -27,7 +27,7 @@ type, capability, and relevant generator evidence agree.
 | `.network` | yes | yes | application-owned networks |
 | `.volume` | yes | yes | application-owned volumes |
 | `.image` | yes | no | no |
-| `.build` | yes | no | no |
+| `.build` | yes | `ImageTag`, `Network`, `Label`, `File`, `SetWorkingDirectory`, `Target`, `BuildArg`, `Secret`, `Arch`, `Variant`, `Pull`, `Retry`, `RetryDelay`, `TLSVerify`, `ForceRM`, `AuthFile`, `IgnoreFile`, `GroupAdd`, `DNS`, `DNSOption`, `DNSSearch`, `Annotation`, `PodmanArgs` | no |
 | `.kube` | yes | no | no |
 | `.artifact` | yes | no | no; the current manual marks it experimental |
 
@@ -42,10 +42,11 @@ one of the four typed unit types.
 | `[Pod]` | `AddHost`, `PodName`, `PublishPort`, `Network`, `Volume`, `UserNS`, `ShmSize` |
 | `[Network]` | `NetworkName`, `Driver`, `Options`, `Label`, `Internal`, `IPv6`, `IPAMDriver`, `Subnet`, `Gateway`, `IPRange` |
 | `[Volume]` | `VolumeName`, `Driver`, `Options`, `Label`, `Device`, `Type`, `Copy` |
+| `[Build]` | repeatable `ImageTag`/`Network`/`Label`/`File`/`BuildArg`/`Secret`/`GroupAdd`/`DNS`/`DNSOption`/`DNSSearch`/`Annotation`/`PodmanArgs`, singleton `SetWorkingDirectory`/`Target`/`Arch`/`Variant`/`Pull`/`Retry`/`RetryDelay`/`TLSVerify`/`ForceRM`/`AuthFile`/`IgnoreFile` |
 | `[Unit]`, `[Service]`, `[Install]` | Open-ended generic systemd directives with source/order preservation; typed generation and explicit capability evidence exist for `[Unit]` `Requires=`, `Wants=`, and `After=`, and `[Service]` `Restart=`. |
 
-The current manual contains exactly 29 additional container keys, 18 pod keys, 8 network keys, and
-9 volume keys that are syntax-preserved but not typed. The complete
+The current manual contains exactly 29 additional container keys, 18 pod keys, 8 network keys, 9
+volume keys, and 5 build keys that are syntax-preserved but not typed. The complete
 lists, plus every current build, image, kube, artifact, and Quadlet-section key, are maintained in
 the [specification coverage ledger](roadmap.md#specification-coverage-ledger).
 
@@ -75,6 +76,96 @@ documented at the Podman 5.4 floor, exercised by the public `containers/qm` unit
 generated `--rootfs` argument through the supported generator matrix. QuadletLens retains its exact
 value and does not inspect the host filesystem, parse overlay-rootfs options, or verify SELinux
 labels.
+
+The minimal Build subset recognizes repeatable `ImageTag`, `Network`, `Label`, `File`, `BuildArg`, `Secret`, `GroupAdd`, `DNS`, `DNSOption`, `DNSSearch`, `Annotation`, and `PodmanArgs` values plus singleton
+`SetWorkingDirectory`/`Target`/`Arch`/`Variant`/`Pull`/`Retry`/`RetryDelay`/`TLSVerify`/`ForceRM`/`AuthFile`/`IgnoreFile` values without interpreting image-reference grammar, platform grammar, pull policy, retry count or delay grammar, TLS or force-removal boolean grammar, auth-file path or ignore-file grammar, network modes or
+options, paths, URLs, build contexts, or generated service precedence. Build `Annotation` retains raw physical lines without target tokenization, unquoting, C-unescaping, reset, duplicate-key collapse, sorting, OCI validation, or image-metadata inference. An exact Build
+`Network=name.network` is a document-set reference; other network text, including observed but
+undocumented `.container` forms, remains opaque. Tagged source and all recorded Podman generators from
+5.4.0 through 6.0.2 observe one final effective `File` command argument, but that does not alter
+the lossless model or builder. A container `Image=name.build` is an exact document-set reference to
+a typed `.build` unit. `Label` retains physical-line text without `KEY=VALUE` parsing, unquoting,
+duplicate-name selection, map collapse or sorting, or validation. The matrix proves two ordered
+`--tag` forms, three ordered Build `--network` forms with the `.network` dependency, and exactly
+`--label build.label=one` and `--label empty=` without an ordering claim, plus the final `--file`
+form, file-derived service working directory, and one `--target build-stage` form. It does not cover
+bare labels, duplicate-label ordering or collapse, label grammar, image builds, or runtime behavior. BuildArg is
+native from 5.7.0 through 6.0.2, where a separate fixture proves `key=value` and empty-value `key=` forms; it remains
+opaque without assignment parsing or environment/secret resolution, and makes no bare/null claim.
+Build `Secret` is native only from 5.4.0 through 6.0.2 and stays opaque: it does not parse commas,
+arguments, environment forms, or paths, and never materializes secret data. Its isolated matrix
+fixture proves two ordered separate placeholder-source `--secret` arguments only. Build `Arch` and
+`Variant` are opaque singleton values over the same finite range. Their isolated matrix fixture proves
+exactly one `--arch arm64` and one `--variant v8` without an assertion about relative argument order;
+it does not select platform defaults, parse platform grammar, build an image, or inspect runtime metadata.
+Build `Pull` is native only from 5.4.0 through 6.0.2 and unknown outside that range. Its isolated
+fixture proves exactly one `--pull=always` argument; blank-value omission is source evidence only,
+and the model/builder neither validate policies nor infer Compose boolean, registry, image-pull, or runtime behavior.
+Build `Retry` and `RetryDelay` are unsupported from 5.4.0 through 5.4.2, native from 5.5.0 through
+6.0.2, and unknown outside those ranges. Their isolated supported-range fixture proves exactly one
+separate `--retry 4` pair and one separate `--retry-delay 7s` pair before the final `.` context
+with no relative-order claim between pairs.
+The opaque model and builder do not parse integers or durations, select defaults, apply
+effective-last behavior, link Compose `dockerfile_inline`, access a registry, execute retries or
+timing, establish build success, inspect runtime behavior, or define conversion behavior.
+Build `TLSVerify` is native from 5.4.0 through 6.0.2 and unknown outside that range. Its isolated
+two-unit fixture proves exactly one bare `--tls-verify` for `true` and exactly one
+`--tls-verify=false` for `false`, each before its final `.` context. The opaque model and builder do
+not parse booleans or select defaults, and the evidence does not establish TLS connectivity,
+certificate validation, registry configuration, image pull, build success, security posture,
+provenance equivalence, runtime behavior, or conversion behavior.
+Build `ForceRM` is native from 5.4.0 through 6.0.2 and unknown outside that range. Its isolated
+two-unit fixture proves exactly one bare `--force-rm` for `true` and exactly one
+`--force-rm=false` for `false`, each before its final `.` context. The opaque model and builder do
+not parse booleans, select defaults, or apply effective-last behavior, and the evidence does not
+establish cleanup occurrence, failure behavior, execution, defaults or configuration, cache
+equivalence, runtime behavior, or conversion behavior.
+Build `GroupAdd` is native from 5.4.0 through 6.0.2 and unknown outside that range. Its isolated
+fixture proves ordered separate `--group-add 1234` then `--group-add 5678` pairs before its final
+`.` context, without a relative-order claim against map-derived flags. The opaque model and builder retain authored physical lines in source order without
+group lookup, keep-groups exclusivity, rootless or user-namespace interpretation, runtime behavior,
+build execution, Compose privilege equivalence, or conversion behavior.
+Build `DNS` is native from 5.4.0 through 6.0.2 and unknown outside that range. Its isolated fixture
+proves ordered separate `--dns 9.9.9.9` then `--dns 2001:4860:4860::8888` pairs before its final
+`.` context, without a relative-order claim against map-derived flags. The opaque model and builder
+retain authored physical lines in source order without resolver behavior, `none` compatibility,
+`resolv.conf` or host-DNS inspection, build execution, Compose endpoint mapping, or conversion
+behavior.
+
+Build `DNSSearch` is native from 5.4.0 through 6.0.2 and unknown outside that range. Its isolated
+fixture proves ordered separate `--dns-search corp.example` then `--dns-search .` pairs before its
+final `.` context, without a relative-order claim against map-derived flags. The opaque model and
+builder retain physical lines without reset or dot semantics, domain removal, DNS or resolver work,
+network, build, Compose mapping, or conversion behavior.
+
+Build `AuthFile` is native from 5.4.0 through 6.0.2 and unknown outside that range. Its isolated
+fixture proves one separate `--authfile PATH` pair, generator-effective-last output for repeated
+entries, and final-empty omission only. QuadletLens retains opaque singleton physical lines with
+ordinary duplicate diagnostics; it does not normalize last/empty behavior, read or validate paths,
+parse credentials, classify content sensitivity, authenticate, establish build success, or claim
+runtime, Compose, or conversion behavior.
+
+Build `IgnoreFile` is unsupported from 5.4.0 through 5.6.2, native from 5.7.0 through 6.0.2,
+and unknown outside those reviewed ranges. Its isolated fixture proves one separate `--ignorefile
+PATH` pair, generator-effective-last repeated output, and final-empty omission only. QuadletLens
+retains opaque singleton physical lines with ordinary duplicate diagnostics; it does not normalize
+last/empty behavior, resolve or read paths, parse ignore files, infer `.containerignore` or
+`.dockerignore` defaults, normalize relative paths, establish build success, or claim runtime,
+Compose, or conversion behavior.
+Build `PodmanArgs` has finite native evidence from 5.4.0 through 6.0.2. Its all-20 fixtures prove only
+
+Build `Annotation` is native from 5.4.0 through 6.0.2 and unknown outside that range. Its isolated
+fixture proves the generator's empty reset, tokenization/unquoting/C-unescaping, final duplicate-key
+selection, sorted map output, and the recorded 5.6.0 bare/malformed-token boundary only. QuadletLens
+retains raw repeatable physical lines and does not apply any of those target semantics or claim OCI,
+image metadata, build success, runtime, Compose, or conversion behavior.
+
+one separate `--build-context extra=container-image://alpine:3.15`, exact `--no-cache`, or equals-form
+`--isolation=chroot`/`--ssh=default`/`--shm-size=32m`/`--ulimit=nproc=4096:8192`/`--add-host=buildhost:192.0.2.10`/`--cap-add=CAP_SYS_ADMIN` argument immediately before final positional `.`; each rejects alternate, quoted,
+duplicate, and reordered forms (the isolation, SSH, and shared-memory fixtures also reject the separate spelling). The isolation
+capability proves command text only: it does not lower Compose, establish mode equivalence/defaults, or claim rootless/rootful, namespace, LSM, environment, build, runtime, or cross-format behavior. The repeatable `--no-cache` capability is command-text evidence only: it does not
+lower Compose `no_cache`, interpret false, string, or interpolation values, establish cache semantic
+equivalence, or claim execution, cache, image, runtime, or cross-format behavior. The non-secret SSH fixture does not provide, resolve, inspect, or claim keys, sockets, an agent, PEM data, paths, environments, mounts, builds, runtime state, or Compose lowering. The shared-memory fixture adds no native Build `ShmSize` key and does not establish Compose or unit equivalence, zero or omission defaults, IPC selection, host/cgroup/memory behavior, build execution, runtime behavior, or conversion behavior. The ulimit fixture adds no native Build `Ulimit` key and establishes no Compose name, range, or `-1` equivalence; host/rootless/rootful, `RUN`, cgroup, default, build, runtime resource-limit enforcement, or conversion behavior. The add-host fixture does not lower Compose list or map `extra_hosts` forms; establish IPv6 or `host-gateway` equivalence; alter DNS or `/etc/hosts`; resolve conflicts or defaults; execute a build; or establish runtime or conversion behavior. The cap-add fixture does not establish Compose entitlement equivalence or conversion; actual capability grants; build execution; LSM, seccomp, rootless, or runtime effects.
 
 The container-identity subset includes singleton `ContainerName`. It is documented at the Podman
 5.4 floor and verified as an exact `--name` generator argument through 6.0.2. The value is not

@@ -1,0 +1,2 @@
+---build-secret-build.service---
+SourcePath=/fixtures/build-secret.build

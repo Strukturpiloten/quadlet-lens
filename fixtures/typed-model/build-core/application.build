@@ -1,0 +1,26 @@
+[Unit]
+Description=Lossless build core fixture
+
+[Build]
+ImageTag=localhost/example:primary
+ImageTag=localhost/example:secondary
+Network=host
+Network=none
+Network=frontend.network
+Label=build.label=one
+Label=empty=
+BuildArg=KEY=one
+BuildArg=EMPTY=
+BuildArg=bare text stays opaque
+Secret=id=quadlet-lens-one,src=/run/quadlet-lens-placeholder-one
+Secret=id=quadlet-lens-two,src=/run/quadlet-lens-placeholder-two
+File=Containerfile.first
+File=
+File=https://example.invalid/Containerfile?ref=main
+SetWorkingDirectory=unit
+Pull=
+Pull=always
+FutureBuildKey=retained
+
+[Service]
+TimeoutStartSec=15min

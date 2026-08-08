@@ -63,6 +63,34 @@ QuadletLens provides a programmatic document builder that:
 - retains repeated volume label entries, including empty native reset assignments, as exact opaque
   physical-line-safe values in insertion order without OCI parsing, reset application, duplicate
   collapse, sorting, validation, or runtime interpretation;
+- retains repeated Build `Secret` entries as exact opaque physical-line-safe values in insertion
+  order without comma splitting, argument, environment, or path parsing, secret materialization,
+  or build/runtime interpretation;
+- retains repeated Build `GroupAdd` entries as exact opaque physical-line-safe values in insertion
+  order without group lookup, supplementary-group parsing, keep-groups exclusivity, rootless or
+  user-namespace interpretation, runtime, build-execution, Compose privilege-equivalence, or
+  conversion interpretation;
+- retains repeated Build `DNS` entries as exact opaque physical-line-safe values in insertion
+  order without resolver behavior, none compatibility, resolv.conf or host-DNS inspection,
+  build-execution, Compose endpoint-mapping, or conversion interpretation;
+- retains repeated Build `DNSOption` and `DNSSearch` entries as exact opaque physical-line-safe
+  values in insertion order without model reset or special-dot semantics, option or domain parsing,
+  resolver behavior, build execution, Compose mapping, or conversion interpretation;
+- retains Build `AuthFile` as an opaque singleton without path validation or reads, credential
+  parsing, content or sensitivity classification, generator-effective-last normalization, registry
+  authentication, build-success, runtime, Compose, or conversion interpretation;
+- retains Build `IgnoreFile` as an opaque singleton without path resolution or reads, ignore-rule
+  parsing, `.containerignore` or `.dockerignore` default inference, relative-path normalization,
+  generator-effective-last normalization, build-success, runtime, Compose, or conversion
+  interpretation;
+- retains repeated Build `Annotation` entries as exact opaque physical-line values in insertion
+  order without splitting, unquoting, C-unescaping, OCI validation, reset application,
+  duplicate-key collapse, sorting, image-metadata inference, build-success, runtime, Compose, or
+  conversion interpretation;
+- retains Build `Arch` and `Variant` as opaque singletons without parsing platform grammar,
+  selecting defaults, or applying effective-last behavior;
+- retains Build `Pull` as an opaque singleton without policy validation, default selection,
+  spelling normalization, effective-last behavior, Compose boolean inference, or runtime semantics;
 - retains volume `Device` and `Type` as separate opaque singletons without path, filesystem,
   quote, specifier, generator-dependency, mount, runtime, or cross-format interpretation;
 - retains AppArmor, no-new-privileges, seccomp, and SELinux-label keys as opaque singletons;

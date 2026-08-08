@@ -1,0 +1,4 @@
+[Build]
+ImageTag=localhost/quadlet-lens-build-podman-args-add-host-buildhost
+SetWorkingDirectory=.
+PodmanArgs=--add-host=buildhost:192.0.2.10

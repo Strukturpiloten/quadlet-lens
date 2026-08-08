@@ -1,0 +1,4 @@
+[Build]
+ImageTag=localhost/quadlet-lens-build-podman-args-cap-add-cap-sys-admin
+SetWorkingDirectory=.
+PodmanArgs=--cap-add=CAP_SYS_ADMIN

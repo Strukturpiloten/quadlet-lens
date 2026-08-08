@@ -1,0 +1,4 @@
+---build-force-rm-true-build.service---
+SourcePath=/fixtures/build-force-rm-true.build
+---build-force-rm-false-build.service---
+SourcePath=/fixtures/build-force-rm-false.build

@@ -1,0 +1,4 @@
+[Build]
+ImageTag=localhost/quadlet-lens-build-podman-args-ulimit-nproc
+SetWorkingDirectory=.
+PodmanArgs=--ulimit=nproc=4096:8192

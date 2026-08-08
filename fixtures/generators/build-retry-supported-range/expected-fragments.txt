@@ -1,0 +1,2 @@
+---build-retry-build.service---
+SourcePath=/fixtures/build-retry.build

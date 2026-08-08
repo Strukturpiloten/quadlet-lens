@@ -1,0 +1,18 @@
+schema = 1
+id = "build-annotation-supported-range"
+suite = "generators"
+description = "Records target Build Annotation reset, tokenization, duplicate-key collapse, and sorted command construction without importing those semantics into QuadletLens."
+secrets_reviewed = true
+files = ["build-annotation.build", "expected-fragments.txt"]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "The harness invokes only Podman's dry-run Quadlet generator. It does not build an image, inspect OCI metadata, or establish runtime behavior."
+
+[expectations]
+summary = "Every recorded generator clears pre-reset values at the empty Annotation assignment, tokenizes and unquotes the remaining physical text, keeps the final value for a duplicate key, and emits the effective map as sorted separate --annotation arguments before the final positional context. QuadletLens itself preserves every raw physical line, including reset, duplicates, quotes, specifiers, C-escape text, bare, and malformed values."

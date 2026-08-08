@@ -1,0 +1,5 @@
+[Build]
+ImageTag=localhost/quadlet-lens-build-podman-args
+File=Containerfile
+SetWorkingDirectory=.
+PodmanArgs=--build-context extra=container-image://alpine:3.15

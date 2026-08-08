@@ -1,0 +1,4 @@
+[Build]
+ImageTag=localhost/quadlet-lens-build-podman-args-ssh-default
+SetWorkingDirectory=.
+PodmanArgs=--ssh=default

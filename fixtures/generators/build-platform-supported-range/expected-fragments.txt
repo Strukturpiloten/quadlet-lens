@@ -1,0 +1,2 @@
+---build-platform-build.service---
+SourcePath=/fixtures/build-platform.build

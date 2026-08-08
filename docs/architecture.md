@@ -43,7 +43,17 @@ Typed documents represent native Quadlet unit types, including container, pod, n
 
 Generic systemd sections and unknown Quadlet entries remain attached to the document. Typed conversion cannot be destructive.
 
-The first implemented subset covers `.container`, `.pod`, `.network`, and `.volume`. It classifies the
+The first implemented subset covers `.container`, `.pod`, `.network`, `.volume`, and the minimal
+`.build` core. Build `ImageTag`, `Network`, `Label`, `File`, `BuildArg`, `Secret`, `GroupAdd`, `DNS`, `DNSOption`, `DNSSearch`, `Annotation`, and `PodmanArgs` remain repeatable and source ordered, while
+`SetWorkingDirectory`, `Target`, `Arch`, `Variant`, `Pull`, `Retry`, `RetryDelay`, `TLSVerify`, `ForceRM`, `AuthFile`, and `IgnoreFile` remain opaque singletons. `File` stays unclassified and the model does
+not apply Podman's observed effective-last behavior. `Pull` does not validate policy spelling, inject a default,
+normalize text, or expose effective-last behavior. `Label`, `BuildArg`, `Secret`, `GroupAdd`, `DNS`, `DNSOption`, `DNSSearch`, and `PodmanArgs` are opaque
+physical-line text: they are not parsed as `KEY=VALUE`, unquoted, selected by duplicate name,
+map-collapsed, sorted, or validated. Build `Secret` additionally does not parse commas, arguments,
+environment forms, or paths, and never materializes secret data. Build `DNSSearch` does not apply reset or special-dot semantics. Build `Annotation` preserves raw ordered physical lines without tokenization, unquoting, C-unescaping, reset, duplicate-key collapse, sorting, OCI validation, or image-metadata inference. Build `AuthFile` is neither read nor path-validated, and its text is not classified as credential content or sensitive data. Build `IgnoreFile` is neither resolved nor read, parsed as ignore rules, defaulted from `.containerignore` or `.dockerignore`, relative-path-normalized, or assigned generator-effective-last semantics. `PodmanArgs` does not split or quote
+arguments, resolve contexts, paths, environments, images, or services, validate a CLI, or imply build/runtime behavior.
+Exact `.container` Image-to-`.build` and
+`.build` Network-to-`.network` references resolve only in document sets. It classifies the
 native keys needed by the first conversion, keeps repeated section occurrences and entries in
 source order, and owns the authored text plus source span for every typed name and value segment.
 That boundary includes container execution identity/context and pod-level user-namespace selection

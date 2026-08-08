@@ -1,0 +1,4 @@
+[Build]
+ImageTag=localhost/quadlet-lens-build-ignore-file-single
+SetWorkingDirectory=.
+IgnoreFile=/run/quadlet-lens/single.ignore

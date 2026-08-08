@@ -22,7 +22,7 @@ const EMPTY_IMAGE: DiagnosticCode = DiagnosticCode::new("QLM0005");
 const CONFLICTING_IMAGE_ROOTFS: DiagnosticCode = DiagnosticCode::new("QLM0006");
 const EMPTY_ROOTFS: DiagnosticCode = DiagnosticCode::new("QLM0007");
 
-/// Native Quadlet unit types supported by the first conversion milestone.
+/// Native Quadlet unit types supported by the typed model.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 #[non_exhaustive]
 pub enum QuadletUnitType {
@@ -34,6 +34,8 @@ pub enum QuadletUnitType {
     Network,
     /// A `.volume` unit.
     Volume,
+    /// A `.build` unit.
+    Build,
 }
 
 impl QuadletUnitType {
@@ -45,6 +47,7 @@ impl QuadletUnitType {
             "pod" => Some(Self::Pod),
             "network" => Some(Self::Network),
             "volume" => Some(Self::Volume),
+            "build" => Some(Self::Build),
             _ => None,
         }
     }
@@ -57,6 +60,7 @@ impl QuadletUnitType {
             Self::Pod => SectionKind::Pod,
             Self::Network => SectionKind::Network,
             Self::Volume => SectionKind::Volume,
+            Self::Build => SectionKind::Build,
         }
     }
 }
@@ -79,6 +83,8 @@ pub enum SectionKind {
     Network,
     /// Native Quadlet `[Volume]` section.
     Volume,
+    /// Native Quadlet `[Build]` section.
+    Build,
     /// Any other section, retained without interpretation.
     Unknown,
 }
@@ -93,12 +99,16 @@ impl SectionKind {
             "Pod" => Self::Pod,
             "Network" => Self::Network,
             "Volume" => Self::Volume,
+            "Build" => Self::Build,
             _ => Self::Unknown,
         }
     }
 
     const fn is_native(self) -> bool {
-        matches!(self, Self::Container | Self::Pod | Self::Network | Self::Volume)
+        matches!(
+            self,
+            Self::Container | Self::Pod | Self::Network | Self::Volume | Self::Build
+        )
     }
 }
 
@@ -296,6 +306,58 @@ pub enum VolumeKey {
     Copy,
 }
 
+/// Minimal native Build keys with evidence-backed typed construction.
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[non_exhaustive]
+pub enum BuildKey {
+    /// Name assigned to the image built by this unit. Multiple tags remain ordered and distinct.
+    ImageTag,
+    /// Build context selected for Podman's build command and, for `file` or `unit`, its service.
+    SetWorkingDirectory,
+    /// Containerfile selection. Every authored physical line remains ordered and distinct.
+    File,
+    /// Build stage selection retained without stage-name validation.
+    Target,
+    /// Build-time network selection or an exact `.network` unit reference.
+    Network,
+    /// Opaque build-result label text. Physical entries remain ordered and unparsed.
+    Label,
+    /// Opaque build argument text. Physical entries remain ordered and unparsed.
+    BuildArg,
+    /// Opaque build secret text. Physical entries remain ordered and unparsed.
+    Secret,
+    /// Opaque architecture selection retained without platform grammar parsing.
+    Arch,
+    /// Opaque architecture-variant selection retained without platform grammar parsing.
+    Variant,
+    /// Opaque image pull-policy selection retained without policy validation.
+    Pull,
+    /// Opaque Podman build argument text. Physical entries remain ordered and unparsed.
+    PodmanArgs,
+    /// Opaque build retry-count text retained without integer parsing or default selection.
+    Retry,
+    /// Opaque build retry-delay text retained without duration parsing or default selection.
+    RetryDelay,
+    /// Opaque build TLS-verification text retained without boolean parsing or default selection.
+    TLSVerify,
+    /// Opaque build force-removal text retained without boolean parsing or default selection.
+    ForceRM,
+    /// Opaque build supplementary-group text. Physical entries remain ordered and unparsed.
+    GroupAdd,
+    /// Opaque build DNS-server text. Physical entries remain ordered and unparsed.
+    DNS,
+    /// Opaque build DNS-option text. Physical entries remain ordered and unparsed.
+    DNSOption,
+    /// Opaque build DNS-search text. Physical entries remain ordered and unparsed.
+    DNSSearch,
+    /// Opaque build registry-authentication file text retained without path interpretation.
+    AuthFile,
+    /// Opaque build ignore-file text retained without path or ignore-rule interpretation.
+    IgnoreFile,
+    /// Opaque build OCI annotation text. Physical entries remain ordered and unparsed.
+    Annotation,
+}
+
 /// Typed role of an authored entry.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 #[non_exhaustive]
@@ -310,6 +372,8 @@ pub enum EntryKind {
     Network(NetworkKey),
     /// Recognized key in `[Volume]`.
     Volume(VolumeKey),
+    /// Recognized key in `[Build]`.
+    Build(BuildKey),
     /// Unknown entry retained in its original section and position.
     Unknown,
 }
@@ -357,6 +421,20 @@ impl EntryKind {
                         | NetworkKey::Label
                 )
                 | Self::Volume(VolumeKey::Label)
+                | Self::Build(
+                    BuildKey::ImageTag
+                        | BuildKey::File
+                        | BuildKey::Network
+                        | BuildKey::Label
+                        | BuildKey::BuildArg
+                        | BuildKey::Secret
+                        | BuildKey::PodmanArgs
+                        | BuildKey::GroupAdd
+                        | BuildKey::DNS
+                        | BuildKey::DNSOption
+                        | BuildKey::DNSSearch
+                        | BuildKey::Annotation
+                )
                 | Self::Unknown
         )
     }
@@ -502,7 +580,7 @@ impl TypedEntry {
             EntryKind::Container(ContainerKey::Network | ContainerKey::Pod) | EntryKind::Pod(PodKey::Network) => {
                 Some(first_token(value))
             }
-            EntryKind::Container(ContainerKey::Image) => Some(value),
+            EntryKind::Container(ContainerKey::Image) | EntryKind::Build(BuildKey::Network) => Some(value),
             _ => None,
         }
     }
@@ -958,8 +1036,39 @@ fn classify_entry(section: SectionKind, key: &str) -> EntryKind {
             _ => EntryKind::Unknown,
         },
         SectionKind::Volume => classify_volume_entry(key),
+        SectionKind::Build => classify_build_entry(key),
         SectionKind::Unknown => EntryKind::Unknown,
     }
+}
+
+fn classify_build_entry(key: &str) -> EntryKind {
+    let key = match key {
+        "ImageTag" => BuildKey::ImageTag,
+        "SetWorkingDirectory" => BuildKey::SetWorkingDirectory,
+        "File" => BuildKey::File,
+        "Target" => BuildKey::Target,
+        "Network" => BuildKey::Network,
+        "Label" => BuildKey::Label,
+        "BuildArg" => BuildKey::BuildArg,
+        "Secret" => BuildKey::Secret,
+        "Arch" => BuildKey::Arch,
+        "Variant" => BuildKey::Variant,
+        "Pull" => BuildKey::Pull,
+        "PodmanArgs" => BuildKey::PodmanArgs,
+        "Retry" => BuildKey::Retry,
+        "RetryDelay" => BuildKey::RetryDelay,
+        "TLSVerify" => BuildKey::TLSVerify,
+        "ForceRM" => BuildKey::ForceRM,
+        "GroupAdd" => BuildKey::GroupAdd,
+        "DNS" => BuildKey::DNS,
+        "DNSOption" => BuildKey::DNSOption,
+        "DNSSearch" => BuildKey::DNSSearch,
+        "AuthFile" => BuildKey::AuthFile,
+        "IgnoreFile" => BuildKey::IgnoreFile,
+        "Annotation" => BuildKey::Annotation,
+        _ => return EntryKind::Unknown,
+    };
+    EntryKind::Build(key)
 }
 
 fn classify_volume_entry(key: &str) -> EntryKind {
@@ -1010,6 +1119,9 @@ fn classify_value(kind: EntryKind, raw: &str) -> ValueKind {
             }
         }
         EntryKind::Pod(PodKey::Network) => reference_by_suffix(first_token(value))
+            .filter(|kind| *kind == UnitReferenceKind::Network)
+            .map_or(ValueKind::Opaque, ValueKind::UnitReference),
+        EntryKind::Build(BuildKey::Network) => reference_by_suffix(value)
             .filter(|kind| *kind == UnitReferenceKind::Network)
             .map_or(ValueKind::Opaque, ValueKind::UnitReference),
         _ => ValueKind::Opaque,

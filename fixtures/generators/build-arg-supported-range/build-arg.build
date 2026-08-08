@@ -1,0 +1,6 @@
+[Build]
+ImageTag=localhost/quadlet-lens-build-arg
+File=Containerfile
+SetWorkingDirectory=file
+BuildArg=key=value
+BuildArg=empty=

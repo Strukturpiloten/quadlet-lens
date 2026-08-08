@@ -1,0 +1,5 @@
+[Build]
+ImageTag=localhost/quadlet-lens-build-group-add
+SetWorkingDirectory=.
+GroupAdd=1234
+GroupAdd=5678

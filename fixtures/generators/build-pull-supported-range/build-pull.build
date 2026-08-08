@@ -1,0 +1,5 @@
+[Build]
+ImageTag=localhost/quadlet-lens-build-pull
+File=Containerfile
+SetWorkingDirectory=file
+Pull=always

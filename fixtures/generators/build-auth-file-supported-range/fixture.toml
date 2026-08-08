@@ -1,0 +1,18 @@
+schema = 1
+id = "build-auth-file-supported-range"
+suite = "generators"
+description = "Exercises opaque singleton Build AuthFile values across the recorded Podman range."
+secrets_reviewed = true
+files = ["build-auth-file-single.build", "build-auth-file-last.build", "build-auth-file-empty.build", "expected-fragments.txt"]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "The harness invokes only Podman's dry-run Quadlet generator; it neither reads the authored paths nor obtains, parses, or exposes credentials."
+
+[expectations]
+summary = "Every recorded Podman release emits one separate --authfile pair for a single value, keeps only the effective last repeated value, and emits no flag after a final empty value."

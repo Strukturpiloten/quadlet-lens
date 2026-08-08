@@ -1,0 +1,6 @@
+---build-ignore-file-single-build.service---
+SourcePath=/fixtures/build-ignore-file-single.build
+---build-ignore-file-last-build.service---
+SourcePath=/fixtures/build-ignore-file-last.build
+---build-ignore-file-empty-build.service---
+SourcePath=/fixtures/build-ignore-file-empty.build

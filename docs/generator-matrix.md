@@ -48,7 +48,121 @@ It does not run nested containers, pull the fixture's declared application image
 invoke systemctl, or start generated services. Runtime, rootless/rootful, cgroup, networking, and
 SELinux behavior remain separate test tiers.
 
-The first-conversion fixture covers mutually exclusive registry-image and host-rootfs workload
+The first-conversion fixture covers the minimal Build core with two ordered `ImageTag` values, ordered
+`Network=host`, `Network=none`, and `Network=app.network` values, `Label=build.label=one` and
+`Label=empty=`, two ordered `File` values, `Target=build-stage`, and `SetWorkingDirectory=file`.
+Every recorded generator emits the ordered three Build `--network` arguments and an exact dependency
+on `app.network`, exactly one argument for each of the two label values without an ordering claim, plus only the
+final `--file Containerfile.final` argument and a file-derived service working directory; that
+effective-last observation remains tagged-source/generator evidence and is never Lens
+normalization, plus one `--target build-stage` argument without stage validation. It does not test
+bare labels, duplicate-label ordering or collapse, label grammar, build execution, runtime, or
+cross-format behavior. A separate BuildArg fixture requires rejection or exclusion without a mapping through
+5.6.2, then exactly `--build-arg key=value` and `--build-arg empty=` from 5.7.0 through 6.0.2; it
+does not establish bare/null, environment, secret, build, runtime, or
+cross-format behavior. A separate Build Secret fixture requires exactly two ordered separate `--secret`
+arguments for opaque placeholder-source values across all 20 releases; it does not establish bare,
+environment, comma/argument parsing, path resolution, secret materialization, build, runtime, or
+cross-format behavior. A separate Build platform fixture requires exactly one `--arch arm64` and one
+`--variant v8` argument across all 20 releases without asserting relative argument order. It does not
+parse platform grammar, select host defaults, apply effective-last behavior, build an image, inspect
+metadata, or establish runtime or cross-format behavior. A separate Build Pull fixture requires
+exactly one `--pull=always` argument across all 20 releases; source evidence records blank-value
+omission only, and policy acceptance, defaults, Compose mapping, registry, image-pull, and runtime behavior remain unclaimed. The separate Build retry fixture records rejection or exclusion without
+`--retry`/`--retry-delay` output in all three 5.4.x releases, then requires each of the 17 releases
+from 5.5.0 through 6.0.2 to emit exactly one separate `--retry 4` pair and one separate
+`--retry-delay 7s` pair before the final `.` context without a relative-order claim between pairs.
+The endpoint [5.5.0 Retry manual](https://docs.podman.io/en/v5.5.0/markdown/podman-build.unit.5.html#retry),
+[5.5.0 RetryDelay manual](https://docs.podman.io/en/v5.5.0/markdown/podman-build.unit.5.html#retrydelay),
+[6.0.2 Retry manual](https://docs.podman.io/en/v6.0.2/markdown/podman-build.unit.5.html#retry),
+[6.0.2 RetryDelay manual](https://docs.podman.io/en/v6.0.2/markdown/podman-build.unit.5.html#retrydelay),
+and tagged [5.5.0](https://github.com/containers/podman/blob/v5.5.0/pkg/systemd/quadlet/quadlet.go)
+and [6.0.2](https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go)
+source document the finite range. It does not parse integer or duration text, choose defaults,
+apply effective-last behavior, link Compose `dockerfile_inline`, contact a registry, execute retry
+or timing behavior, establish build success, inspect runtime behavior, or claim conversion behavior.
+
+The Build TLSVerify fixture has one `TLSVerify=true` unit and one `TLSVerify=false` unit. Every
+recorded generator from 5.4.0 through 6.0.2 must emit one bare `--tls-verify` for the true unit and
+one `--tls-verify=false` for the false unit, each before final `.`. Endpoint
+[5.4.0](https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#tlsverify) and
+[6.0.2](https://docs.podman.io/en/v6.0.2/markdown/podman-build.unit.5.html#tlsverify) manuals plus
+tagged [5.4.0](https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go)
+and [6.0.2](https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go)
+mapping/formatter source ground this command-text observation. It does not establish TLS
+connectivity, certificate validation, registry configuration, image pull, build success, security
+posture, provenance equivalence, runtime behavior, or conversion behavior.
+
+The Build ForceRM fixture has one `ForceRM=true` unit and one `ForceRM=false` unit. Every recorded
+generator from 5.4.0 through 6.0.2 must emit one bare `--force-rm` for the true unit and one
+`--force-rm=false` for the false unit, each before final `.` and without equals, quoted, alternate,
+duplicate, or post-context forms. Endpoint
+[5.4.0](https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#forcerm) and
+[6.0.2](https://docs.podman.io/en/v6.0.2/markdown/podman-build.unit.5.html#forcerm) manuals plus
+tagged [5.4.0](https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go)
+and [6.0.2](https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go)
+mapping/formatter source ground this command-text observation. It does not parse booleans, select
+defaults, apply effective-last behavior, or establish cleanup occurrence, failure behavior,
+execution, defaults or configuration, cache equivalence, runtime behavior, or conversion behavior.
+
+The Build GroupAdd fixture has ordered `GroupAdd=1234` and `GroupAdd=5678` values. Every recorded
+generator from 5.4.0 through 6.0.2 must emit ordered separate `--group-add 1234` then
+`--group-add 5678` pairs before final `.`, rejecting equals, quoted, merged, duplicate, reordered,
+and post-context forms, without a relative-order claim against map-derived flags. Endpoint
+[5.4.0](https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#groupadd) and
+[6.0.2](https://docs.podman.io/en/v6.0.2/markdown/podman-build.unit.5.html#groupadd) manuals plus
+tagged mapping/formatter source establish command text only. The fixture does not look up groups,
+interpret keep-groups exclusivity, rootless or user-namespace behavior, runtime behavior, build
+execution, Compose privilege equivalence, or conversion behavior.
+
+The Build DNS fixture has ordered `DNS=9.9.9.9` and `DNS=2001:4860:4860::8888` values. Every
+recorded generator from 5.4.0 through 6.0.2 must emit ordered separate `--dns 9.9.9.9` then
+`--dns 2001:4860:4860::8888` pairs before final `.`, rejecting equals, quoted, empty, merged,
+duplicate, reordered, and post-context forms without a relative-order claim against map-derived
+flags. Endpoint manuals and tagged mapping/formatter source establish command text only. The
+fixture does not resolve DNS, establish `none` compatibility, inspect `resolv.conf` or host DNS,
+execute a build, map Compose endpoints, or define conversion behavior.
+
+The Build DNSSearch fixture has pre-reset `old.example`, an empty reset, `corp.example`, and
+literal `.` values. Every recorded generator from 5.4.0 through 6.0.2 must emit ordered separate
+`--dns-search corp.example` then `--dns-search .` pairs before final `.`, rejecting old, empty,
+equals, quoted, merged, duplicate, reordered, and post-context forms without a relative-order
+claim against map-derived flags. Endpoint manuals and tagged mapping/formatter source establish
+command text only. The fixture does not apply model reset or dot semantics, remove domains, resolve
+DNS, inspect resolver state, execute a build, map Compose values, or define conversion behavior.
+
+The Build AuthFile fixture has a single-path unit, a repeated-path unit, and a final-empty unit.
+Every recorded generator from 5.4.0 through 6.0.2 must emit one separate `--authfile PATH` pair
+for the single unit, only the effective last path for the repeated unit, and no `--authfile` flag
+for final empty, rejecting equals, quoted, duplicate, alternate, and post-context forms. Endpoint
+manuals and tagged Lookup/formatter source establish command construction only. The fixture does
+not read or validate paths, obtain or parse credentials, classify content or path metadata as
+sensitive, authenticate, establish build success, or define runtime, Compose, or conversion behavior.
+
+The Build IgnoreFile fixture has a single-path unit, a repeated-path unit, and a final-empty unit.
+Every recorded generator from 5.4.0 through 5.6.2 must reject or exclude it with no `--ignorefile`
+argument. Every recorded generator from 5.7.0 through 6.0.2 must emit one separate `--ignorefile
+PATH` pair for the single unit, only the effective last path for the repeated unit, and no flag for
+final empty, rejecting equals, quoted, duplicate, alternate, and post-context forms. Endpoint
+manuals and tagged Lookup/formatter source establish command construction only. The fixture does
+not resolve or read paths, parse ignore files, infer defaults, normalize relative paths, establish
+build success, or define runtime, Compose, or conversion behavior.
+A Build Annotation fixture authors pre-reset values, an empty reset, duplicate post-reset keys,
+quoted and C-escaped values, and bare/malformed forms. Every recorded generator emits the target's
+effective sorted map as separate `--annotation` arguments after reset, tokenization, unquoting,
+C-unescaping, and final-key collapse. Bare and malformed tokens are absent through 5.5.2 and present
+from 5.6.0. This records target command construction only; QuadletLens keeps the authored physical
+lines untouched and makes no OCI, image-metadata, build, runtime, Compose, or conversion claim.
+A separate Build PodmanArgs fixture requires exactly one separate
+`--build-context extra=container-image://alpine:3.15` immediately before final positional `.` across all 20 releases,
+rejecting equals, quoted, alternate, duplicate, and reordered forms. It runs only the dry-run generator and does not
+lower Compose contexts, resolve paths/environments/images/services, validate a CLI, build, run, or claim cross-format behavior. A second isolated Build PodmanArgs fixture requires exactly one separate
+`--no-cache` immediately before final positional `.` across all 20 releases, likewise rejecting equals,
+quoted, alternate, duplicate, and reordered forms. It is repeatable command-text evidence only: it does
+not lower Compose `no_cache`, interpret false, string, or interpolation values, establish cache semantic
+equivalence, or claim execution, cache, image, runtime, or cross-format behavior. A third isolated
+Build PodmanArgs fixture requires exactly one equals-form `--isolation=chroot` immediately before final positional `.` across all 20 releases, rejecting separate, quoted, alternate, duplicate, and reordered forms. It forwards command text only: it does not lower Compose, establish isolation-mode equivalence/defaults, or claim rootless/rootful, namespace, LSM, environment, build, runtime, or cross-format behavior. A fourth isolated
+Build PodmanArgs fixture requires one equals-form `--ssh=default` immediately before final positional `.` across all 20 releases, rejecting separate, quoted, alternate, duplicate, and reordered forms. It forwards non-secret command text only: it does not provide, resolve, inspect, or claim keys, sockets, an agent, PEM data, paths, environments, mounts, builds, runtime state, or Compose lowering. A fifth isolated Build PodmanArgs fixture requires one equals-form `--shm-size=32m` immediately before final positional `.` across all 20 releases, rejecting separate, quoted, alternate, duplicate, and reordered forms. It adds no native Build `ShmSize` key and does not establish Compose or unit equivalence, zero or omission defaults, IPC selection, host/cgroup/memory behavior, build execution, runtime behavior, or conversion behavior. A sixth isolated Build PodmanArgs fixture requires one ordered terminal `--cache-from registry.invalid/quadlet-lens/cache-from --cache-to registry.invalid/quadlet-lens/cache-to .` chain across all 20 releases, rejecting equals, quoted, missing, duplicate, and reordered forms. It forwards command text only: it does not lower Compose, parse descriptors or cache types, resolve images, credentials, paths, or registries, validate the CLI, build, use an effective cache, run, or establish runtime or cross-format behavior. A seventh isolated Build PodmanArgs fixture requires one ordered terminal `--sbom=syft --sbom-output=/tmp/quadlet-lens-sbom.json .` pair across all 20 releases, rejecting missing output, quoted, alternate, duplicate, and reordered forms. It forwards command text only: it does not lower Compose; create a file; download an image; run a scanner; establish SBOM content, PURLs, attestations, publishing, provenance, build, runtime, security, or conversion behavior. An eighth isolated Build PodmanArgs fixture requires one equals-form `--add-host=buildhost:192.0.2.10` immediately before final positional `.` across all 20 releases, rejecting separate, quoted, alternate, duplicate, and reordered forms. It does not lower Compose list or map `extra_hosts` forms; establish IPv6 or `host-gateway` equivalence; alter DNS or `/etc/hosts`; resolve conflicts or defaults; execute a build; or establish runtime or conversion behavior. The fixture also covers mutually exclusive registry-image and host-rootfs workload
 sources, including `name:tag@digest` images and absolute `Rootfs` values, explicit container names,
 JSON-array entrypoints, explicit true/false init-process selection, commands,
 named and numeric container stop signals plus positive and zero container stop timeouts,
@@ -83,8 +197,60 @@ working directory, read-only root filesystem, supported port spellings, native a
 networks, named/anonymous/relative and `.volume` mounts, SELinux mount-option spelling, health
 commands including `none`, regular health timings, `Notify=healthy` readiness, generic systemd
 `Requires`/`Wants`/`After` dependency ordering and restart behavior, continued `PodmanArgs`,
-and generated cross-unit dependencies. These are generator claims; actual activation, failure
+and generated cross-unit dependencies. The isolated Build `PodmanArgs=--ulimit=nproc=4096:8192`
+fixture requires exactly one equals-form immediately before final positional `.` across every
+recorded release, rejecting separate, quoted, alternate, duplicate, and reordered spellings. It
+adds no native Build `Ulimit` key and establishes no Compose name, range, or `-1` equivalence;
+host/rootless/rootful, `RUN`, cgroup, default, build, runtime resource-limit enforcement, or
+conversion behavior. These are generator claims; actual activation, failure
 propagation, rootless/rootful, and SELinux enforcement remain runtime evidence.
+
+The endpoint [Podman 5.4.0 Quadlet](https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#podmanargs)
+and [6.0.2 Build-unit](https://docs.podman.io/en/v6.0.2/markdown/podman-build.unit.5.html#podmanargs)
+manuals establish generic `PodmanArgs` forwarding. The matching [5.4.0](https://docs.podman.io/en/v5.4.0/markdown/podman-build.1.html#ulimit-type-soft-limit-hard-limit)
+and [6.0.2](https://docs.podman.io/en/v6.0.2/markdown/podman-build.1.html#ulimit-type-soft-limit-hard-limit)
+build manuals document `--ulimit=type=soft-limit[:hard-limit]` for `RUN` processes. Endpoint
+generator source at [5.4.0](https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L1949-L1953)
+and [6.0.2](https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L2009-L2013)
+records repeatable `LookupAllArgs` forwarding before the final build context. None of this equates
+Compose names/ranges/`-1` with Podman, claims a native Build `Ulimit` key, or establishes host,
+rootless/rootful, `RUN`, cgroup, default, build, runtime, or conversion behavior.
+
+The endpoint [Podman 5.4.0 Quadlet](https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#podmanargs)
+and [6.0.2 Build-unit](https://docs.podman.io/en/v6.0.2/markdown/podman-build.unit.5.html#podmanargs)
+manuals establish generic `PodmanArgs` forwarding. The matching [5.4.0](https://docs.podman.io/en/v5.4.0/markdown/podman-build.1.html#add-host-hostname-hostname-ip)
+and [6.0.2](https://docs.podman.io/en/v6.0.2/markdown/podman-build.1.html#add-host-hostname-hostname-ip)
+build manuals document `--add-host=hostname:ip`. Endpoint generator source at
+[5.4.0](https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L1949-L1953)
+and [6.0.2](https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L2009-L2013)
+records repeatable `LookupAllArgs` forwarding before the final build context. The all-20-release
+fixture proves only one terminal `--add-host=buildhost:192.0.2.10 .` command-text pair. It does
+not lower Compose list or map `extra_hosts` forms; establish IPv6 or `host-gateway` equivalence;
+alter DNS or `/etc/hosts`; resolve conflicts or defaults; execute a build; or establish runtime or
+conversion behavior.
+
+The endpoint [Podman 5.4.0 Quadlet](https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#podmanargs)
+and [6.0.2 Build-unit](https://docs.podman.io/en/v6.0.2/markdown/podman-build.unit.5.html#podmanargs)
+manuals establish generic `PodmanArgs` forwarding. The matching [5.4.0](https://docs.podman.io/en/v5.4.0/markdown/podman-build.1.html#cap-add-capability)
+and [6.0.2](https://docs.podman.io/en/v6.0.2/markdown/podman-build.1.html#cap-add-capability)
+build manuals document `--cap-add=CAPABILITY`. Endpoint generator source at
+[5.4.0](https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L1949-L1953)
+and [6.0.2](https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L2009-L2013)
+records repeatable `LookupAllArgs` forwarding before the final build context. The all-20-release
+fixture proves only one terminal `--cap-add=CAP_SYS_ADMIN .` command-text pair. It does not
+establish Compose entitlement equivalence or conversion; actual capability grants; build execution;
+LSM, seccomp, rootless, or runtime effects.
+
+The endpoint [Podman 5.4.0 Quadlet](https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#podmanargs)
+and [6.0.2 Build-unit](https://docs.podman.io/en/v6.0.2/markdown/podman-build.unit.5.html#podmanargs)
+manuals establish generic `PodmanArgs` forwarding. The matching 5.4.0 and 6.0.2 build manuals
+document [`--sbom=PRESET`](https://docs.podman.io/en/v5.4.0/markdown/podman-build.1.html#sbom-preset)
+and [`--sbom-output`](https://docs.podman.io/en/v6.0.2/markdown/podman-build.1.html#sbom-output-path).
+Endpoint generator source at [5.4.0](https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L1949-L1953)
+and [6.0.2](https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L2009-L2013)
+records repeatable `LookupAllArgs` forwarding before the final build context. This is command-text
+evidence only: it does not create files, download images, run scanners, or establish SBOM, PURL,
+attestation, publishing, provenance, build, runtime, security, or conversion behavior.
 
 `Memory` uses a separate fixture because the native key was introduced in Podman 5.5.0 and must
 not make the existing all-20 first-conversion fixture conditional. It authors an earlier

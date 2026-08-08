@@ -2,7 +2,7 @@
 
 use quadlet_lens::capability::{CapabilityCatalogue, PodmanTarget, PodmanVersion, SupportClassification};
 use quadlet_lens::model::{
-    ContainerKey, EntryKind, NamedQuadletDocument, NetworkKey, PodKey, QuadletDocument, QuadletDocumentSet,
+    BuildKey, ContainerKey, EntryKind, NamedQuadletDocument, NetworkKey, PodKey, QuadletDocument, QuadletDocumentSet,
     QuadletUnitType, ValueKind, VolumeKey,
 };
 use quadlet_lens::path::{PathForm, classify_path};
@@ -110,6 +110,140 @@ fn growing_public_key_enums_preserve_published_discriminants() {
             NetworkKey::Label as isize,
         ],
         [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    );
+}
+
+#[test]
+fn build_core_can_be_built_through_the_public_api() -> Result<(), Box<dyn std::error::Error>> {
+    let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Build);
+    generated.push_build(BuildKey::ImageTag, EntryValue::new("localhost/example:primary")?)?;
+    generated.push_build(BuildKey::ImageTag, EntryValue::new("localhost/example:secondary")?)?;
+    generated.push_build(BuildKey::Network, EntryValue::new("host")?)?;
+    generated.push_build(BuildKey::Network, EntryValue::new("none")?)?;
+    generated.push_build(BuildKey::Network, EntryValue::new("frontend.network")?)?;
+    generated.push_build(BuildKey::Label, EntryValue::new("build.label=one")?)?;
+    generated.push_build(BuildKey::Label, EntryValue::new("empty=")?)?;
+    generated.push_build(BuildKey::BuildArg, EntryValue::new("KEY=one")?)?;
+    generated.push_build(BuildKey::BuildArg, EntryValue::new("EMPTY=")?)?;
+    generated.push_build(BuildKey::BuildArg, EntryValue::new("bare text stays opaque")?)?;
+    generated.push_build(
+        BuildKey::Secret,
+        EntryValue::new("id=quadlet-lens-one,src=/run/quadlet-lens-placeholder-one")?,
+    )?;
+    generated.push_build(
+        BuildKey::Secret,
+        EntryValue::new("id=quadlet-lens-two,src=/run/quadlet-lens-placeholder-two")?,
+    )?;
+    generated.push_build(BuildKey::File, EntryValue::new("Containerfile.first")?)?;
+    generated.push_build(BuildKey::File, EntryValue::new("")?)?;
+    generated.push_build(
+        BuildKey::File,
+        EntryValue::new("https://example.invalid/Containerfile?ref=main")?,
+    )?;
+    generated.push_build(BuildKey::Target, EntryValue::new("build-stage")?)?;
+    generated.push_build(BuildKey::SetWorkingDirectory, EntryValue::new("unit")?)?;
+    generated.push_build(BuildKey::Arch, EntryValue::new("arm64")?)?;
+    generated.push_build(BuildKey::Variant, EntryValue::new("v8")?)?;
+    generated.push_build(BuildKey::Pull, EntryValue::new("always")?)?;
+    generated.push_build(BuildKey::Retry, EntryValue::new("4")?)?;
+    generated.push_build(BuildKey::RetryDelay, EntryValue::new("7s")?)?;
+    generated.push_build(BuildKey::TLSVerify, EntryValue::new("true")?)?;
+    generated.push_build(BuildKey::ForceRM, EntryValue::new("true")?)?;
+    generated.push_build(BuildKey::GroupAdd, EntryValue::new("1234")?)?;
+    generated.push_build(BuildKey::GroupAdd, EntryValue::new("5678")?)?;
+    generated.push_build(BuildKey::DNS, EntryValue::new("9.9.9.9")?)?;
+    generated.push_build(BuildKey::DNS, EntryValue::new("2001:4860:4860::8888")?)?;
+    generated.push_build(BuildKey::DNSOption, EntryValue::new("")?)?;
+    generated.push_build(BuildKey::DNSOption, EntryValue::new("ndots:1")?)?;
+    generated.push_build(BuildKey::DNSOption, EntryValue::new("use-vc")?)?;
+    generated.push_build(BuildKey::DNSSearch, EntryValue::new("corp.example")?)?;
+    generated.push_build(BuildKey::DNSSearch, EntryValue::new(".")?)?;
+    generated.push_build(BuildKey::AuthFile, EntryValue::new("/run/quadlet-lens/auth.json")?)?;
+    generated.push_build(BuildKey::IgnoreFile, EntryValue::new("./ignored-input")?)?;
+    generated.push_build(BuildKey::Annotation, EntryValue::new("org.example.build=one")?)?;
+    generated.push_build(
+        BuildKey::PodmanArgs,
+        EntryValue::new("--build-context extra=container-image://alpine:3.15")?,
+    )?;
+    generated.push_build(BuildKey::PodmanArgs, EntryValue::new("--layers")?)?;
+    assert_eq!(
+        generated.build(SourceId::new(180))?.text(),
+        concat!(
+            "[Build]\n",
+            "ImageTag=localhost/example:primary\n",
+            "ImageTag=localhost/example:secondary\n",
+            "Network=host\n",
+            "Network=none\n",
+            "Network=frontend.network\n",
+            "Label=build.label=one\n",
+            "Label=empty=\n",
+            "BuildArg=KEY=one\n",
+            "BuildArg=EMPTY=\n",
+            "BuildArg=bare text stays opaque\n",
+            "Secret=id=quadlet-lens-one,src=/run/quadlet-lens-placeholder-one\n",
+            "Secret=id=quadlet-lens-two,src=/run/quadlet-lens-placeholder-two\n",
+            "File=Containerfile.first\n",
+            "File=\n",
+            "File=https://example.invalid/Containerfile?ref=main\n",
+            "Target=build-stage\n",
+            "SetWorkingDirectory=unit\n",
+            "Arch=arm64\n",
+            "Variant=v8\n",
+            "Pull=always\n",
+            "Retry=4\n",
+            "RetryDelay=7s\n",
+            "TLSVerify=true\n",
+            "ForceRM=true\n",
+            "GroupAdd=1234\n",
+            "GroupAdd=5678\n",
+            "DNS=9.9.9.9\n",
+            "DNS=2001:4860:4860::8888\n",
+            "DNSOption=\n",
+            "DNSOption=ndots:1\n",
+            "DNSOption=use-vc\n",
+            "DNSSearch=corp.example\n",
+            "DNSSearch=.\n",
+            "AuthFile=/run/quadlet-lens/auth.json\n",
+            "IgnoreFile=./ignored-input\n",
+            "Annotation=org.example.build=one\n",
+            "PodmanArgs=--build-context extra=container-image://alpine:3.15\n",
+            "PodmanArgs=--layers\n",
+        )
+    );
+    Ok(())
+}
+
+#[test]
+fn growing_build_key_enum_preserves_public_discriminants() {
+    assert_eq!(
+        [
+            BuildKey::ImageTag as isize,
+            BuildKey::SetWorkingDirectory as isize,
+            BuildKey::File as isize,
+            BuildKey::Target as isize,
+            BuildKey::Network as isize,
+            BuildKey::Label as isize,
+            BuildKey::BuildArg as isize,
+            BuildKey::Secret as isize,
+            BuildKey::Arch as isize,
+            BuildKey::Variant as isize,
+            BuildKey::Pull as isize,
+            BuildKey::PodmanArgs as isize,
+            BuildKey::Retry as isize,
+            BuildKey::RetryDelay as isize,
+            BuildKey::TLSVerify as isize,
+            BuildKey::ForceRM as isize,
+            BuildKey::GroupAdd as isize,
+            BuildKey::DNS as isize,
+            BuildKey::DNSOption as isize,
+            BuildKey::DNSSearch as isize,
+            BuildKey::AuthFile as isize,
+            BuildKey::IgnoreFile as isize,
+            BuildKey::Annotation as isize,
+        ],
+        [
+            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22
+        ]
     );
 }
 

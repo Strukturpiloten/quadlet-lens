@@ -1,0 +1,2 @@
+---build-podman-args-add-host-buildhost-build.service---
+SourcePath=/fixtures/build-podman-args-add-host-buildhost.build

@@ -14,16 +14,17 @@ defines its representation boundary.
 | `.pod`       | `[Pod]`          | Pod keys listed below       |
 | `.network`   | `[Network]`      | `NetworkName`, `Driver`, `Options`, `Label`, `Internal`, `IPv6`, `IPAMDriver`, `Subnet`, `Gateway`, `IPRange` |
 | `.volume`    | `[Volume]`       | `VolumeName`, `Driver`, `Options`, `Label`, `Device`, `Type`, `Copy` |
+| `.build`     | `[Build]`        | repeatable `ImageTag`/`Network`/`Label`/`File`/`BuildArg`/`Secret`/`GroupAdd`/`DNS`/`DNSOption`/`DNSSearch`/`Annotation`/`PodmanArgs`, singleton `SetWorkingDirectory`/`Target`/`Arch`/`Variant`/`Pull`/`Retry`/`RetryDelay`/`TLSVerify`/`ForceRM`/`AuthFile`/`IgnoreFile` |
 
-The typed boundary currently contains 61 container keys, seven pod keys, nine network keys, and
-seven volume keys. The exact key lists live in the
+The typed boundary currently contains 61 container keys, seven pod keys, ten network keys, seven
+volume keys, and twenty-three build keys. The exact key lists live in the
 [specification coverage ledger](roadmap.md#specification-coverage-ledger).
 
 `[Unit]`, `[Service]`, and `[Install]` are recognized as generic systemd sections. Parsed keys are
 not restricted by a closed enum. Programmatic generation additionally offers typed `Requires`,
 `Wants`, and `After` `[Unit]` directives for the evidence-backed dependency subset. Other sections
 and keys remain explicit `Unknown` entries.
-Unsupported suffixes, including `.image` and `.build`, currently fail closed rather than implying
+Unsupported suffixes, including `.image`, currently fail closed rather than implying
 complete typed support.
 
 ## Parse result
@@ -59,6 +60,37 @@ command arguments.
 Exactly one of `Image` or `Rootfs` supplies a container workload. Both are singleton keys and they
 conflict with each other. `Rootfs` is conservatively classified as a path, but QuadletLens does not
 parse Podman's overlay-rootfs grammar or check the host directory and SELinux label.
+
+`ImageTag`, `Network`, `Label`, `File`, `BuildArg`, `Secret`, `GroupAdd`, `DNS`, `DNSOption`, `DNSSearch`, `Annotation`, and `PodmanArgs` are typed repeatable Build keys: every authored physical value
+stays ordered and opaque. `ImageTag` retains the first tag that Podman uses as a referenced build
+artifact name; Build `DNSSearch` does not apply reset or special-dot semantics. Build `Annotation` preserves raw physical lines without tokenization, unquoting, C-unescaping, reset, duplicate-key selection, sorting, OCI validation, or image-metadata inference. Build `AuthFile` is an opaque singleton: the model preserves physical source lines and duplicate diagnostics without path validation or reads, credential parsing, content or sensitivity classification, or generator-effective-last normalization. Build `IgnoreFile` is likewise an opaque singleton without path resolution or reads, ignore-rule parsing, `.containerignore`/`.dockerignore` default inference, relative-path normalization, or generator-effective-last behavior. `Network` recognizes only an exact lowercase `.network` value as a Network reference
+for document-set resolution, while network modes, options, and every other spelling remain opaque.
+It does not adopt observed `.container` reference semantics. `File` does not classify paths, URLs,
+or Containerfile forms, and does not select Podman's observed effective-last value. `Label` retains
+each physical line without parsing `KEY=VALUE`, unquoting, choosing duplicate names, collapsing or
+sorting a map, or validating label text. `BuildArg` does not parse `KEY=VALUE` text, expand or
+resolve environments, read secrets, or infer bare/null meaning. `Secret` does not split comma-separated
+text, parse argument names, resolve environment forms or paths, or materialize secret data. `PodmanArgs`
+does not split or quote arguments, resolve contexts, paths, environments, images, or services, validate a CLI,
+or infer build/runtime/cross-format behavior.
+`GroupAdd` does not look up groups, parse supplementary-group grammar, interpret keep-groups
+exclusivity, or resolve rootless or user-namespace behavior.
+`DNS` does not resolve names or addresses, parse server grammar, interpret `none`, inspect
+`resolv.conf` or host DNS, or define build/runtime behavior.
+`SetWorkingDirectory`, `Target`, `Arch`, `Variant`, `Pull`, `Retry`, `RetryDelay`, `TLSVerify`, and
+`ForceRM` are typed singletons whose exact text remains opaque;
+QuadletLens does not resolve paths, URLs, build contexts, or generated systemd `WorkingDirectory`
+precedence. A container
+Duplicate authored singleton Build lines remain source-aware and receive the standard singleton diagnostic;
+programmatic construction rejects a second value. QuadletLens does not validate build-stage names, platform grammar,
+or architecture defaults. `Pull` does not validate policy spelling, select a default, normalize text,
+or expose an effective-last value; it also makes no Compose boolean, image-pull, registry, or runtime claim.
+`ForceRM` does not parse boolean text, select defaults, expose effective-last behavior, or make
+cleanup, failure, execution, configuration, cache-equivalence, runtime, or conversion claims.
+QuadletLens does not inspect a Containerfile or run a build. A container
+`Image=name.build` is classified as a Build reference and resolves by exact basename in a document
+set. Likewise, `Network=name.network` in a Build unit resolves only by exact basename in a document
+set.
 
 The model does not expand `%h`, `~`, environment variables, or relative paths. It does not yet parse
 systemd quoting, environment assignment lists, port ranges, mount options, health commands, or raw
@@ -264,7 +296,7 @@ invalid; an error does.
 
 ## Deliberately deferred
 
-- typed `.image`, `.build`, and later Quadlet unit types
+- typed `.image` and later Quadlet unit types
 - parsing and canonical rendering of individual systemd/Podman value grammars
 - dependency-cycle analysis and systemd runtime activation semantics
 - target-version validation that combines documents with the capability catalogue

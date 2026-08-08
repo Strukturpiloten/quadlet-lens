@@ -1,0 +1,5 @@
+[Build]
+ImageTag=localhost/quadlet-lens-build-podman-args-cache-locations
+SetWorkingDirectory=.
+PodmanArgs=--cache-from registry.invalid/quadlet-lens/cache-from
+PodmanArgs=--cache-to registry.invalid/quadlet-lens/cache-to
