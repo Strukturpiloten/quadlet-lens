@@ -1,0 +1,24 @@
+schema = 1
+id = "pod-exit-policy-supported-range"
+suite = "generators"
+description = "Exercises opaque singleton Pod ExitPolicy presentation, duplicate selection, and final blank behavior across the recorded Podman range."
+secrets_reviewed = true
+files = [
+  "expected-fragments.txt",
+  "exit-policy-continue.pod",
+  "exit-policy-stop.pod",
+  "exit-policy-duplicate-final-stop.pod",
+  "exit-policy-final-blank.pod"
+]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "The harness mounts this directory read-only with label separation disabled and invokes only exact Podman Quadlet generators in dry-run mode. It does not create pods, start workloads, inspect runtime state, or apply restart policy."
+
+[expectations]
+summary = "Podman 5.4.0 through 5.5.2 reject the unsupported key. Podman 5.6.0 through 6.0.2 emits one --exit-policy flag after --replace for continue and stop, chooses the final duplicate, and retains an empty argument for a final blank assignment."

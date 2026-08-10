@@ -1,0 +1,3 @@
+[Volume]
+Driver=image
+Image=example.invalid/quadlet-lens-volume:literal

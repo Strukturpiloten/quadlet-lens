@@ -1,0 +1,3 @@
+[Pod]
+ServiceName=ignored-first
+ServiceName=chosen-override

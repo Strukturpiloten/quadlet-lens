@@ -1,0 +1,7 @@
+[Image]
+Image=example.invalid/quadlet-lens-image-containers-conf-module:latest
+ContainersConfModule=pre-one
+ContainersConfModule=pre-two
+ContainersConfModule=
+ContainersConfModule=post-one
+ContainersConfModule=post-two

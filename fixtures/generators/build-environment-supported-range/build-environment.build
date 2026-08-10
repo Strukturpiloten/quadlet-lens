@@ -1,0 +1,12 @@
+[Build]
+ImageTag=localhost/quadlet-lens-build-environment
+SetWorkingDirectory=.
+Environment=PRE=one
+Environment=
+Environment=NAME=first
+Environment=NAME=final
+Environment=bare
+Environment="QUOTED=Authored Value"
+Environment=ESCAPED=literal\x20text
+Environment=embedded=a=b
+Environment= malformed = value 

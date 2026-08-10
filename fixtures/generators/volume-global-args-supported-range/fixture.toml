@@ -1,0 +1,15 @@
+schema = 1
+id = "volume-global-args-supported-range"
+suite = "generators"
+description = "Records target Volume GlobalArgs reset, tokenization, malformed-line omission, and base-command placement without importing those semantics into QuadletLens."
+secrets_reviewed = true
+files = ["volume-global-args.volume", "expected-fragments.txt"]
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+[environment]
+description = "Dry-run generator only; no volume creation or runtime execution."
+[expectations]
+summary = "The target resets earlier values, tokenizes/unquotes/C-unescapes later values, omits a malformed physical line, and places ordered retained tokens between podman and volume create; QuadletLens preserves authored physical lines."

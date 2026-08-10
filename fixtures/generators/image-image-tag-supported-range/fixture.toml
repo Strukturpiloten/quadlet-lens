@@ -1,0 +1,15 @@
+schema = 1
+id = "image-image-tag-supported-range"
+suite = "generators"
+description = "Records Image-unit ImageTag resource-name substitution without applying target lookup or quoting rules in QuadletLens."
+secrets_reviewed = true
+files = ["image-tag-normal.image", "image-tag-archive.image", "image-tag-default.image", "image-tag-quoted.image", "image-tag-unmatched.image", "image-tag-normal.container", "image-tag-archive.container", "image-tag-default.container", "image-tag-quoted.container", "image-tag-unmatched.container", "expected-fragments.txt"]
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+[environment]
+description = "Dry-run generator only; no image pull, archive read, systemd operation, or runtime execution."
+[expectations]
+summary = "ImageTag observations cover nonempty, duplicate-last, final-blank default, quoted, and unmatched-quote resource names for normal and archive Image sources."

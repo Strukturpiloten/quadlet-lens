@@ -1,0 +1,5 @@
+[Build]
+ImageTag=localhost/quadlet-lens-service-name-override
+SetWorkingDirectory=.
+ServiceName=ignored-first
+ServiceName=chosen-override

@@ -6,10 +6,25 @@ QuadletLens 0.1.1 adds a validated construction boundary for tools that generate
 ## Document construction
 
 `QuadletDocumentBuilder` is created for one `QuadletUnitType`. Typed `push_container`, `push_pod`,
-`push_network`, `push_volume`, and `push_build` methods prevent native keys from being written into the wrong
+`push_network`, `push_volume`, `push_build`, and `push_image` methods prevent native keys from being written into the wrong
 section. `push_systemd` adds open-ended directives to `[Unit]`, `[Service]`, or `[Install]`.
 `push_systemd_unit` provides typed `Requires`, `Wants`, and `After` spellings for the dependency
 subset protected by capability and real-generator evidence.
+
+Container `ReloadCmd` and `ReloadSignal` are opaque singleton entries. The builder rejects a
+duplicate of either key and rejects either insertion order of their mutually exclusive pair with a
+key-only `RenderError::ConflictingSingletons`; it does not tokenize commands, validate signals, or
+construct a reload action.
+
+Pod `ExitPolicy` is an opaque singleton entry. The builder rejects a duplicate but does not parse
+or validate its value, choose a default, or construct lifecycle behavior.
+
+Pod `StopTimeout` is an opaque singleton entry. The builder rejects a duplicate but does not parse
+seconds or `-1`, select or inject a timeout, or construct a stop action.
+
+Pod `ServiceName` is an opaque singleton entry. The builder accepts blank, quoted, and
+specifier-bearing physical-line-safe text and rejects a duplicate without extension handling,
+name derivation, template/specifier evaluation, identity mutation, or restart semantics.
 
 Repeated native keys retain insertion order. Native keys classified as singletons are rejected
 when repeated. Generic systemd directives may repeat because their list and reset semantics are
@@ -20,9 +35,9 @@ or native image/build reference; `ContainerKey::Rootfs` selects a Podman root fi
 a document with neither or both returns structured typed-model diagnostics.
 
 For `.build` documents, `BuildKey::ImageTag`, `BuildKey::Network`, `BuildKey::Label`, `BuildKey::File`,
-`BuildKey::BuildArg`, `BuildKey::Secret`, `BuildKey::GroupAdd`, `BuildKey::DNS`, `BuildKey::DNSOption`, `BuildKey::DNSSearch`, `BuildKey::Annotation`, and `BuildKey::PodmanArgs` retain every exact physical-line value in insertion order. `BuildKey::Arch`,
-`BuildKey::Variant`, `BuildKey::Pull`, `BuildKey::Retry`, `BuildKey::RetryDelay`, `BuildKey::TLSVerify`, `BuildKey::ForceRM`, `BuildKey::AuthFile`, and `BuildKey::IgnoreFile` are opaque singletons: construction rejects a second value, without parsing platform, pull-policy, integer, duration, boolean, auth-file path, or ignore-file grammar,
-selecting defaults, or applying generator-effective-last behavior. Build `DNSSearch` does not apply reset or special-dot semantics. Build `Annotation` is not tokenized, unquoted, C-unescaped, reset, collapsed, sorted, OCI-validated, or image-metadata-inferred. Build `AuthFile` is not read or path-validated, and its text is not credential-parsed or sensitivity-classified. Build `IgnoreFile` is not resolved or read, parsed as rules, defaulted, relative-path-normalized, or given effective-last behavior. `Network` is opaque to construction: callers
+`BuildKey::BuildArg`, `BuildKey::Secret`, `BuildKey::GroupAdd`, `BuildKey::DNS`, `BuildKey::DNSOption`, `BuildKey::DNSSearch`, `BuildKey::Annotation`, `BuildKey::Environment`, `BuildKey::ContainersConfModule`, `BuildKey::GlobalArgs`, `BuildKey::Volume`, and `BuildKey::PodmanArgs` retain every exact physical-line value in insertion order. `BuildKey::Arch`,
+`BuildKey::Variant`, `BuildKey::Pull`, `BuildKey::Retry`, `BuildKey::RetryDelay`, `BuildKey::TLSVerify`, `BuildKey::ForceRM`, `BuildKey::AuthFile`, `BuildKey::IgnoreFile`, and `BuildKey::ServiceName` are opaque singletons: construction rejects a second value, without parsing platform, pull-policy, integer, duration, boolean, auth-file path, ignore-file, or service-name grammar,
+selecting defaults, or applying generator-effective-last behavior. Build `DNSSearch` does not apply reset or special-dot semantics. Build `Annotation` is not tokenized, unquoted, C-unescaped, reset, collapsed, sorted, OCI-validated, or image-metadata-inferred. Build `Environment` is not tokenized, unquoted, C-unescaped, reset, duplicate-name-selected, sorted, or host-looked-up. Build `ContainersConfModule` is not path-parsed, module-read, configuration-inspected, reset, deduplicated, tokenized, or normalized. Build `GlobalArgs` is not tokenized, reset, unquoted, C-unescaped, option-validated, or given semantic, security, or runtime effects. Build `AuthFile` is not read or path-validated, and its text is not credential-parsed or sensitivity-classified. Build `IgnoreFile` is not resolved or read, parsed as rules, defaulted, relative-path-normalized, or given effective-last behavior. Build `ServiceName` is not extension-stripped, defaulted from a basename, made template-aware, or used to mutate document, reference, dependency, or resource identity. `Network` is opaque to construction: callers
 choose network modes, options, or exact `.network` basenames, and the builder neither parses nor
 normalizes them. `File` is not path- or URL-classified, and construction does not apply the
 generator's observed effective-last behavior. `Label` does not parse `KEY=VALUE`, unquote, select
@@ -152,6 +167,99 @@ keys, sort values, validate OCI labels, or adopt version-specific bare-token beh
 The builder retains exact physical-line-safe values, duplicates, order, bare values, embedded
 equals signs, quotes, and specifiers; it does not tokenize label text, apply resets, collapse
 duplicate keys, sort values, validate OCI labels, or adopt version-specific bare-token behavior.
+
+`VolumeKey::ContainersConfModule` is opaque and repeatable, including empty native reset
+assignments. The builder retains exact physical-line-safe values, duplicates, order, quotes,
+specifiers, and continuations; it does not parse paths, read modules or configuration, apply
+resets, tokenize, normalize, classify sensitivity, validate CLI options, or establish volume
+creation, filesystem, lifecycle, security, runtime, Compose, or conversion behavior.
+
+`VolumeKey::GlobalArgs` is opaque and repeatable, including empty native reset assignments. The
+builder retains exact physical-line-safe values, duplicates, order, quotes, whitespace, specifiers,
+C-escapes, and continuations; it does not tokenize, unquote, C-unescape, omit malformed values,
+apply resets, validate arguments, infer sensitivity, read modules or configuration, or establish
+volume creation, lifecycle, filesystem, security, runtime, Compose, or conversion behavior.
+
+`VolumeKey::PodmanArgs` is opaque and repeatable, including empty native reset assignments. The
+builder retains exact physical-line-safe values, duplicates, order, quotes, whitespace, specifiers,
+C-escapes, and continuations; it does not tokenize, unquote, C-unescape, omit malformed values,
+apply resets, deduplicate, validate options or a CLI, infer sensitivity, or establish dedicated-key,
+volume-creation, lifecycle, filesystem, systemd, security, runtime, Compose, or conversion
+behavior.
+
+`VolumeKey::User` is an opaque singleton. The builder accepts one exact physical-line-safe value,
+including empty text, and rejects a duplicate without parsing UID/name spelling, looking up a host
+user, selecting defaults, or interpreting ownership, mounts, filesystems, lifecycle, runtime,
+Compose, or conversion behavior.
+
+`VolumeKey::Group` is an opaque singleton. The builder accepts one exact physical-line-safe value,
+including empty text, and rejects a duplicate without parsing GID/name spelling, looking up an
+account, selecting defaults, or interpreting ownership, mounts, filesystems, lifecycle, runtime,
+Compose, or conversion behavior.
+
+`VolumeKey::GID` is an opaque singleton. The builder accepts one exact physical-line-safe value,
+including empty text, and rejects a duplicate without parsing or otherwise interpreting it.
+
+`VolumeKey::ServiceName` is an opaque singleton. The builder accepts one exact physical-line-safe
+value, including empty text, and rejects a duplicate without deriving or otherwise interpreting it.
+
+`VolumeKey::Image` is an opaque singleton. Exact `.image` and `.build` values are reference-classified
+after parsing and resolve by exact basename when their typed documents are present. Construction
+retains one physical-line-safe value and rejects a duplicate.
+
+`ImageKey::Image` is an opaque required singleton image source. Construction emits `[Image]` with
+one `Image=` entry, rejects duplicates, and rejects missing or blank source text at parse-back
+validation. It does not validate or interpret image-reference, transport, registry, tag/digest,
+authentication, TLS, platform, path, pull, systemd/runtime, service naming, or substitution semantics.
+
+`ImageKey::ImageTag` is an opaque singleton. Construction accepts one physical-line-safe value,
+including empty text, and rejects a duplicate; it neither selects a resource name nor changes a
+document-set reference or dependency.
+
+`ImageKey::ServiceName` is an opaque singleton. Construction accepts one physical-line-safe value,
+including empty text, and rejects a duplicate without deriving, normalizing, or applying it to identity.
+
+`ImageKey::AllTags` is an opaque singleton. Construction accepts one physical-line-safe value,
+including empty text, and rejects a duplicate without parsing booleans, selecting defaults, or
+constructing pull commands.
+
+`ImageKey::Arch` is an opaque singleton. Construction accepts one physical-line-safe value,
+including empty text, and rejects a duplicate without parsing platform grammar, selecting host defaults,
+or constructing pull commands.
+
+`ImageKey::AuthFile` is an opaque singleton. Construction accepts one physical-line-safe value,
+including empty text, and rejects a duplicate without validating or reading paths, parsing credentials,
+classifying sensitivity, selecting defaults, or constructing pull commands.
+
+`ImageKey::CertDir` is an opaque singleton. Construction accepts one physical-line-safe value,
+including empty text, and rejects a duplicate without validating or reading paths or certificates,
+selecting containers-certs.d defaults or remote-client policy, classifying sensitivity, or constructing pull commands.
+
+`ImageKey::ContainersConfModule` is repeatable opaque physical-line text. Construction preserves every
+value in insertion order, including empty resets and duplicates, without path parsing, module/configuration reads,
+reset behavior, tokenization, CLI validation, or pull construction.
+
+`ImageKey::Creds` is an opaque singleton. Construction accepts one physical-line-safe value,
+including empty text, and rejects a duplicate. The keyed builder redacts this value in its own
+debug output, but standalone `EntryValue` remains raw and unclassifiable until paired with the
+`Creds` key; rendering and explicit text access remain exact. It does not split, parse, validate,
+read, default, authenticate, or construct a pull command from credentials.
+
+`ImageKey::DecryptionKey` is an opaque singleton. Construction accepts one physical-line-safe
+value, including empty text, and rejects a duplicate. The keyed builder redacts this value in its
+own debug output, while standalone `EntryValue` remains raw and unclassifiable until paired with
+the `DecryptionKey` key; rendering and explicit text access remain exact. It does not split key or
+passphrase text, validate or read files, decrypt, select defaults, authenticate, or construct a
+pull command.
+
+`ImageKey::GlobalArgs` is repeatable opaque physical-line text. Construction preserves every
+physical-line-safe value in insertion order, including empty resets and duplicates, without
+tokenization, reset behavior, unquoting, C-unescaping, CLI validation, sensitivity inference, or
+pull construction.
+
+`ImageKey::OS` is an opaque singleton. Construction accepts one physical-line-safe value,
+including empty text, and rejects a duplicate without operating-system grammar, host/default or
+platform validation, tokenization, unescaping, pull construction, or graph/runtime semantics.
 
 `VolumeKey::Device` and `VolumeKey::Type` are separate opaque singletons. The builder retains
 their exact physical-line-safe text, including blanks, quotes, and specifiers, and rejects a

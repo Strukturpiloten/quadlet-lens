@@ -1,0 +1,9 @@
+[Image]
+Image=example.invalid/quadlet-lens-image-global-args:latest
+GlobalArgs=--log-level=info
+GlobalArgs=--log-level=info
+GlobalArgs=
+GlobalArgs=--log-level=debug
+GlobalArgs="--events-backend=none"
+GlobalArgs=--events-backend\x3dfile
+GlobalArgs=\\

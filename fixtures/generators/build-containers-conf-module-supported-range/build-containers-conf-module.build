@@ -1,0 +1,8 @@
+[Build]
+ImageTag=localhost/quadlet-lens-build-containers-conf-module
+SetWorkingDirectory=.
+ContainersConfModule=pre-one
+ContainersConfModule=pre-two
+ContainersConfModule=
+ContainersConfModule=post-one
+ContainersConfModule=post-two

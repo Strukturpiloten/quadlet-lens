@@ -1,0 +1,15 @@
+schema = 1
+id = "image-cert-dir-supported-range"
+suite = "generators"
+description = "Records target Image CertDir command text without accessing paths, certificates, or keys in QuadletLens."
+secrets_reviewed = true
+files = ["image-cert-dir-normal.image", "image-cert-dir-duplicate.image", "image-cert-dir-blank.image", "image-cert-dir-unmatched.image", "expected-fragments.txt"]
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+[environment]
+description = "Dry-run generator only; placeholder directories are never read and no image pull, registry authentication, systemd operation, or runtime execution occurs."
+[expectations]
+summary = "Target-only normal, duplicate-last, blank-omission, and unmatched-quote CertDir command-text observations; QuadletLens preserves authored physical text."

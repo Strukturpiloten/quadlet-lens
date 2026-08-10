@@ -23,12 +23,12 @@ that the syntax parser rejects it.
 
 | Section/unit | Current keys | Typed keys | Syntax-preserved only |
 | --- | ---: | ---: | ---: |
-| `[Container]` / `.container` | 90 | 61 | 29 |
-| `[Pod]` / `.pod` | 25 | 7 | 18 |
+| `[Container]` / `.container` | 90 | 63 | 27 |
+| `[Pod]` / `.pod` | 25 | 10 | 15 |
 | `[Network]` / `.network` | 18 | 10 | 8 |
-| `[Volume]` / `.volume` | 16 | 7 | 9 |
-| `[Build]` / `.build` | 28 | 23 | 5 |
-| `[Image]` / `.image` | 18 | 0 | 18 |
+| `[Volume]` / `.volume` | 16 | 16 | 0 |
+| `[Build]` / `.build` | 28 | 28 | 0 |
+| `[Image]` / `.image` | 18 | 12 | 6 |
 | `[Kube]` / `.kube` | 14 | 0 | 14 |
 | `[Artifact]` / `.artifact` | 13 | 0 | 13 |
 | `[Quadlet]` | 1 | 0 | 1 |
@@ -46,12 +46,12 @@ The following 29 current keys are syntax-preserved but not typed:
 `HealthMaxLogCount`, `HealthMaxLogSize`, `HealthOnFailure`, `HealthStartupCmd`,
 `HealthStartupInterval`, `HealthStartupRetries`, `HealthStartupSuccess`,
 `HealthStartupTimeout`, `HttpProxy`, `ImageVolume`, `Mount`,
-`ReadOnlyTmpfs`, `ReloadCmd`, `ReloadSignal`, `Retry`, `RetryDelay`,
+`ReadOnlyTmpfs`, `Retry`, `RetryDelay`,
 `ServiceName`, `StartWithPod`,
 `SubGIDMap`, `SubUIDMap`, `Timezone`, and `UIDMap`.
 
-The 61 typed keys are `AddHost`, `ContainerName`, `Image`, `Rootfs`, `Entrypoint`, `RunInit`,
-`StopSignal`, `StopTimeout`, `Pull`, `PidsLimit`, `HostName`, `ShmSize`, `DropCapability`,
+The 63 typed keys are `AddHost`, `ContainerName`, `Image`, `Rootfs`, `Entrypoint`, `RunInit`,
+`StopSignal`, `StopTimeout`, `Pull`, `PidsLimit`, `HostName`, `ShmSize`, `ReloadCmd`, `ReloadSignal`, `DropCapability`,
 `AddCapability`, `Tmpfs`, `Sysctl`, `Ulimit`, `AddDevice`, `Memory`, `LogDriver`, `LogOpt`, `IP`,
 `IP6`, `NetworkAlias`, `DNS`, `DNSOption`, `DNSSearch`, `ExposeHostPort`, `Annotation`, `AppArmor`,
 `NoNewPrivileges`, `SeccompProfile`, `SecurityLabelDisable`, `SecurityLabelFileType`,
@@ -63,14 +63,14 @@ The 61 typed keys are `AddHost`, `ContainerName`, `Image`, `Rootfs`, `Entrypoint
 
 ### Missing `[Pod]` keys
 
-The following 18 current keys are syntax-preserved but not typed:
+The following 15 current keys are syntax-preserved but not typed:
 
-`ContainersConfModule`, `DNS`, `DNSOption`, `DNSSearch`, `ExitPolicy`, `GIDMap`, `GlobalArgs`,
-`HostName`, `IP`, `IP6`, `Label`, `NetworkAlias`, `PodmanArgs`, `ServiceName`,
-`StopTimeout`, `SubGIDMap`, `SubUIDMap`, and `UIDMap`.
+`ContainersConfModule`, `DNS`, `DNSOption`, `DNSSearch`, `GIDMap`, `GlobalArgs`,
+`HostName`, `IP`, `IP6`, `Label`, `NetworkAlias`, `PodmanArgs`,
+`SubGIDMap`, `SubUIDMap`, and `UIDMap`.
 
-The typed pod keys are `AddHost`, `PodName`, `PublishPort`, `Network`, `Volume`, `UserNS`, and
-`ShmSize`.
+The typed pod keys are `AddHost`, `PodName`, `PublishPort`, `Network`, `Volume`, `UserNS`,
+`ShmSize`, `ExitPolicy`, `StopTimeout`, and `ServiceName`.
 
 ### Missing `[Network]` keys
 
@@ -83,21 +83,16 @@ syntax-preserved but not typed:
 
 ### Missing `[Volume]` keys
 
-`VolumeName`, `Driver`, `Options`, `Label`, `Device`, `Type`, and `Copy` are typed. The following 9 current keys are syntax-preserved but not typed:
+`VolumeName`, `Driver`, `Options`, `Label`, `Device`, `Type`, `Copy`, `ContainersConfModule`, `GlobalArgs`, `PodmanArgs`, `User`, `Group`, `UID`, `GID`, `ServiceName`, and `Image` are typed. No current Volume keys remain syntax-preserved only.
 
-`ContainersConfModule`, `GID`, `GlobalArgs`, `Group`, `Image`, `PodmanArgs`, `ServiceName`,
-`UID`, and `User`.
-
-### Entirely untyped unit sections
+### Unit sections with remaining untyped keys
 
 The syntax layer preserves these unit files, but their native unit type, section, keys, builders,
 relationships, capability records, and generator fixtures are open.
 
-- `[Build]`: `ContainersConfModule`,
-  `Environment`, `GlobalArgs`,
-  `ServiceName`, `Volume`. `ImageTag` and repeatable
-  opaque `Network`/`Label`/`File`/`BuildArg`/`Secret`/`GroupAdd`/`DNS`/`DNSOption`/`DNSSearch`/`Annotation`/`PodmanArgs` are typed with full 5.4.0-through-6.0.2
-  generator evidence; singleton `SetWorkingDirectory`/`Target`/`Arch`/`Variant`/`Pull`/`Retry`/`RetryDelay`/`TLSVerify`/`ForceRM`/`AuthFile`/`IgnoreFile` values are also typed;
+- `[Build]`: all current keys are typed. `ImageTag` and repeatable
+  opaque `Network`/`Label`/`File`/`BuildArg`/`Secret`/`GroupAdd`/`DNS`/`DNSOption`/`DNSSearch`/`Annotation`/`Environment`/`ContainersConfModule`/`GlobalArgs`/`Volume`/`PodmanArgs` are typed with full 5.4.0-through-6.0.2
+  generator evidence; singleton `SetWorkingDirectory`/`Target`/`Arch`/`Variant`/`Pull`/`Retry`/`RetryDelay`/`TLSVerify`/`ForceRM`/`AuthFile`/`IgnoreFile`/`ServiceName` values are also typed;
   exact `.network` Build references resolve in document sets, while effective-last `File` selection
   remains target evidence, not Lens normalization. `Label` retains every physical line without
   parsing, unquoting, duplicate-name selection, map collapse or sorting, or validation; the matrix
@@ -110,9 +105,9 @@ relationships, capability records, and generator fixtures are open.
   normalization; their separate fixture asserts one `--arch arm64` and one `--variant v8` without
   a relative-order claim. `Pull` preserves opaque raw singleton text without policy validation,
   default selection, normalization, effective-last access, Compose mapping, registry, image-pull, or runtime claims; its separate fixture asserts exactly one `--pull=always` form. `Retry` and `RetryDelay` are unsupported in 5.4.0–5.4.2, native in 5.5.0–6.0.2, and otherwise unknown; their opaque fixture asserts one separate `--retry 4` pair and one separate `--retry-delay 7s` pair before final `.` without a relative-order claim between pairs, and makes no parsing, defaults, effective-last, Compose `dockerfile_inline`, registry, retry/timing, build-success, runtime, or conversion claim. `TLSVerify` is opaque and native in 5.4.0–6.0.2, otherwise unknown; its two-unit fixture asserts one bare `--tls-verify` for true and one `--tls-verify=false` for false before final `.`, without TLS/certificate/registry/pull/build-success/security/provenance/runtime/conversion claims. `ForceRM` is opaque and native in 5.4.0–6.0.2, otherwise unknown; its two-unit fixture asserts one bare `--force-rm` for true and one `--force-rm=false` for false before final `.`, without parsing/default/effective-last, cleanup/failure/execution/default/configuration/cache-equivalence, runtime, or conversion claims. `GroupAdd` is repeatable and native in 5.4.0–6.0.2, otherwise unknown; its fixture asserts ordered separate `--group-add 1234` then `--group-add 5678` pairs before final `.`, without group lookup, keep-groups exclusivity, rootless/user-namespace, runtime, build-execution, Compose privilege-equivalence, or conversion claims. `DNS` is repeatable and native in 5.4.0–6.0.2, otherwise unknown; its fixture asserts ordered separate `--dns 9.9.9.9` then `--dns 2001:4860:4860::8888` pairs before final `.`, without resolver, none-compatibility, resolv.conf, host-DNS, build-execution, Compose endpoint-mapping, or conversion claims.
-- `[Image]`: `AllTags`, `Arch`, `AuthFile`, `CertDir`, `ContainersConfModule`, `Creds`,
-  `DecryptionKey`, `GlobalArgs`, `Image`, `ImageTag`, `OS`, `PodmanArgs`, `Policy`, `Retry`,
-  `RetryDelay`, `ServiceName`, `TLSVerify`, `Variant`.
+- `[Image]`: `PodmanArgs`,
+  `Policy`, `Retry`,
+  `RetryDelay`, `TLSVerify`, `Variant`.
 - `[Kube]`: `AutoUpdate`, `ConfigMap`, `ContainersConfModule`, `ExitCodePropagation`,
   `GlobalArgs`, `KubeDownForce`, `LogDriver`, `Network`, `PodmanArgs`, `PublishPort`,
   `ServiceName`, `SetWorkingDirectory`, `UserNS`, `Yaml`.
@@ -211,9 +206,48 @@ only for a concrete consumer scenario and must retain their native ordering/repe
   target reset, tokenization/unquoting/C-unescaping, duplicate-key-collapse, sorting, and 5.6.0
   bare/malformed-token behavior without Lens normalization, OCI/image-metadata, build, runtime,
   Compose mapping, or conversion claims.
-- [ ] Type `ServiceName`, `ReloadCmd`, and `ReloadSignal` without confusing Podman resource names,
-  Quadlet basenames, and generated systemd unit names.
-- [ ] Type pod `ExitPolicy`, `StopTimeout`, and `ServiceName` with explicit restart interactions.
+- [x] Type repeatable Build `Environment` as opaque physical-line text and record all-20-release
+  target reset, tokenization/unquoting/C-unescaping, duplicate-name selection, sorting, and 5.6.0
+  bare/malformed-token representation behavior without Lens normalization, host lookup, build,
+  runtime, Compose mapping, or conversion claims.
+- [x] Type repeatable Build `ContainersConfModule` as opaque physical-line text and record
+  all-20-release target reset plus ordered post-reset `--module` command construction without Lens
+  path parsing, module reads, configuration inspection, deduplication, normalization, build,
+  runtime, Compose mapping, or conversion claims.
+- [x] Type repeatable Build `GlobalArgs` as opaque physical-line text and record all-20-release
+  target reset, tokenization/unquoting/C-unescaping, malformed-line omission, and ordered placement
+  between `podman` and `build` without Lens option validation, security, runtime, build, Compose,
+  or conversion interpretation.
+- [x] Type Build `ServiceName` as opaque singleton physical-line text, retain raw duplicate source
+  diagnostics, and record all-20-release generated-unit default/override, template, and unmatched-quote
+  naming observations without assigning document, dependency, runtime, or conversion identity semantics.
+- [x] Type repeatable Build `Volume` as opaque physical-line text with only exact source-prefix
+  `.volume` references, and record all-20-release reset/continuation, relative-source, and native
+  volume substitution/dependency observations without mount, filesystem, runtime, or conversion claims.
+- [x] Type repeatable Volume `ContainersConfModule` as opaque physical-line text and record
+  all-20-release target reset, continuation presentation, and ordered post-reset `--module` command
+  construction before `volume create` without Lens path parsing, module reads, configuration
+  inspection, deduplication, normalization, volume creation, lifecycle, filesystem, runtime,
+  Compose mapping, or conversion claims.
+- [x] Type repeatable Volume `GlobalArgs` as opaque physical-line text and record all-20-release
+  target reset, tokenization/unquoting/C-unescaping, malformed-line omission, and ordered
+  post-reset token placement before `volume create` without Lens argument parsing, validation,
+  security inference, volume creation, lifecycle, filesystem, runtime, Compose mapping, or
+  conversion claims.
+- [x] Type repeatable Volume `PodmanArgs` as opaque physical-line text and record all-20-release
+  target reset, tokenization/unquoting/C-unescaping, malformed-line omission, and ordered terminal
+  placement before the volume name without Lens CLI parsing, dedicated-key semantics, security
+  inference, volume creation, lifecycle, filesystem, systemd, runtime, Compose mapping, or
+  conversion claims.
+- [x] Type opaque singleton `ReloadCmd` and `ReloadSignal`, reject their generated mutual-exclusion
+  pair, and record the 5.4.x rejection plus 5.5.0–6.0.2 dry-run `ExecReload` boundary without
+  command parsing, signal validation, resource-name derivation, or runtime execution.
+- [x] Type opaque singleton pod `ExitPolicy` with its explicit 5.4.0–5.5.2 rejection and
+  5.6.0–6.0.2 generator boundaries, without policy or restart interpretation.
+- [x] Type opaque singleton pod `StopTimeout` with its explicit 5.4.0–5.6.2 rejection and
+  5.7.0–6.0.2 generator boundaries, without timeout or restart interpretation.
+- [x] Type opaque singleton pod `ServiceName`, preserve source values and duplicate diagnostics, and
+  record generated-unit naming observations without assigning restart, identity, or runtime semantics.
 
 ### Next 2: networking and metadata parity
 
@@ -279,6 +313,9 @@ only for a concrete consumer scenario and must retain their native ordering/repe
 - [x] Type repeatable/resettable volume `Label`; preserve every physical source value and record
   reset, duplicate collapse, key sorting, quoted-whitespace presentation, and the bare-token
   boundary without importing generator semantics into the model or builder.
+- `[Image]`: `Image` is an opaque required singleton, while `ImageTag`, `ServiceName`, `AllTags`, `Arch`, `AuthFile`, `CertDir`, `Creds`, `DecryptionKey`, and `OS` are opaque
+singletons and `ContainersConfModule`/`GlobalArgs` are repeatable with 5.4.0-through-6.0.2 generator evidence. `Creds` and `DecryptionKey` are redacted only from repository-owned debug output; all preserve raw source physical entries without target identity, boolean, platform, operating-system, path, certificate, credential, key, authentication, module, configuration, argument, or pull behavior. The remaining six current keys remain
+  syntax-preserved only.
 - [x] Type and generator-verify container DNS, exposed-port, and annotation keys across the
   reviewed Podman range.
 - [x] Type and generator-verify AppArmor, no-new-privileges, seccomp, and SELinux-label keys.
@@ -292,9 +329,9 @@ only for a concrete consumer scenario and must retain their native ordering/repe
 
 ### Next 4: resource and image lifecycle units
 
-- [ ] Complete `[Volume]` typing and capability evidence.
-- [ ] Add `.image` native units, references, builders, and exact generator matrices; extend the
-  typed `.build` surface beyond `ImageTag`, `Network`, `Label`, `File`, `SetWorkingDirectory`, and `Target`.
+- [x] Complete `[Volume]` typing and capability evidence.
+- [ ] Add remaining `.image` keys beyond the opaque required `Image` source; extend the typed
+  `.build` surface only when its untyped future surface expands.
 - [ ] Add `.kube` only after its file-access and Kubernetes-YAML boundary is explicit.
 - [ ] Defer `.artifact` typed support until its experimental contract is stable enough to test
   without presenting a moving target as supported.

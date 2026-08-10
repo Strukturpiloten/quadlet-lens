@@ -1,0 +1,15 @@
+schema = 1
+id = "image-service-name-supported-range"
+suite = "generators"
+description = "Records target Image ServiceName selection and generated-unit naming boundaries without importing identity semantics into QuadletLens."
+secrets_reviewed = true
+files = ["service-name-default.image", "service-name-override.image", "service-name-template@.image", "service-name-unmatched-quote.image", "expected-fragments.txt"]
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+[environment]
+description = "Dry-run generator only; no image pull, systemd operation, or runtime execution."
+[expectations]
+summary = "The target derives ordinary and template defaults, selects the last ServiceName, appends .service, and has version-scoped template and unmatched-quote lookup behavior; QuadletLens preserves source text."

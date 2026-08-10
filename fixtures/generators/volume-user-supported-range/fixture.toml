@@ -1,0 +1,15 @@
+schema = 1
+id = "volume-user-supported-range"
+suite = "generators"
+description = "Records the target's unambiguous numeric Volume User command construction without importing ownership semantics into QuadletLens."
+secrets_reviewed = true
+files = ["volume-user.volume", "expected-fragments.txt"]
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+[environment]
+description = "Dry-run generator only; no volume operation or runtime execution."
+[expectations]
+summary = "The target emits one o=uid=123 option before the volume name; QuadletLens preserves the opaque authored singleton."

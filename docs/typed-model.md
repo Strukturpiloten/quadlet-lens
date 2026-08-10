@@ -8,24 +8,24 @@ defines its representation boundary.
 
 `QuadletUnitType` currently accepts only these lowercase suffixes:
 
-| Suffix       | Required section | Typed native boundary       |
-| ------------ | ---------------- | --------------------------- |
-| `.container` | `[Container]`    | Container keys listed below |
-| `.pod`       | `[Pod]`          | Pod keys listed below       |
-| `.network`   | `[Network]`      | `NetworkName`, `Driver`, `Options`, `Label`, `Internal`, `IPv6`, `IPAMDriver`, `Subnet`, `Gateway`, `IPRange` |
-| `.volume`    | `[Volume]`       | `VolumeName`, `Driver`, `Options`, `Label`, `Device`, `Type`, `Copy` |
-| `.build`     | `[Build]`        | repeatable `ImageTag`/`Network`/`Label`/`File`/`BuildArg`/`Secret`/`GroupAdd`/`DNS`/`DNSOption`/`DNSSearch`/`Annotation`/`PodmanArgs`, singleton `SetWorkingDirectory`/`Target`/`Arch`/`Variant`/`Pull`/`Retry`/`RetryDelay`/`TLSVerify`/`ForceRM`/`AuthFile`/`IgnoreFile` |
+| Suffix       | Required section | Typed native boundary                                                                                                                                                                                                                                                                                                                               |
+| ------------ | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.container` | `[Container]`    | Container keys listed below                                                                                                                                                                                                                                                                                                                         |
+| `.pod`       | `[Pod]`          | Pod keys listed below                                                                                                                                                                                                                                                                                                                               |
+| `.network`   | `[Network]`      | `NetworkName`, `Driver`, `Options`, `Label`, `Internal`, `IPv6`, `IPAMDriver`, `Subnet`, `Gateway`, `IPRange`                                                                                                                                                                                                                                       |
+| `.volume`    | `[Volume]`       | `VolumeName`, `Driver`, `Options`, `Label`, `Device`, `Type`, `Copy`, `ContainersConfModule`, `GlobalArgs`, `PodmanArgs`, `User`, `Group`, `UID`, `GID`, `ServiceName`, `Image`                                                                                                                                                                     |
+| `.build`     | `[Build]`        | repeatable `ImageTag`/`Network`/`Label`/`File`/`BuildArg`/`Secret`/`GroupAdd`/`DNS`/`DNSOption`/`DNSSearch`/`Annotation`/`Environment`/`ContainersConfModule`/`GlobalArgs`/`Volume`/`PodmanArgs`, singleton `SetWorkingDirectory`/`Target`/`Arch`/`Variant`/`Pull`/`Retry`/`RetryDelay`/`TLSVerify`/`ForceRM`/`AuthFile`/`IgnoreFile`/`ServiceName` |
+| `.image`     | `[Image]`        | singleton `Image`, `ImageTag`, `ServiceName`, `AllTags`, `Arch`, `AuthFile`, `CertDir`, `Creds`, `DecryptionKey`, `OS`; repeatable `ContainersConfModule`, `GlobalArgs`                                                                                                                                                                             |
 
-The typed boundary currently contains 61 container keys, seven pod keys, ten network keys, seven
-volume keys, and twenty-three build keys. The exact key lists live in the
+The typed boundary currently contains 63 container keys, ten pod keys, ten network keys, sixteen
+volume keys, twenty-eight build keys, and twelve image keys. The exact key lists live in the
 [specification coverage ledger](roadmap.md#specification-coverage-ledger).
 
 `[Unit]`, `[Service]`, and `[Install]` are recognized as generic systemd sections. Parsed keys are
 not restricted by a closed enum. Programmatic generation additionally offers typed `Requires`,
 `Wants`, and `After` `[Unit]` directives for the evidence-backed dependency subset. Other sections
 and keys remain explicit `Unknown` entries.
-Unsupported suffixes, including `.image`, currently fail closed rather than implying
-complete typed support.
+Unsupported suffixes fail closed rather than implying complete typed support.
 
 ## Parse result
 
@@ -61,9 +61,9 @@ Exactly one of `Image` or `Rootfs` supplies a container workload. Both are singl
 conflict with each other. `Rootfs` is conservatively classified as a path, but QuadletLens does not
 parse Podman's overlay-rootfs grammar or check the host directory and SELinux label.
 
-`ImageTag`, `Network`, `Label`, `File`, `BuildArg`, `Secret`, `GroupAdd`, `DNS`, `DNSOption`, `DNSSearch`, `Annotation`, and `PodmanArgs` are typed repeatable Build keys: every authored physical value
+`ImageTag`, `Network`, `Label`, `File`, `BuildArg`, `Secret`, `GroupAdd`, `DNS`, `DNSOption`, `DNSSearch`, `Annotation`, `Environment`, `ContainersConfModule`, `GlobalArgs`, and `PodmanArgs` are typed repeatable Build keys: every authored physical value
 stays ordered and opaque. `ImageTag` retains the first tag that Podman uses as a referenced build
-artifact name; Build `DNSSearch` does not apply reset or special-dot semantics. Build `Annotation` preserves raw physical lines without tokenization, unquoting, C-unescaping, reset, duplicate-key selection, sorting, OCI validation, or image-metadata inference. Build `AuthFile` is an opaque singleton: the model preserves physical source lines and duplicate diagnostics without path validation or reads, credential parsing, content or sensitivity classification, or generator-effective-last normalization. Build `IgnoreFile` is likewise an opaque singleton without path resolution or reads, ignore-rule parsing, `.containerignore`/`.dockerignore` default inference, relative-path normalization, or generator-effective-last behavior. `Network` recognizes only an exact lowercase `.network` value as a Network reference
+artifact name; Build `DNSSearch` does not apply reset or special-dot semantics. Build `Annotation` preserves raw physical lines without tokenization, unquoting, C-unescaping, reset, duplicate-key selection, sorting, OCI validation, or image-metadata inference. Build `Environment` preserves raw physical lines without tokenization, unquoting, C-unescaping, reset, duplicate-name selection, sorting, or host lookup. Build `ContainersConfModule` preserves raw physical lines without path parsing, module reads, configuration inspection, reset, deduplication, tokenization, or normalization. Build `GlobalArgs` preserves raw physical lines without tokenization, reset, unquoting, C-unescaping, option validation, or inferred semantic, security, or runtime effects. Build `AuthFile` is an opaque singleton: the model preserves physical source lines and duplicate diagnostics without path validation or reads, credential parsing, content or sensitivity classification, or generator-effective-last normalization. Build `IgnoreFile` is likewise an opaque singleton without path resolution or reads, ignore-rule parsing, `.containerignore`/`.dockerignore` default inference, relative-path normalization, or generator-effective-last behavior. Build `ServiceName` is opaque singleton text without .service stripping, basename/default derivation, template handling, identity mutation, or generator-effective-last normalization. `Network` recognizes only an exact lowercase `.network` value as a Network reference
 for document-set resolution, while network modes, options, and every other spelling remain opaque.
 It does not adopt observed `.container` reference semantics. `File` does not classify paths, URLs,
 or Containerfile forms, and does not select Podman's observed effective-last value. `Label` retains
@@ -119,7 +119,32 @@ the currently evidenced supported caller forms, not parser or builder validation
 fractional, overflow-sized, or otherwise unusual authored values therefore remain recognized and
 preserved without a claim that Podman accepts them. QuadletLens does not normalize signals, infer a
 timeout from systemd, claim that zero sends a signal, or claim that another format's zero/default
-semantics are equivalent. The separate pod `StopTimeout` key remains syntax-preserved but untyped.
+semantics are equivalent.
+
+`ReloadCmd` and `ReloadSignal` are opaque, non-sensitive singleton physical-line values. The parser
+retains every authored value, quote, specifier, continuation, blank, malformed line, and duplicate;
+the builder rejects duplicate keys and either mutually exclusive pair. Parsed documents containing
+both keys retain both entries but report `QLM0010`. QuadletLens neither tokenizes a reload command
+nor parses a signal, chooses an effective value, derives a name or cidfile, exposes generated
+`ExecReload` ordering, inspects a container, or triggers a reload.
+
+`ExitPolicy` is an opaque, non-sensitive pod singleton. The parser retains every authored value,
+quote, specifier, continuation, blank, malformed line, and duplicate; duplicates report `QLM0004`.
+The builder rejects a duplicate. QuadletLens does not parse `continue` or `stop`, select an
+effective or default value, derive names, or claim restart, runtime, CLI, or cross-format behavior.
+
+Pod `StopTimeout` is an opaque, non-sensitive singleton. The parser retains every authored value,
+quote, specifier, continuation, blank, malformed line, and duplicate; duplicates report `QLM0004`.
+The builder rejects a duplicate. QuadletLens does not parse seconds or `-1`, inject a default,
+select an effective value, calculate time, or claim systemd, restart, runtime, CLI, or cross-format
+behavior.
+
+Pod `ServiceName` is an opaque, non-sensitive singleton. The parser retains every authored value,
+quote, specifier, continuation, blank, malformed line, and duplicate; duplicates report `QLM0004`.
+The builder accepts exactly one physical-line-safe value and rejects a duplicate. QuadletLens does
+not strip or require `.service`, derive defaults, normalize effective values, append suffixes,
+evaluate templates or specifiers, or alter document/dependency identity, systemd, restart, runtime,
+or cross-format behavior.
 
 `Pull` is a typed singleton whose exact one-line value remains authored text. Omission remains the
 absence of a typed entry. The catalogue records `always`, `missing`, `never`, and `newer` as
@@ -225,6 +250,48 @@ values, embedded equals signs, quotes, specifiers, continuations, and authored o
 physical source data. QuadletLens does not tokenize labels, collapse duplicate names, sort them,
 validate OCI label conventions, or reproduce version-specific bare-token behavior.
 
+Volume `ContainersConfModule` is opaque and repeatable. Every physical value, including empty
+reset assignments, duplicates, quotes, specifiers, and continuations, remains ordered source data.
+QuadletLens does not parse paths, read modules or configuration, apply reset behavior, tokenize,
+normalize, infer sensitivity, or define volume-creation, filesystem, lifecycle, runtime, Compose,
+or conversion semantics.
+
+Volume `GlobalArgs` is opaque and repeatable. Every physical value, including empty reset
+assignments, duplicates, quotes, whitespace, specifiers, C-escapes, and continuations, remains
+ordered source data. QuadletLens does not tokenize, unquote, C-unescape, omit malformed text,
+apply resets, validate arguments, infer sensitivity, read modules, or define volume creation,
+lifecycle, filesystem, runtime, Compose, or conversion semantics.
+
+Volume `PodmanArgs` is opaque and repeatable. Every physical value, including empty reset
+assignments, duplicates, quotes, whitespace, specifiers, C-escapes, and continuations, remains
+ordered source data. QuadletLens does not tokenize, unquote, C-unescape, omit malformed text,
+apply resets, deduplicate, validate options, infer sensitivity, or define CLI, volume creation,
+lifecycle, filesystem, systemd, runtime, Compose, or conversion semantics.
+
+Volume `User` is an opaque singleton. Every authored physical value, including numeric-looking,
+name-like, blank, whitespace, quoted, specifier, continuation, and malformed-looking text remains
+source-aware with the ordinary duplicate diagnostic; the model performs no UID/name parsing, host
+lookup, last-value selection, defaulting, ownership, mount, filesystem, runtime, Compose, or conversion behavior.
+
+Volume `GID` is an opaque singleton. Every authored physical value, including numeric-looking,
+name-like, blank, whitespace, quoted, specifier, continuation, and malformed-looking text remains
+source-aware with the ordinary duplicate diagnostic; the model does not parse or otherwise
+interpret its value.
+
+Volume `ServiceName` is an opaque singleton. Every authored physical value remains source-aware
+with the ordinary duplicate diagnostic; the model does not tokenize, derive, or otherwise interpret it.
+
+Volume `Image` is an opaque singleton except that an exact lowercase `.image` or `.build` basename
+is classified as a native reference. Both resolve by exact basename when their corresponding typed
+documents are present.
+
+Image-unit `Image` is an opaque required singleton source, while `ImageTag`, `ServiceName`, `AllTags`, `Arch`, `AuthFile`, and `CertDir` are
+opaque singletons. `ContainersConfModule` is repeatable physical-line text without module/configuration reads, reset, tokenization, CLI validation, or pull semantics. `AuthFile` has no path validation or reads, credential parsing, sensitivity classification, or registry-authentication semantics. `CertDir` has no path or certificate validation or reads, containers-certs.d default, remote-client policy, sensitivity, or registry-authentication semantics.
+Their physical entries, duplicate diagnostics, quotes, continuations, and specifiers remain
+source-aware; neither becomes an image-unit reference. Missing and blank/whitespace source values
+remain errors only for `Image`. QuadletLens does not select service/resource names or defaults,
+parse image transports, registries, tags, digests, archives, authentication, TLS, boolean/platform/default, pull, or substitution behavior.
+
 Network `Internal` and `IPv6` are opaque singletons. Omission, literal true/false, duplicate
 diagnostics, invalid or vendor-defined spellings, quotes, specifiers, continuations, and every
 physical entry remain distinct. QuadletLens does not parse booleans, choose a last value, or import
@@ -287,6 +354,9 @@ Initial stable codes are:
 | `QLM0005` | error    | An `Image=` entry is empty                               |
 | `QLM0006` | error    | `Image=` and `Rootfs=` are both present                  |
 | `QLM0007` | error    | A `Rootfs=` entry is empty                               |
+| `QLM0008` | error    | An Image unit is missing `Image=`                        |
+| `QLM0009` | error    | An Image-unit `Image=` entry is blank                    |
+| `QLM0010` | error    | `ReloadCmd=` and `ReloadSignal=` are both present        |
 | `QLG0001` | error    | A native unit reference has no matching document         |
 | `QLG0002` | error    | A native unit reference matches duplicate basenames      |
 | `QLG0003` | error    | The document set contains a duplicate basename           |
@@ -296,7 +366,7 @@ invalid; an error does.
 
 ## Deliberately deferred
 
-- typed `.image` and later Quadlet unit types
+- later Quadlet unit types and remaining Image keys
 - parsing and canonical rendering of individual systemd/Podman value grammars
 - dependency-cycle analysis and systemd runtime activation semantics
 - target-version validation that combines documents with the capability catalogue

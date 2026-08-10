@@ -1,0 +1,15 @@
+schema = 1
+id = "image-core-supported-range"
+suite = "generators"
+description = "Records minimal Image-unit source handling without interpreting image-reference semantics in QuadletLens."
+secrets_reviewed = true
+files = ["image-core.image", "image-missing.image", "image-empty.image", "expected-fragments.txt"]
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+[environment]
+description = "Dry-run generator only; no image pull, registry access, systemd operation, or runtime execution."
+[expectations]
+summary = "A literal Image source produces a pull unit, missing and empty sources report errors, and the target selects the final duplicate source while QuadletLens preserves all physical entries."

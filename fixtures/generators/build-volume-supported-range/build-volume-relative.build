@@ -1,0 +1,4 @@
+[Build]
+ImageTag=localhost/quadlet-lens-build-volume-relative
+SetWorkingDirectory=.
+Volume=.:/workspace

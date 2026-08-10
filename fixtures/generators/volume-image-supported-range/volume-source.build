@@ -1,0 +1,3 @@
+[Build]
+ImageTag=localhost/quadlet-lens-volume-source:latest
+SetWorkingDirectory=.

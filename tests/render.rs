@@ -2,8 +2,8 @@
 
 use quadlet_lens::{
     model::{
-        BuildKey, ContainerKey, EntryKind, NamedQuadletDocument, NetworkKey, PodKey, QuadletDocumentSet,
-        QuadletUnitType, VolumeKey,
+        BuildKey, ContainerKey, EntryKind, ImageKey, NamedQuadletDocument, NetworkKey, PodKey, QuadletDocument,
+        QuadletDocumentSet, QuadletUnitType, ValueKind, VolumeKey,
     },
     render::{
         EntryValue, Memory, MemoryError, PidsLimit, PidsLimitError, QuadletDocumentBuilder, RenderError, ShmSize,
@@ -329,6 +329,48 @@ fn builds_a_singleton_pod_user_namespace() -> Result<(), Box<dyn std::error::Err
     assert_eq!(
         generated.text(),
         "[Pod]\nPodName=example-pod\nUserNS=auto:size=8192\nShmSize=64m\n"
+    );
+    Ok(())
+}
+
+#[test]
+fn builds_an_opaque_singleton_pod_exit_policy() -> Result<(), Box<dyn std::error::Error>> {
+    let mut builder = QuadletDocumentBuilder::new(QuadletUnitType::Pod);
+    builder.push_pod(PodKey::ExitPolicy, value("continue")?)?;
+    assert!(matches!(
+        builder.push_pod(PodKey::ExitPolicy, value("stop")?),
+        Err(RenderError::DuplicateSingleton(key)) if key == "ExitPolicy"
+    ));
+    assert_eq!(
+        builder.build(SourceId::new(473))?.text(),
+        "[Pod]\nExitPolicy=continue\n"
+    );
+    Ok(())
+}
+
+#[test]
+fn builds_an_opaque_singleton_pod_stop_timeout() -> Result<(), Box<dyn std::error::Error>> {
+    let mut builder = QuadletDocumentBuilder::new(QuadletUnitType::Pod);
+    builder.push_pod(PodKey::StopTimeout, value("37")?)?;
+    assert!(matches!(
+        builder.push_pod(PodKey::StopTimeout, value("0")?),
+        Err(RenderError::DuplicateSingleton(key)) if key == "StopTimeout"
+    ));
+    assert_eq!(builder.build(SourceId::new(476))?.text(), "[Pod]\nStopTimeout=37\n");
+    Ok(())
+}
+
+#[test]
+fn builds_an_opaque_singleton_pod_service_name() -> Result<(), Box<dyn std::error::Error>> {
+    let mut builder = QuadletDocumentBuilder::new(QuadletUnitType::Pod);
+    builder.push_pod(PodKey::ServiceName, value("chosen-name.service")?)?;
+    assert!(matches!(
+        builder.push_pod(PodKey::ServiceName, value("other")?),
+        Err(RenderError::DuplicateSingleton(key)) if key == "ServiceName"
+    ));
+    assert_eq!(
+        builder.build(SourceId::new(479))?.text(),
+        "[Pod]\nServiceName=chosen-name.service\n"
     );
     Ok(())
 }
@@ -1136,6 +1178,549 @@ fn volume_label_builder_preserves_raw_repeatable_values() -> Result<(), Box<dyn 
 }
 
 #[test]
+fn volume_containers_conf_module_builder_preserves_repeatable_opaque_values() -> Result<(), Box<dyn std::error::Error>>
+{
+    let mut volume = QuadletDocumentBuilder::new(QuadletUnitType::Volume);
+    volume.push_volume(VolumeKey::VolumeName, value("quadlet-lens-module")?)?;
+    for authored in [
+        "pre-one",
+        "",
+        " post one ",
+        "post-two",
+        "post-two",
+        r#""quoted %h module""#,
+        r"module\x20text",
+        r"continuation\-looking",
+    ] {
+        volume.push_volume(VolumeKey::ContainersConfModule, value(authored)?)?;
+    }
+    assert_eq!(
+        volume.build(SourceId::new(316))?.text(),
+        concat!(
+            "[Volume]\n",
+            "VolumeName=quadlet-lens-module\n",
+            "ContainersConfModule=pre-one\n",
+            "ContainersConfModule=\n",
+            "ContainersConfModule= post one \n",
+            "ContainersConfModule=post-two\n",
+            "ContainersConfModule=post-two\n",
+            "ContainersConfModule=\"quoted %h module\"\n",
+            "ContainersConfModule=module\\x20text\n",
+            "ContainersConfModule=continuation\\-looking\n",
+        )
+    );
+    Ok(())
+}
+
+#[test]
+fn volume_global_args_builder_preserves_repeatable_opaque_values() -> Result<(), Box<dyn std::error::Error>> {
+    let mut volume = QuadletDocumentBuilder::new(QuadletUnitType::Volume);
+    volume.push_volume(VolumeKey::VolumeName, value("quadlet-lens-global-args")?)?;
+    for authored in [
+        "pre-one",
+        "",
+        "--log-level=debug",
+        r#""--events-backend=none""#,
+        r"--events-backend=file\x20value",
+        r"malformed \ value",
+    ] {
+        volume.push_volume(VolumeKey::GlobalArgs, value(authored)?)?;
+    }
+    assert_eq!(
+        volume.build(SourceId::new(317))?.text(),
+        concat!(
+            "[Volume]\n",
+            "VolumeName=quadlet-lens-global-args\n",
+            "GlobalArgs=pre-one\n",
+            "GlobalArgs=\n",
+            "GlobalArgs=--log-level=debug\n",
+            "GlobalArgs=\"--events-backend=none\"\n",
+            "GlobalArgs=--events-backend=file\\x20value\n",
+            "GlobalArgs=malformed \\ value\n",
+        )
+    );
+    Ok(())
+}
+
+#[test]
+fn volume_podman_args_builder_preserves_repeatable_opaque_values() -> Result<(), Box<dyn std::error::Error>> {
+    let mut volume = QuadletDocumentBuilder::new(QuadletUnitType::Volume);
+    volume.push_volume(VolumeKey::VolumeName, value("quadlet-lens-podman-args")?)?;
+    for authored in [
+        "pre-one",
+        "",
+        "--label=post-one",
+        r#""--label=quoted value""#,
+        r"--label\x3descaped",
+        r"malformed \ value",
+    ] {
+        volume.push_volume(VolumeKey::PodmanArgs, value(authored)?)?;
+    }
+    assert_eq!(
+        volume.build(SourceId::new(318))?.text(),
+        concat!(
+            "[Volume]\n",
+            "VolumeName=quadlet-lens-podman-args\n",
+            "PodmanArgs=pre-one\n",
+            "PodmanArgs=\n",
+            "PodmanArgs=--label=post-one\n",
+            "PodmanArgs=\"--label=quoted value\"\n",
+            "PodmanArgs=--label\\x3descaped\n",
+            "PodmanArgs=malformed \\ value\n",
+        )
+    );
+    Ok(())
+}
+
+#[test]
+fn volume_user_builder_preserves_one_opaque_value_and_rejects_duplicates() -> Result<(), Box<dyn std::error::Error>> {
+    let mut volume = QuadletDocumentBuilder::new(QuadletUnitType::Volume);
+    volume.push_volume(VolumeKey::VolumeName, value("quadlet-lens-user")?)?;
+    volume.push_volume(VolumeKey::User, value("007")?)?;
+    assert_eq!(
+        volume.build(SourceId::new(319))?.text(),
+        "[Volume]\nVolumeName=quadlet-lens-user\nUser=007\n"
+    );
+
+    let mut duplicate = QuadletDocumentBuilder::new(QuadletUnitType::Volume);
+    duplicate.push_volume(VolumeKey::User, value("")?)?;
+    assert!(matches!(
+        duplicate.push_volume(VolumeKey::User, value("alice")?),
+        Err(RenderError::DuplicateSingleton { .. })
+    ));
+    Ok(())
+}
+
+#[test]
+fn volume_group_builder_preserves_one_opaque_value_and_rejects_duplicates() -> Result<(), Box<dyn std::error::Error>> {
+    let mut volume = QuadletDocumentBuilder::new(QuadletUnitType::Volume);
+    volume.push_volume(VolumeKey::VolumeName, value("quadlet-lens-group")?)?;
+    volume.push_volume(VolumeKey::Group, value("00456")?)?;
+    assert_eq!(
+        volume.build(SourceId::new(320))?.text(),
+        "[Volume]\nVolumeName=quadlet-lens-group\nGroup=00456\n"
+    );
+    let mut duplicate = QuadletDocumentBuilder::new(QuadletUnitType::Volume);
+    duplicate.push_volume(VolumeKey::Group, value("")?)?;
+    assert!(matches!(
+        duplicate.push_volume(VolumeKey::Group, value("operators")?),
+        Err(RenderError::DuplicateSingleton { .. })
+    ));
+    Ok(())
+}
+
+#[test]
+fn volume_uid_builder_preserves_one_opaque_value_and_rejects_duplicates() -> Result<(), Box<dyn std::error::Error>> {
+    let mut volume = QuadletDocumentBuilder::new(QuadletUnitType::Volume);
+    volume.push_volume(VolumeKey::UID, value("001234")?)?;
+    assert_eq!(volume.build(SourceId::new(321))?.text(), "[Volume]\nUID=001234\n");
+    let mut duplicate = QuadletDocumentBuilder::new(QuadletUnitType::Volume);
+    duplicate.push_volume(VolumeKey::UID, value("")?)?;
+    assert!(matches!(
+        duplicate.push_volume(VolumeKey::UID, value("1234")?),
+        Err(RenderError::DuplicateSingleton { .. })
+    ));
+    Ok(())
+}
+
+#[test]
+fn volume_gid_builder_preserves_one_opaque_value_and_rejects_duplicates() -> Result<(), Box<dyn std::error::Error>> {
+    for authored in ["", "005678", "group", "\"quoted-%i\"", "%h/gid", "continued \\ text"] {
+        let mut volume = QuadletDocumentBuilder::new(QuadletUnitType::Volume);
+        volume.push_volume(VolumeKey::GID, value(authored)?)?;
+        assert_eq!(
+            volume.build(SourceId::new(322))?.text(),
+            format!("[Volume]\nGID={authored}\n")
+        );
+    }
+    let mut duplicate = QuadletDocumentBuilder::new(QuadletUnitType::Volume);
+    duplicate.push_volume(VolumeKey::GID, value("")?)?;
+    assert!(matches!(
+        duplicate.push_volume(VolumeKey::GID, value("5678")?),
+        Err(RenderError::DuplicateSingleton { .. })
+    ));
+    Ok(())
+}
+
+#[test]
+fn volume_service_name_builder_preserves_one_opaque_value_and_rejects_duplicates()
+-> Result<(), Box<dyn std::error::Error>> {
+    for authored in [
+        "",
+        "ordinary",
+        " explicit ",
+        "\"quoted-%i\"",
+        "%i",
+        "escape\\x20text",
+        "continued \\ text",
+    ] {
+        let mut volume = QuadletDocumentBuilder::new(QuadletUnitType::Volume);
+        volume.push_volume(VolumeKey::ServiceName, value(authored)?)?;
+        assert_eq!(
+            volume.build(SourceId::new(323))?.text(),
+            format!("[Volume]\nServiceName={authored}\n")
+        );
+    }
+    let mut duplicate = QuadletDocumentBuilder::new(QuadletUnitType::Volume);
+    duplicate.push_volume(VolumeKey::ServiceName, value("first.service")?)?;
+    assert!(matches!(
+        duplicate.push_volume(VolumeKey::ServiceName, value("second.service")?),
+        Err(RenderError::DuplicateSingleton { .. })
+    ));
+    Ok(())
+}
+
+#[test]
+fn volume_image_builder_preserves_one_value_and_rejects_duplicates() -> Result<(), Box<dyn std::error::Error>> {
+    for authored in [
+        "",
+        "literal.example/image:1",
+        "unit.image",
+        "unit.build",
+        "continued \\ text",
+    ] {
+        let mut volume = QuadletDocumentBuilder::new(QuadletUnitType::Volume);
+        volume.push_volume(VolumeKey::Image, value(authored)?)?;
+        assert_eq!(
+            volume.build(SourceId::new(324))?.text(),
+            format!("[Volume]\nImage={authored}\n")
+        );
+    }
+    let mut duplicate = QuadletDocumentBuilder::new(QuadletUnitType::Volume);
+    duplicate.push_volume(VolumeKey::Image, value("first.image")?)?;
+    assert!(matches!(
+        duplicate.push_volume(VolumeKey::Image, value("second.build")?),
+        Err(RenderError::DuplicateSingleton { .. })
+    ));
+    Ok(())
+}
+
+#[test]
+fn image_builder_requires_one_nonblank_opaque_source() -> Result<(), Box<dyn std::error::Error>> {
+    let mut image = QuadletDocumentBuilder::new(QuadletUnitType::Image);
+    image.push_image(ImageKey::Image, value("example.invalid/application:1")?)?;
+    assert_eq!(
+        image.build(SourceId::new(442))?.text(),
+        "[Image]\nImage=example.invalid/application:1\n"
+    );
+    assert!(matches!(
+        image.push_image(ImageKey::Image, value("other")?),
+        Err(RenderError::DuplicateSingleton(_))
+    ));
+    let image = QuadletDocumentBuilder::new(QuadletUnitType::Image);
+    assert!(matches!(
+        image.build(SourceId::new(443)),
+        Err(RenderError::InvalidDocument(_))
+    ));
+    let mut blank = QuadletDocumentBuilder::new(QuadletUnitType::Image);
+    blank.push_image(ImageKey::Image, value(" ")?)?;
+    assert!(matches!(
+        blank.build(SourceId::new(444)),
+        Err(RenderError::InvalidDocument(_))
+    ));
+    Ok(())
+}
+
+#[test]
+fn image_tag_builder_preserves_one_opaque_value_including_blank_and_rejects_duplicates()
+-> Result<(), Box<dyn std::error::Error>> {
+    for authored in ["", "localhost/application:tag", "\"quoted-%i\"", "continued \\ text"] {
+        let mut image = QuadletDocumentBuilder::new(QuadletUnitType::Image);
+        image.push_image(ImageKey::Image, value("example.invalid/application:1")?)?;
+        image.push_image(ImageKey::ImageTag, value(authored)?)?;
+        assert_eq!(
+            image.build(SourceId::new(448))?.text(),
+            format!("[Image]\nImage=example.invalid/application:1\nImageTag={authored}\n")
+        );
+    }
+    let mut duplicate = QuadletDocumentBuilder::new(QuadletUnitType::Image);
+    duplicate.push_image(ImageKey::ImageTag, value("first")?)?;
+    assert!(matches!(
+        duplicate.push_image(ImageKey::ImageTag, value("second")?),
+        Err(RenderError::DuplicateSingleton(_))
+    ));
+    Ok(())
+}
+
+#[test]
+fn image_service_name_builder_preserves_one_opaque_value_including_blank_and_rejects_duplicates()
+-> Result<(), Box<dyn std::error::Error>> {
+    for authored in ["", "custom.service", "\"quoted-%i\"", "continued \\ text"] {
+        let mut image = QuadletDocumentBuilder::new(QuadletUnitType::Image);
+        image.push_image(ImageKey::Image, value("example.invalid/application:1")?)?;
+        image.push_image(ImageKey::ServiceName, value(authored)?)?;
+        assert_eq!(
+            image.build(SourceId::new(452))?.text(),
+            format!("[Image]\nImage=example.invalid/application:1\nServiceName={authored}\n")
+        );
+    }
+    let mut duplicate = QuadletDocumentBuilder::new(QuadletUnitType::Image);
+    duplicate.push_image(ImageKey::ServiceName, value("first")?)?;
+    assert!(matches!(
+        duplicate.push_image(ImageKey::ServiceName, value("second")?),
+        Err(RenderError::DuplicateSingleton(_))
+    ));
+    Ok(())
+}
+
+#[test]
+fn image_all_tags_builder_preserves_one_opaque_value_including_blank_and_rejects_duplicates()
+-> Result<(), Box<dyn std::error::Error>> {
+    for authored in ["", "true", "false", "\"quoted-%i\"", "continued \\ text"] {
+        let mut image = QuadletDocumentBuilder::new(QuadletUnitType::Image);
+        image.push_image(ImageKey::Image, value("example.invalid/application:1")?)?;
+        image.push_image(ImageKey::AllTags, value(authored)?)?;
+        assert_eq!(
+            image.build(SourceId::new(453))?.text(),
+            format!("[Image]\nImage=example.invalid/application:1\nAllTags={authored}\n")
+        );
+    }
+    let mut duplicate = QuadletDocumentBuilder::new(QuadletUnitType::Image);
+    duplicate.push_image(ImageKey::AllTags, value("true")?)?;
+    assert!(matches!(
+        duplicate.push_image(ImageKey::AllTags, value("false")?),
+        Err(RenderError::DuplicateSingleton(_))
+    ));
+    Ok(())
+}
+
+#[test]
+fn image_arch_builder_preserves_one_opaque_value_including_blank_and_rejects_duplicates()
+-> Result<(), Box<dyn std::error::Error>> {
+    for authored in ["", "arm64", "\"quoted-%i\"", "continued \\ text"] {
+        let mut image = QuadletDocumentBuilder::new(QuadletUnitType::Image);
+        image.push_image(ImageKey::Image, value("example.invalid/application:1")?)?;
+        image.push_image(ImageKey::Arch, value(authored)?)?;
+        assert_eq!(
+            image.build(SourceId::new(454))?.text(),
+            format!("[Image]\nImage=example.invalid/application:1\nArch={authored}\n")
+        );
+    }
+    let mut duplicate = QuadletDocumentBuilder::new(QuadletUnitType::Image);
+    duplicate.push_image(ImageKey::Arch, value("arm64")?)?;
+    assert!(matches!(
+        duplicate.push_image(ImageKey::Arch, value("amd64")?),
+        Err(RenderError::DuplicateSingleton(_))
+    ));
+    Ok(())
+}
+
+#[test]
+fn image_auth_file_builder_preserves_one_opaque_value_including_blank_and_rejects_duplicates()
+-> Result<(), Box<dyn std::error::Error>> {
+    for authored in [
+        "",
+        "/placeholder/quadlet-lens-auth.json",
+        "\"quoted-%i\"",
+        "unmatched\"",
+        "continued \\ text",
+    ] {
+        let mut image = QuadletDocumentBuilder::new(QuadletUnitType::Image);
+        image.push_image(ImageKey::Image, value("example.invalid/application:1")?)?;
+        image.push_image(ImageKey::AuthFile, value(authored)?)?;
+        assert_eq!(
+            image.build(SourceId::new(455))?.text(),
+            format!("[Image]\nImage=example.invalid/application:1\nAuthFile={authored}\n")
+        );
+    }
+    let mut duplicate = QuadletDocumentBuilder::new(QuadletUnitType::Image);
+    duplicate.push_image(ImageKey::AuthFile, value("/placeholder/first-auth.json")?)?;
+    assert!(matches!(
+        duplicate.push_image(ImageKey::AuthFile, value("/placeholder/second-auth.json")?),
+        Err(RenderError::DuplicateSingleton(_))
+    ));
+    Ok(())
+}
+
+#[test]
+fn image_cert_dir_builder_preserves_one_opaque_value_including_blank_and_rejects_duplicates()
+-> Result<(), Box<dyn std::error::Error>> {
+    for authored in [
+        "",
+        "/placeholder/quadlet-lens-certs",
+        "\"quoted-%i\"",
+        "unmatched\"",
+        "continued \\ text",
+    ] {
+        let mut image = QuadletDocumentBuilder::new(QuadletUnitType::Image);
+        image.push_image(ImageKey::Image, value("example.invalid/application:1")?)?;
+        image.push_image(ImageKey::CertDir, value(authored)?)?;
+        assert_eq!(
+            image.build(SourceId::new(456))?.text(),
+            format!("[Image]\nImage=example.invalid/application:1\nCertDir={authored}\n")
+        );
+    }
+    let mut duplicate = QuadletDocumentBuilder::new(QuadletUnitType::Image);
+    duplicate.push_image(ImageKey::CertDir, value("/placeholder/first-certs")?)?;
+    assert!(matches!(
+        duplicate.push_image(ImageKey::CertDir, value("/placeholder/second-certs")?),
+        Err(RenderError::DuplicateSingleton(_))
+    ));
+    Ok(())
+}
+
+#[test]
+fn image_containers_conf_module_builder_preserves_repeatable_raw_values_and_parse_back()
+-> Result<(), Box<dyn std::error::Error>> {
+    let mut image = QuadletDocumentBuilder::new(QuadletUnitType::Image);
+    image.push_image(ImageKey::Image, value("example.invalid/application:1")?)?;
+    for authored in [
+        "pre-one",
+        "",
+        " post one ",
+        "post-two",
+        "post-two",
+        "\"quoted %h module\"",
+        r"module\x20text",
+        "-leading-dash",
+    ] {
+        image.push_image(ImageKey::ContainersConfModule, value(authored)?)?;
+    }
+    let generated = image.build(SourceId::new(457))?;
+    assert_eq!(
+        generated.text(),
+        concat!(
+            "[Image]\nImage=example.invalid/application:1\n",
+            "ContainersConfModule=pre-one\nContainersConfModule=\n",
+            "ContainersConfModule= post one \nContainersConfModule=post-two\n",
+            "ContainersConfModule=post-two\nContainersConfModule=\"quoted %h module\"\n",
+            "ContainersConfModule=module\\x20text\nContainersConfModule=-leading-dash\n",
+        )
+    );
+    let parsed = QuadletDocument::parse(QuadletUnitType::Image, SourceId::new(458), generated.text())?;
+    assert_eq!(
+        parsed
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Image(ImageKey::ContainersConfModule))
+            .map(|entry| (entry.value().primary().text(), entry.value_kind()))
+            .collect::<Vec<_>>(),
+        [
+            ("pre-one", ValueKind::Opaque),
+            ("", ValueKind::Opaque),
+            ("post one ", ValueKind::Opaque),
+            ("post-two", ValueKind::Opaque),
+            ("post-two", ValueKind::Opaque),
+            ("\"quoted %h module\"", ValueKind::Opaque),
+            (r"module\x20text", ValueKind::Opaque),
+            ("-leading-dash", ValueKind::Opaque),
+        ]
+    );
+    Ok(())
+}
+
+#[test]
+fn image_creds_builder_preserves_one_opaque_value_and_redacts_builder_debug() -> Result<(), Box<dyn std::error::Error>>
+{
+    const PLACEHOLDER: &str = "quadlet-lens-creds-debug-placeholder-7e9c:opaque-password";
+    for authored in ["", PLACEHOLDER, "\"quoted-%i\"", "%h/creds", "continued \\ text"] {
+        let mut image = QuadletDocumentBuilder::new(QuadletUnitType::Image);
+        image.push_image(ImageKey::Image, value("example.invalid/application:1")?)?;
+        image.push_image(ImageKey::Creds, value(authored)?)?;
+        assert_eq!(
+            image.build(SourceId::new(459))?.text(),
+            format!("[Image]\nImage=example.invalid/application:1\nCreds={authored}\n")
+        );
+        assert!(!format!("{image:#?}").contains(PLACEHOLDER));
+    }
+    let mut duplicate = QuadletDocumentBuilder::new(QuadletUnitType::Image);
+    duplicate.push_image(ImageKey::Image, value("example.invalid/application:1")?)?;
+    duplicate.push_image(ImageKey::Creds, value(PLACEHOLDER)?)?;
+    assert!(matches!(
+        duplicate.push_image(ImageKey::Creds, value("second")?),
+        Err(RenderError::DuplicateSingleton(_))
+    ));
+    Ok(())
+}
+
+#[test]
+fn image_decryption_key_builder_preserves_one_opaque_value_and_redacts_builder_debug()
+-> Result<(), Box<dyn std::error::Error>> {
+    const PLACEHOLDER: &str = "quadlet-lens-decryption-key-debug-placeholder-7e9c";
+    for authored in [
+        "",
+        PLACEHOLDER,
+        "\"quoted-%i\"",
+        "%h/decryption-key",
+        "continued \\ text",
+    ] {
+        let mut image = QuadletDocumentBuilder::new(QuadletUnitType::Image);
+        image.push_image(ImageKey::Image, value("example.invalid/application:1")?)?;
+        image.push_image(ImageKey::DecryptionKey, value(authored)?)?;
+        assert_eq!(
+            image.build(SourceId::new(460))?.text(),
+            format!("[Image]\nImage=example.invalid/application:1\nDecryptionKey={authored}\n")
+        );
+        assert!(!format!("{image:#?}").contains(PLACEHOLDER));
+    }
+    let mut duplicate = QuadletDocumentBuilder::new(QuadletUnitType::Image);
+    duplicate.push_image(ImageKey::Image, value("example.invalid/application:1")?)?;
+    duplicate.push_image(ImageKey::DecryptionKey, value(PLACEHOLDER)?)?;
+    assert!(matches!(
+        duplicate.push_image(ImageKey::DecryptionKey, value("second")?),
+        Err(RenderError::DuplicateSingleton(_))
+    ));
+    Ok(())
+}
+
+#[test]
+fn image_global_args_builder_preserves_unlimited_raw_physical_values() -> Result<(), Box<dyn std::error::Error>> {
+    let mut image = QuadletDocumentBuilder::new(QuadletUnitType::Image);
+    image.push_image(ImageKey::Image, value("example.invalid/application:1")?)?;
+    for authored in [
+        "pre-one",
+        "pre-one",
+        "",
+        " --log-level=debug ",
+        "\"--events-backend=none\"",
+        r"--events-backend\x3dfile\x20value",
+        r"continuation\-looking",
+        " malformed global argument ",
+    ] {
+        image.push_image(ImageKey::GlobalArgs, value(authored)?)?;
+    }
+    assert_eq!(
+        image.build(SourceId::new(461))?.text(),
+        concat!(
+            "[Image]\nImage=example.invalid/application:1\n",
+            "GlobalArgs=pre-one\nGlobalArgs=pre-one\nGlobalArgs=\n",
+            "GlobalArgs= --log-level=debug \nGlobalArgs=\"--events-backend=none\"\n",
+            "GlobalArgs=--events-backend\\x3dfile\\x20value\n",
+            "GlobalArgs=continuation\\-looking\nGlobalArgs= malformed global argument \n",
+        )
+    );
+    Ok(())
+}
+
+#[test]
+fn image_os_builder_preserves_one_opaque_value_and_rejects_duplicates() -> Result<(), Box<dyn std::error::Error>> {
+    for authored in [
+        "",
+        "windows",
+        "\"quoted-%i\"",
+        "unmatched\"",
+        "continued \\ text",
+        "%h/os",
+    ] {
+        let mut image = QuadletDocumentBuilder::new(QuadletUnitType::Image);
+        image.push_image(ImageKey::Image, value("example.invalid/application:1")?)?;
+        image.push_image(ImageKey::OS, value(authored)?)?;
+        assert_eq!(
+            image.build(SourceId::new(462))?.text(),
+            format!("[Image]\nImage=example.invalid/application:1\nOS={authored}\n")
+        );
+    }
+    let mut duplicate = QuadletDocumentBuilder::new(QuadletUnitType::Image);
+    duplicate.push_image(ImageKey::Image, value("example.invalid/application:1")?)?;
+    duplicate.push_image(ImageKey::OS, value("windows")?)?;
+    assert!(matches!(
+        duplicate.push_image(ImageKey::OS, value("linux")?),
+        Err(RenderError::DuplicateSingleton(_))
+    ));
+    Ok(())
+}
+
+#[test]
 fn network_label_builder_preserves_raw_repeatable_values() -> Result<(), Box<dyn std::error::Error>> {
     let mut network = QuadletDocumentBuilder::new(QuadletUnitType::Network);
     for authored in [
@@ -1462,6 +2047,211 @@ fn annotation_builder_preserves_resets_duplicates_order_quotes_whitespace_specif
 }
 
 #[test]
+fn build_environment_builder_preserves_repeatable_opaque_values_and_parse_back()
+-> Result<(), Box<dyn std::error::Error>> {
+    let mut build = QuadletDocumentBuilder::new(QuadletUnitType::Build);
+    build.push_build(BuildKey::ImageTag, value("localhost/example:environment")?)?;
+    for authored in [
+        "PRE=one",
+        "",
+        "NAME=final",
+        "bare",
+        r#""QUOTED=Authored Value""#,
+        r"ESCAPED=literal\x20text",
+        "embedded=a=b",
+    ] {
+        build.push_build(BuildKey::Environment, value(authored)?)?;
+    }
+    assert_eq!(
+        build.build(SourceId::new(204))?.text(),
+        concat!(
+            "[Build]\n",
+            "ImageTag=localhost/example:environment\n",
+            "Environment=PRE=one\n",
+            "Environment=\n",
+            "Environment=NAME=final\n",
+            "Environment=bare\n",
+            "Environment=\"QUOTED=Authored Value\"\n",
+            "Environment=ESCAPED=literal\\x20text\n",
+            "Environment=embedded=a=b\n",
+        )
+    );
+    Ok(())
+}
+
+#[test]
+fn build_containers_conf_module_builder_preserves_repeatable_opaque_values_and_parse_back()
+-> Result<(), Box<dyn std::error::Error>> {
+    let mut build = QuadletDocumentBuilder::new(QuadletUnitType::Build);
+    build.push_build(BuildKey::ImageTag, value("localhost/example:module")?)?;
+    for authored in [
+        "pre-one",
+        "",
+        " post one ",
+        "post-two",
+        "post-two",
+        r#""quoted module""#,
+        r"module\x20text",
+        r"continuation\-looking",
+    ] {
+        build.push_build(BuildKey::ContainersConfModule, value(authored)?)?;
+    }
+    let generated = build.build(SourceId::new(207))?;
+    assert_eq!(
+        generated.text(),
+        concat!(
+            "[Build]\n",
+            "ImageTag=localhost/example:module\n",
+            "ContainersConfModule=pre-one\n",
+            "ContainersConfModule=\n",
+            "ContainersConfModule= post one \n",
+            "ContainersConfModule=post-two\n",
+            "ContainersConfModule=post-two\n",
+            "ContainersConfModule=\"quoted module\"\n",
+            "ContainersConfModule=module\\x20text\n",
+            "ContainersConfModule=continuation\\-looking\n",
+        )
+    );
+    let parsed = QuadletDocument::parse(QuadletUnitType::Build, SourceId::new(208), generated.text())?;
+    assert!(parsed.is_valid());
+    assert_eq!(
+        parsed
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Build(BuildKey::ContainersConfModule))
+            .map(|entry| (entry.value().primary().text(), entry.value_kind()))
+            .collect::<Vec<_>>(),
+        [
+            ("pre-one", ValueKind::Opaque),
+            ("", ValueKind::Opaque),
+            ("post one ", ValueKind::Opaque),
+            ("post-two", ValueKind::Opaque),
+            ("post-two", ValueKind::Opaque),
+            ("\"quoted module\"", ValueKind::Opaque),
+            ("module\\x20text", ValueKind::Opaque),
+            ("continuation\\-looking", ValueKind::Opaque),
+        ]
+    );
+    Ok(())
+}
+
+#[test]
+fn build_global_args_builder_preserves_empty_duplicates_and_raw_physical_values()
+-> Result<(), Box<dyn std::error::Error>> {
+    let mut build = QuadletDocumentBuilder::new(QuadletUnitType::Build);
+    build.push_build(BuildKey::ImageTag, value("localhost/example:global-args")?)?;
+    for authored in [
+        "--events-backend=none",
+        "--events-backend=none",
+        "",
+        " --log-level=debug ",
+        r#""--transient""#,
+        r"--events-backend\x3dfile",
+        r"continuation\-looking",
+        " malformed global argument ",
+    ] {
+        build.push_build(BuildKey::GlobalArgs, value(authored)?)?;
+    }
+    let generated = build.build(SourceId::new(211))?;
+    assert_eq!(
+        generated.text(),
+        concat!(
+            "[Build]\n",
+            "ImageTag=localhost/example:global-args\n",
+            "GlobalArgs=--events-backend=none\n",
+            "GlobalArgs=--events-backend=none\n",
+            "GlobalArgs=\n",
+            "GlobalArgs= --log-level=debug \n",
+            "GlobalArgs=\"--transient\"\n",
+            "GlobalArgs=--events-backend\\x3dfile\n",
+            "GlobalArgs=continuation\\-looking\n",
+            "GlobalArgs= malformed global argument \n",
+        )
+    );
+    assert_eq!(
+        QuadletDocument::parse(QuadletUnitType::Build, SourceId::new(212), generated.text())?
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Build(BuildKey::GlobalArgs))
+            .map(|entry| entry.value().primary().text())
+            .collect::<Vec<_>>(),
+        [
+            "--events-backend=none",
+            "--events-backend=none",
+            "",
+            "--log-level=debug ",
+            "\"--transient\"",
+            "--events-backend\\x3dfile",
+            "continuation\\-looking",
+            "malformed global argument ",
+        ]
+    );
+    Ok(())
+}
+
+#[test]
+fn build_service_name_builder_preserves_one_opaque_value_and_rejects_duplicates()
+-> Result<(), Box<dyn std::error::Error>> {
+    for (source_id, authored) in [
+        (SourceId::new(213), ""),
+        (SourceId::new(214), "quadlet-lens.service"),
+        (SourceId::new(215), r#"\"quoted-%i\""#),
+        (SourceId::new(216), " service name "),
+        (SourceId::new(217), r"continuation\-looking"),
+    ] {
+        let mut build = QuadletDocumentBuilder::new(QuadletUnitType::Build);
+        build.push_build(BuildKey::ImageTag, value("localhost/example:service-name")?)?;
+        build.push_build(BuildKey::ServiceName, value(authored)?)?;
+        assert_eq!(
+            build.build(source_id)?.text(),
+            format!("[Build]\nImageTag=localhost/example:service-name\nServiceName={authored}\n")
+        );
+    }
+    let mut duplicate = QuadletDocumentBuilder::new(QuadletUnitType::Build);
+    duplicate.push_build(BuildKey::ImageTag, value("localhost/example:service-name")?)?;
+    duplicate.push_build(BuildKey::ServiceName, value("first.service")?)?;
+    assert!(
+        duplicate
+            .push_build(BuildKey::ServiceName, value("second.service")?)
+            .is_err()
+    );
+    Ok(())
+}
+
+#[test]
+fn build_volume_builder_preserves_repeatable_opaque_values() -> Result<(), Box<dyn std::error::Error>> {
+    let mut build = QuadletDocumentBuilder::new(QuadletUnitType::Build);
+    build.push_build(BuildKey::ImageTag, value("localhost/example:volume")?)?;
+    for authored in [
+        "cache.volume:/var/cache:Z",
+        ".:/workspace",
+        "destination-only",
+        "",
+        r#""quoted.volume":/quoted"#,
+        "%h/data:/home",
+        "cache.volume:/var/cache:Z",
+    ] {
+        build.push_build(BuildKey::Volume, value(authored)?)?;
+    }
+    let generated = build.build(SourceId::new(219))?;
+    assert_eq!(
+        generated.text(),
+        concat!(
+            "[Build]\n",
+            "ImageTag=localhost/example:volume\n",
+            "Volume=cache.volume:/var/cache:Z\n",
+            "Volume=.:/workspace\n",
+            "Volume=destination-only\n",
+            "Volume=\n",
+            "Volume=\"quoted.volume\":/quoted\n",
+            "Volume=%h/data:/home\n",
+            "Volume=cache.volume:/var/cache:Z\n",
+        )
+    );
+    Ok(())
+}
+
+#[test]
 fn apparmor_builder_preserves_one_exact_opaque_physical_value() -> Result<(), Box<dyn std::error::Error>> {
     for (source_id, authored) in [
         (SourceId::new(124), "unconfined"),
@@ -1780,6 +2570,36 @@ fn refuses_a_generated_container_without_a_workload_source() {
             .collect::<Vec<_>>(),
     };
     assert_eq!(codes, ["QLM0002"]);
+}
+
+#[test]
+fn container_reload_keys_are_opaque_singletons_and_mutually_exclusive() -> Result<(), Box<dyn std::error::Error>> {
+    let mut command = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    command.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+    command.push_container(ContainerKey::ReloadCmd, value("/usr/bin/reload --mode=\"safe %i\"")?)?;
+    assert!(matches!(
+        command.push_container(ContainerKey::ReloadCmd, value("second")?),
+        Err(RenderError::DuplicateSingleton(key)) if key == "ReloadCmd"
+    ));
+    assert!(matches!(
+        command.push_container(ContainerKey::ReloadSignal, value("SIGUSR1")?),
+        Err(RenderError::ConflictingSingletons { existing, attempted })
+            if existing == "ReloadCmd" && attempted == "ReloadSignal"
+    ));
+    assert_eq!(
+        command.build(SourceId::new(181))?.text(),
+        "[Container]\nImage=example.invalid/app\nReloadCmd=/usr/bin/reload --mode=\"safe %i\"\n"
+    );
+
+    let mut signal = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    signal.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+    signal.push_container(ContainerKey::ReloadSignal, value("vendor-defined-signal")?)?;
+    assert!(matches!(
+        signal.push_container(ContainerKey::ReloadCmd, value("opaque command")?),
+        Err(RenderError::ConflictingSingletons { existing, attempted })
+            if existing == "ReloadSignal" && attempted == "ReloadCmd"
+    ));
+    Ok(())
 }
 
 fn value(value: &str) -> Result<EntryValue, RenderError> {

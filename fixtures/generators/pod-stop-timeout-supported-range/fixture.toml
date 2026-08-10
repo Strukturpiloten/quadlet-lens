@@ -1,0 +1,25 @@
+schema = 1
+id = "pod-stop-timeout-supported-range"
+suite = "generators"
+description = "Exercises opaque singleton Pod StopTimeout presentation, duplicate selection, and final blank behavior across the recorded Podman range."
+secrets_reviewed = true
+files = [
+  "expected-fragments.txt",
+  "stop-timeout-normal37.pod",
+  "stop-timeout-zero.pod",
+  "stop-timeout-negative-one.pod",
+  "stop-timeout-duplicate-final37.pod",
+  "stop-timeout-final-blank.pod"
+]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "The harness mounts this directory read-only with label separation disabled and invokes only exact Podman Quadlet generators in dry-run mode. It does not stop pods, start workloads, inspect runtime state, or apply timeout behavior."
+
+[expectations]
+summary = "Podman 5.4.0 through 5.6.2 reject the unsupported key. Podman 5.7.0 through 6.0.2 emits one final --time= form for the recorded values, chooses the final duplicate, and retains --time= for a final blank assignment."

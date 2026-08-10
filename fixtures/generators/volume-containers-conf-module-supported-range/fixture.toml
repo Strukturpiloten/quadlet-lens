@@ -1,0 +1,15 @@
+schema = 1
+id = "volume-containers-conf-module-supported-range"
+suite = "generators"
+description = "Records target Volume ContainersConfModule reset and ordered generated-command construction without importing module lookup semantics into QuadletLens."
+secrets_reviewed = true
+files = ["volume-containers-conf-module.volume", "expected-fragments.txt"]
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+[environment]
+description = "Dry-run generator only; no volume creation or runtime execution."
+[expectations]
+summary = "The target resets logical values at an empty assignment and emits only ordered post-reset --module arguments before volume create; QuadletLens preserves authored physical lines."

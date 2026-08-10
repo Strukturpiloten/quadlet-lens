@@ -26,27 +26,28 @@ type, capability, and relevant generator evidence agree.
 | `.pod` | yes | yes | optional explicit grouping |
 | `.network` | yes | yes | application-owned networks |
 | `.volume` | yes | yes | application-owned volumes |
-| `.image` | yes | no | no |
-| `.build` | yes | `ImageTag`, `Network`, `Label`, `File`, `SetWorkingDirectory`, `Target`, `BuildArg`, `Secret`, `Arch`, `Variant`, `Pull`, `Retry`, `RetryDelay`, `TLSVerify`, `ForceRM`, `AuthFile`, `IgnoreFile`, `GroupAdd`, `DNS`, `DNSOption`, `DNSSearch`, `Annotation`, `PodmanArgs` | no |
+| `.image` | yes | `Image`, `ImageTag`, `ServiceName`, `AllTags`, `Arch`, `AuthFile`, `CertDir`, `ContainersConfModule`, `Creds`, `DecryptionKey`, `GlobalArgs`, `OS` | no |
+| `.build` | yes | `ImageTag`, `Network`, `Label`, `File`, `SetWorkingDirectory`, `Target`, `BuildArg`, `Secret`, `Arch`, `Variant`, `Pull`, `Retry`, `RetryDelay`, `TLSVerify`, `ForceRM`, `AuthFile`, `IgnoreFile`, `ServiceName`, `GroupAdd`, `DNS`, `DNSOption`, `DNSSearch`, `Annotation`, `Environment`, `ContainersConfModule`, `GlobalArgs`, `Volume`, `PodmanArgs` | no |
 | `.kube` | yes | no | no |
 | `.artifact` | yes | no | no; the current manual marks it experimental |
 
 Unsupported native sections remain available through the syntax tree. They are not mislabeled as
-one of the four typed unit types.
+one of the five typed unit types.
 
 ## Typed key boundary
 
 | Section | Typed keys |
 | --- | --- |
-| `[Container]` | 61 keys; see the [coverage ledger](roadmap.md#specification-coverage-ledger) |
-| `[Pod]` | `AddHost`, `PodName`, `PublishPort`, `Network`, `Volume`, `UserNS`, `ShmSize` |
+| `[Container]` | 63 keys; see the [coverage ledger](roadmap.md#specification-coverage-ledger) |
+| `[Pod]` | `AddHost`, `PodName`, `PublishPort`, `Network`, `Volume`, `UserNS`, `ShmSize`, `ExitPolicy`, `StopTimeout`, `ServiceName` |
 | `[Network]` | `NetworkName`, `Driver`, `Options`, `Label`, `Internal`, `IPv6`, `IPAMDriver`, `Subnet`, `Gateway`, `IPRange` |
-| `[Volume]` | `VolumeName`, `Driver`, `Options`, `Label`, `Device`, `Type`, `Copy` |
-| `[Build]` | repeatable `ImageTag`/`Network`/`Label`/`File`/`BuildArg`/`Secret`/`GroupAdd`/`DNS`/`DNSOption`/`DNSSearch`/`Annotation`/`PodmanArgs`, singleton `SetWorkingDirectory`/`Target`/`Arch`/`Variant`/`Pull`/`Retry`/`RetryDelay`/`TLSVerify`/`ForceRM`/`AuthFile`/`IgnoreFile` |
+| `[Volume]` | `VolumeName`, `Driver`, `Options`, `Label`, `Device`, `Type`, `Copy`, `ContainersConfModule`, `GlobalArgs`, `PodmanArgs`, `User`, `Group`, `UID`, `GID`, `ServiceName`, `Image` |
+| `[Build]` | repeatable `ImageTag`/`Network`/`Label`/`File`/`BuildArg`/`Secret`/`GroupAdd`/`DNS`/`DNSOption`/`DNSSearch`/`Annotation`/`Environment`/`ContainersConfModule`/`GlobalArgs`/`Volume`/`PodmanArgs`, singleton `SetWorkingDirectory`/`Target`/`Arch`/`Variant`/`Pull`/`Retry`/`RetryDelay`/`TLSVerify`/`ForceRM`/`AuthFile`/`IgnoreFile`/`ServiceName` |
+| `[Image]` | required opaque singleton `Image`; opaque singletons `ImageTag`, `ServiceName`, `AllTags`, `Arch`, `AuthFile`, `CertDir`, `Creds`, `DecryptionKey`, `OS`; repeatable `ContainersConfModule`, `GlobalArgs` |
 | `[Unit]`, `[Service]`, `[Install]` | Open-ended generic systemd directives with source/order preservation; typed generation and explicit capability evidence exist for `[Unit]` `Requires=`, `Wants=`, and `After=`, and `[Service]` `Restart=`. |
 
-The current manual contains exactly 29 additional container keys, 18 pod keys, 8 network keys, 9
-volume keys, and 5 build keys that are syntax-preserved but not typed. The complete
+The current manual contains exactly 27 additional container keys, 15 pod keys, 8 network keys, and no
+volume or build keys that are syntax-preserved but not typed. The complete
 lists, plus every current build, image, kube, artifact, and Quadlet-section key, are maintained in
 the [specification coverage ledger](roadmap.md#specification-coverage-ledger).
 
@@ -77,9 +78,15 @@ generated `--rootfs` argument through the supported generator matrix. QuadletLen
 value and does not inspect the host filesystem, parse overlay-rootfs options, or verify SELinux
 labels.
 
-The minimal Build subset recognizes repeatable `ImageTag`, `Network`, `Label`, `File`, `BuildArg`, `Secret`, `GroupAdd`, `DNS`, `DNSOption`, `DNSSearch`, `Annotation`, and `PodmanArgs` values plus singleton
+The minimal Image subset accepts required opaque `Image`, opaque singleton `ImageTag`/`ServiceName`/`AllTags`/`Arch`/`AuthFile`/`CertDir`/`Creds`/`DecryptionKey`, and repeatable `ContainersConfModule`/`GlobalArgs` text. The
+document set resolves exact lowercase Container and Volume `.image` references to a matching typed
+Image document. The 20-release dry-run fixtures record source pulls and target-only ImageTag
+resource-name/default/quote, service-name, AllTags boolean, Arch platform, AuthFile, CertDir, ContainersConfModule, and GlobalArgs command-text observations; source
+preservation does not model them.
+
+The minimal Build subset recognizes repeatable `ImageTag`, `Network`, `Label`, `File`, `BuildArg`, `Secret`, `GroupAdd`, `DNS`, `DNSOption`, `DNSSearch`, `Annotation`, `Environment`, `ContainersConfModule`, `GlobalArgs`, and `PodmanArgs` values plus singleton
 `SetWorkingDirectory`/`Target`/`Arch`/`Variant`/`Pull`/`Retry`/`RetryDelay`/`TLSVerify`/`ForceRM`/`AuthFile`/`IgnoreFile` values without interpreting image-reference grammar, platform grammar, pull policy, retry count or delay grammar, TLS or force-removal boolean grammar, auth-file path or ignore-file grammar, network modes or
-options, paths, URLs, build contexts, or generated service precedence. Build `Annotation` retains raw physical lines without target tokenization, unquoting, C-unescaping, reset, duplicate-key collapse, sorting, OCI validation, or image-metadata inference. An exact Build
+options, paths, URLs, build contexts, or generated service precedence. Build `Annotation` retains raw physical lines without target tokenization, unquoting, C-unescaping, reset, duplicate-key collapse, sorting, OCI validation, or image-metadata inference. Build `Environment` likewise retains raw physical lines without target tokenization, unquoting, C-unescaping, reset, duplicate-name selection, sorting, or host lookup. Build `ContainersConfModule` likewise retains raw physical lines without path parsing, module reads, configuration inspection, reset, deduplication, tokenization, or normalization. An exact Build
 `Network=name.network` is a document-set reference; other network text, including observed but
 undocumented `.container` forms, remains opaque. Tagged source and all recorded Podman generators from
 5.4.0 through 6.0.2 observe one final effective `File` command argument, but that does not alter
@@ -159,6 +166,18 @@ fixture proves the generator's empty reset, tokenization/unquoting/C-unescaping,
 selection, sorted map output, and the recorded 5.6.0 bare/malformed-token boundary only. QuadletLens
 retains raw repeatable physical lines and does not apply any of those target semantics or claim OCI,
 image metadata, build success, runtime, Compose, or conversion behavior.
+
+Build `Environment` is native from 5.4.0 through 6.0.2 and unknown outside that range. Its
+isolated fixture proves target reset, tokenization/unquoting/C-unescaping, final-name selection,
+sorted output, and the 5.6.0 bare/malformed-token representation boundary only. QuadletLens retains
+raw repeatable physical lines without applying those target rules, host lookup, build success,
+runtime, Compose, or conversion behavior.
+
+Build `ContainersConfModule` is native from 5.4.0 through 6.0.2 and unknown outside that range.
+Its isolated fixture proves only target logical reset and ordered `--module=post-one` then
+`--module=post-two` arguments before `build` and the final context. QuadletLens preserves raw
+repeatable physical lines without applying those target rules or claiming module-path resolution,
+module reads, configuration effects, build success, runtime, Compose, or conversion behavior.
 
 one separate `--build-context extra=container-image://alpine:3.15`, exact `--no-cache`, or equals-form
 `--isolation=chroot`/`--ssh=default`/`--shm-size=32m`/`--ulimit=nproc=4096:8192`/`--add-host=buildhost:192.0.2.10`/`--cap-add=CAP_SYS_ADMIN` argument immediately before final positional `.`; each rejects alternate, quoted,
@@ -289,6 +308,28 @@ patch releases from 5.5.0 through 6.0.2 emits exactly one final `--memory 167772
 establish cgroup enforcement, page rounding, swap interaction, host-memory availability, rootless
 behavior, runtime inspection, or cross-format equivalence. Pod `Memory` remains unknown.
 
+The reload subset includes opaque singleton `ReloadCmd` and `ReloadSignal`, introduced by Podman
+5.5.0. Parser and builder values remain exact one-line source text; neither command arguments nor
+signals are interpreted. The complete matrix records the 5.4.x rejection boundary, 5.5.x cidfile
+`ExecReload` form, 5.6.0–6.0.2 generated-name form, final blank omission and malformed-command
+tokenization, and
+the upstream mutual-exclusion rejection. The Lens preserves every authored line and reports a
+structured conflict without reproducing target selection or executing, inspecting, or reloading a
+container.
+
+Pod `ExitPolicy` is an opaque singleton introduced by Podman 5.6.0. The parser and builder retain
+exact one-line source text and duplicate diagnostics without interpreting `continue` or `stop`.
+The complete matrix records rejection through 5.5.2, then one post-`--replace` `--exit-policy`
+argument for both documented values, final-duplicate selection, and an empty argument for a final
+blank assignment. It does not create a pod or establish default, restart, runtime, or cross-format
+semantics.
+
+Pod `StopTimeout` is an opaque singleton introduced by Podman 5.7.0. The parser and builder retain
+exact one-line source text and duplicate diagnostics without interpreting seconds or `-1`. The
+complete matrix records rejection through 5.6.2, then exactly one final `--time=` form for 37, 0,
+-1, and duplicate-final-37 values plus `--time=` for a final blank assignment. It does not stop a
+pod or establish default, timing, systemd, restart, runtime, or cross-format semantics.
+
 The container-logging subset includes opaque singleton `LogDriver` and opaque repeatable `LogOpt`.
 The source-aware model preserves omission, every physical value, duplicate singleton assignments
 with their standard diagnostic, option duplicates and order, empty option resets, quotes, and
@@ -334,6 +375,44 @@ entries retain empties, duplicates, bare values, embedded equals signs, quotes, 
 continuations, and source order. The complete generator matrix observes reset, duplicate collapse,
 key sorting, explicit empty and embedded-equals forms, quoted whitespace, and the bare-token
 boundary without applying any of those generator rules to the model or builder.
+
+Volume `ContainersConfModule` is opaque, repeatable physical-line text, native from 5.4.0 through
+6.0.2 and `unknown` outside that range. Its full matrix records target empty reset, continuation
+presentation, and ordered post-reset `--module` arguments before `volume create` only. QuadletLens
+keeps every source value ordered and does not parse paths, read modules or configuration, apply
+target reset behavior, infer sensitivity, validate options, create a volume, or claim filesystem,
+lifecycle, security, runtime, Compose, or conversion behavior.
+
+Volume `GlobalArgs` is opaque, repeatable physical-line text, native from 5.4.0 through 6.0.2 and
+`unknown` outside that range. Its full matrix records only target empty reset,
+tokenization/unquoting/C-unescaping, malformed-line omission, and ordered post-reset tokens before
+`volume create`. QuadletLens preserves every source line without applying those rules, parsing or
+validating arguments, inferring sensitivity, creating a volume, or claiming lifecycle, filesystem,
+runtime, Compose, or conversion behavior.
+
+Volume `PodmanArgs` is opaque, repeatable physical-line text, native from 5.4.0 through 6.0.2 and
+`unknown` outside that range. Its full matrix records only target empty reset,
+tokenization/unquoting/C-unescaping, malformed-line omission, and ordered terminal tokens before
+the volume name. QuadletLens preserves every source line without applying those rules, parsing a
+CLI, assigning dedicated-key behavior, inferring sensitivity, creating a volume, or claiming
+lifecycle, filesystem, systemd, runtime, Compose, or conversion behavior.
+
+Volume `User` is opaque singleton physical-line text, native from 5.4.0 through 6.0.2 and unknown
+outside that range. The all-20 fixture observes only unambiguous `User=123` becoming `o=uid=123`
+before the volume name; no UID/name parsing, ownership, mount, filesystem, runtime, Compose, or
+conversion behavior is claimed.
+
+Volume `Group` is opaque singleton physical-line text, native from 5.4.0 through 6.0.2 and unknown
+outside that range. The all-20 fixture observes only unambiguous `Group=456` becoming `o=gid=456`
+before the volume name; no GID/name parsing, account lookup, ownership, mount, filesystem, runtime,
+Compose, or conversion behavior is claimed.
+
+Volume `GID` is opaque singleton physical-line text, unsupported through 5.8.5 and native only
+from 6.0.0 through 6.0.2. The 6.0.x fixture observes exactly one `--gid 5678` before the terminal
+volume name; it records command text without interpreting the authored value.
+
+Volume `ServiceName` is opaque singleton physical-line text, native from 5.4.0 through 6.0.2 and
+unknown outside that range. The matrix records target generated-unit naming observations only.
 
 The current promotion adds these container-only typed capabilities:
 

@@ -1,0 +1,18 @@
+schema = 1
+id = "image-os-supported-range"
+suite = "generators"
+description = "Records target Image OS command text without importing operating-system or pull behavior into QuadletLens."
+secrets_reviewed = true
+files = ["image-os-normal.image", "image-os-duplicate.image", "image-os-blank.image", "image-os-unmatched.image", "expected-fragments.txt"]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "Dry-run generator only; no image pull, metadata or storage lookup, registry, systemd operation, or runtime execution."
+
+[expectations]
+summary = "Target-only normal, duplicate-last, final-blank omission, and unmatched-quote OS command-text observations; QuadletLens preserves authored physical text."

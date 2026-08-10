@@ -852,6 +852,11 @@ struct GeneratorFixtures {
     build_auth_file: (PathBuf, Vec<String>),
     build_ignore_file: (PathBuf, Vec<String>),
     build_annotation: (PathBuf, Vec<String>),
+    build_environment: (PathBuf, Vec<String>),
+    build_containers_conf_module: (PathBuf, Vec<String>),
+    build_global_args: (PathBuf, Vec<String>),
+    build_service_name: (PathBuf, Vec<String>),
+    build_volume: (PathBuf, Vec<String>),
     build_arg: (PathBuf, Vec<String>),
     build_secret: (PathBuf, Vec<String>),
     build_platform: (PathBuf, Vec<String>),
@@ -874,6 +879,27 @@ struct GeneratorFixtures {
     network_driver_options: (PathBuf, Vec<String>),
     network_labels: (PathBuf, Vec<String>),
     volume_labels: (PathBuf, Vec<String>),
+    volume_containers_conf_module: (PathBuf, Vec<String>),
+    volume_global_args: (PathBuf, Vec<String>),
+    volume_podman_args: (PathBuf, Vec<String>),
+    volume_user: (PathBuf, Vec<String>),
+    volume_group: (PathBuf, Vec<String>),
+    volume_uid: (PathBuf, Vec<String>),
+    volume_gid: (PathBuf, Vec<String>),
+    volume_service_name: (PathBuf, Vec<String>),
+    volume_image: (PathBuf, Vec<String>),
+    image_core: (PathBuf, Vec<String>),
+    image_image_tag: (PathBuf, Vec<String>),
+    image_service_name: (PathBuf, Vec<String>),
+    image_all_tags: (PathBuf, Vec<String>),
+    image_arch: (PathBuf, Vec<String>),
+    image_auth_file: (PathBuf, Vec<String>),
+    image_creds: (PathBuf, Vec<String>),
+    image_decryption_key: (PathBuf, Vec<String>),
+    image_global_args: (PathBuf, Vec<String>),
+    image_os: (PathBuf, Vec<String>),
+    image_cert_dir: (PathBuf, Vec<String>),
+    image_containers_conf_module: (PathBuf, Vec<String>),
     network_booleans: (PathBuf, Vec<String>),
     network_ipam: (PathBuf, Vec<String>),
     volume_driver_options: VolumeDriverOptionsFixtures,
@@ -969,6 +995,7 @@ fn generator_matrix_is_exact_complete_and_digest_pinned() -> Result<(), String> 
 
 #[test]
 #[ignore = "pulls or builds exact Podman releases and executes their Quadlet generators"]
+#[allow(clippy::too_many_lines)] // Ordered full-matrix fixture contract.
 fn supported_generators_match_the_first_conversion_fixture() -> Result<(), String> {
     let matrix = parse_matrix()?;
     let engine = env::var("QUADLET_LENS_CONTAINER_ENGINE").unwrap_or_else(|_| "podman".to_owned());
@@ -993,6 +1020,15 @@ fn supported_generators_match_the_first_conversion_fixture() -> Result<(), Strin
 
     let fixture = fixture_directory()?;
     let expected = expected_fragments(&fixture)?;
+    let reload_fixture = reload_fixture_directory()?;
+    let reload_expected = expected_fragments(&reload_fixture)?;
+    let reload_conflict_fixture = reload_conflict_fixture_directory()?;
+    let exit_policy_fixture = exit_policy_fixture_directory()?;
+    let exit_policy_expected = expected_fragments(&exit_policy_fixture)?;
+    let stop_timeout_fixture = stop_timeout_fixture_directory()?;
+    let stop_timeout_expected = expected_fragments(&stop_timeout_fixture)?;
+    let service_name_fixture = pod_service_name_fixture_directory()?;
+    let service_name_expected = expected_fragments(&service_name_fixture)?;
     let fixtures = load_generator_fixtures()?;
     let apparmor_fixture = apparmor_fixture_directory()?;
     let apparmor_expected = expected_fragments(&apparmor_fixture)?;
@@ -1007,6 +1043,30 @@ fn supported_generators_match_the_first_conversion_fixture() -> Result<(), Strin
         let output = run_generator(&engine, image, &fixture)?;
         verify_generator_output(&image.version, &expected, &output)?;
         verify_image_isolated_fixtures(&engine, image, &fixtures)?;
+        verify_reload_generator_output(
+            &image.version,
+            &reload_expected,
+            &run_generator_raw(&engine, image, &reload_fixture)?,
+        )?;
+        verify_reload_conflict_generator_output(
+            &image.version,
+            &run_generator_raw(&engine, image, &reload_conflict_fixture)?,
+        )?;
+        verify_exit_policy_generator_output(
+            &image.version,
+            &exit_policy_expected,
+            &run_generator_raw(&engine, image, &exit_policy_fixture)?,
+        )?;
+        verify_stop_timeout_generator_output(
+            &image.version,
+            &stop_timeout_expected,
+            &run_generator_raw(&engine, image, &stop_timeout_fixture)?,
+        )?;
+        verify_pod_service_name_generator_output(
+            &image.version,
+            &service_name_expected,
+            &run_generator_raw(&engine, image, &service_name_fixture)?,
+        )?;
         let apparmor_output = run_generator_raw(&engine, image, &apparmor_fixture)?;
         verify_apparmor_generator_output(&image.version, &apparmor_expected, &apparmor_output)?;
         let no_new_privileges_output = run_generator(&engine, image, &no_new_privileges_fixture)?;
@@ -1031,6 +1091,54 @@ fn supported_generators_match_the_first_conversion_fixture() -> Result<(), Strin
         let output = run_source_generator(&engine, &matrix.builder_reference, source, &generator, &fixture)?;
         verify_generator_output(&source.version, &expected, &output)?;
         verify_source_isolated_fixtures(&engine, &matrix, source, &generator, &fixtures)?;
+        verify_reload_generator_output(
+            &source.version,
+            &reload_expected,
+            &run_source_generator_raw(&engine, &matrix.builder_reference, source, &generator, &reload_fixture)?,
+        )?;
+        verify_reload_conflict_generator_output(
+            &source.version,
+            &run_source_generator_raw(
+                &engine,
+                &matrix.builder_reference,
+                source,
+                &generator,
+                &reload_conflict_fixture,
+            )?,
+        )?;
+        verify_exit_policy_generator_output(
+            &source.version,
+            &exit_policy_expected,
+            &run_source_generator_raw(
+                &engine,
+                &matrix.builder_reference,
+                source,
+                &generator,
+                &exit_policy_fixture,
+            )?,
+        )?;
+        verify_stop_timeout_generator_output(
+            &source.version,
+            &stop_timeout_expected,
+            &run_source_generator_raw(
+                &engine,
+                &matrix.builder_reference,
+                source,
+                &generator,
+                &stop_timeout_fixture,
+            )?,
+        )?;
+        verify_pod_service_name_generator_output(
+            &source.version,
+            &service_name_expected,
+            &run_source_generator_raw(
+                &engine,
+                &matrix.builder_reference,
+                source,
+                &generator,
+                &service_name_fixture,
+            )?,
+        )?;
         let apparmor_output = run_source_generator(
             &engine,
             &matrix.builder_reference,
@@ -1110,6 +1218,37 @@ fn memory_fixture_directory() -> Result<PathBuf, String> {
         .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
 }
 
+fn reload_fixture_directory() -> Result<PathBuf, String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/container-reload-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn reload_conflict_fixture_directory() -> Result<PathBuf, String> {
+    let path =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/container-reload-conflict-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn exit_policy_fixture_directory() -> Result<PathBuf, String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/pod-exit-policy-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn stop_timeout_fixture_directory() -> Result<PathBuf, String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/pod-stop-timeout-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn pod_service_name_fixture_directory() -> Result<PathBuf, String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/pod-service-name-supported-range");
+    path.canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
 fn build_retry_fixture_directory() -> Result<PathBuf, String> {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/build-retry-supported-range");
     path.canonicalize()
@@ -1168,6 +1307,188 @@ fn build_annotation_fixture_directory() -> Result<PathBuf, String> {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/generators/build-annotation-supported-range");
     path.canonicalize()
         .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))
+}
+
+fn build_environment_fixture_directory() -> Result<PathBuf, String> {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("fixtures/generators/build-environment-supported-range")
+        .canonicalize()
+        .map_err(|error| error.to_string())
+}
+
+fn build_containers_conf_module_fixture_directory() -> Result<PathBuf, String> {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("fixtures/generators/build-containers-conf-module-supported-range")
+        .canonicalize()
+        .map_err(|error| error.to_string())
+}
+
+fn build_global_args_fixture_directory() -> Result<PathBuf, String> {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("fixtures/generators/build-global-args-supported-range")
+        .canonicalize()
+        .map_err(|error| error.to_string())
+}
+
+fn build_service_name_fixture_directory() -> Result<PathBuf, String> {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("fixtures/generators/build-service-name-supported-range")
+        .canonicalize()
+        .map_err(|error| error.to_string())
+}
+
+fn build_volume_fixture_directory() -> Result<PathBuf, String> {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("fixtures/generators/build-volume-supported-range")
+        .canonicalize()
+        .map_err(|error| error.to_string())
+}
+
+fn volume_containers_conf_module_fixture_directory() -> Result<PathBuf, String> {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("fixtures/generators/volume-containers-conf-module-supported-range")
+        .canonicalize()
+        .map_err(|error| error.to_string())
+}
+
+fn volume_global_args_fixture_directory() -> Result<PathBuf, String> {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("fixtures/generators/volume-global-args-supported-range")
+        .canonicalize()
+        .map_err(|error| error.to_string())
+}
+
+fn volume_podman_args_fixture_directory() -> Result<PathBuf, String> {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("fixtures/generators/volume-podman-args-supported-range")
+        .canonicalize()
+        .map_err(|error| error.to_string())
+}
+
+fn volume_user_fixture_directory() -> Result<PathBuf, String> {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("fixtures/generators/volume-user-supported-range")
+        .canonicalize()
+        .map_err(|error| error.to_string())
+}
+
+fn volume_group_fixture_directory() -> Result<PathBuf, String> {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("fixtures/generators/volume-group-supported-range")
+        .canonicalize()
+        .map_err(|error| error.to_string())
+}
+
+fn volume_uid_fixture_directory() -> Result<PathBuf, String> {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("fixtures/generators/volume-uid-supported-range")
+        .canonicalize()
+        .map_err(|error| error.to_string())
+}
+
+fn volume_gid_fixture_directory() -> Result<PathBuf, String> {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("fixtures/generators/volume-gid-supported-range")
+        .canonicalize()
+        .map_err(|error| error.to_string())
+}
+
+fn volume_service_name_fixture_directory() -> Result<PathBuf, String> {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("fixtures/generators/volume-service-name-supported-range")
+        .canonicalize()
+        .map_err(|error| error.to_string())
+}
+
+fn volume_image_fixture_directory() -> Result<PathBuf, String> {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("fixtures/generators/volume-image-supported-range")
+        .canonicalize()
+        .map_err(|error| error.to_string())
+}
+
+fn image_core_fixture_directory() -> Result<PathBuf, String> {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("fixtures/generators/image-core-supported-range")
+        .canonicalize()
+        .map_err(|error| error.to_string())
+}
+
+fn image_image_tag_fixture_directory() -> Result<PathBuf, String> {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("fixtures/generators/image-image-tag-supported-range")
+        .canonicalize()
+        .map_err(|error| error.to_string())
+}
+
+fn image_service_name_fixture_directory() -> Result<PathBuf, String> {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("fixtures/generators/image-service-name-supported-range")
+        .canonicalize()
+        .map_err(|error| error.to_string())
+}
+
+fn image_all_tags_fixture_directory() -> Result<PathBuf, String> {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("fixtures/generators/image-all-tags-supported-range")
+        .canonicalize()
+        .map_err(|error| error.to_string())
+}
+
+fn image_arch_fixture_directory() -> Result<PathBuf, String> {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("fixtures/generators/image-arch-supported-range")
+        .canonicalize()
+        .map_err(|error| error.to_string())
+}
+
+fn image_auth_file_fixture_directory() -> Result<PathBuf, String> {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("fixtures/generators/image-auth-file-supported-range")
+        .canonicalize()
+        .map_err(|error| error.to_string())
+}
+
+fn image_creds_fixture_directory() -> Result<PathBuf, String> {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("fixtures/generators/image-creds-supported-range")
+        .canonicalize()
+        .map_err(|error| error.to_string())
+}
+
+fn image_decryption_key_fixture_directory() -> Result<PathBuf, String> {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("fixtures/generators/image-decryption-key-supported-range")
+        .canonicalize()
+        .map_err(|error| error.to_string())
+}
+
+fn image_global_args_fixture_directory() -> Result<PathBuf, String> {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("fixtures/generators/image-global-args-supported-range")
+        .canonicalize()
+        .map_err(|error| error.to_string())
+}
+
+fn image_os_fixture_directory() -> Result<PathBuf, String> {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("fixtures/generators/image-os-supported-range")
+        .canonicalize()
+        .map_err(|error| error.to_string())
+}
+
+fn image_cert_dir_fixture_directory() -> Result<PathBuf, String> {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("fixtures/generators/image-cert-dir-supported-range")
+        .canonicalize()
+        .map_err(|error| error.to_string())
+}
+
+fn image_containers_conf_module_fixture_directory() -> Result<PathBuf, String> {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("fixtures/generators/image-containers-conf-module-supported-range")
+        .canonicalize()
+        .map_err(|error| error.to_string())
 }
 
 fn build_arg_fixture_directory() -> Result<PathBuf, String> {
@@ -1421,6 +1742,136 @@ fn load_build_annotation_fixture() -> Result<(PathBuf, Vec<String>), String> {
     let fixture = build_annotation_fixture_directory()?;
     Ok((fixture.clone(), expected_fragments(&fixture)?))
 }
+fn load_build_environment_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = build_environment_fixture_directory()?;
+    Ok((fixture.clone(), expected_fragments(&fixture)?))
+}
+
+fn load_build_containers_conf_module_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = build_containers_conf_module_fixture_directory()?;
+    Ok((fixture.clone(), expected_fragments(&fixture)?))
+}
+
+fn load_build_global_args_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = build_global_args_fixture_directory()?;
+    Ok((fixture.clone(), expected_fragments(&fixture)?))
+}
+
+fn load_build_service_name_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = build_service_name_fixture_directory()?;
+    Ok((fixture.clone(), expected_fragments(&fixture)?))
+}
+
+fn load_build_volume_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = build_volume_fixture_directory()?;
+    Ok((fixture.clone(), expected_fragments(&fixture)?))
+}
+
+fn load_volume_containers_conf_module_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = volume_containers_conf_module_fixture_directory()?;
+    Ok((fixture.clone(), expected_fragments(&fixture)?))
+}
+
+fn load_volume_global_args_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = volume_global_args_fixture_directory()?;
+    Ok((fixture.clone(), expected_fragments(&fixture)?))
+}
+
+fn load_volume_podman_args_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = volume_podman_args_fixture_directory()?;
+    Ok((fixture.clone(), expected_fragments(&fixture)?))
+}
+
+fn load_volume_user_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = volume_user_fixture_directory()?;
+    Ok((fixture.clone(), expected_fragments(&fixture)?))
+}
+
+fn load_volume_group_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = volume_group_fixture_directory()?;
+    Ok((fixture.clone(), expected_fragments(&fixture)?))
+}
+
+fn load_volume_uid_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = volume_uid_fixture_directory()?;
+    Ok((fixture.clone(), expected_fragments(&fixture)?))
+}
+
+fn load_volume_gid_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = volume_gid_fixture_directory()?;
+    Ok((fixture.clone(), expected_fragments(&fixture)?))
+}
+
+fn load_volume_service_name_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = volume_service_name_fixture_directory()?;
+    Ok((fixture.clone(), expected_fragments(&fixture)?))
+}
+
+fn load_volume_image_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = volume_image_fixture_directory()?;
+    Ok((fixture.clone(), expected_fragments(&fixture)?))
+}
+
+fn load_image_core_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = image_core_fixture_directory()?;
+    let expected = expected_fragments(&fixture)?;
+    Ok((fixture, expected))
+}
+
+fn load_image_image_tag_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = image_image_tag_fixture_directory()?;
+    Ok((fixture.clone(), expected_fragments(&fixture)?))
+}
+
+fn load_image_service_name_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = image_service_name_fixture_directory()?;
+    Ok((fixture.clone(), expected_fragments(&fixture)?))
+}
+
+fn load_image_all_tags_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = image_all_tags_fixture_directory()?;
+    Ok((fixture.clone(), expected_fragments(&fixture)?))
+}
+
+fn load_image_arch_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = image_arch_fixture_directory()?;
+    Ok((fixture.clone(), expected_fragments(&fixture)?))
+}
+
+fn load_image_auth_file_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = image_auth_file_fixture_directory()?;
+    Ok((fixture.clone(), expected_fragments(&fixture)?))
+}
+
+fn load_image_creds_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = image_creds_fixture_directory()?;
+    Ok((fixture.clone(), expected_fragments(&fixture)?))
+}
+
+fn load_image_decryption_key_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = image_decryption_key_fixture_directory()?;
+    Ok((fixture.clone(), expected_fragments(&fixture)?))
+}
+
+fn load_image_global_args_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = image_global_args_fixture_directory()?;
+    Ok((fixture.clone(), expected_fragments(&fixture)?))
+}
+
+fn load_image_os_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = image_os_fixture_directory()?;
+    Ok((fixture.clone(), expected_fragments(&fixture)?))
+}
+
+fn load_image_cert_dir_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = image_cert_dir_fixture_directory()?;
+    Ok((fixture.clone(), expected_fragments(&fixture)?))
+}
+
+fn load_image_containers_conf_module_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    let fixture = image_containers_conf_module_fixture_directory()?;
+    Ok((fixture.clone(), expected_fragments(&fixture)?))
+}
 
 fn load_build_arg_fixture() -> Result<(PathBuf, Vec<String>), String> {
     let fixture = build_arg_fixture_directory()?;
@@ -1537,6 +1988,32 @@ fn load_generator_fixtures() -> Result<GeneratorFixtures, String> {
         build_auth_file: load_build_auth_file_fixture()?,
         build_ignore_file: load_build_ignore_file_fixture()?,
         build_annotation: load_build_annotation_fixture()?,
+        build_environment: load_build_environment_fixture()?,
+        build_containers_conf_module: load_build_containers_conf_module_fixture()?,
+        build_global_args: load_build_global_args_fixture()?,
+        build_service_name: load_build_service_name_fixture()?,
+        build_volume: load_build_volume_fixture()?,
+        volume_containers_conf_module: load_volume_containers_conf_module_fixture()?,
+        volume_global_args: load_volume_global_args_fixture()?,
+        volume_podman_args: load_volume_podman_args_fixture()?,
+        volume_user: load_volume_user_fixture()?,
+        volume_group: load_volume_group_fixture()?,
+        volume_uid: load_volume_uid_fixture()?,
+        volume_gid: load_volume_gid_fixture()?,
+        volume_service_name: load_volume_service_name_fixture()?,
+        volume_image: load_volume_image_fixture()?,
+        image_core: load_image_core_fixture()?,
+        image_image_tag: load_image_image_tag_fixture()?,
+        image_service_name: load_image_service_name_fixture()?,
+        image_all_tags: load_image_all_tags_fixture()?,
+        image_arch: load_image_arch_fixture()?,
+        image_auth_file: load_image_auth_file_fixture()?,
+        image_creds: load_image_creds_fixture()?,
+        image_decryption_key: load_image_decryption_key_fixture()?,
+        image_global_args: load_image_global_args_fixture()?,
+        image_os: load_image_os_fixture()?,
+        image_cert_dir: load_image_cert_dir_fixture()?,
+        image_containers_conf_module: load_image_containers_conf_module_fixture()?,
         build_arg: load_build_arg_fixture()?,
         build_secret: load_build_secret_fixture()?,
         build_platform: load_build_platform_fixture()?,
@@ -1864,6 +2341,7 @@ fn verify_image_build_podman_args_sbom(
     verify_build_podman_args_sbom_generator_output(&image.version, &fixture.1, &output)
 }
 
+#[allow(clippy::too_many_lines)] // Ordered fixture contract.
 fn verify_image_isolated_fixtures(
     engine: &str,
     image: &GeneratorImage,
@@ -1880,6 +2358,136 @@ fn verify_image_isolated_fixtures(
     verify_image_build_auth_file(engine, image, &fixtures.build_auth_file)?;
     verify_image_build_ignore_file(engine, image, &fixtures.build_ignore_file)?;
     verify_image_build_annotation(engine, image, &fixtures.build_annotation)?;
+    verify_build_environment_generator_output(
+        &image.version,
+        &fixtures.build_environment.1,
+        &run_generator_raw(engine, image, &fixtures.build_environment.0)?,
+    )?;
+    verify_build_containers_conf_module_generator_output(
+        &image.version,
+        &fixtures.build_containers_conf_module.1,
+        &run_generator_raw(engine, image, &fixtures.build_containers_conf_module.0)?,
+    )?;
+    verify_build_global_args_generator_output(
+        &image.version,
+        &fixtures.build_global_args.1,
+        &run_generator_raw(engine, image, &fixtures.build_global_args.0)?,
+    )?;
+    verify_build_service_name_generator_output(
+        &image.version,
+        &fixtures.build_service_name.1,
+        &run_generator_raw(engine, image, &fixtures.build_service_name.0)?,
+    )?;
+    verify_build_volume_generator_output(
+        &image.version,
+        &fixtures.build_volume.1,
+        &run_generator_raw(engine, image, &fixtures.build_volume.0)?,
+    )?;
+    verify_volume_containers_conf_module_generator_output(
+        &image.version,
+        &fixtures.volume_containers_conf_module.1,
+        &run_generator_raw(engine, image, &fixtures.volume_containers_conf_module.0)?,
+    )?;
+    verify_volume_global_args_generator_output(
+        &image.version,
+        &fixtures.volume_global_args.1,
+        &run_generator_raw(engine, image, &fixtures.volume_global_args.0)?,
+    )?;
+    verify_volume_podman_args_generator_output(
+        &image.version,
+        &fixtures.volume_podman_args.1,
+        &run_generator_raw(engine, image, &fixtures.volume_podman_args.0)?,
+    )?;
+    verify_volume_user_generator_output(
+        &image.version,
+        &fixtures.volume_user.1,
+        &run_generator_raw(engine, image, &fixtures.volume_user.0)?,
+    )?;
+    verify_volume_group_generator_output(
+        &image.version,
+        &fixtures.volume_group.1,
+        &run_generator_raw(engine, image, &fixtures.volume_group.0)?,
+    )?;
+    verify_volume_uid_generator_output(
+        &image.version,
+        &fixtures.volume_uid.1,
+        &run_generator_raw(engine, image, &fixtures.volume_uid.0)?,
+    )?;
+    verify_volume_gid_generator_output(
+        &image.version,
+        &fixtures.volume_gid.1,
+        &run_generator_raw(engine, image, &fixtures.volume_gid.0)?,
+    )?;
+    verify_volume_service_name_generator_output(
+        &image.version,
+        &fixtures.volume_service_name.1,
+        &run_generator_raw(engine, image, &fixtures.volume_service_name.0)?,
+    )?;
+    verify_volume_image_generator_output(
+        &image.version,
+        &fixtures.volume_image.1,
+        &run_generator_raw(engine, image, &fixtures.volume_image.0)?,
+    )?;
+    verify_image_core_generator_output(
+        &image.version,
+        &fixtures.image_core.1,
+        &run_generator_raw(engine, image, &fixtures.image_core.0)?,
+    )?;
+    verify_image_image_tag_generator_output(
+        &image.version,
+        &fixtures.image_image_tag.1,
+        &run_generator_raw(engine, image, &fixtures.image_image_tag.0)?,
+    )?;
+    verify_image_service_name_generator_output(
+        &image.version,
+        &fixtures.image_service_name.1,
+        &run_generator_raw(engine, image, &fixtures.image_service_name.0)?,
+    )?;
+    verify_image_all_tags_generator_output(
+        &image.version,
+        &fixtures.image_all_tags.1,
+        &run_generator_raw(engine, image, &fixtures.image_all_tags.0)?,
+    )?;
+    verify_image_arch_generator_output(
+        &image.version,
+        &fixtures.image_arch.1,
+        &run_generator_raw(engine, image, &fixtures.image_arch.0)?,
+    )?;
+    verify_image_auth_file_generator_output(
+        &image.version,
+        &fixtures.image_auth_file.1,
+        &run_generator_raw(engine, image, &fixtures.image_auth_file.0)?,
+    )?;
+    verify_image_creds_generator_output(
+        &image.version,
+        &fixtures.image_creds.1,
+        &run_generator_raw(engine, image, &fixtures.image_creds.0)?,
+    )?;
+    verify_image_decryption_key_generator_output(
+        &image.version,
+        &fixtures.image_decryption_key.1,
+        &run_generator_raw(engine, image, &fixtures.image_decryption_key.0)?,
+    )?;
+    verify_image_global_args_generator_output(
+        &image.version,
+        &fixtures.image_global_args.1,
+        &run_generator_raw(engine, image, &fixtures.image_global_args.0)?,
+    )?;
+    verify_image_os_generator_output(
+        &image.version,
+        &fixtures.image_os.1,
+        &run_generator_raw(engine, image, &fixtures.image_os.0)?,
+    )?;
+    verify_image_cert_dir_generator_output(
+        &image.version,
+        &fixtures.image_cert_dir.1,
+        &run_generator_raw(engine, image, &fixtures.image_cert_dir.0)?,
+    )?;
+    verify_image_containers_conf_module_generator_output(
+        &image.version,
+        &fixtures.image_containers_conf_module.1,
+        &run_generator_raw(engine, image, &fixtures.image_containers_conf_module.0)?,
+    )?;
     verify_image_build_arg(engine, image, &fixtures.build_arg)?;
     verify_image_build_secret(engine, image, &fixtures.build_secret)?;
     verify_image_build_platform(engine, image, &fixtures.build_platform)?;
@@ -2048,6 +2656,356 @@ fn verify_source_build_annotation(
     )
 }
 
+fn verify_source_build_containers_conf_module(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    verify_build_containers_conf_module_generator_output(
+        &source.version,
+        &fixture.1,
+        &run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?,
+    )
+}
+
+fn verify_source_build_global_args(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    verify_build_global_args_generator_output(
+        &source.version,
+        &fixture.1,
+        &run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?,
+    )
+}
+
+fn verify_source_build_service_name(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    verify_build_service_name_generator_output(
+        &source.version,
+        &fixture.1,
+        &run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?,
+    )
+}
+
+fn verify_source_build_volume(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    verify_build_volume_generator_output(
+        &source.version,
+        &fixture.1,
+        &run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?,
+    )
+}
+
+fn verify_source_volume_containers_conf_module(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    verify_volume_containers_conf_module_generator_output(
+        &source.version,
+        &fixture.1,
+        &run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?,
+    )
+}
+
+fn verify_source_volume_global_args(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    verify_volume_global_args_generator_output(
+        &source.version,
+        &fixture.1,
+        &run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?,
+    )
+}
+
+fn verify_source_volume_podman_args(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    verify_volume_podman_args_generator_output(
+        &source.version,
+        &fixture.1,
+        &run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?,
+    )
+}
+
+fn verify_source_volume_user(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    verify_volume_user_generator_output(
+        &source.version,
+        &fixture.1,
+        &run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?,
+    )
+}
+
+fn verify_source_volume_group(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    verify_volume_group_generator_output(
+        &source.version,
+        &fixture.1,
+        &run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?,
+    )
+}
+
+fn verify_source_volume_uid(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    verify_volume_uid_generator_output(
+        &source.version,
+        &fixture.1,
+        &run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?,
+    )
+}
+
+fn verify_source_volume_gid(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    verify_volume_gid_generator_output(
+        &source.version,
+        &fixture.1,
+        &run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?,
+    )
+}
+
+fn verify_source_volume_service_name(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    verify_volume_service_name_generator_output(
+        &source.version,
+        &fixture.1,
+        &run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?,
+    )
+}
+
+fn verify_source_volume_image(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    verify_volume_image_generator_output(
+        &source.version,
+        &fixture.1,
+        &run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?,
+    )
+}
+
+fn verify_source_image_core(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    verify_image_core_generator_output(
+        &source.version,
+        &fixture.1,
+        &run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?,
+    )
+}
+
+fn verify_source_image_image_tag(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    verify_image_image_tag_generator_output(
+        &source.version,
+        &fixture.1,
+        &run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?,
+    )
+}
+
+fn verify_source_image_service_name(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    verify_image_service_name_generator_output(
+        &source.version,
+        &fixture.1,
+        &run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?,
+    )
+}
+
+fn verify_source_image_all_tags(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    verify_image_all_tags_generator_output(
+        &source.version,
+        &fixture.1,
+        &run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?,
+    )
+}
+
+fn verify_source_image_arch(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    verify_image_arch_generator_output(
+        &source.version,
+        &fixture.1,
+        &run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?,
+    )
+}
+
+fn verify_source_image_auth_file(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    verify_image_auth_file_generator_output(
+        &source.version,
+        &fixture.1,
+        &run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?,
+    )
+}
+
+fn verify_source_image_creds(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    verify_image_creds_generator_output(
+        &source.version,
+        &fixture.1,
+        &run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?,
+    )
+}
+
+fn verify_source_image_decryption_key(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    verify_image_decryption_key_generator_output(
+        &source.version,
+        &fixture.1,
+        &run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?,
+    )
+}
+
+fn verify_source_image_global_args(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    verify_image_global_args_generator_output(
+        &source.version,
+        &fixture.1,
+        &run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?,
+    )
+}
+
+fn verify_source_image_os(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    verify_image_os_generator_output(
+        &source.version,
+        &fixture.1,
+        &run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?,
+    )
+}
+
+fn verify_source_image_cert_dir(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    verify_image_cert_dir_generator_output(
+        &source.version,
+        &fixture.1,
+        &run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?,
+    )
+}
+
+fn verify_source_image_containers_conf_module(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixture: &(PathBuf, Vec<String>),
+) -> Result<(), String> {
+    verify_image_containers_conf_module_generator_output(
+        &source.version,
+        &fixture.1,
+        &run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixture.0)?,
+    )
+}
+
 fn verify_source_build_arg(
     engine: &str,
     matrix: &GeneratorMatrix,
@@ -2202,6 +3160,28 @@ fn verify_source_build_podman_args_sbom(
     verify_build_podman_args_sbom_generator_output(&source.version, &fixture.1, &output)
 }
 
+fn verify_source_network_and_volume_fixtures(
+    engine: &str,
+    matrix: &GeneratorMatrix,
+    source: &GeneratorSource,
+    generator: &Path,
+    fixtures: &GeneratorFixtures,
+) -> Result<(), String> {
+    verify_source_interactive(engine, matrix, source, generator, &fixtures.interactive)?;
+    verify_source_tty(engine, matrix, source, generator, &fixtures.tty)?;
+    verify_source_privileged(engine, matrix, source, generator, &fixtures.privileged)?;
+    verify_source_logging(engine, matrix, source, generator, &fixtures.logging)?;
+    verify_source_network_identity(engine, matrix, source, generator, &fixtures.network_identity)?;
+    verify_source_network_driver_options(engine, matrix, source, generator, &fixtures.network_driver_options)?;
+    verify_source_network_labels(engine, matrix, source, generator, &fixtures.network_labels)?;
+    verify_source_volume_labels(engine, matrix, source, generator, &fixtures.volume_labels)?;
+    verify_source_network_booleans(engine, matrix, source, generator, &fixtures.network_booleans)?;
+    verify_source_network_ipam(engine, matrix, source, generator, &fixtures.network_ipam)?;
+    verify_source_volume_driver_options(engine, matrix, source, generator, &fixtures.volume_driver_options)?;
+    verify_source_volume_copy(engine, matrix, source, generator, &fixtures.volume_copy)
+}
+
+#[allow(clippy::too_many_lines)] // Ordered fixture contract.
 fn verify_source_isolated_fixtures(
     engine: &str,
     matrix: &GeneratorMatrix,
@@ -2220,6 +3200,60 @@ fn verify_source_isolated_fixtures(
     verify_source_build_auth_file(engine, matrix, source, generator, &fixtures.build_auth_file)?;
     verify_source_build_ignore_file(engine, matrix, source, generator, &fixtures.build_ignore_file)?;
     verify_source_build_annotation(engine, matrix, source, generator, &fixtures.build_annotation)?;
+    verify_build_environment_generator_output(
+        &source.version,
+        &fixtures.build_environment.1,
+        &run_source_generator_raw(
+            engine,
+            &matrix.builder_reference,
+            source,
+            generator,
+            &fixtures.build_environment.0,
+        )?,
+    )?;
+    verify_source_build_containers_conf_module(
+        engine,
+        matrix,
+        source,
+        generator,
+        &fixtures.build_containers_conf_module,
+    )?;
+    verify_source_build_global_args(engine, matrix, source, generator, &fixtures.build_global_args)?;
+    verify_source_build_service_name(engine, matrix, source, generator, &fixtures.build_service_name)?;
+    verify_source_build_volume(engine, matrix, source, generator, &fixtures.build_volume)?;
+    verify_source_volume_containers_conf_module(
+        engine,
+        matrix,
+        source,
+        generator,
+        &fixtures.volume_containers_conf_module,
+    )?;
+    verify_source_volume_global_args(engine, matrix, source, generator, &fixtures.volume_global_args)?;
+    verify_source_volume_podman_args(engine, matrix, source, generator, &fixtures.volume_podman_args)?;
+    verify_source_volume_user(engine, matrix, source, generator, &fixtures.volume_user)?;
+    verify_source_volume_group(engine, matrix, source, generator, &fixtures.volume_group)?;
+    verify_source_volume_uid(engine, matrix, source, generator, &fixtures.volume_uid)?;
+    verify_source_volume_gid(engine, matrix, source, generator, &fixtures.volume_gid)?;
+    verify_source_volume_service_name(engine, matrix, source, generator, &fixtures.volume_service_name)?;
+    verify_source_volume_image(engine, matrix, source, generator, &fixtures.volume_image)?;
+    verify_source_image_core(engine, matrix, source, generator, &fixtures.image_core)?;
+    verify_source_image_image_tag(engine, matrix, source, generator, &fixtures.image_image_tag)?;
+    verify_source_image_service_name(engine, matrix, source, generator, &fixtures.image_service_name)?;
+    verify_source_image_all_tags(engine, matrix, source, generator, &fixtures.image_all_tags)?;
+    verify_source_image_arch(engine, matrix, source, generator, &fixtures.image_arch)?;
+    verify_source_image_auth_file(engine, matrix, source, generator, &fixtures.image_auth_file)?;
+    verify_source_image_creds(engine, matrix, source, generator, &fixtures.image_creds)?;
+    verify_source_image_decryption_key(engine, matrix, source, generator, &fixtures.image_decryption_key)?;
+    verify_source_image_global_args(engine, matrix, source, generator, &fixtures.image_global_args)?;
+    verify_source_image_os(engine, matrix, source, generator, &fixtures.image_os)?;
+    verify_source_image_cert_dir(engine, matrix, source, generator, &fixtures.image_cert_dir)?;
+    verify_source_image_containers_conf_module(
+        engine,
+        matrix,
+        source,
+        generator,
+        &fixtures.image_containers_conf_module,
+    )?;
     verify_source_build_arg(engine, matrix, source, generator, &fixtures.build_arg)?;
     verify_source_build_secret(engine, matrix, source, generator, &fixtures.build_secret)?;
     verify_source_build_platform(engine, matrix, source, generator, &fixtures.build_platform)?;
@@ -2276,18 +3310,7 @@ fn verify_source_isolated_fixtures(
         &fixtures.build_podman_args_cache_locations,
     )?;
     verify_source_build_podman_args_sbom(engine, matrix, source, generator, &fixtures.build_podman_args_sbom)?;
-    verify_source_interactive(engine, matrix, source, generator, &fixtures.interactive)?;
-    verify_source_tty(engine, matrix, source, generator, &fixtures.tty)?;
-    verify_source_privileged(engine, matrix, source, generator, &fixtures.privileged)?;
-    verify_source_logging(engine, matrix, source, generator, &fixtures.logging)?;
-    verify_source_network_identity(engine, matrix, source, generator, &fixtures.network_identity)?;
-    verify_source_network_driver_options(engine, matrix, source, generator, &fixtures.network_driver_options)?;
-    verify_source_network_labels(engine, matrix, source, generator, &fixtures.network_labels)?;
-    verify_source_volume_labels(engine, matrix, source, generator, &fixtures.volume_labels)?;
-    verify_source_network_booleans(engine, matrix, source, generator, &fixtures.network_booleans)?;
-    verify_source_network_ipam(engine, matrix, source, generator, &fixtures.network_ipam)?;
-    verify_source_volume_driver_options(engine, matrix, source, generator, &fixtures.volume_driver_options)?;
-    verify_source_volume_copy(engine, matrix, source, generator, &fixtures.volume_copy)
+    verify_source_network_and_volume_fixtures(engine, matrix, source, generator, fixtures)
 }
 
 fn verify_image_logging(engine: &str, image: &GeneratorImage, fixture: &(PathBuf, Vec<String>)) -> Result<(), String> {
@@ -3303,6 +4326,232 @@ fn verify_memory_generator_output(version: &str, expected: &[String], output: &O
     Ok(())
 }
 
+fn verify_reload_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    let generated = String::from_utf8(output.stdout.clone())
+        .map_err(|error| format!("{version} reload generator emitted non-UTF-8 output: {error}"))?;
+    let diagnostics = String::from_utf8_lossy(&output.stderr);
+    if parsed < PodmanVersion::new(5, 5, 0) {
+        if output.status.success() || generated.contains("ExecReload=") {
+            return Err(format!(
+                "Podman {version} must reject unsupported ReloadCmd and ReloadSignal without emitting ExecReload; status={}\nstdout:\n{generated}\nstderr:\n{diagnostics}",
+                output.status
+            ));
+        }
+        eprintln!("Podman {version} reload: unsupported keys are rejected with no ExecReload");
+        return Ok(());
+    }
+
+    ensure_success(version, "reload generator", output)?;
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} reload generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            ));
+        }
+    }
+    let command = generated_unit(version, &generated, "reload-command.service", output)?;
+    let signal = generated_unit(version, &generated, "reload-signal.service", output)?;
+    let command_blank = generated_unit(version, &generated, "reload-command-final-blank.service", output)?;
+    let command_malformed = generated_unit(version, &generated, "reload-command-malformed.service", output)?;
+    let (command_reload, signal_reload, malformed_reload) = if parsed < PodmanVersion::new(5, 6, 0) {
+        (
+            "ExecReload=/usr/bin/podman exec --cidfile=%t/%N.cid /usr/bin/reload --final",
+            "ExecReload=/usr/bin/podman kill --cidfile=%t/%N.cid --signal SIGUSR1",
+            "ExecReload=/usr/bin/podman exec --cidfile=%t/%N.cid /usr/bin/reload unterminated",
+        )
+    } else {
+        (
+            "ExecReload=/usr/bin/podman exec systemd-%N /usr/bin/reload --final",
+            "ExecReload=/usr/bin/podman kill --signal SIGUSR1 systemd-%N",
+            "ExecReload=/usr/bin/podman exec systemd-%N /usr/bin/reload unterminated",
+        )
+    };
+    if !command.contains(command_reload)
+        || !signal.contains(signal_reload)
+        || command_blank.contains("ExecReload=")
+        || !command_malformed.contains(malformed_reload)
+    {
+        return Err(format!(
+            "Podman {version} must retain the recorded ReloadCmd/ReloadSignal ExecReload presentation, omit a final-blank ReloadCmd action, and retain the malformed command's target tokenization; expected-command={command_reload:?}, expected-signal={signal_reload:?}, expected-malformed={malformed_reload:?}\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+        ));
+    }
+    eprintln!(
+        "Podman {version} reload: expected command and signal ExecReload forms with final-blank omission and malformed command tokenization"
+    );
+    Ok(())
+}
+
+fn verify_reload_conflict_generator_output(version: &str, output: &Output) -> Result<(), String> {
+    let generated = String::from_utf8(output.stdout.clone())
+        .map_err(|error| format!("{version} reload-conflict generator emitted non-UTF-8 output: {error}"))?;
+    let diagnostics = String::from_utf8_lossy(&output.stderr);
+    if output.status.success() || generated.contains("ExecReload=") {
+        return Err(format!(
+            "Podman {version} must reject the ReloadCmd/ReloadSignal conflict without emitting ExecReload; status={}\nstdout:\n{generated}\nstderr:\n{diagnostics}",
+            output.status
+        ));
+    }
+    eprintln!("Podman {version} reload: mutually exclusive key pair is rejected");
+    Ok(())
+}
+
+fn verify_exit_policy_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    let generated = String::from_utf8(output.stdout.clone())
+        .map_err(|error| format!("{version} ExitPolicy generator emitted non-UTF-8 output: {error}"))?;
+    let diagnostics = String::from_utf8_lossy(&output.stderr);
+    if parsed < PodmanVersion::new(5, 6, 0) {
+        if output.status.success() || generated.contains("--exit-policy") {
+            return Err(format!(
+                "Podman {version} must reject unsupported Pod ExitPolicy without emitting --exit-policy; status={}\nstdout:\n{generated}\nstderr:\n{diagnostics}",
+                output.status
+            ));
+        }
+        eprintln!("Podman {version} Pod ExitPolicy: unsupported key is rejected with no --exit-policy argument");
+        return Ok(());
+    }
+
+    ensure_success(version, "Pod ExitPolicy generator", output)?;
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} ExitPolicy generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            ));
+        }
+    }
+    for (unit, value) in [
+        ("exit-policy-continue-pod.service", "continue"),
+        ("exit-policy-stop-pod.service", "stop"),
+        ("exit-policy-duplicate-final-stop-pod.service", "stop"),
+    ] {
+        let unit = generated_unit(version, &generated, unit, output)?;
+        let command = unit
+            .lines()
+            .find(|line| line.starts_with("ExecStartPre=/usr/bin/podman pod create "))
+            .ok_or_else(|| format!("Podman {version} generator output for {unit:?} is missing pod create\nstdout:\n{generated}\nstderr:\n{diagnostics}"))?;
+        let expected_argument = format!("--exit-policy {value}");
+        if !command.contains("--replace")
+            || !command.contains(&expected_argument)
+            || command.matches("--exit-policy").count() != 1
+            || command.find("--replace") > command.find(&expected_argument)
+        {
+            return Err(format!(
+                "Podman {version} {unit:?} must contain exactly one `{expected_argument}` after --replace\ncommand: {command}\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            ));
+        }
+    }
+    let blank = generated_unit(version, &generated, "exit-policy-final-blank-pod.service", output)?;
+    let command = blank
+        .lines()
+        .find(|line| line.starts_with("ExecStartPre=/usr/bin/podman pod create "))
+        .ok_or_else(|| format!("Podman {version} generator output for final blank ExitPolicy is missing pod create\nstdout:\n{generated}\nstderr:\n{diagnostics}"))?;
+    if command.matches("--exit-policy").count() != 1 || !command.contains("--exit-policy ") {
+        return Err(format!(
+            "Podman {version} final blank ExitPolicy presentation differs from the recorded one-flag form\ncommand: {command}\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+        ));
+    }
+    eprintln!(
+        "Podman {version} Pod ExitPolicy: one post---replace flag for continue, stop, duplicate-final-stop, and final-blank presentations"
+    );
+    Ok(())
+}
+
+fn verify_stop_timeout_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    let generated = String::from_utf8(output.stdout.clone())
+        .map_err(|error| format!("{version} Pod StopTimeout generator emitted non-UTF-8 output: {error}"))?;
+    let diagnostics = String::from_utf8_lossy(&output.stderr);
+    if parsed < PodmanVersion::new(5, 7, 0) {
+        if output.status.success() || generated.contains("--time=") {
+            return Err(format!(
+                "Podman {version} must reject unsupported Pod StopTimeout without emitting --time=; status={}\nstdout:\n{generated}\nstderr:\n{diagnostics}",
+                output.status
+            ));
+        }
+        eprintln!("Podman {version} Pod StopTimeout: unsupported key is rejected with no --time= argument");
+        return Ok(());
+    }
+
+    ensure_success(version, "Pod StopTimeout generator", output)?;
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} StopTimeout generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            ));
+        }
+    }
+    for (name, value) in [
+        ("stop-timeout-normal37-pod.service", "37"),
+        ("stop-timeout-zero-pod.service", "0"),
+        ("stop-timeout-negative-one-pod.service", "-1"),
+        ("stop-timeout-duplicate-final37-pod.service", "37"),
+        ("stop-timeout-final-blank-pod.service", ""),
+    ] {
+        let unit = generated_unit(version, &generated, name, output)?;
+        let command = unit
+            .lines()
+            .find(|line| line.starts_with("ExecStop=/usr/bin/podman pod stop "))
+            .ok_or_else(|| format!("Podman {version} generator output for {name} is missing pod stop\nstdout:\n{generated}\nstderr:\n{diagnostics}"))?;
+        let expected_argument = format!("--time={value}");
+        if command.matches("--time=").count() != 1 || !command.contains(&expected_argument) {
+            return Err(format!(
+                "Podman {version} {name} must contain exactly one final `{expected_argument}`\ncommand: {command}\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            ));
+        }
+    }
+    eprintln!(
+        "Podman {version} Pod StopTimeout: exact final --time= forms for 37, 0, -1, duplicate-final-37, and final blank"
+    );
+    Ok(())
+}
+
+fn verify_pod_service_name_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    let generated = String::from_utf8(output.stdout.clone())
+        .map_err(|error| format!("{version} Pod ServiceName generator emitted non-UTF-8 output: {error}"))?;
+    ensure_success(version, "Pod ServiceName generator", output)?;
+    if expected.iter().any(|fragment| !generated.contains(fragment)) {
+        return Err(format!(
+            "Podman {version} Pod ServiceName generator is missing fixture fragment\nstdout:\n{generated}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+    let template = if parsed < PodmanVersion::new(5, 7, 0) {
+        "---service-name-template@-pod.service---"
+    } else {
+        "---service-name-template-pod@.service---"
+    };
+    let unmatched = if parsed < PodmanVersion::new(5, 8, 2) {
+        "---unmatched.service---"
+    } else {
+        "---\"unmatched.service---"
+    };
+    let headers = [
+        "---service-name-default-pod.service---",
+        "---chosen-override.service---",
+        template,
+        unmatched,
+        "---.service---",
+        "---extension-bearing.service.service---",
+    ];
+    if headers.iter().any(|header| generated.matches(header).count() != 1)
+        || generated.contains("ignored-first.service")
+        || generated.contains("---service-name-template@-pod.service---") && parsed >= PodmanVersion::new(5, 7, 0)
+        || generated.contains("---service-name-template-pod@.service---") && parsed < PodmanVersion::new(5, 7, 0)
+        || generated.contains("---unmatched.service---") && parsed >= PodmanVersion::new(5, 8, 2)
+        || generated.contains("---\"unmatched.service---") && parsed < PodmanVersion::new(5, 8, 2)
+    {
+        return Err(format!(
+            "Podman {version} Pod ServiceName must select the last physical value, append .service, retain the recorded ordinary/template and unmatched-quote boundaries, and retain final-blank and extension-bearing presentations\n{generated}"
+        ));
+    }
+    eprintln!(
+        "Podman {version} Pod ServiceName: default, duplicate-last, .service, template, unmatched-quote, final-blank, and extension-bearing naming observations"
+    );
+    Ok(())
+}
+
 fn verify_build_retry_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
     let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
     let generated = String::from_utf8(output.stdout.clone())
@@ -4000,6 +5249,1209 @@ fn verify_build_annotation_generator_output(version: &str, expected: &[String], 
     }
     eprintln!(
         "Podman {version} Build Annotation: reset, tokenization/unquoting/C-unescaping, duplicate-key collapse, and sorting preserve the recorded bare/malformed-token boundary"
+    );
+    Ok(())
+}
+
+fn verify_build_environment_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| error.to_string())?;
+    ensure_success(version, "Build Environment generator", output)?;
+    if expected.iter().any(|fragment| !generated.contains(fragment)) {
+        return Err(format!(
+            "Podman {version} Build Environment is missing fixture fragment"
+        ));
+    }
+    let unit = generated_unit(version, &generated, "build-environment-build.service", output)?;
+    let command = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman build "))
+        .ok_or("missing build command")?;
+    let encoded = if parsed < PodmanVersion::new(5, 5, 0) {
+        " "
+    } else {
+        r"\x20"
+    };
+    let mut arguments = vec![
+        "--env =".to_owned(),
+        format!(r#"--env "ESCAPED=literal{encoded}text""#),
+        "--env NAME=final".to_owned(),
+        format!(r#"--env "QUOTED=Authored{encoded}Value""#),
+    ];
+    if parsed >= PodmanVersion::new(5, 6, 0) {
+        arguments.push("--env bare".to_owned());
+    }
+    arguments.push("--env embedded=a=b".to_owned());
+    if parsed >= PodmanVersion::new(5, 6, 0) {
+        arguments.extend(["--env malformed".to_owned(), "--env value".to_owned()]);
+    }
+    let positions: Vec<_> = arguments
+        .iter()
+        .map(|argument| {
+            command
+                .match_indices(argument)
+                .map(|(position, _)| position)
+                .collect::<Vec<_>>()
+        })
+        .collect();
+    if positions.iter().any(|matches| matches.len() != 1)
+        || !positions.windows(2).all(|pair| pair[0][0] < pair[1][0])
+        || command.matches("--env").count() != arguments.len()
+        || command.contains("PRE=one")
+        || command.contains("NAME=first")
+        || !command.ends_with(" .")
+    {
+        return Err(format!(
+            "Podman {version} Build Environment must retain only its effective target map\n{command}"
+        ));
+    }
+    eprintln!(
+        "Podman {version} Build Environment: reset, tokenization, final-name selection, and separate --env output"
+    );
+    Ok(())
+}
+
+fn verify_build_containers_conf_module_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| error.to_string())?;
+    ensure_success(version, "Build ContainersConfModule generator", output)?;
+    if expected.iter().any(|fragment| !generated.contains(fragment)) {
+        return Err(format!(
+            "Podman {version} Build ContainersConfModule is missing fixture fragment"
+        ));
+    }
+    let unit = generated_unit(
+        version,
+        &generated,
+        "build-containers-conf-module-build.service",
+        output,
+    )?;
+    let command = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman "))
+        .ok_or("missing build command")?;
+    let arguments = ["--module=post-one", "--module=post-two"];
+    let positions: Vec<_> = arguments
+        .iter()
+        .map(|argument| {
+            command
+                .match_indices(argument)
+                .map(|(position, _)| position)
+                .collect::<Vec<_>>()
+        })
+        .collect();
+    let build = command.find(" build ").ok_or("missing build subcommand")?;
+    if positions.iter().any(|matches| matches.len() != 1)
+        || positions[0][0] >= positions[1][0]
+        || positions.iter().any(|matches| matches[0] >= build)
+        || command.matches("--module=").count() != arguments.len()
+        || command.contains("pre-one")
+        || command.contains("pre-two")
+        || !command.ends_with(" .")
+    {
+        return Err(format!(
+            "Podman {version} Build ContainersConfModule must retain only ordered post-reset --module arguments before build and context\n{command}"
+        ));
+    }
+    eprintln!(
+        "Podman {version} Build ContainersConfModule: logical reset and ordered separate --module output before build"
+    );
+    Ok(())
+}
+
+fn verify_build_global_args_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| error.to_string())?;
+    ensure_success(version, "Build GlobalArgs generator", output)?;
+    if expected.iter().any(|fragment| !generated.contains(fragment)) {
+        return Err(format!("Podman {version} Build GlobalArgs is missing fixture fragment"));
+    }
+    let unit = generated_unit(version, &generated, "build-global-args-build.service", output)?;
+    let command = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman "))
+        .ok_or("missing build command")?;
+    let arguments = ["--log-level=debug", "--events-backend=none", "--events-backend=file"];
+    let positions: Vec<_> = arguments
+        .iter()
+        .map(|argument| {
+            command
+                .match_indices(argument)
+                .map(|(position, _)| position)
+                .collect::<Vec<_>>()
+        })
+        .collect();
+    let podman = command.find("/usr/bin/podman ").ok_or("missing podman command")?;
+    let build = command.find(" build ").ok_or("missing build subcommand")?;
+    if positions.iter().any(|matches| matches.len() != 1)
+        || !positions.windows(2).all(|pair| pair[0][0] < pair[1][0])
+        || positions
+            .iter()
+            .any(|matches| matches[0] <= podman || matches[0] >= build)
+        || command.contains("--log-level=info")
+        || command.contains("GlobalArgs")
+        || !command.ends_with(" .")
+    {
+        return Err(format!(
+            "Podman {version} Build GlobalArgs must retain only ordered post-reset target tokens between podman and build\\n{command}"
+        ));
+    }
+    eprintln!(
+        "Podman {version} Build GlobalArgs: reset, tokenization/unquoting/C-unescaping, malformed-line omission, and ordered pre-build tokens"
+    );
+    Ok(())
+}
+
+fn verify_build_service_name_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| error.to_string())?;
+    ensure_success(version, "Build ServiceName generator", output)?;
+    if expected.iter().any(|fragment| !generated.contains(fragment)) {
+        return Err(format!(
+            "Podman {version} Build ServiceName is missing fixture fragment"
+        ));
+    }
+    let template = if parsed < PodmanVersion::new(5, 7, 0) {
+        "---service-name-template@-build.service---"
+    } else {
+        "---service-name-template-build@.service---"
+    };
+    let unmatched = if parsed < PodmanVersion::new(5, 8, 2) {
+        "---unmatched.service---"
+    } else {
+        "---\"unmatched.service---"
+    };
+    let headers = [
+        "---service-name-default-build.service---",
+        "---chosen-override.service---",
+        template,
+        unmatched,
+    ];
+    if headers.iter().any(|header| generated.matches(header).count() != 1)
+        || generated.contains("ignored-first.service")
+        || generated.contains("---service-name-template@-build.service---") && parsed >= PodmanVersion::new(5, 7, 0)
+        || generated.contains("---service-name-template-build@.service---") && parsed < PodmanVersion::new(5, 7, 0)
+        || generated.contains("---unmatched.service---") && parsed >= PodmanVersion::new(5, 8, 2)
+        || generated.contains("---\"unmatched.service---") && parsed < PodmanVersion::new(5, 8, 2)
+    {
+        return Err(format!(
+            "Podman {version} Build ServiceName must select the last physical value, append .service, retain the recorded ordinary/template default boundary, and retain the recorded unmatched-quote lookup boundary\n{generated}"
+        ));
+    }
+    eprintln!(
+        "Podman {version} Build ServiceName: duplicate-last selection, .service addition, ordinary/template defaults, and unmatched-quote boundary"
+    );
+    Ok(())
+}
+
+fn verify_build_volume_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| error.to_string())?;
+    ensure_success(version, "Build Volume generator", output)?;
+    if expected.iter().any(|fragment| !generated.contains(fragment)) {
+        return Err(format!("Podman {version} Build Volume is missing fixture fragment"));
+    }
+    let reset = generated_unit(version, &generated, "build-volume-reset-build.service", output)?;
+    let relative = generated_unit(version, &generated, "build-volume-relative-build.service", output)?;
+    let native = generated_unit(version, &generated, "build-volume-native-build.service", output)?;
+    let reset_command = reset
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman build "))
+        .ok_or("missing reset build command")?;
+    let relative_command = relative
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman build "))
+        .ok_or("missing relative build command")?;
+    let native_command = native
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman build "))
+        .ok_or("missing native build command")?;
+    let continuation_space = if parsed < PodmanVersion::new(5, 5, 0) {
+        " "
+    } else {
+        r"\x20"
+    };
+    let reset_arguments = [
+        "-v post-one:/post-one",
+        "-v post-two:/post-two",
+        &format!(r#"-v "continued-one:/continued-one{continuation_space}continued-two:/continued-two""#),
+    ];
+    let positions: Vec<_> = reset_arguments
+        .iter()
+        .map(|argument| reset_command.find(argument))
+        .collect();
+    if positions.iter().any(Option::is_none)
+        || !positions.windows(2).all(|pair| pair[0] < pair[1])
+        || reset_command.contains("pre-one")
+        || reset_command.contains("pre-two")
+        || !reset_command.ends_with(" .")
+        || !relative.contains("RequiresMountsFor=/fixtures")
+        || !relative_command.contains("-v /fixtures:/workspace")
+        || !relative_command.ends_with(" .")
+        || !native.contains("Requires=cache-volume.service")
+        || !native.contains("After=cache-volume.service")
+        || !native_command.contains("-v quadlet-lens-cache:/var/cache:Z")
+        || !native_command.ends_with(" .")
+    {
+        return Err(format!(
+            "Podman {version} Build Volume must retain reset/continuation -v order, resolve relative ., and substitute/depend on an exact .volume source\nreset:\n{reset_command}\nrelative:\n{relative_command}\nnative:\n{native_command}"
+        ));
+    }
+    eprintln!(
+        "Podman {version} Build Volume: reset/continuation -v list, relative source resolution, and .volume substitution/dependency"
+    );
+    Ok(())
+}
+
+fn verify_volume_containers_conf_module_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| error.to_string())?;
+    ensure_success(version, "Volume ContainersConfModule generator", output)?;
+    if expected.iter().any(|fragment| !generated.contains(fragment)) {
+        return Err(format!(
+            "Podman {version} Volume ContainersConfModule is missing fixture fragment"
+        ));
+    }
+    let unit = generated_unit(
+        version,
+        &generated,
+        "volume-containers-conf-module-volume.service",
+        output,
+    )?;
+    let command = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman "))
+        .ok_or("missing volume create command")?;
+    let continuation_space = if parsed < PodmanVersion::new(5, 5, 0) {
+        " "
+    } else {
+        r"\x20"
+    };
+    let arguments = [
+        "--module=post-one".to_owned(),
+        "--module=post-two".to_owned(),
+        format!(r#""--module=continued-one{continuation_space}continued-two""#),
+    ];
+    let positions: Vec<_> = arguments
+        .iter()
+        .map(|argument| {
+            command
+                .match_indices(argument)
+                .map(|(position, _)| position)
+                .collect::<Vec<_>>()
+        })
+        .collect();
+    let volume_create = command
+        .find(" volume create ")
+        .ok_or("missing volume create subcommand")?;
+    if positions.iter().any(|matches| matches.len() != 1)
+        || !positions.windows(2).all(|pair| pair[0][0] < pair[1][0])
+        || positions.iter().any(|matches| matches[0] >= volume_create)
+        || command.matches("--module=").count() != arguments.len()
+        || command.contains("pre-one")
+        || command.contains("pre-two")
+        || !command.ends_with(" volume create --ignore quadlet-lens-volume-module")
+    {
+        return Err(format!(
+            "Podman {version} Volume ContainersConfModule must retain only ordered post-reset --module arguments before volume create\n{command}"
+        ));
+    }
+    eprintln!(
+        "Podman {version} Volume ContainersConfModule: logical reset, continuation presentation, and ordered --module output before volume create"
+    );
+    Ok(())
+}
+
+fn verify_volume_global_args_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| error.to_string())?;
+    ensure_success(version, "Volume GlobalArgs generator", output)?;
+    if expected.iter().any(|fragment| !generated.contains(fragment)) {
+        return Err(format!(
+            "Podman {version} Volume GlobalArgs is missing fixture fragment"
+        ));
+    }
+    let unit = generated_unit(version, &generated, "volume-global-args-volume.service", output)?;
+    let command = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman "))
+        .ok_or("missing volume create command")?;
+    let arguments = ["--log-level=debug", "--events-backend=none", "--events-backend=file"];
+    let positions: Vec<_> = arguments
+        .iter()
+        .map(|argument| {
+            command
+                .match_indices(argument)
+                .map(|(position, _)| position)
+                .collect::<Vec<_>>()
+        })
+        .collect();
+    let podman = command.find("/usr/bin/podman ").ok_or("missing podman command")?;
+    let volume_create = command
+        .find(" volume create ")
+        .ok_or("missing volume create subcommand")?;
+    if positions.iter().any(|matches| matches.len() != 1)
+        || !positions.windows(2).all(|pair| pair[0][0] < pair[1][0])
+        || positions
+            .iter()
+            .any(|matches| matches[0] <= podman || matches[0] >= volume_create)
+        || command.contains("--log-level=info")
+        || command.contains("--events-backend=journald")
+        || command.contains("GlobalArgs")
+        || !command.ends_with(" volume create --ignore quadlet-lens-volume-global-args")
+    {
+        return Err(format!(
+            "Podman {version} Volume GlobalArgs must retain only ordered post-reset target tokens between podman and volume create\n{command}"
+        ));
+    }
+    eprintln!(
+        "Podman {version} Volume GlobalArgs: reset, tokenization/unquoting/C-unescaping, malformed-line omission, and ordered pre-volume-create tokens"
+    );
+    Ok(())
+}
+
+fn verify_volume_podman_args_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| error.to_string())?;
+    ensure_success(version, "Volume PodmanArgs generator", output)?;
+    if expected.iter().any(|fragment| !generated.contains(fragment)) {
+        return Err(format!(
+            "Podman {version} Volume PodmanArgs is missing fixture fragment"
+        ));
+    }
+    let unit = generated_unit(version, &generated, "volume-podman-args-volume.service", output)?;
+    let command = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman volume create "))
+        .ok_or("missing volume create command")?;
+    let arguments = ["--label=post-one", "--label=quoted", "--label=escaped"];
+    let positions: Vec<_> = arguments
+        .iter()
+        .map(|argument| {
+            command
+                .match_indices(argument)
+                .map(|(position, _)| position)
+                .collect::<Vec<_>>()
+        })
+        .collect();
+    let volume_name = command
+        .find(" quadlet-lens-volume-podman-args")
+        .ok_or("missing volume name")?;
+    if positions.iter().any(|matches| matches.len() != 1)
+        || !positions.windows(2).all(|pair| pair[0][0] < pair[1][0])
+        || positions.iter().any(|matches| matches[0] >= volume_name)
+        || command.matches("--label=").count() != arguments.len()
+        || command.contains("pre-one")
+        || command.contains("pre-two")
+        || command.contains("PodmanArgs")
+        || !command.ends_with(" quadlet-lens-volume-podman-args")
+    {
+        return Err(format!(
+            "Podman {version} Volume PodmanArgs must retain only ordered post-reset target tokens at the end of volume create before the volume name\n{command}"
+        ));
+    }
+    eprintln!(
+        "Podman {version} Volume PodmanArgs: reset, tokenization/unquoting/C-unescaping, malformed-line omission, and ordered terminal volume-create tokens"
+    );
+    Ok(())
+}
+
+fn verify_volume_user_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| error.to_string())?;
+    ensure_success(version, "Volume User generator", output)?;
+    if expected.iter().any(|fragment| !generated.contains(fragment)) {
+        return Err(format!("Podman {version} Volume User is missing fixture fragment"));
+    }
+    let unit = generated_unit(version, &generated, "volume-user-volume.service", output)?;
+    let command = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman volume create "))
+        .ok_or("missing volume create command")?;
+    let uid = command.find("o=uid=123").ok_or("missing o=uid=123 option")?;
+    let volume_name = command.find(" quadlet-lens-volume-user").ok_or("missing volume name")?;
+    if command.matches("o=uid=123").count() != 1
+        || uid >= volume_name
+        || !command.ends_with(" quadlet-lens-volume-user")
+    {
+        return Err(format!(
+            "Podman {version} Volume User must emit exactly one o=uid=123 before the volume name\n{command}"
+        ));
+    }
+    eprintln!("Podman {version} Volume User: unambiguous numeric UID emits o=uid=123 before the volume name");
+    Ok(())
+}
+
+fn verify_volume_group_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| error.to_string())?;
+    ensure_success(version, "Volume Group generator", output)?;
+    if expected.iter().any(|fragment| !generated.contains(fragment)) {
+        return Err(format!("Podman {version} Volume Group is missing fixture fragment"));
+    }
+    let unit = generated_unit(version, &generated, "volume-group-volume.service", output)?;
+    let command = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman volume create "))
+        .ok_or("missing volume create command")?;
+    let gid = command.find("o=gid=456").ok_or("missing o=gid=456 option")?;
+    let volume_name = command
+        .find(" quadlet-lens-volume-group")
+        .ok_or("missing volume name")?;
+    if command.matches("o=gid=456").count() != 1
+        || gid >= volume_name
+        || !command.ends_with(" quadlet-lens-volume-group")
+    {
+        return Err(format!(
+            "Podman {version} Volume Group must emit exactly one o=gid=456 before the volume name\n{command}"
+        ));
+    }
+    eprintln!("Podman {version} Volume Group: unambiguous numeric GID emits o=gid=456 before the volume name");
+    Ok(())
+}
+
+fn verify_volume_uid_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| error.to_string())?;
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    if parsed < PodmanVersion::new(6, 0, 0) {
+        let diagnostics = String::from_utf8_lossy(&output.stderr);
+        if output.status.success()
+            || generated.contains("--uid")
+            || generated.contains("1234")
+            || !diagnostics.contains("unsupported key 'UID'")
+        {
+            return Err(format!(
+                "Podman {version} must reject unsupported Volume UID\n{diagnostics}"
+            ));
+        }
+        return Ok(());
+    }
+    ensure_success(version, "Volume UID generator", output)?;
+    if expected.iter().any(|fragment| !generated.contains(fragment)) {
+        return Err(format!("Podman {version} Volume UID is missing fixture fragment"));
+    }
+    let unit = generated_unit(version, &generated, "volume-uid-volume.service", output)?;
+    let command = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman volume create "))
+        .ok_or("missing volume create command")?;
+    let uid = command.find("--uid 1234").ok_or("missing --uid 1234")?;
+    let volume_name = command.find(" quadlet-lens-volume-uid").ok_or("missing volume name")?;
+    if command.matches("--uid 1234").count() != 1
+        || uid >= volume_name
+        || !command.ends_with(" quadlet-lens-volume-uid")
+    {
+        return Err(format!(
+            "Podman {version} Volume UID must emit exactly one --uid 1234 before volume name\n{command}"
+        ));
+    }
+    Ok(())
+}
+
+fn verify_volume_gid_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| error.to_string())?;
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    if parsed < PodmanVersion::new(6, 0, 0) {
+        let diagnostics = String::from_utf8_lossy(&output.stderr);
+        if output.status.success()
+            || generated.contains("--gid")
+            || generated.contains("5678")
+            || !diagnostics.contains("unsupported key 'GID'")
+        {
+            return Err(format!(
+                "Podman {version} must reject unsupported Volume GID\n{diagnostics}"
+            ));
+        }
+        return Ok(());
+    }
+    ensure_success(version, "Volume GID generator", output)?;
+    if expected.iter().any(|fragment| !generated.contains(fragment)) {
+        return Err(format!("Podman {version} Volume GID is missing fixture fragment"));
+    }
+    let unit = generated_unit(version, &generated, "volume-gid-volume.service", output)?;
+    let command = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman volume create "))
+        .ok_or("missing volume create command")?;
+    let gid = command.find("--gid 5678").ok_or("missing --gid 5678")?;
+    let volume_name = command.find(" quadlet-lens-volume-gid").ok_or("missing volume name")?;
+    if command.matches("--gid 5678").count() != 1
+        || gid >= volume_name
+        || !command.ends_with(" quadlet-lens-volume-gid")
+    {
+        return Err(format!(
+            "Podman {version} Volume GID must emit exactly one --gid 5678 before volume name\n{command}"
+        ));
+    }
+    Ok(())
+}
+
+fn verify_volume_service_name_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| error.to_string())?;
+    ensure_success(version, "Volume ServiceName generator", output)?;
+    if expected.iter().any(|fragment| !generated.contains(fragment)) {
+        return Err(format!(
+            "Podman {version} Volume ServiceName is missing fixture fragment"
+        ));
+    }
+    let template = if parsed < PodmanVersion::new(5, 7, 0) {
+        "---service-name-template@-volume.service---"
+    } else {
+        "---service-name-template-volume@.service---"
+    };
+    let unmatched = if parsed < PodmanVersion::new(5, 8, 2) {
+        "---unmatched.service---"
+    } else {
+        "---\"unmatched.service---"
+    };
+    let headers = [
+        "---service-name-default-volume.service---",
+        "---chosen-override.service---",
+        template,
+        unmatched,
+    ];
+    if headers.iter().any(|header| generated.matches(header).count() != 1)
+        || generated.contains("ignored-first.service")
+        || generated.contains("---service-name-template@-volume.service---") && parsed >= PodmanVersion::new(5, 7, 0)
+        || generated.contains("---service-name-template-volume@.service---") && parsed < PodmanVersion::new(5, 7, 0)
+        || generated.contains("---unmatched.service---") && parsed >= PodmanVersion::new(5, 8, 2)
+        || generated.contains("---\"unmatched.service---") && parsed < PodmanVersion::new(5, 8, 2)
+    {
+        return Err(format!(
+            "Podman {version} Volume ServiceName must select the last physical value, append .service, retain the recorded ordinary/template default boundary, and retain the recorded unmatched-quote lookup boundary\n{generated}"
+        ));
+    }
+    eprintln!(
+        "Podman {version} Volume ServiceName: duplicate-last selection, .service addition, ordinary/template defaults, and unmatched-quote boundary"
+    );
+    Ok(())
+}
+
+fn verify_volume_image_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| error.to_string())?;
+    if expected.iter().any(|fragment| !generated.contains(fragment)) {
+        return Err(format!("Podman {version} Volume Image is missing fixture fragment"));
+    }
+    if output.status.success() {
+        return Err(format!(
+            "Podman {version} Volume Image fixture must report the missing Image error"
+        ));
+    }
+    let literal = generated_unit(version, &generated, "image-literal-volume.service", output)?;
+    let ignored = generated_unit(version, &generated, "image-ignored-volume.service", output)?;
+    for unit in [literal, ignored] {
+        if !unit.contains("ExecStart=/usr/bin/podman volume create ") {
+            return Err(format!(
+                "Podman {version} Volume Image fixture lacks volume create command\n{unit}"
+            ));
+        }
+    }
+    if !literal.contains("--driver image") || !literal.contains("image=example.invalid/quadlet-lens-volume:literal") {
+        return Err(format!(
+            "Podman {version} Volume Image literal driver form missing\n{literal}"
+        ));
+    }
+    if ignored.contains("image=example.invalid/quadlet-lens-volume:ignored") {
+        return Err(format!(
+            "Podman {version} non-image Volume driver must ignore Image\n{ignored}"
+        ));
+    }
+    for source in ["volume-source.image", "volume-source.build"] {
+        if !generated.contains(source) || !generated.contains("Requires=") || !generated.contains("After=") {
+            return Err(format!(
+                "Podman {version} Volume Image must retain generated dependency for {source}\n{generated}"
+            ));
+        }
+    }
+    eprintln!(
+        "Podman {version} Volume Image: literal, missing, ignored-driver, and exact image/build-reference observations"
+    );
+    Ok(())
+}
+
+fn verify_image_core_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| error.to_string())?;
+    if expected.iter().any(|fragment| !generated.contains(fragment)) {
+        return Err(format!("Podman {version} Image core is missing fixture fragment"));
+    }
+    if output.status.success() {
+        return Err(format!(
+            "Podman {version} Image core fixture must report missing and empty Image errors"
+        ));
+    }
+    let unit = generated_unit(version, &generated, "image-core-image.service", output)?;
+    let command = "ExecStart=/usr/bin/podman image pull example.invalid/quadlet-lens-image:final";
+    if unit.matches(command).count() != 1 {
+        return Err(format!(
+            "Podman {version} Image core must generate one pull command from the final duplicate Image value\n{unit}"
+        ));
+    }
+    eprintln!("Podman {version} Image core: literal pull, missing/empty errors, and duplicate-last target behavior");
+    Ok(())
+}
+
+fn verify_image_image_tag_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| error.to_string())?;
+    if expected.iter().any(|fragment| !generated.contains(fragment)) {
+        return Err(format!("Podman {version} ImageTag is missing fixture fragment"));
+    }
+    ensure_success(version, "ImageTag generator", output)?;
+
+    for (name, source, resource_name) in [
+        (
+            "image-tag-normal",
+            "example.invalid/quadlet-lens-normal:source",
+            "example.invalid/quadlet-lens-normal:final",
+        ),
+        (
+            "image-tag-archive",
+            "docker-archive:/tmp/quadlet-lens-image.tar",
+            "example.invalid/quadlet-lens-archive:final",
+        ),
+        (
+            "image-tag-default",
+            "example.invalid/quadlet-lens-default:source",
+            "example.invalid/quadlet-lens-default:source",
+        ),
+    ] {
+        let image_unit = generated_unit(version, &generated, &format!("{name}-image.service"), output)?;
+        let pull = format!("ExecStart=/usr/bin/podman image pull {source}");
+        if image_unit.matches(&pull).count() != 1 {
+            return Err(format!(
+                "Podman {version} ImageTag must retain one Image source command for {name}\n{image_unit}"
+            ));
+        }
+        let container_unit = generated_unit(version, &generated, &format!("{name}.service"), output)?;
+        for dependency in [
+            format!("Requires={name}-image.service"),
+            format!("After={name}-image.service"),
+        ] {
+            if !container_unit.contains(&dependency) {
+                return Err(format!(
+                    "Podman {version} ImageTag must retain generated dependency `{dependency}`\n{container_unit}"
+                ));
+            }
+        }
+        if !container_unit.contains(&format!(" -d {resource_name}")) {
+            return Err(format!(
+                "Podman {version} ImageTag must substitute `{resource_name}` for {name}\n{container_unit}"
+            ));
+        }
+    }
+
+    let quoted = generated_unit(version, &generated, "image-tag-quoted.service", output)?;
+    let unmatched = generated_unit(version, &generated, "image-tag-unmatched.service", output)?;
+    let quoted_resource = if parsed <= PodmanVersion::new(5, 4, 2) {
+        " -d \"example.invalid/quadlet lens:final\""
+    } else {
+        " -d \"example.invalid/quadlet\\x20lens:final\""
+    };
+    let unmatched_resource = if parsed < PodmanVersion::new(5, 8, 2) {
+        " -d example.invalid/quadlet-lens-unmatched:final"
+    } else {
+        " -d \"example.invalid/quadlet-lens-unmatched:final\\\"\""
+    };
+    if !quoted.contains(quoted_resource) || !unmatched.contains(unmatched_resource) {
+        return Err(format!(
+            "Podman {version} ImageTag quote presentation did not match its release boundary\nquoted:\n{quoted}\nunmatched:\n{unmatched}"
+        ));
+    }
+    eprintln!(
+        "Podman {version} ImageTag: source retention, duplicate-last/default resource names, dependencies, and quote presentation"
+    );
+    Ok(())
+}
+
+fn verify_image_service_name_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| error.to_string())?;
+    ensure_success(version, "Image ServiceName generator", output)?;
+    if expected.iter().any(|fragment| !generated.contains(fragment)) {
+        return Err(format!(
+            "Podman {version} Image ServiceName is missing fixture fragment"
+        ));
+    }
+    let template = if parsed < PodmanVersion::new(5, 7, 0) {
+        "---service-name-template@-image.service---"
+    } else {
+        "---service-name-template-image@.service---"
+    };
+    let unmatched = if parsed < PodmanVersion::new(5, 8, 2) {
+        "---unmatched.service---"
+    } else {
+        "---\"unmatched.service---"
+    };
+    let headers = [
+        "---service-name-default-image.service---",
+        "---chosen-override.service---",
+        template,
+        unmatched,
+    ];
+    if headers.iter().any(|header| generated.matches(header).count() != 1)
+        || generated.contains("ignored-first.service")
+        || generated.contains("---service-name-template@-image.service---") && parsed >= PodmanVersion::new(5, 7, 0)
+        || generated.contains("---service-name-template-image@.service---") && parsed < PodmanVersion::new(5, 7, 0)
+        || generated.contains("---unmatched.service---") && parsed >= PodmanVersion::new(5, 8, 2)
+        || generated.contains("---\"unmatched.service---") && parsed < PodmanVersion::new(5, 8, 2)
+    {
+        return Err(format!(
+            "Podman {version} Image ServiceName must select the last physical value, append .service, retain the recorded ordinary/template default boundary, and retain the recorded unmatched-quote lookup boundary\n{generated}"
+        ));
+    }
+    eprintln!(
+        "Podman {version} Image ServiceName: duplicate-last selection, .service addition, ordinary/template defaults, and unmatched-quote boundary"
+    );
+    Ok(())
+}
+
+fn verify_image_all_tags_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| error.to_string())?;
+    ensure_success(version, "Image AllTags generator", output)?;
+    if expected.iter().any(|fragment| !generated.contains(fragment)) {
+        return Err(format!("Podman {version} Image AllTags is missing fixture fragment"));
+    }
+    for (name, all_tags) in [
+        ("all-tags-absent", None),
+        ("all-tags-true", Some("--all-tags")),
+        ("all-tags-false", Some("--all-tags=false")),
+        ("all-tags-duplicate", Some("--all-tags=false")),
+        ("all-tags-blank", Some("--all-tags=false")),
+    ] {
+        let unit = generated_unit(version, &generated, &format!("{name}-image.service"), output)?;
+        let pull = format!("ExecStart=/usr/bin/podman image pull example.invalid/quadlet-lens-{name}:latest");
+        let expected_pull = all_tags.map_or(pull, |all_tags| {
+            format!("ExecStart=/usr/bin/podman image pull {all_tags} example.invalid/quadlet-lens-{name}:latest")
+        });
+        if unit.matches(&expected_pull).count() != 1 || unit.contains(" --all-tags") != all_tags.is_some() {
+            return Err(format!(
+                "Podman {version} Image AllTags must retain the target {name} command-text observation\\n{unit}"
+            ));
+        }
+    }
+    let unmatched = generated_unit(version, &generated, "all-tags-unmatched-image.service", output)?;
+    let unmatched_all_tags = if parsed < PodmanVersion::new(5, 8, 2) {
+        "--all-tags"
+    } else {
+        "--all-tags=false"
+    };
+    let unmatched_pull = format!(
+        "ExecStart=/usr/bin/podman image pull {unmatched_all_tags} example.invalid/quadlet-lens-all-tags-unmatched:latest"
+    );
+    if unmatched.matches(&unmatched_pull).count() != 1 {
+        return Err(format!(
+            "Podman {version} Image AllTags unmatched-quote command text did not match the recorded 5.8.2 boundary\\n{unmatched}"
+        ));
+    }
+    eprintln!(
+        "Podman {version} Image AllTags: true/false, duplicate-last, absent/blank, and unmatched-quote command text"
+    );
+    Ok(())
+}
+
+fn verify_image_arch_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| error.to_string())?;
+    ensure_success(version, "Image Arch generator", output)?;
+    if expected.iter().any(|fragment| !generated.contains(fragment)) {
+        return Err(format!("Podman {version} Image Arch is missing fixture fragment"));
+    }
+    for (name, arch) in [
+        ("image-arch-normal", Some("arm64")),
+        ("image-arch-duplicate", Some("amd64")),
+        ("image-arch-blank", None),
+    ] {
+        let unit = generated_unit(version, &generated, &format!("{name}-image.service"), output)?;
+        let pull = format!("ExecStart=/usr/bin/podman image pull example.invalid/quadlet-lens-{name}:latest");
+        let expected_pull = arch.map_or(pull, |arch| {
+            format!("ExecStart=/usr/bin/podman image pull --arch {arch} example.invalid/quadlet-lens-{name}:latest")
+        });
+        if unit.matches(&expected_pull).count() != 1 || unit.contains(" --arch") != arch.is_some() {
+            return Err(format!(
+                "Podman {version} Image Arch must retain the target {name} command-text observation\\n{unit}"
+            ));
+        }
+    }
+    let unmatched = generated_unit(version, &generated, "image-arch-unmatched-image.service", output)?;
+    let unmatched_arch = if parsed < PodmanVersion::new(5, 8, 2) {
+        "amd64"
+    } else {
+        "\"amd64\\\"\""
+    };
+    let unmatched_pull = format!(
+        "ExecStart=/usr/bin/podman image pull --arch {unmatched_arch} example.invalid/quadlet-lens-image-arch-unmatched:latest"
+    );
+    if unmatched.matches(&unmatched_pull).count() != 1 {
+        return Err(format!(
+            "Podman {version} Image Arch unmatched-quote command text did not match the recorded 5.8.2 boundary\\n{unmatched}"
+        ));
+    }
+    eprintln!("Podman {version} Image Arch: normal, duplicate-last, blank omission, and unmatched-quote command text");
+    Ok(())
+}
+
+fn verify_image_auth_file_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| error.to_string())?;
+    ensure_success(version, "Image AuthFile generator", output)?;
+    if expected.iter().any(|fragment| !generated.contains(fragment)) {
+        return Err(format!("Podman {version} Image AuthFile is missing fixture fragment"));
+    }
+    for (name, auth_file) in [
+        (
+            "image-auth-file-normal",
+            Some("/placeholder/quadlet-lens-image-auth-file-normal.json"),
+        ),
+        (
+            "image-auth-file-duplicate",
+            Some("/placeholder/quadlet-lens-image-auth-file-last.json"),
+        ),
+        ("image-auth-file-blank", None),
+    ] {
+        let unit = generated_unit(version, &generated, &format!("{name}-image.service"), output)?;
+        let pull = format!("ExecStart=/usr/bin/podman image pull example.invalid/quadlet-lens-{name}:latest");
+        let expected_pull = auth_file.map_or(pull, |auth_file| {
+            format!(
+                "ExecStart=/usr/bin/podman image pull --authfile {auth_file} example.invalid/quadlet-lens-{name}:latest"
+            )
+        });
+        if unit.matches(&expected_pull).count() != 1 || unit.contains(" --authfile") != auth_file.is_some() {
+            return Err(format!(
+                "Podman {version} Image AuthFile must retain the target {name} command-text observation\\n{unit}"
+            ));
+        }
+    }
+    let unmatched = generated_unit(version, &generated, "image-auth-file-unmatched-image.service", output)?;
+    let unmatched_auth_file = if parsed < PodmanVersion::new(5, 8, 2) {
+        "/placeholder/quadlet-lens-image-auth-file-unmatched.json"
+    } else {
+        "\"/placeholder/quadlet-lens-image-auth-file-unmatched.json\\\"\""
+    };
+    let unmatched_pull = format!(
+        "ExecStart=/usr/bin/podman image pull --authfile {unmatched_auth_file} example.invalid/quadlet-lens-image-auth-file-unmatched:latest"
+    );
+    if unmatched.matches(&unmatched_pull).count() != 1 {
+        return Err(format!(
+            "Podman {version} Image AuthFile unmatched-quote command text did not match the recorded 5.8.2 boundary\\n{unmatched}"
+        ));
+    }
+    eprintln!(
+        "Podman {version} Image AuthFile: normal, duplicate-last, blank omission, and unmatched-quote command text"
+    );
+    Ok(())
+}
+
+fn verify_image_creds_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| error.to_string())?;
+    ensure_success(version, "Image Creds generator", output)?;
+    if expected.iter().any(|fragment| !generated.contains(fragment)) {
+        return Err(format!("Podman {version} Image Creds is missing fixture fragment"));
+    }
+    let normal = generated_unit(version, &generated, "image-creds-normal-image.service", output)?;
+    let duplicate = generated_unit(version, &generated, "image-creds-duplicate-image.service", output)?;
+    let blank = generated_unit(version, &generated, "image-creds-blank-image.service", output)?;
+    let unmatched = generated_unit(version, &generated, "image-creds-unmatched-image.service", output)?;
+    let command = |unit: &str| {
+        unit.lines()
+            .find(|line| line.starts_with("ExecStart=/usr/bin/podman image pull "))
+            .map(str::to_owned)
+            .ok_or("missing image pull command")
+    };
+    let normal_command = command(normal)?;
+    let duplicate_command = command(duplicate)?;
+    let blank_command = command(blank)?;
+    let unmatched_command = command(unmatched)?;
+    let cred_flags = |command: &str| command.matches(" --creds ").count();
+    if cred_flags(&normal_command) != 1
+        || cred_flags(&duplicate_command) != 1
+        || cred_flags(&blank_command) != 0
+        || cred_flags(&unmatched_command) != 1
+        || !normal_command.contains("quadlet-lens-placeholder-normal-user:quadlet-lens-placeholder-normal-password")
+        || !duplicate_command.contains("quadlet-lens-placeholder-last-user:quadlet-lens-placeholder-last-password")
+        || duplicate_command.contains("quadlet-lens-placeholder-first-user:quadlet-lens-placeholder-first-password")
+        || blank_command.contains("quadlet-lens-placeholder")
+    {
+        return Err(format!(
+            "Podman {version} Image Creds must retain normal, duplicate-last, final-blank omission, and unmatched-quote observations without imposing flag ordering or a version boundary\nnormal:\n{normal}\nduplicate:\n{duplicate}\nblank:\n{blank}\nunmatched:\n{unmatched}"
+        ));
+    }
+    eprintln!(
+        "Podman {version} Image Creds: normal, duplicate-last, final-blank omission, and unmatched-quote command text (no flag-order or quote-boundary claim)"
+    );
+    Ok(())
+}
+
+fn verify_image_decryption_key_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| error.to_string())?;
+    ensure_success(version, "Image DecryptionKey generator", output)?;
+    if expected.iter().any(|fragment| !generated.contains(fragment)) {
+        return Err(format!(
+            "Podman {version} Image DecryptionKey is missing fixture fragment"
+        ));
+    }
+    let normal = generated_unit(version, &generated, "image-decryption-key-normal-image.service", output)?;
+    let duplicate = generated_unit(
+        version,
+        &generated,
+        "image-decryption-key-duplicate-image.service",
+        output,
+    )?;
+    let blank = generated_unit(version, &generated, "image-decryption-key-blank-image.service", output)?;
+    let unmatched = generated_unit(
+        version,
+        &generated,
+        "image-decryption-key-unmatched-image.service",
+        output,
+    )?;
+    let command = |unit: &str| {
+        unit.lines()
+            .find(|line| line.starts_with("ExecStart=/usr/bin/podman image pull "))
+            .map(str::to_owned)
+            .ok_or("missing image pull command")
+    };
+    let normal_command = command(normal)?;
+    let duplicate_command = command(duplicate)?;
+    let blank_command = command(blank)?;
+    let unmatched_command = command(unmatched)?;
+    let decryption_key_flags = |command: &str| command.matches(" --decryption-key ").count();
+    if decryption_key_flags(&normal_command) != 1
+        || decryption_key_flags(&duplicate_command) != 1
+        || decryption_key_flags(&blank_command) != 0
+        || decryption_key_flags(&unmatched_command) != 1
+        || !normal_command.contains("quadlet-lens-decryption-key-placeholder-normal")
+        || !duplicate_command.contains("quadlet-lens-decryption-key-placeholder-last")
+        || duplicate_command.contains("quadlet-lens-decryption-key-placeholder-first")
+        || blank_command.contains("quadlet-lens-decryption-key-placeholder")
+    {
+        return Err(format!(
+            "Podman {version} Image DecryptionKey must retain normal, duplicate-last, final-blank omission, and unmatched-quote observations without imposing flag ordering or a version boundary\\nnormal:\\n{normal}\\nduplicate:\\n{duplicate}\\nblank:\\n{blank}\\nunmatched:\\n{unmatched}"
+        ));
+    }
+    eprintln!(
+        "Podman {version} Image DecryptionKey: normal, duplicate-last, final-blank omission, and unmatched-quote command text (no flag-order or quote-boundary claim)"
+    );
+    Ok(())
+}
+
+fn verify_image_global_args_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| error.to_string())?;
+    ensure_success(version, "Image GlobalArgs generator", output)?;
+    if expected.iter().any(|fragment| !generated.contains(fragment)) {
+        return Err(format!("Podman {version} Image GlobalArgs is missing fixture fragment"));
+    }
+    let unit = generated_unit(version, &generated, "image-global-args-image.service", output)?;
+    let command = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman "))
+        .ok_or("missing image pull command")?;
+    let arguments = ["--log-level=debug", "--events-backend=none", "--events-backend=file"];
+    let positions: Vec<_> = arguments
+        .iter()
+        .map(|argument| {
+            command
+                .match_indices(argument)
+                .map(|(position, _)| position)
+                .collect::<Vec<_>>()
+        })
+        .collect();
+    let podman = command.find("/usr/bin/podman ").ok_or("missing podman command")?;
+    let image_pull = command.find(" image pull ").ok_or("missing image pull subcommand")?;
+    if positions.iter().any(|matches| matches.len() != 1)
+        || !positions.windows(2).all(|pair| pair[0][0] < pair[1][0])
+        || positions
+            .iter()
+            .any(|matches| matches[0] <= podman || matches[0] >= image_pull)
+        || command.contains("--log-level=info")
+        || command.contains("GlobalArgs")
+    {
+        return Err(format!(
+            "Podman {version} Image GlobalArgs must retain only ordered post-reset target tokens between podman and image pull\n{command}"
+        ));
+    }
+    eprintln!(
+        "Podman {version} Image GlobalArgs: reset, tokenization/unquoting/C-unescaping, malformed-line omission, and ordered pre-pull tokens"
+    );
+    Ok(())
+}
+
+fn verify_image_os_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| error.to_string())?;
+    ensure_success(version, "Image OS generator", output)?;
+    if expected.iter().any(|fragment| !generated.contains(fragment)) {
+        return Err(format!("Podman {version} Image OS is missing fixture fragment"));
+    }
+    for (name, os) in [
+        ("image-os-normal", Some("windows")),
+        ("image-os-duplicate", Some("linux")),
+        ("image-os-blank", None),
+    ] {
+        let unit = generated_unit(version, &generated, &format!("{name}-image.service"), output)?;
+        let pull = format!("ExecStart=/usr/bin/podman image pull example.invalid/quadlet-lens-{name}:latest");
+        let expected_pull = os.map_or(pull, |os| {
+            format!("ExecStart=/usr/bin/podman image pull --os {os} example.invalid/quadlet-lens-{name}:latest")
+        });
+        if unit.matches(&expected_pull).count() != 1 || unit.contains(" --os") != os.is_some() {
+            return Err(format!(
+                "Podman {version} Image OS must retain the target {name} command-text observation\n{unit}"
+            ));
+        }
+    }
+    let unmatched = generated_unit(version, &generated, "image-os-unmatched-image.service", output)?;
+    let unmatched_os = if parsed < PodmanVersion::new(5, 8, 2) {
+        "linux"
+    } else {
+        "\"linux\\\"\""
+    };
+    let unmatched_pull = format!(
+        "ExecStart=/usr/bin/podman image pull --os {unmatched_os} example.invalid/quadlet-lens-image-os-unmatched:latest"
+    );
+    if unmatched.matches(&unmatched_pull).count() != 1 {
+        return Err(format!(
+            "Podman {version} Image OS unmatched-quote command text did not match the recorded endpoint difference\n{unmatched}"
+        ));
+    }
+    eprintln!("Podman {version} Image OS: normal, duplicate-last, blank omission, and unmatched-quote command text");
+    Ok(())
+}
+
+fn verify_image_cert_dir_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| error.to_string())?;
+    ensure_success(version, "Image CertDir generator", output)?;
+    if expected.iter().any(|fragment| !generated.contains(fragment)) {
+        return Err(format!("Podman {version} Image CertDir is missing fixture fragment"));
+    }
+    for (name, cert_dir) in [
+        (
+            "image-cert-dir-normal",
+            Some("/placeholder/quadlet-lens-image-certs-normal"),
+        ),
+        (
+            "image-cert-dir-duplicate",
+            Some("/placeholder/quadlet-lens-image-certs-last"),
+        ),
+        ("image-cert-dir-blank", None),
+    ] {
+        let unit = generated_unit(version, &generated, &format!("{name}-image.service"), output)?;
+        let pull = format!("ExecStart=/usr/bin/podman image pull example.invalid/quadlet-lens-{name}:latest");
+        let expected_pull = cert_dir.map_or(pull, |cert_dir| {
+            format!(
+                "ExecStart=/usr/bin/podman image pull --cert-dir {cert_dir} example.invalid/quadlet-lens-{name}:latest"
+            )
+        });
+        if unit.matches(&expected_pull).count() != 1 || unit.contains(" --cert-dir") != cert_dir.is_some() {
+            return Err(format!(
+                "Podman {version} Image CertDir must retain the target {name} command-text observation\\n{unit}"
+            ));
+        }
+    }
+    let unmatched = generated_unit(version, &generated, "image-cert-dir-unmatched-image.service", output)?;
+    let unmatched_cert_dir = if parsed < PodmanVersion::new(5, 8, 2) {
+        "/placeholder/quadlet-lens-image-certs-unmatched"
+    } else {
+        "\"/placeholder/quadlet-lens-image-certs-unmatched\\\"\""
+    };
+    let unmatched_pull = format!(
+        "ExecStart=/usr/bin/podman image pull --cert-dir {unmatched_cert_dir} example.invalid/quadlet-lens-image-cert-dir-unmatched:latest"
+    );
+    if unmatched.matches(&unmatched_pull).count() != 1 {
+        return Err(format!(
+            "Podman {version} Image CertDir unmatched-quote command text did not match the recorded 5.8.2 boundary\\n{unmatched}"
+        ));
+    }
+    eprintln!(
+        "Podman {version} Image CertDir: normal, duplicate-last, blank omission, and unmatched-quote command text"
+    );
+    Ok(())
+}
+
+fn verify_image_containers_conf_module_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| error.to_string())?;
+    ensure_success(version, "Image ContainersConfModule generator", output)?;
+    if expected.iter().any(|fragment| !generated.contains(fragment)) {
+        return Err(format!(
+            "Podman {version} Image ContainersConfModule is missing fixture fragment"
+        ));
+    }
+    let unit = generated_unit(
+        version,
+        &generated,
+        "image-containers-conf-module-image.service",
+        output,
+    )?;
+    let command = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman "))
+        .ok_or("missing image pull command")?;
+    let arguments = ["--module=post-one", "--module=post-two"];
+    let positions: Vec<_> = arguments
+        .iter()
+        .map(|argument| {
+            command
+                .match_indices(argument)
+                .map(|(position, _)| position)
+                .collect::<Vec<_>>()
+        })
+        .collect();
+    let image_pull = command.find(" image pull ").ok_or("missing image pull subcommand")?;
+    if positions.iter().any(|matches| matches.len() != 1)
+        || positions[0][0] >= positions[1][0]
+        || positions.iter().any(|matches| matches[0] >= image_pull)
+        || command.matches("--module=").count() != arguments.len()
+        || command.contains("pre-one")
+        || command.contains("pre-two")
+    {
+        return Err(format!(
+            "Podman {version} Image ContainersConfModule must retain only ordered post-reset --module arguments before image pull\n{command}"
+        ));
+    }
+    eprintln!(
+        "Podman {version} Image ContainersConfModule: logical reset and ordered separate --module output before image pull"
     );
     Ok(())
 }

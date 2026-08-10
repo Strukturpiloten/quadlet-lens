@@ -1,0 +1,4 @@
+---stop-timeout-normal37-pod.service---
+SourcePath=/fixtures/stop-timeout-normal37.pod
+---stop-timeout-zero-pod.service---
+SourcePath=/fixtures/stop-timeout-zero.pod

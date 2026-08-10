@@ -2,8 +2,8 @@
 
 use quadlet_lens::diagnostic::Severity;
 use quadlet_lens::model::{
-    BuildKey, ContainerKey, EntryKind, NetworkKey, PodKey, QuadletDocument, QuadletUnitType, SectionKind, TypedEntry,
-    UnitReferenceKind, ValueKind, VolumeKey,
+    BuildKey, ContainerKey, EntryKind, ImageKey, NetworkKey, PodKey, QuadletDocument, QuadletUnitType, SectionKind,
+    TypedEntry, UnitReferenceKind, ValueKind, VolumeKey,
 };
 use quadlet_lens::path::PathForm;
 use quadlet_lens::source::SourceId;
@@ -18,6 +18,704 @@ const BUILD_TARGET_DUPLICATES: &str = "[Build]\nTarget=builder\nTarget=final\n";
 const BUILD_PLATFORM_DUPLICATES: &str = "[Build]\nArch=\nArch=arm64\nVariant=\nVariant=v8\n";
 const BUILD_PODMAN_ARGS: &str =
     "[Build]\nPodmanArgs=--build-context extra=container-image://alpine:3.15\nPodmanArgs=--layers\n";
+
+#[test]
+fn pod_exit_policy_is_an_opaque_singleton_without_effective_value_selection() -> Result<(), String> {
+    let source = "[Pod]\nExitPolicy=continue\nExitPolicy=\"stop %i\"\nExitPolicy=continued \\\n+value\nExitPolicy=malformed\"\nExitPolicy=\n";
+    let result =
+        QuadletDocument::parse(QuadletUnitType::Pod, SourceId::new(472), source).map_err(|error| error.to_string())?;
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Pod(PodKey::ExitPolicy))
+            .map(|entry| (
+                entry.value().primary().text(),
+                entry.value().is_continued(),
+                entry.value_kind()
+            ))
+            .collect::<Vec<_>>(),
+        [
+            ("continue", false, ValueKind::Opaque),
+            ("\"stop %i\"", false, ValueKind::Opaque),
+            ("continued \\", true, ValueKind::Opaque),
+            ("malformed\"", false, ValueKind::Opaque),
+            ("", false, ValueKind::Opaque),
+        ]
+    );
+    assert_eq!(
+        result
+            .model_diagnostics()
+            .iter()
+            .map(|diagnostic| diagnostic.code().as_str())
+            .collect::<Vec<_>>(),
+        ["QLM0004", "QLM0004", "QLM0004", "QLM0004"]
+    );
+    Ok(())
+}
+
+#[test]
+fn pod_stop_timeout_is_an_opaque_singleton_without_timeout_interpretation() -> Result<(), String> {
+    let source = "[Pod]\nStopTimeout=37\nStopTimeout=\"0 %i\"\nStopTimeout=continued \\\n+value\nStopTimeout=malformed\"\nStopTimeout=\n";
+    let result =
+        QuadletDocument::parse(QuadletUnitType::Pod, SourceId::new(475), source).map_err(|error| error.to_string())?;
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Pod(PodKey::StopTimeout))
+            .map(|entry| (
+                entry.value().primary().text(),
+                entry.value().is_continued(),
+                entry.value_kind()
+            ))
+            .collect::<Vec<_>>(),
+        [
+            ("37", false, ValueKind::Opaque),
+            ("\"0 %i\"", false, ValueKind::Opaque),
+            ("continued \\", true, ValueKind::Opaque),
+            ("malformed\"", false, ValueKind::Opaque),
+            ("", false, ValueKind::Opaque),
+        ]
+    );
+    assert_eq!(
+        result
+            .model_diagnostics()
+            .iter()
+            .map(|diagnostic| diagnostic.code().as_str())
+            .collect::<Vec<_>>(),
+        ["QLM0004", "QLM0004", "QLM0004", "QLM0004"]
+    );
+    Ok(())
+}
+
+#[test]
+fn pod_service_name_is_an_opaque_singleton_without_identity_interpretation() -> Result<(), String> {
+    let source = "[Pod]\nServiceName=ordinary\nServiceName=\"quoted %i\"\nServiceName=continued \\\n+value\nServiceName=malformed\"\nServiceName=\n";
+    let result =
+        QuadletDocument::parse(QuadletUnitType::Pod, SourceId::new(478), source).map_err(|error| error.to_string())?;
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Pod(PodKey::ServiceName))
+            .map(|entry| (
+                entry.value().primary().text(),
+                entry.value().is_continued(),
+                entry.value_kind()
+            ))
+            .collect::<Vec<_>>(),
+        [
+            ("ordinary", false, ValueKind::Opaque),
+            ("\"quoted %i\"", false, ValueKind::Opaque),
+            ("continued \\", true, ValueKind::Opaque),
+            ("malformed\"", false, ValueKind::Opaque),
+            ("", false, ValueKind::Opaque),
+        ]
+    );
+    assert_eq!(
+        result
+            .model_diagnostics()
+            .iter()
+            .map(|diagnostic| diagnostic.code().as_str())
+            .collect::<Vec<_>>(),
+        ["QLM0004", "QLM0004", "QLM0004", "QLM0004"]
+    );
+    Ok(())
+}
+
+#[test]
+fn container_reload_keys_are_opaque_singletons_and_conflict_without_losing_source() -> Result<(), String> {
+    let source = "[Container]\nImage=example.invalid/app\nReloadCmd=first --flag=\"quoted %i\"\nReloadCmd=continued \\\n+value\nReloadSignal=SIGUSR1\nReloadSignal=malformed\"\n";
+    let result = QuadletDocument::parse(QuadletUnitType::Container, SourceId::new(471), source)
+        .map_err(|error| error.to_string())?;
+    assert!(!result.is_valid());
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| {
+                matches!(
+                    entry.kind(),
+                    EntryKind::Container(ContainerKey::ReloadCmd | ContainerKey::ReloadSignal)
+                )
+            })
+            .map(|entry| (
+                entry.kind(),
+                entry.value().primary().text(),
+                entry.value().is_continued(),
+                entry.value_kind()
+            ))
+            .collect::<Vec<_>>(),
+        [
+            (
+                EntryKind::Container(ContainerKey::ReloadCmd),
+                "first --flag=\"quoted %i\"",
+                false,
+                ValueKind::Opaque
+            ),
+            (
+                EntryKind::Container(ContainerKey::ReloadCmd),
+                "continued \\",
+                true,
+                ValueKind::Opaque
+            ),
+            (
+                EntryKind::Container(ContainerKey::ReloadSignal),
+                "SIGUSR1",
+                false,
+                ValueKind::Opaque
+            ),
+            (
+                EntryKind::Container(ContainerKey::ReloadSignal),
+                "malformed\"",
+                false,
+                ValueKind::Opaque
+            ),
+        ]
+    );
+    assert_eq!(
+        result
+            .model_diagnostics()
+            .iter()
+            .map(|diagnostic| diagnostic.code().as_str())
+            .collect::<Vec<_>>(),
+        ["QLM0004", "QLM0004", "QLM0010"]
+    );
+    assert!(result.model_diagnostics().iter().all(|diagnostic| {
+        !diagnostic.summary().contains("quoted")
+            && !diagnostic
+                .labels()
+                .iter()
+                .any(|label| label.message().contains("quoted"))
+    }));
+    Ok(())
+}
+
+#[test]
+fn image_model_preserves_opaque_singletons_and_reports_missing_or_blank_sources() -> Result<(), String> {
+    let source = "[Image]\nImage=registry.example/one:1\nImage= \nImage=\"quoted-%i\"\nImage=continued \\\n+ value\n";
+    let result = QuadletDocument::parse(QuadletUnitType::Image, SourceId::new(440), source)
+        .map_err(|error| error.to_string())?;
+    assert!(!result.is_valid());
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Image(ImageKey::Image))
+            .map(|entry| (entry.value().primary().text(), entry.value_kind()))
+            .collect::<Vec<_>>(),
+        [
+            ("registry.example/one:1", ValueKind::Opaque),
+            ("", ValueKind::Opaque),
+            ("\"quoted-%i\"", ValueKind::Opaque),
+            ("continued \\", ValueKind::Opaque),
+        ]
+    );
+    assert_eq!(
+        result
+            .model_diagnostics()
+            .iter()
+            .map(|diagnostic| diagnostic.code().as_str())
+            .collect::<Vec<_>>(),
+        ["QLM0004", "QLM0004", "QLM0004", "QLM0009"]
+    );
+
+    let missing = QuadletDocument::parse(QuadletUnitType::Image, SourceId::new(441), "[Image]\n")
+        .map_err(|error| error.to_string())?;
+    assert_eq!(
+        missing
+            .model_diagnostics()
+            .iter()
+            .map(|diagnostic| diagnostic.code().as_str())
+            .collect::<Vec<_>>(),
+        ["QLM0008"]
+    );
+    assert_eq!(QuadletUnitType::from_extension("image"), Some(QuadletUnitType::Image));
+    Ok(())
+}
+
+#[test]
+fn image_tag_is_an_opaque_singleton_without_reference_or_source_validation_semantics() -> Result<(), String> {
+    let source = "[Image]\nImage=example.invalid/source:1\nImageTag=first\nImageTag=\nImageTag=\"quoted-%i\"\nImageTag=unmatched\"\nImageTag=continued \\\n+ value\n";
+    let result = QuadletDocument::parse(QuadletUnitType::Image, SourceId::new(447), source)
+        .map_err(|error| error.to_string())?;
+    assert!(result.is_valid(), "{:#?}", result.model_diagnostics());
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Image(ImageKey::ImageTag))
+            .map(|entry| (
+                entry.value().primary().text(),
+                entry.value_kind(),
+                entry.unit_reference_name()
+            ))
+            .collect::<Vec<_>>(),
+        [
+            ("first", ValueKind::Opaque, None),
+            ("", ValueKind::Opaque, None),
+            ("\"quoted-%i\"", ValueKind::Opaque, None),
+            ("unmatched\"", ValueKind::Opaque, None),
+            ("continued \\", ValueKind::Opaque, None),
+        ]
+    );
+    assert_eq!(
+        result
+            .model_diagnostics()
+            .iter()
+            .map(|diagnostic| diagnostic.code().as_str())
+            .collect::<Vec<_>>(),
+        ["QLM0004", "QLM0004", "QLM0004", "QLM0004"]
+    );
+    Ok(())
+}
+
+#[test]
+fn image_service_name_is_an_opaque_singleton_without_identity_or_reference_semantics() -> Result<(), String> {
+    let source = "[Image]\nImage=example.invalid/source:1\nServiceName=first\nServiceName=\nServiceName=\"quoted-%i\"\nServiceName=unmatched\"\nServiceName=continued \\\n+ value\n";
+    let result = QuadletDocument::parse(QuadletUnitType::Image, SourceId::new(451), source)
+        .map_err(|error| error.to_string())?;
+    assert!(result.is_valid(), "{:#?}", result.model_diagnostics());
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Image(ImageKey::ServiceName))
+            .map(|entry| (
+                entry.value().primary().text(),
+                entry.value_kind(),
+                entry.unit_reference_name()
+            ))
+            .collect::<Vec<_>>(),
+        [
+            ("first", ValueKind::Opaque, None),
+            ("", ValueKind::Opaque, None),
+            ("\"quoted-%i\"", ValueKind::Opaque, None),
+            ("unmatched\"", ValueKind::Opaque, None),
+            ("continued \\", ValueKind::Opaque, None),
+        ]
+    );
+    assert_eq!(
+        result
+            .model_diagnostics()
+            .iter()
+            .map(|diagnostic| diagnostic.code().as_str())
+            .collect::<Vec<_>>(),
+        ["QLM0004", "QLM0004", "QLM0004", "QLM0004"]
+    );
+    Ok(())
+}
+
+#[test]
+fn image_all_tags_is_an_opaque_singleton_without_boolean_or_reference_semantics() -> Result<(), String> {
+    let source = "[Image]\nImage=example.invalid/source:1\nAllTags=true\nAllTags=\nAllTags= whitespace \nAllTags=\"quoted-%i\"\nAllTags=unmatched\"\nAllTags=continued \\\nvalue\n";
+    let result = QuadletDocument::parse(QuadletUnitType::Image, SourceId::new(453), source)
+        .map_err(|error| error.to_string())?;
+    assert!(result.is_valid(), "{:#?}", result.model_diagnostics());
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Image(ImageKey::AllTags))
+            .map(|entry| (
+                entry.value().primary().text(),
+                entry.value_kind(),
+                entry.unit_reference_name()
+            ))
+            .collect::<Vec<_>>(),
+        [
+            ("true", ValueKind::Opaque, None),
+            ("", ValueKind::Opaque, None),
+            ("whitespace ", ValueKind::Opaque, None),
+            ("\"quoted-%i\"", ValueKind::Opaque, None),
+            ("unmatched\"", ValueKind::Opaque, None),
+            (r"continued \", ValueKind::Opaque, None),
+        ]
+    );
+    assert_eq!(
+        result
+            .model_diagnostics()
+            .iter()
+            .map(|diagnostic| diagnostic.code().as_str())
+            .collect::<Vec<_>>(),
+        ["QLM0004", "QLM0004", "QLM0004", "QLM0004", "QLM0004"]
+    );
+    Ok(())
+}
+
+#[test]
+fn image_arch_is_an_opaque_singleton_without_platform_or_reference_semantics() -> Result<(), String> {
+    let source = "[Image]\nImage=example.invalid/source:1\nArch=arm64\nArch=\nArch= whitespace \nArch=\"quoted-%i\"\nArch=unmatched\"\nArch=continued \\\n+value\n";
+    let result = QuadletDocument::parse(QuadletUnitType::Image, SourceId::new(454), source)
+        .map_err(|error| error.to_string())?;
+    assert!(result.is_valid(), "{:#?}", result.model_diagnostics());
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Image(ImageKey::Arch))
+            .map(|entry| (
+                entry.value().primary().text(),
+                entry.value_kind(),
+                entry.unit_reference_name()
+            ))
+            .collect::<Vec<_>>(),
+        [
+            ("arm64", ValueKind::Opaque, None),
+            ("", ValueKind::Opaque, None),
+            ("whitespace ", ValueKind::Opaque, None),
+            ("\"quoted-%i\"", ValueKind::Opaque, None),
+            ("unmatched\"", ValueKind::Opaque, None),
+            (r"continued \", ValueKind::Opaque, None),
+        ]
+    );
+    assert_eq!(
+        result
+            .model_diagnostics()
+            .iter()
+            .map(|diagnostic| diagnostic.code().as_str())
+            .collect::<Vec<_>>(),
+        ["QLM0004", "QLM0004", "QLM0004", "QLM0004", "QLM0004"]
+    );
+    Ok(())
+}
+
+#[test]
+fn image_auth_file_is_an_opaque_singleton_without_path_or_credential_semantics() -> Result<(), String> {
+    let source = "[Image]\nImage=example.invalid/source:1\nAuthFile=/placeholder/quadlet-lens-auth.json\nAuthFile=\nAuthFile= whitespace \nAuthFile=\"quoted-%i\"\nAuthFile=unmatched\"\nAuthFile=continued \\\n+value\nAuthFile=%h/placeholder-auth.json\nAuthFile=arbitrary text\n";
+    let result = QuadletDocument::parse(QuadletUnitType::Image, SourceId::new(455), source)
+        .map_err(|error| error.to_string())?;
+    assert!(result.is_valid(), "{:#?}", result.model_diagnostics());
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Image(ImageKey::AuthFile))
+            .map(|entry| (
+                entry.value().primary().text(),
+                entry.value_kind(),
+                entry.unit_reference_name()
+            ))
+            .collect::<Vec<_>>(),
+        [
+            ("/placeholder/quadlet-lens-auth.json", ValueKind::Opaque, None),
+            ("", ValueKind::Opaque, None),
+            ("whitespace ", ValueKind::Opaque, None),
+            ("\"quoted-%i\"", ValueKind::Opaque, None),
+            ("unmatched\"", ValueKind::Opaque, None),
+            (r"continued \", ValueKind::Opaque, None),
+            ("%h/placeholder-auth.json", ValueKind::Opaque, None),
+            ("arbitrary text", ValueKind::Opaque, None),
+        ]
+    );
+    assert_eq!(
+        result
+            .model_diagnostics()
+            .iter()
+            .map(|diagnostic| diagnostic.code().as_str())
+            .collect::<Vec<_>>(),
+        [
+            "QLM0004", "QLM0004", "QLM0004", "QLM0004", "QLM0004", "QLM0004", "QLM0004"
+        ]
+    );
+    Ok(())
+}
+
+#[test]
+fn image_cert_dir_is_an_opaque_singleton_without_path_or_certificate_semantics() -> Result<(), String> {
+    let source = "[Image]\nImage=example.invalid/source:1\nCertDir=/placeholder/quadlet-lens-certs\nCertDir=\nCertDir= whitespace \nCertDir=\"quoted-%i\"\nCertDir=unmatched\"\nCertDir=continued \\\n+value\nCertDir=%h/placeholder-certs\nCertDir=escaped\\ text\nCertDir=arbitrary path-looking text\n";
+    let result = QuadletDocument::parse(QuadletUnitType::Image, SourceId::new(456), source)
+        .map_err(|error| error.to_string())?;
+    assert!(result.is_valid(), "{:#?}", result.model_diagnostics());
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Image(ImageKey::CertDir))
+            .map(|entry| (
+                entry.value().primary().text(),
+                entry.value_kind(),
+                entry.unit_reference_name()
+            ))
+            .collect::<Vec<_>>(),
+        [
+            ("/placeholder/quadlet-lens-certs", ValueKind::Opaque, None),
+            ("", ValueKind::Opaque, None),
+            ("whitespace ", ValueKind::Opaque, None),
+            ("\"quoted-%i\"", ValueKind::Opaque, None),
+            ("unmatched\"", ValueKind::Opaque, None),
+            (r"continued \", ValueKind::Opaque, None),
+            ("%h/placeholder-certs", ValueKind::Opaque, None),
+            ("escaped\\ text", ValueKind::Opaque, None),
+            ("arbitrary path-looking text", ValueKind::Opaque, None),
+        ]
+    );
+    assert_eq!(
+        result
+            .model_diagnostics()
+            .iter()
+            .map(|diagnostic| diagnostic.code().as_str())
+            .collect::<Vec<_>>(),
+        [
+            "QLM0004", "QLM0004", "QLM0004", "QLM0004", "QLM0004", "QLM0004", "QLM0004", "QLM0004"
+        ]
+    );
+    Ok(())
+}
+
+#[test]
+fn image_containers_conf_module_preserves_every_opaque_physical_value_without_module_semantics() -> Result<(), String> {
+    let source = concat!(
+        "[Image]\nImage=example.invalid/source:1\n",
+        "ContainersConfModule=pre-one\nContainersConfModule=\n",
+        "ContainersConfModule= post one \nContainersConfModule=post-two\n",
+        "ContainersConfModule=post-two\nContainersConfModule=\"quoted %h module\"\n",
+        "ContainersConfModule=module\\x20text\nContainersConfModule=-leading-dash\n",
+        "ContainersConfModule=continued \\\n+module\n",
+    );
+    let result = QuadletDocument::parse(QuadletUnitType::Image, SourceId::new(457), source)
+        .map_err(|error| error.to_string())?;
+    assert!(result.is_valid(), "{:#?}", result.model_diagnostics());
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Image(ImageKey::ContainersConfModule))
+            .map(|entry| (entry.value().primary().text(), entry.value_kind()))
+            .collect::<Vec<_>>(),
+        [
+            ("pre-one", ValueKind::Opaque),
+            ("", ValueKind::Opaque),
+            ("post one ", ValueKind::Opaque),
+            ("post-two", ValueKind::Opaque),
+            ("post-two", ValueKind::Opaque),
+            ("\"quoted %h module\"", ValueKind::Opaque),
+            (r"module\x20text", ValueKind::Opaque),
+            ("-leading-dash", ValueKind::Opaque),
+            (r"continued \", ValueKind::Opaque),
+        ]
+    );
+    assert!(
+        result
+            .document()
+            .entries()
+            .any(|entry| entry.kind() == EntryKind::Image(ImageKey::ContainersConfModule)
+                && entry.value().is_continued())
+    );
+    assert!(result.model_diagnostics().is_empty());
+    Ok(())
+}
+
+#[test]
+fn image_creds_preserves_opaque_physical_values_and_redacts_only_credential_debug_output() -> Result<(), String> {
+    const PLACEHOLDER: &str = "quadlet-lens-creds-debug-placeholder-7e9c:opaque-password";
+    let source = concat!(
+        "[Image]\nImage=example.invalid/source:1\n",
+        "Creds=quadlet-lens-creds-debug-placeholder-7e9c:opaque-password\n",
+        "Creds=\"quadlet-lens-creds-debug-placeholder-7e9c:opaque-password\"\n",
+        "Creds=%h/quadlet-lens-creds-debug-placeholder-7e9c\n",
+        "Creds=continued \\\n+quadlet-lens-creds-debug-placeholder-7e9c:opaque-password\n",
+    );
+    let result = QuadletDocument::parse(QuadletUnitType::Image, SourceId::new(459), source)
+        .map_err(|error| error.to_string())?;
+    assert!(result.is_valid(), "{:#?}", result.model_diagnostics());
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    let entries: Vec<_> = result
+        .document()
+        .entries()
+        .filter(|entry| entry.kind() == EntryKind::Image(ImageKey::Creds))
+        .collect();
+    assert_eq!(entries.len(), 4);
+    assert!(entries.iter().all(|entry| entry.is_sensitive()));
+    assert_eq!(entries[0].value().primary().text(), PLACEHOLDER);
+    assert_eq!(entries[1].value().primary().text(), format!("\"{PLACEHOLDER}\""));
+    assert_eq!(
+        entries[2].value().primary().text(),
+        "%h/quadlet-lens-creds-debug-placeholder-7e9c"
+    );
+    assert_eq!(entries[3].value().continuations()[0].text(), format!("+{PLACEHOLDER}"));
+    assert!(entries[3].value().is_continued());
+    assert_eq!(
+        result
+            .model_diagnostics()
+            .iter()
+            .map(|diagnostic| diagnostic.code().as_str())
+            .collect::<Vec<_>>(),
+        ["QLM0004", "QLM0004", "QLM0004"]
+    );
+    for debug in [
+        format!("{:#?}", entries[0]),
+        format!("{:#?}", entries[0].value()),
+        format!("{:#?}", entries[0].value().primary()),
+        format!("{:#?}", entries[3].value().continuations()),
+        format!("{:#?}", result.document()),
+        format!("{result:#?}"),
+        format!("{:#?}", result.model_diagnostics()),
+    ] {
+        assert!(
+            !debug.contains(PLACEHOLDER),
+            "credential leaked in debug output: {debug}"
+        );
+    }
+    let ordinary = QuadletDocument::parse(
+        QuadletUnitType::Image,
+        SourceId::new(460),
+        "[Image]\nImage=ordinary-debug-value\n",
+    )
+    .map_err(|error| error.to_string())?;
+    assert!(ordinary.document().entries().all(|entry| !entry.is_sensitive()));
+    assert!(format!("{:#?}", ordinary.document()).contains("ordinary-debug-value"));
+    assert!(format!("{ordinary:#?}").contains("ordinary-debug-value"));
+    Ok(())
+}
+
+#[test]
+fn image_decryption_key_preserves_opaque_physical_values_and_redacts_key_debug_output() -> Result<(), String> {
+    const PLACEHOLDER: &str = "quadlet-lens-decryption-key-debug-placeholder-7e9c";
+    let source = concat!(
+        "[Image]\nImage=example.invalid/source:1\n",
+        "DecryptionKey=quadlet-lens-decryption-key-debug-placeholder-7e9c\n",
+        "DecryptionKey=\"quadlet-lens-decryption-key-debug-placeholder-7e9c\"\n",
+        "DecryptionKey=%h/quadlet-lens-decryption-key-debug-placeholder-7e9c\n",
+        "DecryptionKey=continued \\\n+quadlet-lens-decryption-key-debug-placeholder-7e9c\n",
+    );
+    let result = QuadletDocument::parse(QuadletUnitType::Image, SourceId::new(461), source)
+        .map_err(|error| error.to_string())?;
+    assert!(result.is_valid(), "{:#?}", result.model_diagnostics());
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    let entries: Vec<_> = result
+        .document()
+        .entries()
+        .filter(|entry| entry.kind() == EntryKind::Image(ImageKey::DecryptionKey))
+        .collect();
+    assert_eq!(entries.len(), 4);
+    assert!(entries.iter().all(|entry| entry.is_sensitive()));
+    assert_eq!(entries[0].value().primary().text(), PLACEHOLDER);
+    assert_eq!(entries[1].value().primary().text(), format!("\"{PLACEHOLDER}\""));
+    assert_eq!(
+        entries[2].value().primary().text(),
+        "%h/quadlet-lens-decryption-key-debug-placeholder-7e9c"
+    );
+    assert_eq!(entries[3].value().continuations()[0].text(), format!("+{PLACEHOLDER}"));
+    assert!(entries[3].value().is_continued());
+    assert_eq!(
+        result
+            .model_diagnostics()
+            .iter()
+            .map(|diagnostic| diagnostic.code().as_str())
+            .collect::<Vec<_>>(),
+        ["QLM0004", "QLM0004", "QLM0004"]
+    );
+    for debug in [
+        format!("{:#?}", entries[0]),
+        format!("{:#?}", entries[0].value()),
+        format!("{:#?}", entries[0].value().primary()),
+        format!("{:#?}", entries[3].value().continuations()),
+        format!("{:#?}", result.document()),
+        format!("{result:#?}"),
+        format!("{:#?}", result.syntax().diagnostics()),
+        format!("{:#?}", result.model_diagnostics()),
+    ] {
+        assert!(
+            !debug.contains(PLACEHOLDER),
+            "decryption key leaked in debug output: {debug}"
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn image_global_args_remain_repeatable_opaque_physical_lines() -> Result<(), String> {
+    let source = concat!(
+        "[Image]\nImage=example.invalid/source:1\n",
+        "GlobalArgs=pre-one\nGlobalArgs=pre-one\nGlobalArgs=\n",
+        "GlobalArgs= --log-level=debug \nGlobalArgs=\"--events-backend=none\"\n",
+        "GlobalArgs=--events-backend\\x3dfile\\x20value\n",
+        "GlobalArgs=continued \\\ntext\nGlobalArgs=malformed \\ value\nGlobalArgs=%h/bin\n",
+    );
+    let result = QuadletDocument::parse(QuadletUnitType::Image, SourceId::new(462), source)
+        .map_err(|error| error.to_string())?;
+    assert!(result.is_valid(), "{:#?}", result.model_diagnostics());
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Image(ImageKey::GlobalArgs))
+            .map(|entry| (entry.value().primary().text(), entry.value_kind(), entry.is_sensitive()))
+            .collect::<Vec<_>>(),
+        [
+            ("pre-one", ValueKind::Opaque, false),
+            ("pre-one", ValueKind::Opaque, false),
+            ("", ValueKind::Opaque, false),
+            ("--log-level=debug ", ValueKind::Opaque, false),
+            ("\"--events-backend=none\"", ValueKind::Opaque, false),
+            ("--events-backend\\x3dfile\\x20value", ValueKind::Opaque, false),
+            ("continued \\", ValueKind::Opaque, false),
+            ("malformed \\ value", ValueKind::Opaque, false),
+            ("%h/bin", ValueKind::Opaque, false),
+        ]
+    );
+    assert!(result.document().entries().any(|entry| {
+        entry.kind() == EntryKind::Image(ImageKey::GlobalArgs)
+            && entry.value().is_continued()
+            && entry.value().continuations()[0].text() == "text"
+    }));
+    assert!(result.model_diagnostics().is_empty());
+    Ok(())
+}
+
+#[test]
+fn image_os_is_an_opaque_singleton_without_platform_or_effective_value_semantics() -> Result<(), String> {
+    let source = "[Image]\nImage=example.invalid/source:1\nOS=windows\nOS=\nOS=\"quoted-%i\"\nOS=unmatched\"\nOS=continued \\\nvalue\nOS=%h/os\n";
+    let result = QuadletDocument::parse(QuadletUnitType::Image, SourceId::new(463), source)
+        .map_err(|error| error.to_string())?;
+    assert!(result.is_valid(), "{:#?}", result.model_diagnostics());
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Image(ImageKey::OS))
+            .map(|entry| (entry.value().primary().text(), entry.value_kind(), entry.is_sensitive()))
+            .collect::<Vec<_>>(),
+        [
+            ("windows", ValueKind::Opaque, false),
+            ("", ValueKind::Opaque, false),
+            ("\"quoted-%i\"", ValueKind::Opaque, false),
+            ("unmatched\"", ValueKind::Opaque, false),
+            ("continued \\", ValueKind::Opaque, false),
+            ("%h/os", ValueKind::Opaque, false),
+        ]
+    );
+    assert!(result.document().entries().any(|entry| {
+        entry.kind() == EntryKind::Image(ImageKey::OS)
+            && entry.value().is_continued()
+            && entry.value().continuations()[0].text() == "value"
+    }));
+    assert_eq!(
+        result
+            .model_diagnostics()
+            .iter()
+            .map(|diagnostic| diagnostic.code().as_str())
+            .collect::<Vec<_>>(),
+        ["QLM0004", "QLM0004", "QLM0004", "QLM0004", "QLM0004"]
+    );
+    Ok(())
+}
 
 #[test]
 fn build_podman_args_remain_repeatable_opaque_physical_lines() -> Result<(), String> {
@@ -244,6 +942,124 @@ fn build_ignore_file_is_unknown_and_preserved_outside_build() -> Result<(), Stri
 }
 
 #[test]
+fn build_service_name_preserves_opaque_singleton_physical_lines_and_scope() -> Result<(), String> {
+    let source = concat!(
+        "[Build]\n",
+        "ServiceName=first.service\n",
+        "ServiceName=\n",
+        "ServiceName= second service \n",
+        "ServiceName=\"quoted-%i\"\n",
+        "ServiceName=%h/service\n",
+        "ServiceName=continuation\\-looking\n",
+    );
+    let result = QuadletDocument::parse(QuadletUnitType::Build, SourceId::new(196), source)
+        .map_err(|error| error.to_string())?;
+    assert!(result.is_valid());
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Build(BuildKey::ServiceName))
+            .map(|entry| (entry.value().primary().text(), entry.value_kind()))
+            .collect::<Vec<_>>(),
+        [
+            ("first.service", ValueKind::Opaque),
+            ("", ValueKind::Opaque),
+            ("second service ", ValueKind::Opaque),
+            ("\"quoted-%i\"", ValueKind::Opaque),
+            ("%h/service", ValueKind::Opaque),
+            ("continuation\\-looking", ValueKind::Opaque),
+        ]
+    );
+    assert_eq!(
+        result
+            .model_diagnostics()
+            .iter()
+            .filter(|diagnostic| diagnostic.code().as_str() == "QLM0004")
+            .count(),
+        5
+    );
+
+    let wrong_section = QuadletDocument::parse(
+        QuadletUnitType::Container,
+        SourceId::new(197),
+        "[Container]\nImage=example.invalid/app\nServiceName=container.service\n",
+    )
+    .map_err(|error| error.to_string())?;
+    assert!(
+        wrong_section
+            .document()
+            .entries()
+            .any(|entry| { entry.kind() == EntryKind::Unknown && entry.key().text() == "ServiceName" })
+    );
+    Ok(())
+}
+
+#[test]
+fn build_volume_classifies_only_the_source_prefix_and_preserves_raw_values() -> Result<(), String> {
+    let source = concat!(
+        "[Build]\n",
+        "Volume=cache.volume:/var/cache:Z\n",
+        "Volume=.:/workspace\n",
+        "Volume=/host/data:/data:ro\n",
+        "Volume=destination-only\n",
+        "Volume=\n",
+        "Volume=\"quoted.volume\":/quoted\n",
+        "Volume=%h/data:/home\n",
+        "Volume=relative/path:/relative\n",
+        "Volume=cache.volume:/var/cache:Z\n",
+    );
+    let result = QuadletDocument::parse(QuadletUnitType::Build, SourceId::new(218), source)
+        .map_err(|error| error.to_string())?;
+    assert!(result.is_valid());
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    let volumes: Vec<_> = result
+        .document()
+        .entries()
+        .filter(|entry| entry.kind() == EntryKind::Build(BuildKey::Volume))
+        .map(|entry| {
+            (
+                entry.value().primary().text(),
+                entry.value_kind(),
+                entry.unit_reference_name(),
+            )
+        })
+        .collect();
+    assert_eq!(
+        volumes,
+        [
+            (
+                "cache.volume:/var/cache:Z",
+                ValueKind::UnitReference(UnitReferenceKind::Volume),
+                Some("cache.volume")
+            ),
+            (".:/workspace", ValueKind::Path(PathForm::UnitRelativeLiteral), None),
+            ("/host/data:/data:ro", ValueKind::Path(PathForm::AbsoluteLiteral), None),
+            ("destination-only", ValueKind::Path(PathForm::RelativeLiteral), None),
+            ("", ValueKind::Path(PathForm::RelativeLiteral), None),
+            (
+                "\"quoted.volume\":/quoted",
+                ValueKind::Path(PathForm::RelativeLiteral),
+                None
+            ),
+            ("%h/data:/home", ValueKind::Path(PathForm::SystemdSpecifier), None),
+            (
+                "relative/path:/relative",
+                ValueKind::Path(PathForm::RelativeLiteral),
+                None
+            ),
+            (
+                "cache.volume:/var/cache:Z",
+                ValueKind::UnitReference(UnitReferenceKind::Volume),
+                Some("cache.volume")
+            ),
+        ]
+    );
+    Ok(())
+}
+
+#[test]
 fn build_annotation_preserves_every_opaque_physical_line_in_source_order() -> Result<(), String> {
     let source = concat!(
         "[Build]\n",
@@ -294,6 +1110,140 @@ fn build_annotation_is_unknown_and_preserved_outside_build() -> Result<(), Strin
     assert_eq!(entry.kind(), EntryKind::Unknown);
     assert_eq!(entry.value().primary().text(), "org.example.pod=one");
     assert!(result.model_diagnostics().is_empty());
+    Ok(())
+}
+
+#[test]
+fn build_environment_preserves_opaque_physical_lines_and_wrong_section() -> Result<(), String> {
+    let source = concat!(
+        "[Build]\nEnvironment=PRE=one\nEnvironment=\nEnvironment=NAME=first\n",
+        "Environment=NAME=final\nEnvironment=bare\nEnvironment=\"QUOTED=Authored Value\"\n",
+        "Environment=ESCAPED=literal\\x20text\nEnvironment=embedded=a=b\n",
+    );
+    let result = QuadletDocument::parse(QuadletUnitType::Build, SourceId::new(199), source)
+        .map_err(|error| error.to_string())?;
+    assert!(result.is_valid());
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Build(BuildKey::Environment))
+            .map(|entry| entry.value().primary().text())
+            .collect::<Vec<_>>(),
+        [
+            "PRE=one",
+            "",
+            "NAME=first",
+            "NAME=final",
+            "bare",
+            "\"QUOTED=Authored Value\"",
+            "ESCAPED=literal\\x20text",
+            "embedded=a=b"
+        ]
+    );
+    let wrong = QuadletDocument::parse(
+        QuadletUnitType::Pod,
+        SourceId::new(200),
+        "[Pod]\nEnvironment=NOPE=one\n",
+    )
+    .map_err(|error| error.to_string())?;
+    assert_eq!(
+        wrong.document().entries().next().ok_or("missing")?.kind(),
+        EntryKind::Unknown
+    );
+    Ok(())
+}
+
+#[test]
+fn build_containers_conf_module_preserves_opaque_physical_lines_and_wrong_section() -> Result<(), String> {
+    let source = concat!(
+        "[Build]\nContainersConfModule=pre-one\nContainersConfModule=\n",
+        "ContainersConfModule= post one \nContainersConfModule=post-two\n",
+        "ContainersConfModule=post-two\nContainersConfModule=\"quoted module\"\n",
+        "ContainersConfModule=module\\x20text\nContainersConfModule=continuation\\-looking\n",
+        "ContainersConfModule=%i.conf\n",
+    );
+    let result = QuadletDocument::parse(QuadletUnitType::Build, SourceId::new(205), source)
+        .map_err(|error| error.to_string())?;
+    assert!(result.is_valid());
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Build(BuildKey::ContainersConfModule))
+            .map(|entry| entry.value().primary().text())
+            .collect::<Vec<_>>(),
+        [
+            "pre-one",
+            "",
+            "post one ",
+            "post-two",
+            "post-two",
+            "\"quoted module\"",
+            "module\\x20text",
+            "continuation\\-looking",
+            "%i.conf",
+        ]
+    );
+    let wrong = QuadletDocument::parse(
+        QuadletUnitType::Pod,
+        SourceId::new(206),
+        "[Pod]\nContainersConfModule=pod.conf\n",
+    )
+    .map_err(|error| error.to_string())?;
+    assert_eq!(
+        wrong.document().entries().next().ok_or("missing")?.kind(),
+        EntryKind::Unknown
+    );
+    Ok(())
+}
+
+#[test]
+fn build_global_args_preserves_exact_repeatable_physical_lines_and_wrong_section() -> Result<(), String> {
+    let source = concat!(
+        "[Build]\nGlobalArgs=--events-backend=none\nGlobalArgs=--events-backend=none\n",
+        "GlobalArgs=\nGlobalArgs= --log-level=debug \nGlobalArgs=\"--transient\"\n",
+        "GlobalArgs=--events-backend\\x3dfile\nGlobalArgs=continuation\\-looking\n",
+        "GlobalArgs= malformed = value \nGlobalArgs=\\\n",
+    );
+    let result = QuadletDocument::parse(QuadletUnitType::Build, SourceId::new(209), source)
+        .map_err(|error| error.to_string())?;
+    assert!(
+        !result.is_valid(),
+        "the dangling continuation-looking physical line remains source-preserved with a syntax diagnostic"
+    );
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Build(BuildKey::GlobalArgs))
+            .map(|entry| (entry.value().primary().text(), entry.value_kind()))
+            .collect::<Vec<_>>(),
+        [
+            ("--events-backend=none", ValueKind::Opaque),
+            ("--events-backend=none", ValueKind::Opaque),
+            ("", ValueKind::Opaque),
+            ("--log-level=debug ", ValueKind::Opaque),
+            ("\"--transient\"", ValueKind::Opaque),
+            ("--events-backend\\x3dfile", ValueKind::Opaque),
+            ("continuation\\-looking", ValueKind::Opaque),
+            ("malformed = value ", ValueKind::Opaque),
+            ("\\", ValueKind::Opaque),
+        ]
+    );
+    let wrong = QuadletDocument::parse(
+        QuadletUnitType::Pod,
+        SourceId::new(210),
+        "[Pod]\nGlobalArgs=--log-level=debug\n",
+    )
+    .map_err(|error| error.to_string())?;
+    assert_eq!(
+        wrong.document().entries().next().ok_or("missing")?.kind(),
+        EntryKind::Unknown
+    );
     Ok(())
 }
 
@@ -2410,6 +3360,509 @@ fn volume_copy_is_an_opaque_singleton_with_physical_source_fidelity() -> Result<
             .map(|entry| entry.key().text())
             .collect::<Vec<_>>(),
         ["Copy"]
+    );
+    Ok(())
+}
+
+#[test]
+fn volume_containers_conf_module_preserves_every_opaque_physical_value_and_scope() -> Result<(), String> {
+    let source = concat!(
+        "[Volume]\n",
+        "ContainersConfModule=pre-one\n",
+        "ContainersConfModule=\n",
+        "ContainersConfModule= post one \n",
+        "ContainersConfModule=post-two\n",
+        "ContainersConfModule=post-two\n",
+        "ContainersConfModule=\"quoted %h module\"\n",
+        "ContainersConfModule=module\\x20text\n",
+        "ContainersConfModule=continuation\\-looking\n",
+        "ContainersConfModule=continued \\\n",
+        " module\n",
+    );
+    let result = QuadletDocument::parse(QuadletUnitType::Volume, SourceId::new(313), source)
+        .map_err(|error| error.to_string())?;
+    assert!(result.is_valid(), "{:#?}", result.model_diagnostics());
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Volume(VolumeKey::ContainersConfModule))
+            .map(|entry| (entry.value().primary().text(), entry.value_kind()))
+            .collect::<Vec<_>>(),
+        [
+            ("pre-one", ValueKind::Opaque),
+            ("", ValueKind::Opaque),
+            ("post one ", ValueKind::Opaque),
+            ("post-two", ValueKind::Opaque),
+            ("post-two", ValueKind::Opaque),
+            ("\"quoted %h module\"", ValueKind::Opaque),
+            ("module\\x20text", ValueKind::Opaque),
+            ("continuation\\-looking", ValueKind::Opaque),
+            ("continued \\", ValueKind::Opaque),
+        ]
+    );
+    let continued = result
+        .document()
+        .entries()
+        .find(|entry| {
+            entry.kind() == EntryKind::Volume(VolumeKey::ContainersConfModule) && entry.value().is_continued()
+        })
+        .ok_or("continued ContainersConfModule must be retained")?;
+    assert_eq!(continued.value().continuations()[0].text(), "module");
+
+    let wrong_section = QuadletDocument::parse(
+        QuadletUnitType::Build,
+        SourceId::new(314),
+        "[Build]\nImageTag=example.invalid/app\nContainersConfModule=build.conf\n",
+    )
+    .map_err(|error| error.to_string())?;
+    assert!(
+        wrong_section
+            .document()
+            .entries()
+            .any(|entry| { entry.kind() == EntryKind::Build(BuildKey::ContainersConfModule) })
+    );
+    let container = QuadletDocument::parse(
+        QuadletUnitType::Container,
+        SourceId::new(315),
+        "[Container]\nImage=example.invalid/app\nContainersConfModule=container.conf\n",
+    )
+    .map_err(|error| error.to_string())?;
+    assert!(
+        container
+            .document()
+            .entries()
+            .any(|entry| { entry.kind() == EntryKind::Unknown && entry.key().text() == "ContainersConfModule" })
+    );
+    Ok(())
+}
+
+#[test]
+fn volume_global_args_preserves_every_opaque_physical_value_and_scope() -> Result<(), String> {
+    let source = concat!(
+        "[Volume]\n",
+        "GlobalArgs=pre-one\n",
+        "GlobalArgs=pre-two\n",
+        "GlobalArgs=\n",
+        "GlobalArgs=--log-level=debug\n",
+        "GlobalArgs=\"--events-backend=none\"\n",
+        "GlobalArgs=--events-backend=file\\x20value\n",
+        "GlobalArgs= malformed \\ value\n",
+        "GlobalArgs=continued \\\n",
+        " logical\n",
+        "globalargs=wrong-case\n",
+    );
+    let result = QuadletDocument::parse(QuadletUnitType::Volume, SourceId::new(317), source)
+        .map_err(|error| error.to_string())?;
+    assert!(result.is_valid(), "{:#?}", result.model_diagnostics());
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Volume(VolumeKey::GlobalArgs))
+            .map(|entry| (entry.value().primary().text(), entry.value_kind()))
+            .collect::<Vec<_>>(),
+        [
+            ("pre-one", ValueKind::Opaque),
+            ("pre-two", ValueKind::Opaque),
+            ("", ValueKind::Opaque),
+            ("--log-level=debug", ValueKind::Opaque),
+            ("\"--events-backend=none\"", ValueKind::Opaque),
+            ("--events-backend=file\\x20value", ValueKind::Opaque),
+            ("malformed \\ value", ValueKind::Opaque),
+            ("continued \\", ValueKind::Opaque),
+        ]
+    );
+    let continued = result
+        .document()
+        .entries()
+        .find(|entry| entry.kind() == EntryKind::Volume(VolumeKey::GlobalArgs) && entry.value().is_continued())
+        .ok_or("continued GlobalArgs must be retained")?;
+    assert_eq!(continued.value().continuations()[0].text(), "logical");
+    assert!(
+        result
+            .document()
+            .entries()
+            .any(|entry| entry.kind() == EntryKind::Unknown && entry.key().text() == "globalargs")
+    );
+
+    let wrong_section = QuadletDocument::parse(
+        QuadletUnitType::Container,
+        SourceId::new(318),
+        "[Container]\nImage=example.invalid/app\nGlobalArgs=--log-level=debug\n",
+    )
+    .map_err(|error| error.to_string())?;
+    assert!(
+        wrong_section
+            .document()
+            .entries()
+            .any(|entry| entry.kind() == EntryKind::Unknown && entry.key().text() == "GlobalArgs")
+    );
+    Ok(())
+}
+
+#[test]
+fn volume_podman_args_preserves_every_opaque_physical_value_and_scope() -> Result<(), String> {
+    let source = concat!(
+        "[Volume]\n",
+        "PodmanArgs=pre-one\n",
+        "PodmanArgs=\n",
+        "PodmanArgs=--label=post-one\n",
+        "PodmanArgs=\"--label=quoted value\"\n",
+        "PodmanArgs=--label\\x3descaped\n",
+        "PodmanArgs= malformed \\ value\n",
+        "PodmanArgs=continued \\\n",
+        " logical\n",
+        "podmanargs=wrong-case\n",
+    );
+    let result = QuadletDocument::parse(QuadletUnitType::Volume, SourceId::new(319), source)
+        .map_err(|error| error.to_string())?;
+    assert!(result.is_valid(), "{:#?}", result.model_diagnostics());
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Volume(VolumeKey::PodmanArgs))
+            .map(|entry| (entry.value().primary().text(), entry.value_kind()))
+            .collect::<Vec<_>>(),
+        [
+            ("pre-one", ValueKind::Opaque),
+            ("", ValueKind::Opaque),
+            ("--label=post-one", ValueKind::Opaque),
+            ("\"--label=quoted value\"", ValueKind::Opaque),
+            ("--label\\x3descaped", ValueKind::Opaque),
+            ("malformed \\ value", ValueKind::Opaque),
+            ("continued \\", ValueKind::Opaque),
+        ]
+    );
+    let continued = result
+        .document()
+        .entries()
+        .find(|entry| entry.kind() == EntryKind::Volume(VolumeKey::PodmanArgs) && entry.value().is_continued())
+        .ok_or("continued PodmanArgs must be retained")?;
+    assert_eq!(continued.value().continuations()[0].text(), "logical");
+    assert!(
+        result
+            .document()
+            .entries()
+            .any(|entry| entry.kind() == EntryKind::Unknown && entry.key().text() == "podmanargs")
+    );
+
+    let wrong_section = QuadletDocument::parse(
+        QuadletUnitType::Network,
+        SourceId::new(320),
+        "[Network]\nNetworkName=example\nPodmanArgs=--label=one\n",
+    )
+    .map_err(|error| error.to_string())?;
+    assert!(
+        wrong_section
+            .document()
+            .entries()
+            .any(|entry| entry.kind() == EntryKind::Unknown && entry.key().text() == "PodmanArgs")
+    );
+    Ok(())
+}
+
+#[test]
+fn volume_user_preserves_opaque_singleton_physical_lines_and_scope() -> Result<(), String> {
+    let source = concat!(
+        "[Volume]\n",
+        "User=123\n",
+        "User=007\n",
+        "User=alice\n",
+        "User=\n",
+        "User= user name \n",
+        "User=\"quoted-%i\"\n",
+        "User=%h/user\n",
+        "User=continued \\\n",
+        " text\n",
+        "user=wrong-case\n",
+    );
+    let result = QuadletDocument::parse(QuadletUnitType::Volume, SourceId::new(321), source)
+        .map_err(|error| error.to_string())?;
+    assert!(result.is_valid(), "{:#?}", result.model_diagnostics());
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Volume(VolumeKey::User))
+            .map(|entry| (entry.value().primary().text(), entry.value_kind()))
+            .collect::<Vec<_>>(),
+        [
+            ("123", ValueKind::Opaque),
+            ("007", ValueKind::Opaque),
+            ("alice", ValueKind::Opaque),
+            ("", ValueKind::Opaque),
+            ("user name ", ValueKind::Opaque),
+            ("\"quoted-%i\"", ValueKind::Opaque),
+            ("%h/user", ValueKind::Opaque),
+            ("continued \\", ValueKind::Opaque),
+        ]
+    );
+    let continued = result
+        .document()
+        .entries()
+        .find(|entry| entry.kind() == EntryKind::Volume(VolumeKey::User) && entry.value().is_continued())
+        .ok_or("continued User must be retained")?;
+    assert_eq!(continued.value().continuations()[0].text(), "text");
+    assert_eq!(
+        result
+            .model_diagnostics()
+            .iter()
+            .filter(|diagnostic| diagnostic.code().as_str() == "QLM0004")
+            .count(),
+        7
+    );
+    assert!(
+        result
+            .document()
+            .entries()
+            .any(|entry| entry.kind() == EntryKind::Unknown && entry.key().text() == "user")
+    );
+
+    let wrong_section = QuadletDocument::parse(
+        QuadletUnitType::Network,
+        SourceId::new(322),
+        "[Network]\nNetworkName=example\nUser=123\n",
+    )
+    .map_err(|error| error.to_string())?;
+    assert!(
+        wrong_section
+            .document()
+            .entries()
+            .any(|entry| entry.kind() == EntryKind::Unknown && entry.key().text() == "User")
+    );
+    Ok(())
+}
+
+#[test]
+fn volume_group_preserves_opaque_singleton_physical_lines_and_scope() -> Result<(), String> {
+    let source = concat!(
+        "[Volume]\n",
+        "Group=456\n",
+        "Group=00456\n",
+        "Group=operators\n",
+        "Group=\n",
+        "Group= group name \n",
+        "Group=\"quoted-%i\"\n",
+        "Group=%h/group\n",
+        "Group=continued \\\n",
+        " text\n",
+        "group=wrong-case\n",
+    );
+    let result = QuadletDocument::parse(QuadletUnitType::Volume, SourceId::new(323), source)
+        .map_err(|error| error.to_string())?;
+    assert!(result.is_valid(), "{:#?}", result.model_diagnostics());
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Volume(VolumeKey::Group))
+            .map(|entry| (entry.value().primary().text(), entry.value_kind()))
+            .collect::<Vec<_>>(),
+        [
+            ("456", ValueKind::Opaque),
+            ("00456", ValueKind::Opaque),
+            ("operators", ValueKind::Opaque),
+            ("", ValueKind::Opaque),
+            ("group name ", ValueKind::Opaque),
+            ("\"quoted-%i\"", ValueKind::Opaque),
+            ("%h/group", ValueKind::Opaque),
+            ("continued \\", ValueKind::Opaque),
+        ]
+    );
+    assert!(
+        result
+            .document()
+            .entries()
+            .any(|entry| { entry.kind() == EntryKind::Volume(VolumeKey::Group) && entry.value().is_continued() })
+    );
+    assert_eq!(
+        result
+            .model_diagnostics()
+            .iter()
+            .filter(|diagnostic| diagnostic.code().as_str() == "QLM0004")
+            .count(),
+        7
+    );
+    assert!(
+        result
+            .document()
+            .entries()
+            .any(|entry| entry.kind() == EntryKind::Unknown && entry.key().text() == "group")
+    );
+    Ok(())
+}
+
+#[test]
+#[allow(clippy::useless_concat)] // Embedded continuation text is clearer as one source fixture.
+fn volume_uid_preserves_opaque_singleton_physical_lines() -> Result<(), String> {
+    let source = concat!(
+        "[Volume]\nUID=1234\nUID=001234\nUID=name\nUID=\nUID=\"quoted-%i\"\nUID=%h/uid\nUID=continued \\\n text\n"
+    );
+    let result = QuadletDocument::parse(QuadletUnitType::Volume, SourceId::new(324), source)
+        .map_err(|error| error.to_string())?;
+    assert!(result.is_valid(), "{:#?}", result.model_diagnostics());
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Volume(VolumeKey::UID))
+            .map(|entry| (entry.value().primary().text(), entry.value_kind()))
+            .collect::<Vec<_>>(),
+        [
+            ("1234", ValueKind::Opaque),
+            ("001234", ValueKind::Opaque),
+            ("name", ValueKind::Opaque),
+            ("", ValueKind::Opaque),
+            ("\"quoted-%i\"", ValueKind::Opaque),
+            ("%h/uid", ValueKind::Opaque),
+            ("continued \\", ValueKind::Opaque)
+        ]
+    );
+    assert_eq!(
+        result
+            .model_diagnostics()
+            .iter()
+            .filter(|diagnostic| diagnostic.code().as_str() == "QLM0004")
+            .count(),
+        6
+    );
+    Ok(())
+}
+
+#[test]
+#[allow(clippy::useless_concat)] // Embedded continuation text is clearer as one source fixture.
+fn volume_gid_preserves_opaque_singleton_physical_lines() -> Result<(), String> {
+    let source = concat!(
+        "[Volume]\nGID=5678\nGID=005678\nGID=group\nGID=\nGID=\"quoted-%i\"\nGID=%h/gid\nGID=continued \\\n+ text\n"
+    );
+    let result = QuadletDocument::parse(QuadletUnitType::Volume, SourceId::new(325), source)
+        .map_err(|error| error.to_string())?;
+    assert!(result.is_valid(), "{:#?}", result.model_diagnostics());
+    assert!(!EntryKind::Volume(VolumeKey::GID).is_repeatable());
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Volume(VolumeKey::GID))
+            .map(|entry| (entry.value().primary().text(), entry.value_kind()))
+            .collect::<Vec<_>>(),
+        [
+            ("5678", ValueKind::Opaque),
+            ("005678", ValueKind::Opaque),
+            ("group", ValueKind::Opaque),
+            ("", ValueKind::Opaque),
+            ("\"quoted-%i\"", ValueKind::Opaque),
+            ("%h/gid", ValueKind::Opaque),
+            ("continued \\", ValueKind::Opaque)
+        ]
+    );
+    assert_eq!(
+        result
+            .model_diagnostics()
+            .iter()
+            .filter(|diagnostic| diagnostic.code().as_str() == "QLM0004")
+            .count(),
+        6
+    );
+    Ok(())
+}
+
+#[test]
+#[allow(clippy::useless_concat)] // Embedded continuation text is clearer as one source fixture.
+fn volume_service_name_preserves_opaque_singleton_physical_lines() -> Result<(), String> {
+    let source = concat!(
+        "[Volume]\nServiceName=ordinary\nServiceName=\nServiceName= whitespace \nServiceName=\"quoted-%i\"\nServiceName=explicit.service\nServiceName=%i\nServiceName=escape\\x20text\nServiceName=continued \\\n+ text\nServiceName=\"unmatched\n"
+    );
+    let result = QuadletDocument::parse(QuadletUnitType::Volume, SourceId::new(326), source)
+        .map_err(|error| error.to_string())?;
+    assert!(result.is_valid(), "{:#?}", result.model_diagnostics());
+    assert!(!EntryKind::Volume(VolumeKey::ServiceName).is_repeatable());
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Volume(VolumeKey::ServiceName))
+            .map(|entry| (entry.value().primary().text(), entry.value_kind()))
+            .collect::<Vec<_>>(),
+        [
+            ("ordinary", ValueKind::Opaque),
+            ("", ValueKind::Opaque),
+            ("whitespace ", ValueKind::Opaque),
+            ("\"quoted-%i\"", ValueKind::Opaque),
+            ("explicit.service", ValueKind::Opaque),
+            ("%i", ValueKind::Opaque),
+            ("escape\\x20text", ValueKind::Opaque),
+            ("continued \\", ValueKind::Opaque),
+            ("\"unmatched", ValueKind::Opaque),
+        ]
+    );
+    assert_eq!(
+        result
+            .model_diagnostics()
+            .iter()
+            .filter(|diagnostic| diagnostic.code().as_str() == "QLM0004")
+            .count(),
+        8
+    );
+    Ok(())
+}
+
+#[test]
+fn volume_image_preserves_raw_singletons_and_classifies_only_exact_references() -> Result<(), String> {
+    let source = "[Volume]\nImage=literal.example/image:1\nImage=unit.image\nImage=unit.build\nImage=lookalike.IMAGE\nImage=quoted.image\nImage=\n";
+    let result = QuadletDocument::parse(QuadletUnitType::Volume, SourceId::new(327), source)
+        .map_err(|error| error.to_string())?;
+    assert!(result.is_valid(), "{:#?}", result.model_diagnostics());
+    assert!(!EntryKind::Volume(VolumeKey::Image).is_repeatable());
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Volume(VolumeKey::Image))
+            .map(|entry| (
+                entry.value().primary().text(),
+                entry.value_kind(),
+                entry.unit_reference_name()
+            ))
+            .collect::<Vec<_>>(),
+        [
+            ("literal.example/image:1", ValueKind::Opaque, None),
+            (
+                "unit.image",
+                ValueKind::UnitReference(UnitReferenceKind::Image),
+                Some("unit.image")
+            ),
+            (
+                "unit.build",
+                ValueKind::UnitReference(UnitReferenceKind::Build),
+                Some("unit.build")
+            ),
+            ("lookalike.IMAGE", ValueKind::Opaque, None),
+            (
+                "quoted.image",
+                ValueKind::UnitReference(UnitReferenceKind::Image),
+                Some("quoted.image")
+            ),
+            ("", ValueKind::Opaque, None),
+        ]
+    );
+    assert_eq!(
+        result
+            .model_diagnostics()
+            .iter()
+            .filter(|diagnostic| diagnostic.code().as_str() == "QLM0004")
+            .count(),
+        5
     );
     Ok(())
 }

@@ -60,6 +60,10 @@ capability argument. An isolated `Tmpfs` fixture authors two pre-reset entries, 
 one final entry; every patch must emit exactly one logical final `--tmpfs` argument, no pre-reset
 path, and no duplicate or alternative tmpfs form.
 
+The isolated Image fixture records a literal pull unit, missing and empty source errors, and target
+duplicate-last selection across all 20 releases. It does not pull an image or establish registry,
+authentication, TLS, image-storage, systemd, runtime, or conversion behavior.
+
 An isolated `Sysctl` fixture likewise authors two pre-reset assignments, an empty reset, and one
 final entry; every patch must emit exactly one final `--sysctl net.ipv4.ip_forward=1`, no other
 sysctl form, and neither pre-reset setting. An isolated `Ulimit` fixture authors pre-reset `core`
@@ -196,6 +200,65 @@ bare and malformed tokens are omitted through 5.5.2 and emitted from 5.6.0. Quad
 all raw physical lines instead, without OCI validation, image metadata, build, runtime, Compose, or
 conversion claims.
 
+The isolated Build Environment fixture covers all 20 recorded releases. It authors pre-reset
+values, an empty reset, duplicate names, quoted and C-escaped text, embedded equals text, plus bare
+and malformed forms. The generator emits its tokenized/unquoted/C-unescaped, final-name-selected,
+sorted effective map; bare and malformed tokens are omitted through 5.5.2 and emitted from 5.6.0.
+QuadletLens preserves all raw physical lines instead, without host lookup, build, runtime, Compose,
+or conversion claims.
+
+The isolated Build ContainersConfModule fixture covers all 20 recorded releases. It authors
+pre-reset values, an empty reset, and two post-reset entries. The generator emits only ordered
+`--module=post-one` and `--module=post-two` arguments before `build`; QuadletLens preserves every
+raw physical line instead, without path parsing, module reads, configuration inspection, build,
+runtime, Compose, or conversion claims.
+
+The isolated Volume ContainersConfModule fixture covers all 20 recorded releases. It authors
+pre-reset values, an empty reset, two post-reset values, and a continuation. The generator emits
+only ordered post-reset `--module=post-one`, `--module=post-two`, and continuation arguments
+before `volume create`; its continued space is literal in 5.4.x and `\\x20` from 5.5.0. QuadletLens
+preserves every raw physical line without path parsing, module reads, configuration inspection,
+volume creation, lifecycle, filesystem, security, runtime, Compose, or conversion claims.
+
+The isolated Volume GlobalArgs fixture covers all 20 recorded releases. It authors pre-reset
+values, an empty reset, debug and quoted/C-escaped event-backend values, and a malformed backslash
+line. The generator emits only the decoded post-reset tokens in authored order between `podman`
+and `volume create`; QuadletLens preserves every raw physical line without applying target reset,
+tokenization, unquoting, C-unescaping, omission, argument validation, security inference, volume
+creation, lifecycle, filesystem, runtime, Compose, or conversion claims.
+
+The isolated Volume PodmanArgs fixture covers all 20 recorded releases. It authors pre-reset
+values, an empty reset, quoted and C-escaped labels, and a malformed backslash line. The generator
+emits only decoded post-reset tokens in authored order at the end of `volume create` before the
+volume name; QuadletLens preserves every raw physical line without target reset, tokenization,
+unquoting, C-unescaping, omission, CLI parsing, dedicated-key semantics, security inference,
+volume creation, lifecycle, filesystem, systemd, runtime, Compose, or conversion claims.
+
+The isolated Volume User fixture runs on all 20 recorded releases with only unambiguous `User=123`.
+It requires one `o=uid=123` option before the generated volume name and performs no volume operation;
+name and invalid/default behavior remain outside the public promise.
+
+The isolated Volume Group fixture runs on all 20 recorded releases with only unambiguous `Group=456`.
+It requires one `o=gid=456` option before the generated volume name and performs no volume operation;
+name and invalid/default behavior remain outside the public promise.
+
+The isolated Build GlobalArgs fixture covers all 20 recorded releases. It authors duplicate
+pre-reset values, an empty reset, quoted and C-escaped post-reset values, and a malformed physical
+line. The generator emits only the retained target tokens, in authored order between `podman` and
+`build`; QuadletLens preserves all authored source instead, without tokenization, reset, option
+validation, semantic/security/runtime inference, build, runtime, Compose, or conversion claims.
+
+The isolated Build ServiceName fixture covers all 20 recorded releases. It records default and
+duplicate-last override names, `.service` addition, the 5.7.0 template-default boundary, and the
+5.8.2 unmatched-quote lookup boundary. It observes dry-run generated-unit names only; QuadletLens
+preserves raw singleton values and does not claim extension enforcement, systemd operation,
+collisions, escaping, runtime, build, dependency, filename mutation, Compose, or conversion behavior.
+
+The isolated Build Volume fixture covers all 20 recorded releases. It records reset and continuation
+lookup, ordered effective `-v` entries, relative `.` source resolution, and exact `.volume`
+substitution/dependency. It does not mount, access a filesystem, build, run, operate systemd, or
+claim lifecycle, image, security, Compose, or conversion behavior.
+
 These fixtures are dry-run command evidence: they start no workload and do not inspect resolver,
 OCI, profile, SELinux, path, filesystem, host, runtime, or cross-format behavior.
 
@@ -237,11 +300,25 @@ from Podman 5.4.0 through current 6.0.2, checks required/repeated/path/reference
 the lower and rolling upper coverage boundaries, and uses synthetic evidence to exercise fallback
 and known-bug precedence. Capabilities outside the generator fixture retain explicit evidence gaps.
 
-The typed-model suite protects the initial `.container`, `.pod`, `.network`, `.volume`, and minimal
-`.build` surface. It checks ordered repeated Build `ImageTag`, `Network`, `Label`, `File`, `BuildArg`, `Secret`, `GroupAdd`, `DNS`, `DNSOption`, `DNSSearch`, `Annotation`, and `PodmanArgs` values, singleton
-opaque `SetWorkingDirectory`/`Target`/`Arch`/`Variant`/`Pull`/`Retry`/`RetryDelay`/`TLSVerify`/`ForceRM`/`AuthFile`/`IgnoreFile` values, duplicate singleton diagnostics, unknown Build-key
+The typed-model suite protects the initial `.container`, `.pod`, `.network`, `.volume`, `.image`, and minimal
+`.build` surface. It checks ordered repeated Build `ImageTag`, `Network`, `Label`, `File`, `BuildArg`, `Secret`, `GroupAdd`, `DNS`, `DNSOption`, `DNSSearch`, `Annotation`, `Environment`, `ContainersConfModule`, and `PodmanArgs` values, singleton
+opaque `SetWorkingDirectory`/`Target`/`Arch`/`Variant`/`Pull`/`Retry`/`RetryDelay`/`TLSVerify`/`ForceRM`/`AuthFile`/`IgnoreFile`/`ServiceName` values, duplicate singleton diagnostics, unknown Build-key
 preservation, exact `.container` Image-to-`.build` resolution, and exact `.build`
 Network-to-`.network` resolution without interpreting a build context or network mode.
+Image `ImageTag`/`ServiceName`/`AllTags`/`Arch`/`AuthFile`/`CertDir` tests retain blank, duplicate, quoted, unmatched-quote,
+continuation, and specifier text without reference, identity, boolean/platform/auth-file/certificate-directory, credential, certificate, or target-effective-value semantics.
+Image `ContainersConfModule` tests additionally preserve blank, duplicate, quoted, escaped, specifier, continuation-looking, and leading-dash physical values without module, configuration, reset, tokenization, or command semantics.
+Image `Creds` uses placeholder-only fixture values, retains raw physical text, and redacts only
+repository-owned debug output; its 20-release dry-run matrix records normal, duplicate-last,
+final-blank omission, and unmatched-quote output without a flag-order or quote-boundary claim.
+Image `DecryptionKey` uses placeholder-only fixture values, retains raw physical text, and redacts
+only repository-owned debug output; its 20-release dry-run matrix records the same four target
+observations without a flag-order or quote-boundary claim.
+Image `GlobalArgs` retains raw physical text, including duplicates, blank resets, quotes,
+C-escapes, continuations, malformed text, and specifiers. Its 20-release dry-run matrix records
+only decoded post-reset tokens in authored order between `podman` and `image pull`.
+Image `OS` retains raw singleton physical text and duplicate diagnostics; its 20-release fixture
+records target normal/duplicate-last output, final-blank omission, and endpoint-specific unmatched-quote presentation.
 Build labels additionally retain opaque physical lines, including bare, duplicate, empty, embedded
 equals, quoted, and specifier text, without label parsing or normalization; generator assertions are
 intentionally narrower and cover only `build.label=one` and `empty=`.
@@ -268,7 +345,7 @@ capability grants; build execution; LSM, seccomp, rootless, or runtime effects.
 It checks native key classification, repeated container/pod `AddHost`, container `Label`/`Secret`,
 and network `Label`
 entries, singleton container `ContainerName`, `RunInit` omission/true/false/raw preservation,
-`StopSignal`, `StopTimeout` (including authored zero), `Pull`, and `PidsLimit`
+`StopSignal`, `StopTimeout` (including authored zero), Pod `ServiceName`, `Pull`, and `PidsLimit`
 omission/supported/raw-value preservation without semantic validation, plus `HostName`
 omission/raw preservation without hostname validation, opaque singleton container/pod `ShmSize`
 omission/raw preservation, repeatable opaque container `DropCapability` and `AddCapability`
@@ -287,6 +364,12 @@ while pod `Memory` remains unknown, plus opaque singleton `LogDriver` and repeat
 Opaque singleton `IP` and `IP6` plus repeatable/resettable `NetworkAlias` likewise protect physical
 values, duplicates, order, empty resets, quotes, specifiers, continuations, scope, and standard
 singleton diagnostics without semantic validation.
+Opaque singleton Volume `GID` likewise protects physical values, duplicates, order, quoting,
+specifiers, continuations, scope, and the standard singleton diagnostic without value
+interpretation.
+The Volume `ServiceName` fixture records all-20 generated-unit naming boundaries while the model
+retains raw singleton source values and duplicate diagnostics without naming interpretation.
+The Volume `Image` fixture records driver and resource-reference command observations only.
 The promoted networking, annotation, and security keys are
 tested as opaque repeatable or singleton values for ordering, resets, duplicates, malformed text,
 scope, and standard diagnostics without key-specific or runtime interpretation. The suite also
@@ -305,7 +388,7 @@ plus all document-builder
 rejection paths, including duplicate lifecycle, policy, and promoted security singletons,
 process-ID-limit, hostname, and container/pod shared-memory singletons. The exact repeatable
 boundary also covers raw host-device mappings, DNS resolver values, DNS resolver options, and mask
-path lists with reset assignments. The focused PID-limit,
+path lists with reset assignments, plus the opaque Volume `GID` singleton. The focused PID-limit,
 shared-memory, and container-memory helpers' ASCII-decimal validation and arbitrary-precision preservation are tested
 separately while the raw boundary preserves authored zero and noncanonical text.
 

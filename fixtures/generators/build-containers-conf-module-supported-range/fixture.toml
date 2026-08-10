@@ -1,0 +1,15 @@
+schema = 1
+id = "build-containers-conf-module-supported-range"
+suite = "generators"
+description = "Records target Build ContainersConfModule reset and ordered base-command construction without importing target lookup semantics into QuadletLens."
+secrets_reviewed = true
+files = ["build-containers-conf-module.build", "expected-fragments.txt"]
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+[environment]
+description = "Dry-run generator only; no build or runtime execution."
+[expectations]
+summary = "The target resets logical values at an empty assignment and emits only ordered post-reset --module arguments; QuadletLens preserves authored physical lines."

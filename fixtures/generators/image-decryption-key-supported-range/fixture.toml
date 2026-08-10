@@ -1,0 +1,18 @@
+schema = 1
+id = "image-decryption-key-supported-range"
+suite = "generators"
+description = "Records target Image DecryptionKey command text using placeholder-only key material without registry access."
+secrets_reviewed = true
+files = ["image-decryption-key-normal.image", "image-decryption-key-duplicate.image", "image-decryption-key-blank.image", "image-decryption-key-unmatched.image", "expected-fragments.txt"]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "Dry-run generator only; placeholder key material is not read, used for decryption, authenticated, pulled, or run."
+
+[expectations]
+summary = "Target-only normal, duplicate-last, final-blank omission, unmatched-quote DecryptionKey command-text observations; QuadletLens preserves physical source text and redacts only repository-owned debug output."

@@ -1,0 +1,4 @@
+[Image]
+Image=example.invalid/quadlet-lens-image-os-blank:latest
+OS=windows
+OS=

@@ -50,7 +50,7 @@ source text
 - [Real-world Quadlet corpus](docs/real-world-quadlet-corpus.md)
 - [Development environment](docs/development-environment.md)
 - [API stability policy](docs/api-stability.md)
-- [0.1.12 release notes](docs/releases/0.1.12.md) — evidence-scoped generic Podman arguments, logging, networking, and volume settings
+- [0.1.12 release notes](docs/releases/0.1.12.md) — native Image, Volume, and Build coverage with 20-release evidence
 - [0.1.11 release notes](docs/releases/0.1.11.md)
 - [0.1.10 release notes](docs/releases/0.1.10.md)
 - [Release policy](docs/releasing.md)

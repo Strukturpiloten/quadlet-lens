@@ -1,0 +1,4 @@
+[Image]
+Image=example.invalid/quadlet-lens-all-tags-duplicate:latest
+AllTags=true
+AllTags=false

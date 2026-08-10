@@ -1,0 +1,15 @@
+schema = 1
+id = "image-all-tags-supported-range"
+suite = "generators"
+description = "Records target Image AllTags command text without importing boolean or pull behavior into QuadletLens."
+secrets_reviewed = true
+files = ["all-tags-absent.image", "all-tags-true.image", "all-tags-false.image", "all-tags-duplicate.image", "all-tags-blank.image", "all-tags-unmatched.image", "expected-fragments.txt"]
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+[environment]
+description = "Dry-run generator only; no image pull, registry, systemd operation, or runtime execution."
+[expectations]
+summary = "Target-only true/false, duplicate-last, absent/blank, and unmatched-quote AllTags command-text observations; QuadletLens preserves authored physical text."

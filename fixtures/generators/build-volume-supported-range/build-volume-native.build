@@ -1,0 +1,4 @@
+[Build]
+ImageTag=localhost/quadlet-lens-build-volume-native
+SetWorkingDirectory=.
+Volume=cache.volume:/var/cache:Z

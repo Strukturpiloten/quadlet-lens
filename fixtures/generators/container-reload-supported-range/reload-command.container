@@ -1,0 +1,3 @@
+[Container]
+Image=registry.example.invalid/reload-command-fixture:1
+ReloadCmd=/usr/bin/reload --final

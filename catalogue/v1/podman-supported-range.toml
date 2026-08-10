@@ -15,6 +15,231 @@ test = "capabilities::supported_range_records_build_core"
 gap = "QuadletLens retains every physical image-tag entry without parsing image-reference grammar or selecting a primary tag."
 
 [[evidence]]
+id = "podman-5-4-build-environment"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#environment"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Build-unit manual documents repeatable Environment assignments passed to podman build."
+test = "capabilities::supported_range_records_build_environment"
+gap = "QuadletLens retains exact physical text without target tokenization, lookup, reset, duplicate-name selection, sorting, host lookup, or normalization."
+
+[[evidence]]
+id = "podman-5-4-build-containers-conf-module"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#containersconfmodule"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Build-unit manual documents repeatable ContainersConfModule values passed to podman commands."
+test = "capabilities::supported_range_records_build_containers_conf_module"
+gap = "QuadletLens preserves exact physical text without path parsing, module reads, configuration inspection, reset, deduplication, tokenization, or normalization."
+
+[[evidence]]
+id = "podman-5-4-build-global-args"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#globalargs"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Build-unit manual documents repeatable GlobalArgs values for arguments placed before the podman subcommand."
+test = "capabilities::supported_range_records_build_global_args"
+gap = "QuadletLens retains exact physical text without tokenization, reset application, unquoting, C-unescaping, option validation, or runtime interpretation."
+
+[[evidence]]
+id = "podman-5-4-through-5-8-5-build-service-name-docs-gap"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.8.5/markdown/podman-systemd.unit.5.html"
+versions = { minimum = "5.4.0", maximum = "5.8.5" }
+claim = "Build-unit manuals are absent through Podman 5.8.5, although the tagged generator accepts ServiceName in the recorded support range."
+test = "capabilities::supported_range_records_build_service_name"
+gap = "Manual absence does not alter the native capability claim; QuadletLens preserves raw physical text without interpreting service identity."
+
+[[evidence]]
+id = "podman-5-4-build-volume"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#volume"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Quadlet manual documents repeatable Build Volume entries."
+test = "capabilities::supported_range_records_build_volume"
+gap = "QuadletLens preserves raw physical values and classifies only an exact .volume source prefix."
+
+[[evidence]]
+id = "podman-5-4-volume-containers-conf-module"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#containersconfmodule"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Quadlet manual documents repeatable Volume ContainersConfModule values."
+test = "capabilities::supported_range_records_volume_containers_conf_module"
+gap = "QuadletLens retains raw physical text without module or configuration interpretation."
+
+[[evidence]]
+id = "podman-5-4-volume-global-args"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#globalargs"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Quadlet manual documents repeatable Volume GlobalArgs values placed before the podman volume subcommand."
+test = "capabilities::supported_range_records_volume_global_args"
+gap = "QuadletLens retains exact physical text without tokenization, reset application, unquoting, C-unescaping, option validation, or runtime interpretation."
+
+[[evidence]]
+id = "podman-5-4-volume-podman-args"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#podmanargs"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Quadlet manual documents repeatable Volume PodmanArgs values appended to podman volume create."
+test = "capabilities::supported_range_records_volume_podman_args"
+gap = "QuadletLens retains exact physical text without tokenization, reset application, unquoting, C-unescaping, option validation, or runtime interpretation."
+
+[[evidence]]
+id = "podman-5-4-volume-user"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#user"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Quadlet manual describes Volume User as a numeric UID or user name for volume ownership."
+test = "capabilities::supported_range_records_volume_user"
+gap = "The manual's numeric-UID-or-name wording conflicts with tagged generator numeric conversion and invalid/default behavior; this is an evidence gap, not Lens validation or provider behavior."
+
+[[evidence]]
+id = "podman-5-4-volume-group"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#group"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Quadlet manual describes Volume Group as a numeric GID or group name."
+test = "capabilities::supported_range_records_volume_group"
+gap = "The manual's numeric-GID-or-name wording conflicts with tagged generator numeric conversion and invalid/out-of-range/default behavior; this is evidence only, not Lens validation or provider behavior."
+
+[[evidence]]
+id = "podman-5-8-5-volume-uid-absence"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.8.5/markdown/podman-volume.unit.5.html"
+target = "5.8.5"
+claim = "The Podman 5.8.5 Volume-unit manual has no UID key; this range is recorded as unsupported."
+test = "capabilities::supported_range_records_volume_uid"
+gap = "Absence establishes no UID grammar, ownership, mount, filesystem, or runtime behavior."
+
+[[evidence]]
+id = "podman-5-8-5-volume-gid-absence"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.8.5/markdown/podman-volume.unit.5.html"
+target = "5.8.5"
+claim = "The Podman 5.8.5 Volume-unit manual has no GID key; this range is recorded as unsupported."
+test = "capabilities::supported_range_records_volume_gid"
+gap = "Absence establishes no GID grammar, ownership, mount, filesystem, or runtime behavior."
+
+[[evidence]]
+id = "podman-5-4-through-5-8-5-volume-service-name-docs-gap"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.8.5/markdown/podman-systemd.unit.5.html"
+versions = { minimum = "5.4.0", maximum = "5.8.5" }
+claim = "Volume-unit manuals omit ServiceName through Podman 5.8.5, while tagged generator source and the recorded generator matrix cover the native key."
+test = "capabilities::supported_range_records_volume_service_name"
+gap = "Manual omission is an explicit documentation gap, not an unsupported classification; QuadletLens preserves raw physical text without interpreting service identity."
+
+[[evidence]]
+id = "podman-5-4-volume-image"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#image"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Quadlet manual documents Volume Image."
+test = "capabilities::supported_range_records_volume_image"
+gap = "QuadletLens classifies only exact native unit suffixes and otherwise preserves raw text."
+
+[[evidence]]
+id = "podman-5-4-image-image"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-image.unit.5.html#image"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Image-unit manual documents the required Image source."
+test = "capabilities::supported_range_records_image_core"
+gap = "QuadletLens preserves source text without parsing image references, transports, registry selection, tags, digests, authentication, TLS, architecture, or pull behavior."
+
+[[evidence]]
+id = "podman-5-4-image-image-tag"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-image.unit.5.html#imagetag"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Image-unit manual documents ImageTag as the image name used for `.image` references."
+test = "capabilities::supported_range_records_image_image_tag"
+gap = "QuadletLens preserves authored text without selecting an effective resource name, unquoting, substituting dependent units, or reading archives."
+
+[[evidence]]
+id = "podman-5-4-image-all-tags"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-image.unit.5.html#alltags"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Image-unit manual documents AllTags as the all-tags pull switch."
+test = "capabilities::supported_range_records_image_all_tags"
+gap = "QuadletLens retains authored text without boolean parsing, default selection, pull-command construction, registry access, authentication, TLS, image storage, runtime, or conversion interpretation."
+
+[[evidence]]
+id = "podman-5-4-image-arch"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-image.unit.5.html#arch"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Image-unit manual documents Arch as the image pull architecture selection."
+test = "capabilities::supported_range_records_image_arch"
+gap = "QuadletLens retains authored text without platform grammar, host-default selection, pull-command construction, image metadata or storage lookup, registry access, authentication, TLS, runtime, or conversion interpretation."
+
+[[evidence]]
+id = "podman-5-4-image-auth-file"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-image.unit.5.html#authfile"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Image-unit manual documents AuthFile as the authentication-file path for podman image pull."
+test = "capabilities::supported_range_records_image_auth_file"
+gap = "QuadletLens retains opaque AuthFile physical text without path validation or reads, credential parsing, content or sensitivity classification, registry authentication, image pull, runtime, Compose, or conversion claims."
+
+[[evidence]]
+id = "podman-5-4-image-creds"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-image.unit.5.html#creds"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Image-unit manual documents Creds as the username and password used for podman image pull authentication."
+test = "capabilities::supported_range_records_image_creds"
+gap = "QuadletLens retains opaque Creds physical text and redacts it only from repository-owned debug output; it does not split, parse, validate, read, default, authenticate, pull, or otherwise handle credentials."
+
+[[evidence]]
+id = "podman-5-4-image-decryption-key"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-image.unit.5.html#decryptionkey"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Image-unit manual documents DecryptionKey as the key passed to podman image pull for decryption."
+test = "capabilities::supported_range_records_image_decryption_key"
+gap = "QuadletLens retains opaque DecryptionKey physical text and redacts it only from repository-owned debug output; it does not split key or passphrase text, validate, read, decrypt, default, authenticate, pull, or otherwise handle key material."
+
+[[evidence]]
+id = "podman-5-4-image-global-args"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-image.unit.5.html#globalargs"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Image-unit manual documents repeatable GlobalArgs passed to podman commands."
+test = "capabilities::supported_range_records_image_global_args"
+gap = "QuadletLens preserves exact physical text without tokenization, reset, unquoting, C-unescaping, option validation, or inferred semantic, security, or runtime effect."
+
+[[evidence]]
+id = "podman-5-4-image-os"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-image.unit.5.html#os"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Image-unit manual documents OS as the operating-system selection passed to podman image pull."
+test = "capabilities::supported_range_records_image_os"
+gap = "QuadletLens preserves opaque OS physical text without operating-system grammar, host/default/platform validation, tokenization, unescaping, pull, runtime, or conversion behavior."
+
+[[evidence]]
+id = "podman-5-4-image-cert-dir"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-image.unit.5.html#certdir"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Image-unit manual documents CertDir as the certificate-directory path for podman image pull."
+test = "capabilities::supported_range_records_image_cert_dir"
+gap = "QuadletLens retains opaque CertDir physical text without path or certificate validation or reads, containers-certs.d defaults, remote-client policy, sensitivity classification, registry authentication, image pull, runtime, Compose, or conversion claims."
+
+[[evidence]]
+id = "podman-5-4-image-containers-conf-module"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-image.unit.5.html#containersconfmodule"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Image-unit manual documents repeatable ContainersConfModule values passed to podman commands."
+test = "capabilities::supported_range_records_image_containers_conf_module"
+gap = "QuadletLens preserves exact physical text without path parsing, module reads, configuration inspection, reset, deduplication, tokenization, or normalization."
+
+[[evidence]]
 id = "podman-5-4-build-podman-args"
 verification = "documentation"
 url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#podmanargs"
@@ -22,6 +247,231 @@ target = "5.4.0"
 claim = "The Podman 5.4.0 Build-unit manual documents PodmanArgs as arguments appended to the podman build command."
 test = "capabilities::supported_range_records_build_podman_args"
 gap = "QuadletLens preserves physical-line text only; it does not split or quote arguments, resolve build contexts, environments, paths, images, or services, validate the CLI, build an image, or establish runtime or cross-format behavior."
+
+[[evidence]]
+id = "podman-6-0-2-build-environment"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-build.unit.5.html#environment"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Build-unit manual retains repeatable Environment assignments passed to podman build."
+test = "capabilities::supported_range_records_build_environment"
+gap = "QuadletLens retains exact physical text without target tokenization, lookup, reset, duplicate-name selection, sorting, host lookup, or normalization."
+
+[[evidence]]
+id = "podman-6-0-2-build-containers-conf-module"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-build.unit.5.html#containersconfmodule"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Build-unit manual retains repeatable ContainersConfModule values passed to podman commands."
+test = "capabilities::supported_range_records_build_containers_conf_module"
+gap = "QuadletLens preserves exact physical text without path parsing, module reads, configuration inspection, reset, deduplication, tokenization, or normalization."
+
+[[evidence]]
+id = "podman-6-0-2-build-global-args"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-build.unit.5.html#globalargs"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Build-unit manual retains repeatable GlobalArgs values for arguments placed before the podman build subcommand."
+test = "capabilities::supported_range_records_build_global_args"
+gap = "QuadletLens retains exact physical text without tokenization, reset application, unquoting, C-unescaping, option validation, or runtime interpretation."
+
+[[evidence]]
+id = "podman-6-0-0-build-service-name"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.0/markdown/podman-build.unit.5.html#servicename"
+target = "6.0.0"
+claim = "The Podman 6.0.0 Build-unit manual documents the singleton ServiceName key."
+test = "capabilities::supported_range_records_build_service_name"
+gap = "QuadletLens retains raw physical text without stripping .service or assigning it an identity domain."
+
+[[evidence]]
+id = "podman-6-0-2-build-volume"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-build.unit.5.html#volume"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Build-unit manual retains repeatable Build Volume entries."
+test = "capabilities::supported_range_records_build_volume"
+gap = "QuadletLens preserves raw physical values and classifies only an exact .volume source prefix."
+
+[[evidence]]
+id = "podman-6-0-2-volume-containers-conf-module"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-volume.unit.5.html#containersconfmodule"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Volume-unit manual retains repeatable ContainersConfModule values."
+test = "capabilities::supported_range_records_volume_containers_conf_module"
+gap = "QuadletLens retains raw physical text without module or configuration interpretation."
+
+[[evidence]]
+id = "podman-6-0-2-volume-global-args"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-volume.unit.5.html#globalargs"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Volume-unit manual retains repeatable GlobalArgs values placed before volume create."
+test = "capabilities::supported_range_records_volume_global_args"
+gap = "QuadletLens retains exact physical text without tokenization, reset application, unquoting, C-unescaping, option validation, or runtime interpretation."
+
+[[evidence]]
+id = "podman-6-0-2-volume-podman-args"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-volume.unit.5.html#podmanargs"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Volume-unit manual retains repeatable PodmanArgs values appended to volume create."
+test = "capabilities::supported_range_records_volume_podman_args"
+gap = "QuadletLens retains exact physical text without tokenization, reset application, unquoting, C-unescaping, option validation, or runtime interpretation."
+
+[[evidence]]
+id = "podman-6-0-2-volume-user"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-volume.unit.5.html#user"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Volume-unit manual retains User as a numeric UID or user name for volume ownership."
+test = "capabilities::supported_range_records_volume_user"
+gap = "The manual's numeric-UID-or-name wording conflicts with tagged generator numeric conversion and invalid/default behavior; this is an evidence gap, not Lens validation or provider behavior."
+
+[[evidence]]
+id = "podman-6-0-2-volume-group"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-volume.unit.5.html#group"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Volume-unit manual retains Group as a numeric GID or group name."
+test = "capabilities::supported_range_records_volume_group"
+gap = "The manual's numeric-GID-or-name wording conflicts with tagged generator numeric conversion and invalid/out-of-range/default behavior; this is evidence only, not Lens validation or provider behavior."
+
+[[evidence]]
+id = "podman-6-0-0-volume-uid"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.0/markdown/podman-volume.unit.5.html#uid"
+target = "6.0.0"
+claim = "The Podman 6.0.0 Volume-unit manual documents UID."
+test = "capabilities::supported_range_records_volume_uid"
+gap = "QuadletLens retains raw singleton text without UID parsing, lookup, range, default, ownership, or runtime interpretation."
+
+[[evidence]]
+id = "podman-6-0-0-volume-gid"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.0/markdown/podman-volume.unit.5.html#gid"
+target = "6.0.0"
+claim = "The Podman 6.0.0 Volume-unit manual documents GID."
+test = "capabilities::supported_range_records_volume_gid"
+gap = "QuadletLens retains raw singleton text without GID parsing, lookup, range, default, ownership, or runtime interpretation."
+
+[[evidence]]
+id = "podman-6-0-0-volume-service-name"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.0/markdown/podman-volume.unit.5.html#servicename"
+target = "6.0.0"
+claim = "The Podman 6.0.0 Volume-unit manual documents the singleton ServiceName key."
+test = "capabilities::supported_range_records_volume_service_name"
+gap = "QuadletLens retains raw physical text without stripping .service or assigning it an identity domain."
+
+[[evidence]]
+id = "podman-6-0-2-volume-image"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-volume.unit.5.html#image"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Volume-unit manual retains Image."
+test = "capabilities::supported_range_records_volume_image"
+gap = "QuadletLens classifies only exact native unit suffixes and otherwise preserves raw text."
+
+[[evidence]]
+id = "podman-6-0-2-image-image"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-image.unit.5.html#image"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Image-unit manual retains the required Image source."
+test = "capabilities::supported_range_records_image_core"
+gap = "QuadletLens preserves source text without parsing image references, transports, registry selection, tags, digests, authentication, TLS, architecture, or pull behavior."
+
+[[evidence]]
+id = "podman-6-0-2-image-image-tag"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-image.unit.5.html#imagetag"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Image-unit manual retains ImageTag for the fully qualified name of an archive source."
+test = "capabilities::supported_range_records_image_image_tag"
+gap = "QuadletLens preserves authored text without parsing FQINs, tags, archive sources, or resource-name substitution."
+
+[[evidence]]
+id = "podman-6-0-2-image-all-tags"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-image.unit.5.html#alltags"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Image-unit manual retains AllTags as the all-tags pull switch."
+test = "capabilities::supported_range_records_image_all_tags"
+gap = "QuadletLens retains authored text without boolean parsing, default selection, pull-command construction, registry access, authentication, TLS, image storage, runtime, or conversion interpretation."
+
+[[evidence]]
+id = "podman-6-0-2-image-arch"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-image.unit.5.html#arch"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Image-unit manual retains Arch as the image pull architecture selection."
+test = "capabilities::supported_range_records_image_arch"
+gap = "QuadletLens retains authored text without platform grammar, host-default selection, pull-command construction, image metadata or storage lookup, registry access, authentication, TLS, runtime, or conversion interpretation."
+
+[[evidence]]
+id = "podman-6-0-2-image-auth-file"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-image.unit.5.html#authfile"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Image-unit manual retains AuthFile as the authentication-file path for podman image pull."
+test = "capabilities::supported_range_records_image_auth_file"
+gap = "QuadletLens retains opaque AuthFile physical text without path validation or reads, credential parsing, content or sensitivity classification, registry authentication, image pull, runtime, Compose, or conversion claims."
+
+[[evidence]]
+id = "podman-6-0-2-image-creds"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-image.unit.5.html#creds"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Image-unit manual retains Creds as the username and password used for podman image pull authentication."
+test = "capabilities::supported_range_records_image_creds"
+gap = "QuadletLens retains opaque Creds physical text and redacts it only from repository-owned debug output; it does not split, parse, validate, read, default, authenticate, pull, or otherwise handle credentials."
+
+[[evidence]]
+id = "podman-6-0-2-image-decryption-key"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-image.unit.5.html#decryptionkey"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Image-unit manual retains DecryptionKey as the key passed to podman image pull for decryption."
+test = "capabilities::supported_range_records_image_decryption_key"
+gap = "QuadletLens retains opaque DecryptionKey physical text and redacts it only from repository-owned debug output; it does not split key or passphrase text, validate, read, decrypt, default, authenticate, pull, or otherwise handle key material."
+
+[[evidence]]
+id = "podman-6-0-2-image-global-args"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-image.unit.5.html#globalargs"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Image-unit manual retains repeatable GlobalArgs passed to podman commands."
+test = "capabilities::supported_range_records_image_global_args"
+gap = "QuadletLens preserves exact physical text without tokenization, reset, unquoting, C-unescaping, option validation, or inferred semantic, security, or runtime effect."
+
+[[evidence]]
+id = "podman-6-0-2-image-os"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-image.unit.5.html#os"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Image-unit manual retains OS as the operating-system selection passed to podman image pull."
+test = "capabilities::supported_range_records_image_os"
+gap = "QuadletLens preserves opaque OS physical text without operating-system grammar, host/default/platform validation, tokenization, unescaping, pull, runtime, or conversion behavior."
+
+[[evidence]]
+id = "podman-6-0-2-image-cert-dir"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-image.unit.5.html#certdir"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Image-unit manual retains CertDir as the certificate-directory path for podman image pull."
+test = "capabilities::supported_range_records_image_cert_dir"
+gap = "QuadletLens retains opaque CertDir physical text without path or certificate validation or reads, containers-certs.d defaults, remote-client policy, sensitivity classification, registry authentication, image pull, runtime, Compose, or conversion claims."
+
+[[evidence]]
+id = "podman-6-0-2-image-containers-conf-module"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-image.unit.5.html#containersconfmodule"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Image-unit manual retains repeatable ContainersConfModule values passed to podman commands."
+test = "capabilities::supported_range_records_image_containers_conf_module"
+gap = "QuadletLens preserves exact physical text without path parsing, module reads, configuration inspection, reset, deduplication, tokenization, or normalization."
 
 [[evidence]]
 id = "podman-5-4-build-podman-args-no-cache"
@@ -33,6 +483,231 @@ test = "capabilities::supported_range_records_build_podman_args_no_cache"
 gap = "This documentation and dry-run command-text evidence does not interpret false, string, interpolation, cache semantic equivalence, execution, cache, image, runtime, or cross-format behavior."
 
 [[evidence]]
+id = "podman-5-4-build-environment-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L1448-L1449"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 Build conversion obtains Environment through LookupAllKeyVal and emits the resulting effective map as --env arguments."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The target's tokenization, reset, map collapse, sorting, and command formatting are generator behavior; QuadletLens preserves authored physical lines."
+
+[[evidence]]
+id = "podman-5-4-containers-conf-module-base-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L2125-L2131"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 base-command helper obtains ContainersConfModule through LookupAll and emits each effective entry as --module=VALUE before the subcommand."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Target logical lookup, empty reset, and command placement remain generator evidence; QuadletLens preserves every authored physical line."
+
+[[evidence]]
+id = "podman-5-4-through-current-build-global-args-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every recorded generator resets earlier Build GlobalArgs values at an empty assignment, tokenizes/unquotes/C-unescapes the retained physical values, omits a malformed physical line, and emits post-reset tokens in authored order between podman and build."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Dry-run command construction only; no option validation, security, runtime, build, Compose, or conversion claim."
+
+[[evidence]]
+id = "podman-6-0-2-build-service-name"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-build.unit.5.html#servicename"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Build-unit manual retains the singleton ServiceName key."
+test = "capabilities::supported_range_records_build_service_name"
+gap = "QuadletLens retains raw physical text without stripping .service or assigning it an identity domain."
+
+[[evidence]]
+id = "podman-5-4-build-volume-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L2385-L2400"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 Build generation reads logical Volume values, resolves native volume units, and emits an ordered -v list."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Target reset, continuation, relative-path, substitution, and dependency behavior remain generator evidence only."
+
+[[evidence]]
+id = "podman-5-4-volume-containers-conf-module-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L1740-L1744"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 Volume generation reads ContainersConfModule through logical LookupAll and emits each effective --module value before volume create."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Target LookupAll reset and continuation behavior remain generator evidence; QuadletLens preserves physical lines."
+
+[[evidence]]
+id = "podman-5-4-volume-global-args-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L2125-L2136"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 base-command construction obtains GlobalArgs through LookupAllArgs and inserts each effective token before volume create."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Target reset, tokenization, unquoting, C-unescaping, malformed-line omission, and command placement remain generator evidence; QuadletLens preserves physical lines."
+
+[[evidence]]
+id = "podman-5-4-volume-podman-args-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L1147-L1151"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 appends logical PodmanArgs before the final volume name; its shared helper obtains them through LookupAllArgs."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Target reset, tokenization, unquoting, C-unescaping, malformed-line omission, and terminal placement remain generator evidence; QuadletLens preserves physical lines."
+
+[[evidence]]
+id = "podman-5-4-volume-user-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L1137-L1147"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 converts the Volume User lookup numerically while its invalid/default behavior differs from the manual's UID-or-name wording."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "This target discrepancy is not imported into QuadletLens: no UID/name parsing, host lookup, default selection, ownership, mount, filesystem, or runtime claim."
+
+[[evidence]]
+id = "podman-5-4-volume-group-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L1137-L1147"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 numeric-converts the Volume Group lookup and constructs o=gid despite older table wording."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "No Group/GID parsing, invalid/out-of-range/default behavior, account lookup, ownership, mount, filesystem, or runtime behavior is imported into QuadletLens."
+
+[[evidence]]
+id = "podman-6-0-2-volume-uid"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-volume.unit.5.html#uid"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Volume-unit manual retains UID."
+test = "capabilities::supported_range_records_volume_uid"
+gap = "QuadletLens retains raw singleton text without UID parsing, lookup, range, default, ownership, or runtime interpretation."
+
+[[evidence]]
+id = "podman-6-0-2-volume-gid"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-volume.unit.5.html#gid"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Volume-unit manual retains GID."
+test = "capabilities::supported_range_records_volume_gid"
+gap = "QuadletLens retains raw singleton text without GID parsing, lookup, range, default, ownership, or runtime interpretation."
+
+[[evidence]]
+id = "podman-6-0-2-volume-service-name"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-volume.unit.5.html#servicename"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Volume-unit manual retains the singleton ServiceName key."
+test = "capabilities::supported_range_records_volume_service_name"
+gap = "QuadletLens retains raw physical text without stripping .service or assigning it an identity domain."
+
+[[evidence]]
+id = "podman-5-4-volume-image-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 source handles Volume Image in the image-driver path."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Source observation only; no pull, auth, trust, driver, or runtime claim."
+
+[[evidence]]
+id = "podman-5-4-image-image-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 generator source handles Image-unit Image sources in its pull-unit path."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Source observation only; no pull, registry, authentication, TLS, image-storage, runtime, or conversion claim."
+
+[[evidence]]
+id = "podman-5-4-image-image-tag-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 generator source uses ImageTag for Image-unit resource-name lookup."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Source observation only; no archive read, image pull, registry, authentication, TLS, runtime, or conversion claim."
+
+[[evidence]]
+id = "podman-5-4-image-all-tags-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 generator source accepts Image AllTags in the pull-command path."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Source observation only; no boolean parsing, image pull, registry, authentication, TLS, runtime, or conversion claim."
+
+[[evidence]]
+id = "podman-5-4-image-arch-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 generator source accepts Image Arch in the pull-command path."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Source observation only; no architecture parsing, image pull, registry, authentication, TLS, runtime, or conversion claim."
+
+[[evidence]]
+id = "podman-5-4-image-auth-file-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 generator source accepts Image AuthFile in the pull-command path."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Source observation only; no path reads or validation, credential parsing, sensitivity classification, image pull, registry authentication, runtime, or conversion claim."
+
+[[evidence]]
+id = "podman-5-4-image-creds-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 generator source accepts Image Creds in the pull-command path."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Source observation only; no credential parsing, validation, default selection, registry authentication, image pull, runtime, or conversion claim."
+
+[[evidence]]
+id = "podman-5-4-image-decryption-key-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 generator source accepts Image DecryptionKey in the pull-command path."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Source observation only; no key or passphrase parsing, validation, file reads, decryption, default selection, registry authentication, image pull, runtime, or conversion claim."
+
+[[evidence]]
+id = "podman-5-4-image-global-args-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 generator source accepts Image GlobalArgs in the pull-command path."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Source observation only; no argument tokenization, validation, command execution, image pull, runtime, or conversion claim."
+
+[[evidence]]
+id = "podman-5-4-image-os-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 generator source accepts Image OS in the pull-command path."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Source observation only; no operating-system parsing, host/default selection, image pull, runtime, or conversion claim."
+
+[[evidence]]
+id = "podman-5-4-image-cert-dir-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 generator source accepts Image CertDir in the pull-command path."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Source observation only; no path or certificate reads or validation, default selection, remote-client policy, sensitivity classification, image pull, registry authentication, runtime, or conversion claim."
+
+[[evidence]]
+id = "podman-5-4-image-containers-conf-module-base-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L2125-L2131"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 base-command helper obtains ContainersConfModule through LookupAll and emits each effective entry as --module=VALUE before the subcommand."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Target logical lookup, empty reset, and command placement remain generator evidence; QuadletLens preserves every authored physical line."
+
+[[evidence]]
 id = "podman-5-4-build-podman-args-isolation-chroot"
 verification = "documentation"
 url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#podmanargs"
@@ -40,6 +715,222 @@ target = "5.4.0"
 claim = "The Podman 5.4.0 Build-unit manual documents PodmanArgs as arguments appended to podman build; the exact --isolation=chroot form is verified by the isolated generator fixture."
 test = "capabilities::supported_range_records_build_podman_args_isolation_chroot"
 gap = "This documentation and dry-run command-text evidence does not lower Compose, establish isolation-mode equivalence, select a default, interpret rootless/rootful, namespace, LSM, environment, build, runtime, or cross-format behavior."
+
+[[evidence]]
+id = "podman-6-0-2-build-environment-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L1458-L1464"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 Build conversion routes Environment through the key/value helper, retaining a nil-valued bare token for --env construction."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The target's tokenization, reset, map collapse, sorting, and command formatting are generator behavior; QuadletLens preserves authored physical lines."
+
+[[evidence]]
+id = "podman-6-0-2-containers-conf-module-base-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L2194-L2200"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 base-command helper retains LookupAll and ordered --module=VALUE construction before the subcommand."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Target logical lookup, empty reset, and command placement remain generator evidence; QuadletLens preserves every authored physical line."
+
+[[evidence]]
+id = "podman-5-4-through-current-build-service-name-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Recorded generators select the last physical Build ServiceName, append .service, derive an absent ordinary name from the basename plus -build, change template-default handling at 5.7.0, and change unmatched-quote lookup at 5.8.2."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Dry-run generated-unit naming only; no extension enforcement, systemd operation, collision, escaping, runtime, build, dependency, filename mutation, Compose, or conversion claim."
+
+[[evidence]]
+id = "podman-6-0-2-build-volume-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L2461-L2478"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 Build generation retains logical Volume lookup, native volume substitution, dependency handling, and ordered -v construction."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Target reset, continuation, relative-path, substitution, and dependency behavior remain generator evidence only."
+
+[[evidence]]
+id = "podman-6-0-2-volume-containers-conf-module-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L1784-L1788"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 Volume generation retains logical ContainersConfModule lookup and ordered --module construction before volume create."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Target LookupAll reset and continuation behavior remain generator evidence; QuadletLens preserves physical lines."
+
+[[evidence]]
+id = "podman-6-0-2-volume-global-args-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L2194-L2207"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 base-command construction retains LookupAllArgs GlobalArgs token insertion before volume create."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Target reset, tokenization, unquoting, C-unescaping, malformed-line omission, and command placement remain generator evidence; QuadletLens preserves physical lines."
+
+[[evidence]]
+id = "podman-6-0-2-volume-podman-args-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L1209-L1215"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 retains logical PodmanArgs insertion before the final volume name; its shared helper uses LookupAllArgs."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Target reset, tokenization, unquoting, C-unescaping, malformed-line omission, and terminal placement remain generator evidence; QuadletLens preserves physical lines."
+
+[[evidence]]
+id = "podman-6-0-2-volume-user-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L1199-L1209"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 retains numeric conversion of the Volume User lookup, including invalid/default target behavior distinct from the manual wording."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "This target discrepancy is not imported into QuadletLens: no UID/name parsing, host lookup, default selection, ownership, mount, filesystem, or runtime claim."
+
+[[evidence]]
+id = "podman-6-0-2-volume-group-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L1199-L1209"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 retains numeric Group conversion, invalid/out-of-range/default target behavior, and o=gid construction despite older table wording."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "No Group/GID parsing, invalid/out-of-range/default behavior, account lookup, ownership, mount, filesystem, or runtime behavior is imported into QuadletLens."
+
+[[evidence]]
+id = "podman-6-0-0-volume-uid-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/ba11e03f63ba3bc0d1d85c8ebbb0a5b73012f9a3/pkg/systemd/quadlet/quadlet.go"
+target = "6.0.0"
+claim = "Tagged Podman 6.0.0 constructs the Volume UID option as --uid."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Target command construction only; no UID validation, default, ownership, filesystem, or runtime claim."
+
+[[evidence]]
+id = "podman-6-0-0-volume-gid-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/ba11e03f63ba3bc0d1d85c8ebbb0a5b73012f9a3/pkg/systemd/quadlet/quadlet.go"
+target = "6.0.0"
+claim = "Tagged Podman 6.0.0 constructs the Volume GID option as --gid."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Target command construction only; no GID validation, default, ownership, filesystem, or runtime claim."
+
+[[evidence]]
+id = "podman-5-4-volume-service-name-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 source accepts Volume ServiceName in the generated-unit naming path."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Source observation only; QuadletLens preserves raw physical text without identity interpretation."
+
+[[evidence]]
+id = "podman-6-0-2-volume-image-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 source retains Volume Image handling."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Source observation only; no pull, auth, trust, driver, or runtime claim."
+
+[[evidence]]
+id = "podman-6-0-2-image-image-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 generator source retains Image-unit Image source handling."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Source observation only; no pull, registry, authentication, TLS, image-storage, runtime, or conversion claim."
+
+[[evidence]]
+id = "podman-6-0-2-image-image-tag-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 generator source retains ImageTag resource-name lookup after Image pull-unit construction."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Source observation only; no archive read, image pull, registry, authentication, TLS, runtime, or conversion claim."
+
+[[evidence]]
+id = "podman-6-0-2-image-all-tags-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 generator source retains Image AllTags in the pull-command path."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Source observation only; no boolean parsing, image pull, registry, authentication, TLS, runtime, or conversion claim."
+
+[[evidence]]
+id = "podman-6-0-2-image-arch-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 generator source retains Image Arch in the pull-command path."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Source observation only; no architecture parsing, image pull, registry, authentication, TLS, runtime, or conversion claim."
+
+[[evidence]]
+id = "podman-6-0-2-image-auth-file-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 generator source retains Image AuthFile in the pull-command path."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Source observation only; no path reads or validation, credential parsing, sensitivity classification, image pull, registry authentication, runtime, or conversion claim."
+
+[[evidence]]
+id = "podman-6-0-2-image-creds-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 generator source retains Image Creds in the pull-command path."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Source observation only; no credential parsing, validation, default selection, registry authentication, image pull, runtime, or conversion claim."
+
+[[evidence]]
+id = "podman-6-0-2-image-decryption-key-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 generator source retains Image DecryptionKey in the pull-command path."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Source observation only; no key or passphrase parsing, validation, file reads, decryption, default selection, registry authentication, image pull, runtime, or conversion claim."
+
+[[evidence]]
+id = "podman-6-0-2-image-global-args-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 generator source retains Image GlobalArgs in the pull-command path."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Source observation only; no argument tokenization, validation, command execution, image pull, runtime, or conversion claim."
+
+[[evidence]]
+id = "podman-6-0-2-image-os-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 generator source retains Image OS in the pull-command path."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Source observation only; no operating-system parsing, host/default selection, image pull, runtime, or conversion claim."
+
+[[evidence]]
+id = "podman-6-0-2-image-cert-dir-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 generator source retains Image CertDir in the pull-command path."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Source observation only; no path or certificate reads or validation, default selection, remote-client policy, sensitivity classification, image pull, registry authentication, runtime, or conversion claim."
+
+[[evidence]]
+id = "podman-6-0-2-image-containers-conf-module-base-command-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L2194-L2200"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 base-command helper retains LookupAll and ordered --module=VALUE construction before the subcommand."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Target logical lookup, empty reset, and command placement remain generator evidence; QuadletLens preserves every authored physical line."
 
 [[evidence]]
 id = "podman-5-4-build-podman-args-ssh-default"
@@ -51,6 +942,267 @@ test = "capabilities::supported_range_records_build_podman_args_ssh_default"
 gap = "This evidence does not provide, resolve, inspect, or claim keys, sockets, an agent, PEM data, paths, environments, mounts, builds, runtime state, or Compose lowering."
 
 [[evidence]]
+id = "podman-5-4-build-environment-parser-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/parser/unitfile.go#L841-L855"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 LookupAllKeyVal tokenizes, unquotes, C-unescapes, splits at the first equals sign, ignores bare tokens, and represents values as map[string]string."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The 5.4–5.5 target representation is evidence only; QuadletLens does not tokenize, unquote, C-unescape, map-collapse, or discard authored physical lines."
+
+[[evidence]]
+id = "podman-5-4-containers-conf-module-parser-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/parser/unitfile.go#L787-L790"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 LookupAll obtains logical values through LookupAllRaw and applies line continuations; its empty assignment reset is target parser behavior."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens retains empty, continuation-looking, quoted, and whitespace-bearing physical values without applying target lookup or reset semantics."
+
+[[evidence]]
+id = "podman-5-4-through-current-build-volume-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every recorded generator applies empty reset and continuation lookup to Build Volume, preserves the effective -v list order, resolves relative . source text, and substitutes/dependson an exact .volume source."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Dry-run command and generated-unit construction only; no mount, build, runtime, filesystem, lifecycle, image, systemd, security, Compose, or conversion claim."
+
+[[evidence]]
+id = "podman-5-4-through-current-volume-containers-conf-module-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every recorded generator resets pre-reset Volume ContainersConfModule values at an empty assignment and emits only ordered post-reset --module arguments before volume create."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Dry-run command construction only; no module/configuration read, path, options, CLI, layering, volume creation, lifecycle, permissions, security, naming, filesystem, runtime, Compose, or conversion claim."
+
+[[evidence]]
+id = "podman-5-4-through-current-volume-global-args-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every recorded generator resets pre-reset Volume GlobalArgs values at an empty assignment, tokenizes/unquotes/C-unescapes retained values, omits a malformed physical line, and emits decoded post-reset tokens in authored order between podman and volume create."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Dry-run command construction only; no argument parsing or validation, security, module/path/configuration reads, volume options, creation, lifecycle, naming, filesystem, runtime, Compose, or conversion claim."
+
+[[evidence]]
+id = "podman-5-4-through-current-volume-podman-args-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every recorded generator resets pre-reset Volume PodmanArgs values at an empty assignment, tokenizes/unquotes/C-unescapes retained values, omits a malformed physical line, and emits decoded post-reset tokens in authored order at the end of volume create before the volume name."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Dry-run command construction only; no CLI grammar, dedicated-key semantics, security, volume creation, lifecycle, filesystem, systemd, naming, host configuration, runtime, Compose, or conversion claim."
+
+[[evidence]]
+id = "podman-5-4-through-current-volume-user-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every recorded generator turns the unambiguous Volume User=123 fixture into o=uid=123 before the volume name."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Dry-run command construction only; no volume operation, UID/name grammar, invalid/default behavior, ownership, mount, filesystem, lifecycle, security, runtime, Compose, or conversion claim."
+
+[[evidence]]
+id = "podman-5-4-through-current-volume-group-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every recorded generator turns the unambiguous Volume Group=456 fixture into o=gid=456 before the volume name."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Dry-run command construction only; no volume operation, GID/name grammar, invalid/default behavior, ownership, mount, filesystem, lifecycle, security, runtime, Compose, or conversion claim."
+
+[[evidence]]
+id = "podman-6-0-2-volume-uid-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 retains Volume UID --uid construction."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Target command construction only; no UID validation, default, ownership, filesystem, or runtime claim."
+
+[[evidence]]
+id = "podman-6-0-2-volume-gid-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 retains Volume GID --gid construction."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Target command construction only; no GID validation, default, ownership, filesystem, or runtime claim."
+
+[[evidence]]
+id = "podman-6-0-2-volume-service-name-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 source retains Volume ServiceName in the generated-unit naming path."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Source observation only; QuadletLens preserves raw physical text without identity interpretation."
+
+[[evidence]]
+id = "podman-5-4-through-current-volume-image-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every recorded generator observes the Volume Image driver, literal, missing, ignored-driver, and exact image/build-reference fixture forms."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Dry-run generator text only; no pull, auth, trust, driver, plugin, copy, runtime, systemd, Compose, or conversion claim."
+
+[[evidence]]
+id = "podman-5-4-through-current-image-core-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every recorded generator produces a pull unit for a literal Image source, reports missing and empty Image errors, and selects the final duplicate source value."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Dry-run generated-unit text only; source preservation and duplicate diagnostics remain independent from target effective-last behavior. No pull, registry, authentication, TLS, image-storage, runtime, or conversion claim."
+
+[[evidence]]
+id = "podman-5-4-through-current-image-image-tag-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every recorded generator preserves Image source commands while using nonempty, duplicate-last, final-blank, quoted, and unmatched-quote ImageTag observations for dependent `.image` references."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Dry-run generated-unit text only; target resource-name selection, defaults, substitution, dependency construction, and quote presentation are not Lens API behavior. No archive read, image pull, registry, authentication, TLS, runtime, or conversion claim."
+
+[[evidence]]
+id = "podman-5-4-through-current-image-all-tags-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every recorded generator observes Image AllTags true/false, duplicate-last, absent/blank, and unmatched-quote command-text behavior."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Dry-run generated-unit text only; target boolean lookup, defaults, effective-last selection, quote handling, and pull-command presentation are not Lens API behavior. No image pull, registry, authentication, TLS, image storage, runtime, systemd, Compose, or conversion claim."
+
+[[evidence]]
+id = "podman-5-4-through-current-image-arch-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every recorded generator observes Image Arch normal, duplicate-last, blank omission, and unmatched-quote command presentation."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Dry-run generated-unit text only; target architecture lookup, host defaults, effective-last selection, quote handling, and pull-command presentation are not Lens API behavior. No image metadata or storage lookup, image pull, registry, authentication, TLS, runtime, systemd, Compose, or conversion claim."
+
+[[evidence]]
+id = "podman-5-4-through-current-image-auth-file-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every recorded generator observes Image AuthFile normal, duplicate-last, blank omission, and unmatched-quote command presentation."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Dry-run generated-unit text only; target path lookup, effective-last selection, quote handling, and pull-command presentation are not Lens API behavior. No path access, credential parsing, sensitivity classification, image pull, registry authentication, runtime, systemd, Compose, or conversion claim."
+
+[[evidence]]
+id = "podman-5-4-through-current-image-creds-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every recorded generator observes Image Creds normal, duplicate-last, final-blank omission, and unmatched-quote command presentation."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Dry-run generated-unit text only; target credential lookup, effective-last selection, quote handling, and pull-command presentation are not Lens API behavior. No credential parsing, validation, default selection, registry authentication, image pull, runtime, systemd, Compose, or conversion claim."
+
+[[evidence]]
+id = "podman-5-4-through-current-image-decryption-key-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every recorded generator observes Image DecryptionKey normal, duplicate-last, final-blank omission, and unmatched-quote command presentation."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Dry-run generated-unit text only; target key lookup, effective-last selection, quote handling, and pull-command presentation are not Lens API behavior. No key or passphrase parsing, validation, file reads, decryption, default selection, registry authentication, image pull, runtime, systemd, Compose, or conversion claim."
+
+[[evidence]]
+id = "podman-5-4-through-current-image-global-args-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every recorded generator observes Image GlobalArgs reset, tokenization, unquoting, C-unescaping, malformed-line omission, and ordered pre-pull command presentation."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Dry-run generated-unit text only; target reset, tokenization, unquoting, C-unescaping, malformed-line omission, and pull-command placement are not Lens API behavior. No argument parsing, validation, image pull, runtime, systemd, Compose, or conversion claim."
+
+[[evidence]]
+id = "podman-5-4-through-current-image-os-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every recorded generator observes Image OS normal, duplicate-last, final-blank omission, and endpoint-specific unmatched-quote command presentation."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Dry-run generated-unit text only; target effective-last lookup, blank omission, quote handling, and pull-command presentation are not Lens API behavior. No operating-system parsing, host/default selection, image pull, runtime, systemd, Compose, or conversion claim."
+
+[[evidence]]
+id = "podman-5-4-through-current-image-cert-dir-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every recorded generator observes Image CertDir normal, duplicate-last, blank omission, and unmatched-quote command presentation."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Dry-run generated-unit text only; target path lookup, default/effective-last selection, quote handling, and pull-command presentation are not Lens API behavior. No path or certificate access, containers-certs.d defaults, remote-client policy, sensitivity classification, image pull, registry authentication, runtime, systemd, Compose, or conversion claim."
+
+[[evidence]]
+id = "podman-5-4-image-containers-conf-module-parser-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/parser/unitfile.go#L787-L790"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 parser LookupAll retains logical ContainersConfModule values for reset-aware command construction."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Target parser lookup, empty-reset, and token presentation are evidence only; QuadletLens preserves every authored physical line."
+
+[[evidence]]
+id = "podman-6-0-2-image-containers-conf-module-parser-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/parser/unitfile.go#L796-L799"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 parser LookupAll retains logical ContainersConfModule values for reset-aware command construction."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Target parser lookup, empty-reset, and token presentation are evidence only; QuadletLens preserves every authored physical line."
+
+[[evidence]]
+id = "podman-5-4-through-current-image-containers-conf-module-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every recorded generator resets pre-reset Image ContainersConfModule values at an empty assignment and emits only ordered post-reset --module=post-one and --module=post-two arguments before image pull."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Dry-run command construction only; no module-path resolution, module reads, configuration effect, CLI validation, image pull, runtime, Compose, or conversion claim."
+
+[[evidence]]
+id = "podman-5-4-through-6-0-2-image-service-name-docs-gap"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-image.unit.5.html"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Dedicated Image-unit manuals omit ServiceName across the tracked range, while tagged generator source and the recorded generator matrix cover the native key."
+test = "capabilities::supported_range_records_image_service_name"
+gap = "Documentation omission is explicit; no identity, default, template, systemd, image pull, runtime, or conversion claim."
+
+[[evidence]]
+id = "podman-5-4-image-service-name-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 source accepts Image ServiceName in the generated-unit naming path."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Source observation only; no identity, systemd operation, image pull, runtime, or conversion claim."
+
+[[evidence]]
+id = "podman-6-0-2-image-service-name-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 source retains Image ServiceName in the generated-unit naming path."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Source observation only; no identity, systemd operation, image pull, runtime, or conversion claim."
+
+[[evidence]]
+id = "podman-5-4-through-current-image-service-name-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every recorded generator observes Image ServiceName default, duplicate-last, `.service`, template, and unmatched-quote naming behavior."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Dry-run generated-unit text only; target service-name selection, defaults, template expansion, quote lookup, and identity behavior are not Lens API behavior. No image pull, systemd operation, runtime, or conversion claim."
+
+[[evidence]]
 id = "podman-5-4-build-podman-args-shm-size-32m"
 verification = "documentation"
 url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#podmanargs"
@@ -60,6 +1212,51 @@ test = "capabilities::supported_range_records_build_podman_args_shm_size_32m"
 gap = "This evidence does not add a Build ShmSize key; establish Compose or unit equivalence; infer zero or omission defaults; select IPC; inspect host, cgroup, or memory behavior; execute a build or workload; or establish runtime or conversion behavior."
 
 [[evidence]]
+id = "podman-5-6-build-environment-parser-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/v5.6.0/pkg/systemd/parser/unitfile.go#L843-L865"
+target = "5.6.0"
+claim = "Tagged Podman 5.6.0 LookupAllKeyVal changes to map[string]*string and retains bare tokens as nil values after tokenization, unquoting, C-unescaping, and first-equals splitting."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The 5.6+ target representation is evidence only; QuadletLens does not tokenize, unquote, C-unescape, map-collapse, or alter authored physical lines."
+
+[[evidence]]
+id = "podman-6-0-2-containers-conf-module-parser-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/parser/unitfile.go#L796-L799"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 LookupAll retains the logical raw-value lookup and continuation handling used by the base-command helper."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens retains empty, continuation-looking, quoted, and whitespace-bearing physical values without applying target lookup or reset semantics."
+
+[[evidence]]
+id = "podman-6-0-volume-uid-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "6.0.0", maximum = "6.0.2" }
+claim = "Every recorded 6.0.x generator emits exactly one --uid 1234 before the terminal volume name for the unambiguous Volume UID fixture."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Dry-run command text only; no volume creation, UID grammar, lookup, default, ownership, mount, filesystem, security, runtime, Compose, or conversion claim."
+
+[[evidence]]
+id = "podman-6-0-volume-gid-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "6.0.0", maximum = "6.0.2" }
+claim = "Every recorded 6.0.x generator emits exactly one --gid 5678 before the terminal volume name for the unambiguous Volume GID fixture."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Dry-run command text only; no volume creation, GID grammar, lookup, default, ownership, mount, filesystem, security, runtime, Compose, or conversion claim."
+
+[[evidence]]
+id = "podman-5-4-through-current-volume-service-name-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every recorded generator selects the last physical Volume ServiceName, appends .service, derives an absent ordinary name from the basename plus -volume, changes template-default handling at 5.7.0, and changes unmatched-quote lookup at 5.8.2."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Dry-run generated-unit naming only; no systemd operation, collision, escaping, runtime, volume operation, dependency, filename mutation, Compose, or conversion claim."
+
+[[evidence]]
 id = "podman-5-4-build-podman-args-ulimit-nproc"
 verification = "documentation"
 url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#podmanargs"
@@ -67,6 +1264,24 @@ target = "5.4.0"
 claim = "The Podman 5.4.0 Quadlet manual documents Build PodmanArgs as arguments appended to podman build; the isolated fixture verifies only the exact --ulimit=nproc=4096:8192 presentation."
 test = "capabilities::supported_range_records_build_podman_args_ulimit_nproc"
 gap = "This evidence does not establish Compose name, range, or -1 equivalence; host/rootless/rootful, RUN, cgroup, or default behavior; build execution; runtime resource-limit enforcement; or conversion behavior."
+
+[[evidence]]
+id = "podman-5-4-through-current-build-environment-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every recorded generator resets, tokenizes, unquotes, C-unescapes, selects final names, sorts the effective map, and emits separate Build Environment --env arguments; bare and malformed tokens are omitted through 5.5.2 and emitted from 5.6.0."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Dry-run command construction only; no build, runtime, host-environment lookup, Compose, or conversion claim."
+
+[[evidence]]
+id = "podman-5-4-through-current-build-containers-conf-module-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every recorded generator resets pre-reset Build ContainersConfModule values at an empty assignment and emits only ordered post-reset --module=post-one and --module=post-two arguments before build and its context."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Dry-run command construction only; no module-path resolution, module reads, configuration effect, build, runtime, Compose, or conversion claim."
 
 [[evidence]]
 id = "podman-5-4-build-podman-args-add-host-buildhost"
@@ -3081,6 +4296,287 @@ test = "capabilities::supported_range_records_container_memory_from_5_5"
 gap = "The native model deliberately preserves raw values without imposing target runtime, cgroup, page-size, swap, host-memory, or rootless semantics."
 
 [[evidence]]
+id = "podman-5-6-pod-exit-policy"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.6.0/markdown/podman-systemd.unit.5.html#exitpolicy"
+target = "5.6.0"
+claim = "The Podman 5.6.0 Pod-unit manual documents ExitPolicy as the policy passed to podman pod create when a pod container exits."
+test = "capabilities::supported_range_records_pod_exit_policy"
+gap = "QuadletLens retains opaque source text without parsing policy values, selecting a default, or claiming pod lifecycle behavior."
+
+[[evidence]]
+id = "podman-6-0-2-pod-exit-policy"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-systemd.unit.5.html#exitpolicy"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Pod-unit manual retains ExitPolicy as the policy passed to podman pod create when a pod container exits."
+test = "capabilities::supported_range_records_pod_exit_policy"
+gap = "QuadletLens retains opaque source text without parsing policy values, selecting a default, or claiming pod lifecycle behavior."
+
+[[evidence]]
+id = "podman-5-6-pod-exit-policy-cli"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.6.0/markdown/podman-pod-create.1.html#exit-policy-policy"
+target = "5.6.0"
+claim = "The Podman 5.6.0 pod-create manual documents --exit-policy with continue and stop policy forms."
+test = "capabilities::supported_range_records_pod_exit_policy"
+gap = "The documented CLI forms are evidence only; QuadletLens does not validate policy text or run Podman."
+
+[[evidence]]
+id = "podman-6-0-2-pod-exit-policy-cli"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-pod-create.1.html#exit-policy-policy"
+target = "6.0.2"
+claim = "The Podman 6.0.2 pod-create manual retains --exit-policy with continue and stop policy forms."
+test = "capabilities::supported_range_records_pod_exit_policy"
+gap = "The documented CLI forms are evidence only; QuadletLens does not validate policy text or run Podman."
+
+[[evidence]]
+id = "podman-5-6-pod-exit-policy-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/v5.6.0/pkg/systemd/quadlet/quadlet.go"
+target = "5.6.0"
+claim = "Tagged Podman 5.6.0 source registers Pod ExitPolicy, performs singleton lookup, and adds --exit-policy after --replace."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Tagged source establishes generator command construction only; it does not establish pod lifecycle behavior."
+
+[[evidence]]
+id = "podman-6-0-2-pod-exit-policy-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/v6.0.2/pkg/systemd/quadlet/quadlet.go"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 source registers Pod ExitPolicy, performs singleton lookup, and adds --exit-policy after --replace."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Tagged source establishes generator command construction only; it does not establish pod lifecycle behavior."
+
+[[evidence]]
+id = "podman-5-4-through-5-5-pod-exit-policy-generator-rejection"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "5.5.2" }
+claim = "Every recorded Podman 5.4.0 through 5.5.2 generator rejects the isolated Pod ExitPolicy fixture because the native key is not registered."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+
+[[evidence]]
+id = "podman-5-6-through-current-pod-exit-policy-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.6.0", maximum = "6.0.2" }
+claim = "Every recorded Podman patch from 5.6.0 through 6.0.2 emits one --exit-policy flag after --replace for continue and stop values, selects the final duplicate value, and retains an empty argument when the final assignment is blank."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+
+[[evidence]]
+id = "podman-5-7-pod-stop-timeout"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.7.0/markdown/podman-systemd.unit.5.html#stoptimeout"
+target = "5.7.0"
+claim = "The Podman 5.7.0 Pod-unit manual documents StopTimeout as the timeout passed to podman pod stop."
+test = "capabilities::supported_range_records_pod_stop_timeout"
+gap = "QuadletLens retains opaque source text without parsing timeout values, applying a default, or claiming pod-stop behavior."
+
+[[evidence]]
+id = "podman-6-0-2-pod-stop-timeout"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-systemd.unit.5.html#stoptimeout"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Pod-unit manual retains StopTimeout as the timeout passed to podman pod stop."
+test = "capabilities::supported_range_records_pod_stop_timeout"
+gap = "QuadletLens retains opaque source text without parsing timeout values, applying a default, or claiming pod-stop behavior."
+
+[[evidence]]
+id = "podman-5-6-pod-stop-timeout-source-rejection"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/v5.6.2/pkg/systemd/quadlet/quadlet.go"
+target = "5.6.2"
+claim = "Tagged Podman 5.6.2 source does not register Pod StopTimeout and emits the fixed --time=10 stop command."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Tagged source establishes generator registration and command construction only; it does not stop a pod or establish timeout behavior."
+
+[[evidence]]
+id = "podman-5-7-pod-stop-timeout-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/v5.7.0/pkg/systemd/quadlet/quadlet.go"
+target = "5.7.0"
+claim = "Tagged Podman 5.7.0 source registers Pod StopTimeout, performs singleton lookup, and emits --time=<value> for pod stop."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Tagged source establishes generator command construction only; it does not stop a pod or establish timeout behavior."
+
+[[evidence]]
+id = "podman-6-0-2-pod-stop-timeout-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/v6.0.2/pkg/systemd/quadlet/quadlet.go"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 source retains Pod StopTimeout singleton lookup and --time=<value> pod-stop construction."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Tagged source establishes generator command construction only; it does not stop a pod or establish timeout behavior."
+
+[[evidence]]
+id = "podman-5-7-pod-stop-timeout-cli"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.7.0/markdown/podman-pod-stop.1.html#time-t"
+target = "5.7.0"
+claim = "The Podman 5.7.0 pod-stop manual documents --time as seconds to wait before stopping containers."
+test = "capabilities::supported_range_records_pod_stop_timeout"
+gap = "The documented CLI behavior is evidence only; QuadletLens does not parse seconds or run Podman."
+
+[[evidence]]
+id = "podman-5-4-through-5-6-pod-stop-timeout-generator-rejection"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "5.6.2" }
+claim = "Every recorded Podman 5.4.0 through 5.6.2 generator rejects the isolated Pod StopTimeout fixture because the native key is not registered."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+
+[[evidence]]
+id = "podman-5-7-through-current-pod-stop-timeout-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.7.0", maximum = "6.0.2" }
+claim = "Every recorded Podman patch from 5.7.0 through 6.0.2 emits exactly one final --time= form for 37, 0, -1, and duplicate-final-37 StopTimeout values, retaining --time= for a final blank assignment."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+
+[[evidence]]
+id = "podman-5-4-pod-service-name"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#servicename"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Quadlet manual documents ServiceName as the generated service name for a Pod unit."
+test = "capabilities::supported_range_records_pod_service_name"
+gap = "QuadletLens retains opaque source text without stripping extensions, deriving names, or assigning document, dependency, systemd, restart, runtime, or cross-format identity semantics."
+
+[[evidence]]
+id = "podman-6-0-2-pod-service-name"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-pod.unit.5.html#servicename"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Pod-unit manual retains ServiceName as the generated service name."
+test = "capabilities::supported_range_records_pod_service_name"
+gap = "QuadletLens retains opaque source text without stripping extensions, deriving names, or assigning document, dependency, systemd, restart, runtime, or cross-format identity semantics."
+
+[[evidence]]
+id = "podman-5-4-pod-service-name-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 source accepts Pod ServiceName in the generated-unit naming path."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Tagged source establishes target generated-name construction only; QuadletLens preserves raw physical text without identity interpretation."
+
+[[evidence]]
+id = "podman-6-0-2-pod-service-name-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 source retains Pod ServiceName in the generated-unit naming path."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Tagged source establishes target generated-name construction only; QuadletLens preserves raw physical text without identity interpretation."
+
+[[evidence]]
+id = "podman-5-4-through-current-pod-service-name-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every recorded generator observes Pod ServiceName default, duplicate-last, `.service`, template, unmatched-quote, final-blank, and extension-bearing generated-unit naming behavior."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Dry-run generated-unit text only; target service-name selection, defaults, template expansion, quote lookup, blank and extension behavior, and identity semantics are not Lens API behavior. No systemd operation, restart, runtime, or conversion claim."
+
+[[evidence]]
+id = "podman-5-5-container-reload-cmd"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.5.0/markdown/podman-systemd.unit.5.html#reloadcmd"
+target = "5.5.0"
+claim = "The Podman 5.5.0 Container-unit manual documents ReloadCmd as a reload command run through the generated service."
+test = "capabilities::supported_range_records_container_reload_keys"
+gap = "The native model retains opaque source text and does not execute a command or claim container reload behavior."
+
+[[evidence]]
+id = "podman-6-0-2-container-reload-cmd"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-systemd.unit.5.html#reloadcmd"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Container-unit manual retains ReloadCmd as a reload command run through the generated service."
+test = "capabilities::supported_range_records_container_reload_keys"
+gap = "The native model retains opaque source text and does not execute a command or claim container reload behavior."
+
+[[evidence]]
+id = "podman-5-5-container-reload-signal"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.5.0/markdown/podman-systemd.unit.5.html#reloadsignal"
+target = "5.5.0"
+claim = "The Podman 5.5.0 Container-unit manual documents ReloadSignal as a signal used for a generated service reload action."
+test = "capabilities::supported_range_records_container_reload_keys"
+gap = "The native model retains opaque source text and does not parse a signal or claim container reload behavior."
+
+[[evidence]]
+id = "podman-6-0-2-container-reload-signal"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-systemd.unit.5.html#reloadsignal"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Container-unit manual retains ReloadSignal as a signal used for a generated service reload action."
+test = "capabilities::supported_range_records_container_reload_keys"
+gap = "The native model retains opaque source text and does not parse a signal or claim container reload behavior."
+
+[[evidence]]
+id = "podman-5-5-container-reload-cmd-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/v5.5.0/pkg/systemd/quadlet/quadlet.go#L2306-L2329"
+target = "5.5.0"
+claim = "Tagged Podman 5.5.0 source reads ReloadCmd as final parsed arguments and emits ExecReload through podman exec with the generated cidfile."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Tagged source establishes generated command text only; it does not execute a reload command."
+
+[[evidence]]
+id = "podman-6-0-2-container-reload-cmd-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/v6.0.2/pkg/systemd/quadlet/quadlet.go#L2294-L2321"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 source reads ReloadCmd as final parsed arguments and emits ExecReload through podman exec with the generated container name."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Tagged source establishes generated command text only; it does not execute a reload command."
+
+[[evidence]]
+id = "podman-5-5-container-reload-signal-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/v5.5.0/pkg/systemd/quadlet/quadlet.go#L2306-L2329"
+target = "5.5.0"
+claim = "Tagged Podman 5.5.0 source reads ReloadSignal and emits ExecReload through podman kill with the generated cidfile."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Tagged source establishes generated command text only; it does not send a signal."
+
+[[evidence]]
+id = "podman-6-0-2-container-reload-signal-source"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/v6.0.2/pkg/systemd/quadlet/quadlet.go#L2294-L2321"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 source reads ReloadSignal and emits ExecReload through podman kill with the generated container name."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Tagged source establishes generated command text only; it does not send a signal."
+
+[[evidence]]
+id = "podman-5-4-container-reload-generator-rejection"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "5.4.2" }
+claim = "Every recorded Podman 5.4 patch generator rejects the isolated ReloadCmd and ReloadSignal fixture because neither native key is registered in that release line."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+
+[[evidence]]
+id = "podman-5-5-through-current-container-reload-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.5.0", maximum = "6.0.2" }
+claim = "Every recorded Podman patch from 5.5.0 through 6.0.2 emits one ReloadCmd and one ReloadSignal ExecReload action, with 5.5.x cidfile targeting and 5.6.0-through-6.0.2 generated-name targeting; a final blank ReloadCmd emits no action while an unmatched quote is tokenized into the recorded command text."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+
+[[evidence]]
+id = "podman-5-5-through-current-container-reload-mutual-exclusion-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.5.0", maximum = "6.0.2" }
+claim = "Every recorded Podman patch from 5.5.0 through 6.0.2 rejects a Container unit that sets both ReloadCmd and ReloadSignal."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+
+[[evidence]]
 id = "podman-6-0-2-container-memory"
 verification = "documentation"
 url = "https://docs.podman.io/en/v6.0.2/markdown/podman-systemd.unit.5.html#memory"
@@ -4114,6 +5610,440 @@ evidence = [
 ]
 
 [[capability]]
+id = "quadlet.build.environment"
+description = "Opaque authored Build Environment physical values retained as repeatable ordered entries without splitting, tokenizing, unquoting, C-unescaping, host lookup, reset, duplicate-name selection, or normalization."
+unit_types = ["build"]
+sections = ["Build"]
+repeatable = true
+value_forms = ["opaque-one-line-build-environment"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = [
+  "podman-5-4-build-environment",
+  "podman-6-0-2-build-environment",
+  "podman-5-4-build-environment-source",
+  "podman-6-0-2-build-environment-source",
+  "podman-5-4-build-environment-parser-source",
+  "podman-5-6-build-environment-parser-source",
+  "podman-5-4-through-current-build-environment-generators"
+]
+
+[[capability]]
+id = "quadlet.build.containers-conf-module"
+description = "Opaque authored Build ContainersConfModule physical values retained as repeatable ordered entries without path parsing, module reads, configuration inspection, reset, deduplication, tokenization, or normalization."
+unit_types = ["build"]
+sections = ["Build"]
+repeatable = true
+value_forms = ["opaque-one-line-build-containers-conf-module"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = [
+  "podman-5-4-build-containers-conf-module",
+  "podman-6-0-2-build-containers-conf-module",
+  "podman-5-4-containers-conf-module-base-command-source",
+  "podman-6-0-2-containers-conf-module-base-command-source",
+  "podman-5-4-containers-conf-module-parser-source",
+  "podman-6-0-2-containers-conf-module-parser-source",
+  "podman-5-4-through-current-build-containers-conf-module-generators"
+]
+
+[[capability]]
+id = "quadlet.build.global-args"
+description = "Opaque authored Build GlobalArgs physical values retained as repeatable ordered entries without tokenization, reset application, unquoting, C-unescaping, option validation, or runtime interpretation."
+unit_types = ["build"]
+sections = ["Build"]
+repeatable = true
+value_forms = ["opaque-one-line-build-global-args"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = [
+  "podman-5-4-build-global-args",
+  "podman-6-0-2-build-global-args",
+  "podman-5-4-through-current-build-global-args-generators"
+]
+
+[[capability]]
+id = "quadlet.build.service-name"
+description = "Opaque authored Build ServiceName physical text retained as a singleton without extension stripping, name derivation, identity, dependency, or runtime interpretation."
+unit_types = ["build"]
+sections = ["Build"]
+repeatable = false
+value_forms = ["opaque-one-line-build-service-name"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = [
+  "podman-5-4-through-5-8-5-build-service-name-docs-gap",
+  "podman-6-0-0-build-service-name",
+  "podman-6-0-2-build-service-name",
+  "podman-5-4-through-current-build-service-name-generators"
+]
+
+[[capability]]
+id = "quadlet.build.volume"
+description = "Repeatable opaque Build Volume physical values with conservative source-prefix path classification and exact .volume document-set references only."
+unit_types = ["build"]
+sections = ["Build"]
+repeatable = true
+value_forms = ["opaque-one-line-build-volume", "volume-unit-reference"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = [
+  "podman-5-4-build-volume",
+  "podman-6-0-2-build-volume",
+  "podman-5-4-build-volume-source",
+  "podman-6-0-2-build-volume-source",
+  "podman-5-4-through-current-build-volume-generators"
+]
+
+[[capability]]
+id = "quadlet.volume.containers-conf-module"
+description = "Opaque authored Volume ContainersConfModule physical values retained as repeatable ordered entries without module, configuration, path, option, or runtime interpretation."
+unit_types = ["volume"]
+sections = ["Volume"]
+repeatable = true
+value_forms = ["opaque-one-line-volume-containers-conf-module"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = [
+  "podman-5-4-volume-containers-conf-module",
+  "podman-6-0-2-volume-containers-conf-module",
+  "podman-5-4-volume-containers-conf-module-source",
+  "podman-6-0-2-volume-containers-conf-module-source",
+  "podman-5-4-through-current-volume-containers-conf-module-generators"
+]
+
+[[capability]]
+id = "quadlet.volume.global-args"
+description = "Opaque authored Volume GlobalArgs physical values retained as repeatable ordered entries without tokenization, reset application, unquoting, C-unescaping, option validation, sensitivity classification, or runtime interpretation."
+unit_types = ["volume"]
+sections = ["Volume"]
+repeatable = true
+value_forms = ["opaque-one-line-volume-global-args"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = [
+  "podman-5-4-volume-global-args",
+  "podman-6-0-2-volume-global-args",
+  "podman-5-4-volume-global-args-source",
+  "podman-6-0-2-volume-global-args-source",
+  "podman-5-4-through-current-volume-global-args-generators"
+]
+
+[[capability]]
+id = "quadlet.volume.podman-args"
+description = "Opaque authored Volume PodmanArgs physical values retained as repeatable ordered entries without tokenization, reset application, unquoting, C-unescaping, deduplication, option validation, sensitivity classification, or runtime interpretation."
+unit_types = ["volume"]
+sections = ["Volume"]
+repeatable = true
+value_forms = ["opaque-one-line-volume-podman-args"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = [
+  "podman-5-4-volume-podman-args",
+  "podman-6-0-2-volume-podman-args",
+  "podman-5-4-volume-podman-args-source",
+  "podman-6-0-2-volume-podman-args-source",
+  "podman-5-4-through-current-volume-podman-args-generators"
+]
+
+[[capability]]
+id = "quadlet.volume.user"
+description = "Opaque authored Volume User singleton retained without UID/name parsing, host lookup, default selection, ownership, mount, filesystem, or runtime interpretation."
+unit_types = ["volume"]
+sections = ["Volume"]
+repeatable = false
+value_forms = ["opaque-one-line-volume-user"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = [
+  "podman-5-4-volume-user",
+  "podman-6-0-2-volume-user",
+  "podman-5-4-volume-user-source",
+  "podman-6-0-2-volume-user-source",
+  "podman-5-4-through-current-volume-user-generators"
+]
+
+[[capability]]
+id = "quadlet.volume.group"
+description = "Opaque authored Volume Group singleton retained without GID/name parsing, account lookup, default selection, ownership, mount, filesystem, or runtime interpretation."
+unit_types = ["volume"]
+sections = ["Volume"]
+repeatable = false
+value_forms = ["opaque-one-line-volume-group"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = [
+  "podman-5-4-volume-group",
+  "podman-6-0-2-volume-group",
+  "podman-5-4-volume-group-source",
+  "podman-6-0-2-volume-group-source",
+  "podman-5-4-through-current-volume-group-generators"
+]
+
+[[capability]]
+id = "quadlet.volume.uid"
+description = "Opaque authored Volume UID singleton retained without UID parsing, account lookup, range/default selection, ownership, mount, filesystem, or runtime interpretation."
+unit_types = ["volume"]
+sections = ["Volume"]
+repeatable = false
+value_forms = ["opaque-one-line-volume-uid"]
+native = { minimum = "6.0.0", maximum = "6.0.2" }
+evidence = [
+  "podman-5-8-5-volume-uid-absence",
+  "podman-6-0-0-volume-uid",
+  "podman-6-0-2-volume-uid",
+  "podman-6-0-0-volume-uid-source",
+  "podman-6-0-2-volume-uid-source",
+  "podman-6-0-volume-uid-generators"
+]
+
+[[capability.unsupported]]
+versions = { minimum = "5.4.0", maximum = "5.8.5" }
+summary = "Volume UID is absent before Podman 6.0.0."
+evidence = ["podman-5-8-5-volume-uid-absence"]
+
+[[capability]]
+id = "quadlet.volume.gid"
+description = "Opaque authored Volume GID singleton retained without GID parsing, account lookup, range/default selection, ownership, mount, filesystem, or runtime interpretation."
+unit_types = ["volume"]
+sections = ["Volume"]
+repeatable = false
+value_forms = ["opaque-one-line-volume-gid"]
+native = { minimum = "6.0.0", maximum = "6.0.2" }
+evidence = [
+  "podman-5-8-5-volume-gid-absence",
+  "podman-6-0-0-volume-gid",
+  "podman-6-0-2-volume-gid",
+  "podman-6-0-0-volume-gid-source",
+  "podman-6-0-2-volume-gid-source",
+  "podman-6-0-volume-gid-generators"
+]
+
+[[capability.unsupported]]
+versions = { minimum = "5.4.0", maximum = "5.8.5" }
+summary = "Volume GID is absent before Podman 6.0.0."
+evidence = ["podman-5-8-5-volume-gid-absence"]
+
+[[capability]]
+id = "quadlet.volume.service-name"
+description = "Opaque authored Volume ServiceName physical text retained as a singleton without extension stripping, name derivation, identity, dependency, or runtime interpretation."
+unit_types = ["volume"]
+sections = ["Volume"]
+repeatable = false
+value_forms = ["opaque-one-line-volume-service-name"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = [
+  "podman-5-4-through-5-8-5-volume-service-name-docs-gap",
+  "podman-6-0-0-volume-service-name",
+  "podman-6-0-2-volume-service-name",
+  "podman-5-4-volume-service-name-source",
+  "podman-6-0-2-volume-service-name-source",
+  "podman-5-4-through-current-volume-service-name-generators"
+]
+
+[[capability]]
+id = "quadlet.volume.image"
+description = "Opaque authored Volume Image singleton with exact `.image` or `.build` reference classification."
+unit_types = ["volume"]
+sections = ["Volume"]
+repeatable = false
+value_forms = [
+  "opaque-one-line-volume-image",
+  "exact-image-or-build-unit-reference"
+]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = [
+  "podman-5-4-volume-image",
+  "podman-6-0-2-volume-image",
+  "podman-5-4-volume-image-source",
+  "podman-6-0-2-volume-image-source",
+  "podman-5-4-through-current-volume-image-generators"
+]
+
+[[capability]]
+id = "quadlet.image.image"
+description = "Opaque authored Image-unit source retained as a singleton without image-reference or pull interpretation."
+unit_types = ["image"]
+sections = ["Image"]
+repeatable = false
+value_forms = ["opaque-one-line-image-source"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = [
+  "podman-5-4-image-image",
+  "podman-6-0-2-image-image",
+  "podman-5-4-image-image-source",
+  "podman-6-0-2-image-image-source",
+  "podman-5-4-through-current-image-core-generators"
+]
+
+[[capability]]
+id = "quadlet.image.image-tag"
+description = "Opaque authored Image-unit resource-name text retained as a singleton without FQIN, archive, or substitution interpretation."
+unit_types = ["image"]
+sections = ["Image"]
+repeatable = false
+value_forms = ["opaque-one-line-image-tag"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = [
+  "podman-5-4-image-image-tag",
+  "podman-6-0-2-image-image-tag",
+  "podman-5-4-image-image-tag-source",
+  "podman-6-0-2-image-image-tag-source",
+  "podman-5-4-through-current-image-image-tag-generators"
+]
+
+[[capability]]
+id = "quadlet.image.service-name"
+description = "Opaque authored Image-unit service-name text retained as a singleton without identity, default, template, extension, or substitution interpretation."
+unit_types = ["image"]
+sections = ["Image"]
+repeatable = false
+value_forms = ["opaque-one-line-image-service-name"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = [
+  "podman-5-4-through-6-0-2-image-service-name-docs-gap",
+  "podman-5-4-image-service-name-source",
+  "podman-6-0-2-image-service-name-source",
+  "podman-5-4-through-current-image-service-name-generators"
+]
+
+[[capability]]
+id = "quadlet.image.all-tags"
+description = "Opaque authored Image-unit all-tags text retained as a singleton without boolean, default, pull, registry, or runtime interpretation."
+unit_types = ["image"]
+sections = ["Image"]
+repeatable = false
+value_forms = ["opaque-one-line-all-tags"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = [
+  "podman-5-4-image-all-tags",
+  "podman-6-0-2-image-all-tags",
+  "podman-5-4-image-all-tags-source",
+  "podman-6-0-2-image-all-tags-source",
+  "podman-5-4-through-current-image-all-tags-generators"
+]
+
+[[capability]]
+id = "quadlet.image.arch"
+description = "Opaque authored Image-unit architecture text retained as a singleton without platform, host-default, pull, registry, or runtime interpretation."
+unit_types = ["image"]
+sections = ["Image"]
+repeatable = false
+value_forms = ["opaque-one-line-architecture"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = [
+  "podman-5-4-image-arch",
+  "podman-6-0-2-image-arch",
+  "podman-5-4-image-arch-source",
+  "podman-6-0-2-image-arch-source",
+  "podman-5-4-through-current-image-arch-generators"
+]
+
+[[capability]]
+id = "quadlet.image.auth-file"
+description = "Opaque authored Image-unit authentication-file text retained as a singleton without path validation or reads, credential parsing, content or sensitivity classification, registry authentication, pull, or runtime interpretation."
+unit_types = ["image"]
+sections = ["Image"]
+repeatable = false
+value_forms = ["opaque-one-line-image-auth-file"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = [
+  "podman-5-4-image-auth-file",
+  "podman-6-0-2-image-auth-file",
+  "podman-5-4-image-auth-file-source",
+  "podman-6-0-2-image-auth-file-source",
+  "podman-5-4-through-current-image-auth-file-generators"
+]
+
+[[capability]]
+id = "quadlet.image.cert-dir"
+description = "Opaque authored Image-unit certificate-directory text retained as a singleton without path or certificate validation or reads, defaults, remote-client policy, sensitivity classification, registry authentication, pull, or runtime interpretation."
+unit_types = ["image"]
+sections = ["Image"]
+repeatable = false
+value_forms = ["opaque-one-line-image-cert-dir"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = [
+  "podman-5-4-image-cert-dir",
+  "podman-6-0-2-image-cert-dir",
+  "podman-5-4-image-cert-dir-source",
+  "podman-6-0-2-image-cert-dir-source",
+  "podman-5-4-through-current-image-cert-dir-generators"
+]
+
+[[capability]]
+id = "quadlet.image.containers-conf-module"
+description = "Opaque authored Image ContainersConfModule physical values retained as repeatable ordered entries without path parsing, module reads, configuration inspection, reset, deduplication, tokenization, or normalization."
+unit_types = ["image"]
+sections = ["Image"]
+repeatable = true
+value_forms = ["opaque-one-line-image-containers-conf-module"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = [
+  "podman-5-4-image-containers-conf-module",
+  "podman-6-0-2-image-containers-conf-module",
+  "podman-5-4-image-containers-conf-module-base-command-source",
+  "podman-6-0-2-image-containers-conf-module-base-command-source",
+  "podman-5-4-image-containers-conf-module-parser-source",
+  "podman-6-0-2-image-containers-conf-module-parser-source",
+  "podman-5-4-through-current-image-containers-conf-module-generators"
+]
+
+[[capability]]
+id = "quadlet.image.creds"
+description = "Opaque authored Image-unit credential text retained as a singleton and redacted only from repository-owned debug output without username/password parsing or authentication behavior."
+unit_types = ["image"]
+sections = ["Image"]
+repeatable = false
+value_forms = ["opaque-one-line-image-creds"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = [
+  "podman-5-4-image-creds",
+  "podman-6-0-2-image-creds",
+  "podman-5-4-image-creds-source",
+  "podman-6-0-2-image-creds-source",
+  "podman-5-4-through-current-image-creds-generators"
+]
+
+[[capability]]
+id = "quadlet.image.decryption-key"
+description = "Opaque authored Image-unit decryption-key text retained singleton and redacted only in repository-owned debug output without key/passphrase parsing, file reads, decryption, authentication, or pull behavior."
+unit_types = ["image"]
+sections = ["Image"]
+repeatable = false
+value_forms = ["opaque-one-line-image-decryption-key"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = [
+  "podman-5-4-image-decryption-key",
+  "podman-6-0-2-image-decryption-key",
+  "podman-5-4-image-decryption-key-source",
+  "podman-6-0-2-image-decryption-key-source",
+  "podman-5-4-through-current-image-decryption-key-generators",
+]
+
+[[capability]]
+id = "quadlet.image.global-args"
+description = "Opaque authored Image-unit global-argument text retained as repeatable physical lines without tokenization, reset, unquoting, C-unescaping, option validation, or inferred semantic, security, or runtime behavior."
+unit_types = ["image"]
+sections = ["Image"]
+repeatable = true
+value_forms = ["opaque-one-line-image-global-args"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = [
+  "podman-5-4-image-global-args",
+  "podman-6-0-2-image-global-args",
+  "podman-5-4-image-global-args-source",
+  "podman-6-0-2-image-global-args-source",
+  "podman-5-4-through-current-image-global-args-generators",
+]
+
+[[capability]]
+id = "quadlet.image.os"
+description = "Opaque authored Image-unit operating-system text retained as a singleton without operating-system grammar, host/default/platform validation, tokenization, unescaping, CLI, runtime, graph, or conversion behavior."
+unit_types = ["image"]
+sections = ["Image"]
+repeatable = false
+value_forms = ["opaque-one-line-image-os"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = [
+  "podman-5-4-image-os",
+  "podman-6-0-2-image-os",
+  "podman-5-4-image-os-source",
+  "podman-6-0-2-image-os-source",
+  "podman-5-4-through-current-image-os-generators",
+]
+
+[[capability]]
 id = "quadlet.build.podman-args.no-cache"
 description = "Exact authored Build PodmanArgs=--no-cache command text as a repeatable physical entry; the finite capability proves generated command presentation only and is unknown outside the evidenced range."
 unit_types = ["build"]
@@ -4667,6 +6597,50 @@ evidence = [
   "podman-5-4-memory-generator-rejection",
   "podman-5-5-through-current-memory-generators"
 ]
+
+[[capability]]
+id = "quadlet.container.reload-cmd"
+description = "Opaque authored ReloadCmd physical text retained as a singleton without command tokenization, unescaping, effective-last selection, reload execution, container inspection, or cross-format interpretation."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["opaque-one-line-reload-command"]
+native = { minimum = "5.5.0", maximum = "6.0.2" }
+evidence = [
+  "podman-5-5-container-reload-cmd",
+  "podman-6-0-2-container-reload-cmd",
+  "podman-5-5-container-reload-cmd-source",
+  "podman-6-0-2-container-reload-cmd-source",
+  "podman-5-4-container-reload-generator-rejection",
+  "podman-5-5-through-current-container-reload-generators",
+  "podman-5-5-through-current-container-reload-mutual-exclusion-generators"
+]
+
+[[capability.unsupported]]
+versions = { minimum = "5.4.0", maximum = "5.4.2" }
+summary = "Recorded Podman 5.4.x generators reject ReloadCmd before native support begins in Podman 5.5.0."
+evidence = ["podman-5-4-container-reload-generator-rejection"]
+
+[[capability]]
+id = "quadlet.container.reload-signal"
+description = "Opaque authored ReloadSignal physical text retained as a singleton without signal parsing or validation, effective-last selection, reload signaling, container inspection, or cross-format interpretation."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["opaque-one-line-reload-signal"]
+native = { minimum = "5.5.0", maximum = "6.0.2" }
+evidence = [
+  "podman-5-5-container-reload-signal",
+  "podman-6-0-2-container-reload-signal",
+  "podman-5-5-container-reload-signal-source",
+  "podman-6-0-2-container-reload-signal-source",
+  "podman-5-4-container-reload-generator-rejection",
+  "podman-5-5-through-current-container-reload-generators",
+  "podman-5-5-through-current-container-reload-mutual-exclusion-generators"
+]
+
+[[capability.unsupported]]
+versions = { minimum = "5.4.0", maximum = "5.4.2" }
+summary = "Recorded Podman 5.4.x generators reject ReloadSignal before native support begins in Podman 5.5.0."
+evidence = ["podman-5-4-container-reload-generator-rejection"]
 
 [[capability]]
 id = "quadlet.container.dns"
@@ -5422,6 +7396,70 @@ evidence = [
   "podman-5-4-pod-shm-size",
   "podman-5-4-pod-shared-ipc",
   "podman-5-4-through-current-first-conversion-generators"
+]
+
+[[capability]]
+id = "quadlet.pod.exit-policy"
+description = "Opaque authored pod exit policy retained as a singleton without policy parsing, effective-last normalization, default selection, restart semantics, name derivation, runtime behavior, or cross-format interpretation."
+unit_types = ["pod"]
+sections = ["Pod"]
+repeatable = false
+value_forms = ["continue", "stop"]
+native = { minimum = "5.6.0", maximum = "6.0.2" }
+evidence = [
+  "podman-5-6-pod-exit-policy",
+  "podman-6-0-2-pod-exit-policy",
+  "podman-5-6-pod-exit-policy-cli",
+  "podman-6-0-2-pod-exit-policy-cli",
+  "podman-5-6-pod-exit-policy-source",
+  "podman-6-0-2-pod-exit-policy-source",
+  "podman-5-4-through-5-5-pod-exit-policy-generator-rejection",
+  "podman-5-6-through-current-pod-exit-policy-generators"
+]
+
+[[capability.unsupported]]
+versions = { minimum = "5.4.0", maximum = "5.5.2" }
+summary = "Recorded Podman 5.4.0 through 5.5.2 generators reject Pod ExitPolicy before native support begins in Podman 5.6.0."
+evidence = ["podman-5-4-through-5-5-pod-exit-policy-generator-rejection"]
+
+[[capability]]
+id = "quadlet.pod.stop-timeout"
+description = "Opaque authored pod stop timeout retained as a singleton without seconds or -1 parsing, effective-last normalization, default selection, systemd/restart interpretation, runtime behavior, or cross-format interpretation."
+unit_types = ["pod"]
+sections = ["Pod"]
+repeatable = false
+value_forms = ["opaque-one-line-pod-stop-timeout"]
+native = { minimum = "5.7.0", maximum = "6.0.2" }
+evidence = [
+  "podman-5-7-pod-stop-timeout",
+  "podman-6-0-2-pod-stop-timeout",
+  "podman-5-6-pod-stop-timeout-source-rejection",
+  "podman-5-7-pod-stop-timeout-source",
+  "podman-6-0-2-pod-stop-timeout-source",
+  "podman-5-7-pod-stop-timeout-cli",
+  "podman-5-4-through-5-6-pod-stop-timeout-generator-rejection",
+  "podman-5-7-through-current-pod-stop-timeout-generators"
+]
+
+[[capability.unsupported]]
+versions = { minimum = "5.4.0", maximum = "5.6.2" }
+summary = "Recorded Podman 5.4.0 through 5.6.2 generators reject Pod StopTimeout before native support begins in Podman 5.7.0."
+evidence = ["podman-5-4-through-5-6-pod-stop-timeout-generator-rejection"]
+
+[[capability]]
+id = "quadlet.pod.service-name"
+description = "Opaque authored Pod ServiceName physical text retained as a singleton without extension stripping, name derivation, effective-last normalization, document or dependency identity, systemd, restart, runtime, or cross-format interpretation."
+unit_types = ["pod"]
+sections = ["Pod"]
+repeatable = false
+value_forms = ["opaque-one-line-pod-service-name"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = [
+  "podman-5-4-pod-service-name",
+  "podman-6-0-2-pod-service-name",
+  "podman-5-4-pod-service-name-source",
+  "podman-6-0-2-pod-service-name-source",
+  "podman-5-4-through-current-pod-service-name-generators"
 ]
 
 [[capability]]

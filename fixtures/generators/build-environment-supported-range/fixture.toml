@@ -1,0 +1,15 @@
+schema = 1
+id = "build-environment-supported-range"
+suite = "generators"
+description = "Records target Build Environment reset and effective command construction without importing target semantics into QuadletLens."
+secrets_reviewed = true
+files = ["build-environment.build", "expected-fragments.txt"]
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+[environment]
+description = "Dry-run generator only; no build or runtime execution."
+[expectations]
+summary = "The target applies reset, tokenization, final-name selection, and separate --env construction; QuadletLens preserves authored physical lines."

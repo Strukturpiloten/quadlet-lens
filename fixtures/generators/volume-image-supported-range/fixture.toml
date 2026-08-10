@@ -1,0 +1,15 @@
+schema = 1
+id = "volume-image-supported-range"
+suite = "generators"
+description = "Records target Volume Image driver and exact resource-reference command observations."
+secrets_reviewed = true
+files = ["image-literal.volume", "image-missing.volume", "image-ignored.volume", "image-from-image.volume", "image-from-build.volume", "volume-source.image", "volume-source.build", "expected-fragments.txt"]
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+[environment]
+description = "Dry-run generator only; no image pull, volume operation, systemd operation, or runtime execution."
+[expectations]
+summary = "Driver=image consumes literal Image, missing Image reports an error, other drivers ignore Image, and exact .image/.build values create target dependencies."

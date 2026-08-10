@@ -197,6 +197,169 @@ unquoting, C-unescaping, duplicate-key collapse, sorting, and 5.6.0 bare/malform
 QuadletLens preserves raw lines in source order without applying those target semantics or claiming
 OCI annotation validity, image metadata, build success, runtime, Compose, or conversion behavior.
 
+Build `Environment` is opaque repeatable physical-line text, native from Podman 5.4.0 through
+6.0.2 and `unknown` outside that range. The 5.4–5.5 parser represents only assigned tokens, while
+5.6+ retains bare tokens; the fixture records the target's reset, tokenization, unquoting,
+C-unescaping, final-name selection, sorted effective map, and that representation boundary only.
+QuadletLens preserves raw lines in source order without applying those target semantics, host
+lookup, build success, runtime, Compose, or conversion behavior.
+
+Build `ContainersConfModule` is opaque repeatable physical-line text, native from Podman 5.4.0
+through 6.0.2 and `unknown` outside that range. Tagged base-command helpers and the full matrix
+record only target logical lookup, empty reset, and ordered `--module=VALUE` placement before the
+build subcommand. QuadletLens preserves every authored physical line without path parsing, module
+reads, configuration inspection, reset, deduplication, tokenization, normalization, build success,
+runtime, Compose, or conversion behavior.
+
+Build `GlobalArgs` is opaque repeatable physical-line text, native from Podman 5.4.0 through
+6.0.2 and `unknown` outside that range. The full matrix records only target empty-reset,
+tokenization/unquoting/C-unescaping, malformed physical-line omission, and authored-order token
+placement between `podman` and `build`. QuadletLens preserves the source without applying those
+target rules or validating options, inferring semantic/security/runtime effects, building, running,
+or defining Compose or conversion behavior.
+
+Build `ServiceName` is opaque singleton physical-line text, native from Podman 5.4.0 through 6.0.2
+and `unknown` outside that range. The Build manual is absent through 5.8.5 and appears from 6.0.0.
+The full matrix records only target last-value selection, `.service` addition, ordinary/default and
+template naming, plus the 5.7.0 template and 5.8.2 unmatched-quote lookup boundaries. QuadletLens
+does not strip extensions, derive names, mutate document or dependency identity, operate systemd,
+resolve collisions or escaping, build, run, or define Compose or conversion behavior.
+
+Build `Volume` is opaque repeatable physical-line text, native from Podman 5.4.0 through 6.0.2 and
+`unknown` outside that range. Its full matrix records target reset/continuation lookup, ordered `-v`
+output, relative `.` resolution, and exact `.volume` substitution/dependency only. QuadletLens does
+not parse mount grammar or options, access a filesystem, mutate generated identities, or establish
+mount, build, runtime, lifecycle, image, systemd, security, Compose, or conversion behavior.
+
+Volume `ContainersConfModule` is opaque repeatable physical-line text, native from Podman 5.4.0
+through 6.0.2 and `unknown` outside that range. Tagged volume-command helpers and the full matrix
+record only logical lookup, empty reset, continuation presentation, and ordered `--module=VALUE`
+placement before `volume create`. QuadletLens preserves every authored physical line without path
+parsing, module reads, configuration inspection, reset, deduplication, tokenization,
+normalization, sensitivity inference, option validation, volume creation, lifecycle, filesystem,
+security, runtime, Compose, or conversion behavior.
+
+Volume `GlobalArgs` is opaque repeatable physical-line text, native from Podman 5.4.0 through
+6.0.2 and `unknown` outside that range. Tagged base-command helpers and the full matrix record
+only target empty reset, tokenization/unquoting/C-unescaping, malformed-line omission, and ordered
+post-reset tokens before `volume create`. QuadletLens preserves every authored physical line
+without applying those rules, parsing or validating arguments, inferring sensitivity, reading
+modules or configuration, creating a volume, or establishing lifecycle, filesystem, security,
+runtime, Compose, or conversion behavior.
+
+Volume `PodmanArgs` is opaque repeatable physical-line text, native from Podman 5.4.0 through
+6.0.2 and `unknown` outside that range. Tagged volume generation and its shared helper, plus the
+full matrix, record only target empty reset, tokenization/unquoting/C-unescaping, malformed-line
+omission, and ordered terminal tokens before the volume name. QuadletLens preserves every authored
+physical line without applying those rules, parsing a CLI, assigning dedicated-key behavior,
+inferring sensitivity, creating a volume, or establishing lifecycle, filesystem, systemd, security,
+runtime, Compose, or conversion behavior.
+
+Volume `User` is opaque singleton physical-line text, native from Podman 5.4.0 through 6.0.2 and
+unknown outside that range. Boundary manuals describe a numeric UID or user name, while tagged
+generator source numeric-converts with invalid/default behavior; that discrepancy is explicit
+evidence, not Lens validation or provider behavior. The all-20 fixture uses only `User=123` and
+observes `o=uid=123` before the volume name. It makes no UID/name grammar, ownership, mount,
+filesystem, lifecycle, security, runtime, Compose, or conversion claim.
+
+Volume `Group` is opaque singleton physical-line text, native from Podman 5.4.0 through 6.0.2 and
+unknown outside that range. Boundary manuals describe a numeric GID or group name, while tagged
+generator source numeric-converts with invalid/out-of-range/default behavior and constructs
+`o=gid`; that discrepancy is evidence only, not Lens validation or provider behavior. The all-20
+fixture uses only `Group=456` and observes `o=gid=456` before the volume name. It makes no GID/name
+grammar, account lookup, ownership, mount, filesystem, lifecycle, security, runtime, Compose, or conversion claim.
+
+Volume `UID` is opaque singleton physical-line text, unsupported from 5.4.0 through 5.8.5 and
+native only from 6.0.0 through 6.0.2. The three 6.0.x dry-run generators emit exactly one
+`--uid 1234` before the terminal volume name; this is command-text evidence only, with no UID
+grammar, lookup, default, ownership, mount, filesystem, security, runtime, Compose, or conversion claim.
+
+Volume `GID` is opaque singleton physical-line text, unsupported from 5.4.0 through 5.8.5 and
+native only from 6.0.0 through 6.0.2. The three 6.0.x dry-run generators emit exactly one
+`--gid 5678` before the terminal volume name; this is command-text evidence only and does not
+interpret the authored value.
+
+Volume `ServiceName` is opaque singleton physical-line text, native from 5.4.0 through 6.0.2 and
+unknown outside that range. The all-20 fixture records target last-value, `.service`, ordinary,
+template, and unmatched-quote naming observations without interpreting the authored value.
+
+Pod `ServiceName` is opaque singleton physical-line text, native from Podman 5.4.0 through 6.0.2
+and unknown outside that range. Its all-20-release fixture records only target generated-unit
+default, duplicate-last, `.service`, template, unmatched-quote, final-blank, and extension-bearing
+naming observations. QuadletLens retains source text without stripping or requiring extensions,
+deriving names, normalizing an effective value, evaluating templates/specifiers, or assigning
+document/dependency identity, systemd, restart, runtime, or cross-format semantics.
+
+Volume `Image` is opaque singleton physical-line text, native from 5.4.0 through 6.0.2 and
+unknown outside that range. Only exact lowercase `.image` and `.build` basenames become native
+document-set references and resolve when their typed documents are present. The fixture records
+target driver behavior separately.
+
+Image `ImageTag` is opaque singleton physical-line text, native from 5.4.0 through 6.0.2 and
+unknown outside that range. Its fixture records target-only resource-name substitution,
+duplicate-last/final-blank behavior, generated dependencies, and quote presentation; QuadletLens
+does not adopt any of those as model, builder, or graph behavior.
+
+Image `ServiceName` is opaque singleton physical-line text, native from 5.4.0 through 6.0.2 and
+unknown outside that range. Its fixture records target-only naming defaults, duplicate-last,
+template, and quote boundaries; QuadletLens does not derive identity or expose those semantics.
+
+Image `AllTags` is opaque singleton physical-line text, native from 5.4.0 through 6.0.2 and
+unknown outside that range. Its fixture records target-only true/false, duplicate-last,
+absent/blank, and 5.8.2 unmatched-quote command-text observations; QuadletLens does not parse
+booleans, select defaults, construct pulls, or expose registry, runtime, or graph semantics.
+
+Image `Arch` is opaque singleton physical-line text, native from 5.4.0 through 6.0.2 and unknown
+outside that range. Its fixture records target-only normal, duplicate-last, blank-omission, and
+5.8.2 unmatched-quote command presentation; QuadletLens does not parse platform grammar, select a
+host default, construct pulls, or expose image metadata, storage, registry, runtime, or graph semantics.
+
+Image `AuthFile` is opaque singleton physical-line text, native from 5.4.0 through 6.0.2 and unknown
+outside that range. Its fixture records target-only normal, duplicate-last, blank-omission, and
+5.8.2 unmatched-quote command presentation; QuadletLens does not validate or read paths, parse
+credentials, infer sensitivity, authenticate to a registry, construct pulls, or expose runtime or graph semantics.
+
+Image `CertDir` is opaque singleton physical-line text, native from 5.4.0 through 6.0.2 and unknown
+outside that range. Its fixture records target-only normal, duplicate-last, blank-omission, and
+5.8.2 unmatched-quote command presentation; QuadletLens does not validate or read paths or certificates,
+select containers-certs.d defaults or remote-client policy, infer sensitivity, authenticate to a registry,
+construct pulls, or expose runtime or graph semantics.
+
+Image `ContainersConfModule` is repeatable opaque physical-line text, native from 5.4.0 through
+6.0.2 and unknown outside that range. Its fixture records target-only empty-reset and ordered
+post-reset `--module` arguments before image pull; QuadletLens preserves every authored physical
+line without module or configuration reads, reset, tokenization, CLI validation, pull, runtime, or graph semantics.
+
+Image `Creds` is opaque singleton physical-line text, native from 5.4.0 through 6.0.2 and unknown
+outside that finite range. It preserves blanks, quotes, specifiers, continuations, and duplicate
+authored entries with `QLM0004`; repository-owned debug output redacts only this key's authored
+value and continuation segments, while explicit text access and rendering remain exact. The
+placeholder-only fixture records target normal, duplicate-last, final-blank omission, and
+unmatched-quote command text without a flag-order or quote-boundary claim. QuadletLens does not
+split, parse, validate, read, default, authenticate, pull, or otherwise handle credentials.
+
+Image `DecryptionKey` is opaque singleton physical-line text, native from 5.4.0 through 6.0.2 and
+unknown outside that finite range. It preserves blanks, quotes, specifiers, continuations, and
+duplicate authored entries with `QLM0004`; repository-owned debug output redacts its authored
+value and continuation segments, while explicit text access and rendering remain exact. The
+placeholder-only fixture records target normal, duplicate-last, final-blank omission, and
+unmatched-quote command text without a flag-order or quote-boundary claim. QuadletLens does not
+split key or passphrase text, validate or read files, decrypt, select defaults, authenticate, pull,
+or otherwise handle key material.
+
+Image `GlobalArgs` is opaque repeatable physical-line text, native from 5.4.0 through 6.0.2 and
+unknown outside that finite range. Its full matrix records only target empty reset,
+tokenization/unquoting/C-unescaping, malformed-line omission, and ordered post-reset tokens between
+`podman` and `image pull`. QuadletLens preserves every source line without applying those rules,
+parsing or validating arguments, inferring sensitivity, or claiming image-pull, runtime, Compose,
+or conversion behavior.
+
+Image `OS` is opaque singleton physical-line text, native from 5.4.0 through 6.0.2 and unknown
+outside that finite range. Its full matrix records target effective-last lookup, final-blank
+omission, and endpoint-specific unmatched-quote command presentation before the image name.
+QuadletLens preserves every authored value and duplicate diagnostic without applying those rules,
+parsing operating-system grammar, or claiming host/default, pull, runtime, Compose, or conversion behavior.
+
 Build `Label` is repeatable and opaque from Podman 5.4.0 through 6.0.2. QuadletLens retains every
 physical line and its order without parsing `KEY=VALUE`, unquoting, duplicate-name selection, map
 collapse or sorting, or validation. The full matrix asserts only `build.label=one` and `empty=` as

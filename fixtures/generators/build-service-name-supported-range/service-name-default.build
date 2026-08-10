@@ -1,0 +1,3 @@
+[Build]
+ImageTag=localhost/quadlet-lens-service-name-default
+SetWorkingDirectory=.

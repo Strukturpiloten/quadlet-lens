@@ -1,0 +1,4 @@
+[Image]
+Image=example.invalid/quadlet-lens-image-creds-blank:latest
+Creds=quadlet-lens-placeholder-before-blank-user:quadlet-lens-placeholder-before-blank-password
+Creds=

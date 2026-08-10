@@ -1,0 +1,4 @@
+[Build]
+ImageTag=localhost/quadlet-lens-service-name-unmatched-quote
+SetWorkingDirectory=.
+ServiceName="unmatched

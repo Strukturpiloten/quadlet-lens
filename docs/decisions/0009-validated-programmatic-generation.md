@@ -87,12 +87,20 @@ QuadletLens provides a programmatic document builder that:
   order without splitting, unquoting, C-unescaping, OCI validation, reset application,
   duplicate-key collapse, sorting, image-metadata inference, build-success, runtime, Compose, or
   conversion interpretation;
+- retains repeated Build `Environment` entries as exact opaque physical-line values in insertion
+  order without splitting, unquoting, C-unescaping, host lookup, reset application, duplicate-name
+  selection, sorting, build-success, runtime, Compose, or conversion interpretation;
+- retains repeated Build `ContainersConfModule` entries as exact opaque physical-line values in
+  insertion order without path parsing, module reads, configuration inspection, reset application,
+  deduplication, tokenization, normalization, build-success, runtime, Compose, or conversion
+  interpretation;
 - retains Build `Arch` and `Variant` as opaque singletons without parsing platform grammar,
   selecting defaults, or applying effective-last behavior;
 - retains Build `Pull` as an opaque singleton without policy validation, default selection,
   spelling normalization, effective-last behavior, Compose boolean inference, or runtime semantics;
 - retains volume `Device` and `Type` as separate opaque singletons without path, filesystem,
   quote, specifier, generator-dependency, mount, runtime, or cross-format interpretation;
+- retains volume `GID` as an opaque singleton without parsing or otherwise interpreting its value;
 - retains AppArmor, no-new-privileges, seccomp, and SELinux-label keys as opaque singletons;
 - performs no key-specific address, port, OCI, boolean, profile, SELinux, path, filesystem, host,
   runtime, or cross-format interpretation for these additions;
@@ -151,3 +159,47 @@ parsing retains every authored physical value and normal duplicate diagnostics. 
 bounded to Podman 5.4.0–6.0.2 and its 20-unit fixture records dry-run command construction only. It
 does not add `Image` to the Lens model or claim image pulls, volume creation, copy-up, runtime,
 rootless, plugin, Compose, or BoxFerry semantics.
+
+## Follow-up: Image `Image`, `ImageTag`, `ServiceName`, `AllTags`, `Arch`, `AuthFile`, `CertDir`, `ContainersConfModule`, and `OS`
+
+`ImageKey::Image` is an opaque required singleton. The builder emits one `[Image]` `Image=` entry,
+rejects a duplicate, and parse-back validation rejects missing or blank sources. It does not parse or
+validate image references, transports, registries, tags, digests, authentication, TLS, platforms,
+paths, pull behavior, service names, resource-name substitution, systemd behavior, runtime behavior,
+Compose, or BoxFerry semantics.
+
+`ImageKey::ImageTag` is an opaque singleton. The builder accepts one physical-line-safe value,
+including empty text, and rejects a duplicate. It does not select a target resource name, apply
+effective-last/default/quote behavior, substitute dependent units, or mutate graph identity.
+
+`ImageKey::ServiceName` is an opaque singleton. The builder accepts one physical-line-safe value,
+including empty text, and rejects a duplicate without deriving names, adding `.service`, expanding
+templates/specifiers, or mutating document identity or graph edges.
+
+`ImageKey::AllTags` is an opaque singleton. The builder accepts one physical-line-safe value,
+including empty text, and rejects a duplicate without boolean parsing, default selection, pull-command
+construction, or mutation of document identity or graph edges.
+
+`ImageKey::Arch` is an opaque singleton. The builder accepts one physical-line-safe value,
+including empty text, and rejects a duplicate without parsing architecture grammar, selecting a
+host default, constructing a pull command, or mutating document identity or graph edges.
+
+`ImageKey::AuthFile` is an opaque singleton. The builder accepts one physical-line-safe value,
+including empty text, and rejects a duplicate without path validation or reads, credential or auth
+JSON parsing, default or environment fallback, sensitivity inference, effective-last behavior,
+registry authentication, pull/runtime behavior, or mutation of document identity or graph edges.
+
+`ImageKey::CertDir` is an opaque singleton. The builder accepts one physical-line-safe value,
+including empty text, and rejects a duplicate without path or certificate validation or reads,
+containers-certs.d default or remote-client policy selection, sensitivity inference, effective-last
+behavior, registry authentication, pull/runtime behavior, or mutation of document identity or graph edges.
+
+`ImageKey::ContainersConfModule` is repeatable opaque physical-line text. The builder accepts every
+physical-line-safe value in insertion order, including empty resets and duplicates, without path or module/configuration
+reads, reset behavior, tokenization, unescaping, CLI validation, sensitivity inference, pull/runtime behavior, or mutation
+of document identity or graph edges.
+
+`ImageKey::OS` is an opaque singleton. The builder accepts one physical-line-safe value, including
+empty text, and rejects a duplicate without operating-system grammar, host/default or platform
+validation, tokenization, unescaping, CLI/runtime semantics, graph edges, effective-last behavior,
+or cross-format mapping.

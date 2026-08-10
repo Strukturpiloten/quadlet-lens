@@ -2,8 +2,8 @@
 
 use quadlet_lens::capability::{CapabilityCatalogue, PodmanTarget, PodmanVersion, SupportClassification};
 use quadlet_lens::model::{
-    BuildKey, ContainerKey, EntryKind, NamedQuadletDocument, NetworkKey, PodKey, QuadletDocument, QuadletDocumentSet,
-    QuadletUnitType, ValueKind, VolumeKey,
+    BuildKey, ContainerKey, EntryKind, ImageKey, NamedQuadletDocument, NetworkKey, PodKey, QuadletDocument,
+    QuadletDocumentSet, QuadletUnitType, TypedEntry, ValueKind, VolumeKey,
 };
 use quadlet_lens::path::{PathForm, classify_path};
 use quadlet_lens::render::{
@@ -12,7 +12,55 @@ use quadlet_lens::render::{
 };
 use quadlet_lens::source::SourceId;
 
+const BUILD_CORE_RENDERED: &str = concat!(
+    "[Build]\n",
+    "ImageTag=localhost/example:primary\n",
+    "ImageTag=localhost/example:secondary\n",
+    "Network=host\n",
+    "Network=none\n",
+    "Network=frontend.network\n",
+    "Label=build.label=one\n",
+    "Label=empty=\n",
+    "BuildArg=KEY=one\n",
+    "BuildArg=EMPTY=\n",
+    "BuildArg=bare text stays opaque\n",
+    "Secret=id=quadlet-lens-one,src=/run/quadlet-lens-placeholder-one\n",
+    "Secret=id=quadlet-lens-two,src=/run/quadlet-lens-placeholder-two\n",
+    "File=Containerfile.first\n",
+    "File=\n",
+    "File=https://example.invalid/Containerfile?ref=main\n",
+    "Target=build-stage\n",
+    "SetWorkingDirectory=unit\n",
+    "Arch=arm64\n",
+    "Variant=v8\n",
+    "Pull=always\n",
+    "Retry=4\n",
+    "RetryDelay=7s\n",
+    "TLSVerify=true\n",
+    "ForceRM=true\n",
+    "GroupAdd=1234\n",
+    "GroupAdd=5678\n",
+    "DNS=9.9.9.9\n",
+    "DNS=2001:4860:4860::8888\n",
+    "DNSOption=\n",
+    "DNSOption=ndots:1\n",
+    "DNSOption=use-vc\n",
+    "DNSSearch=corp.example\n",
+    "DNSSearch=.\n",
+    "AuthFile=/run/quadlet-lens/auth.json\n",
+    "IgnoreFile=./ignored-input\n",
+    "Annotation=org.example.build=one\n",
+    "Environment=BUILD_ENV=one\n",
+    "ContainersConfModule=build.conf\n",
+    "GlobalArgs=--log-level=debug\n",
+    "ServiceName=quadlet-lens-build.service\n",
+    "Volume=cache.volume:/var/cache:Z\n",
+    "PodmanArgs=--build-context extra=container-image://alpine:3.15\n",
+    "PodmanArgs=--layers\n",
+);
+
 #[test]
+#[allow(clippy::too_many_lines)] // Public discriminants are intentionally listed in one compatibility contract.
 fn growing_public_key_enums_preserve_published_discriminants() {
     assert_eq!(
         [
@@ -77,11 +125,13 @@ fn growing_public_key_enums_preserve_published_discriminants() {
             ContainerKey::IP as isize,
             ContainerKey::IP6 as isize,
             ContainerKey::NetworkAlias as isize,
+            ContainerKey::ReloadCmd as isize,
+            ContainerKey::ReloadSignal as isize,
         ],
         [
             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28,
             29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55,
-            56, 57, 58, 59, 60,
+            56, 57, 58, 59, 60, 61, 62,
         ]
     );
     assert_eq!(
@@ -93,8 +143,11 @@ fn growing_public_key_enums_preserve_published_discriminants() {
             PodKey::Volume as isize,
             PodKey::UserNS as isize,
             PodKey::ShmSize as isize,
+            PodKey::ExitPolicy as isize,
+            PodKey::StopTimeout as isize,
+            PodKey::ServiceName as isize,
         ],
-        [0, 1, 2, 3, 4, 5, 6]
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     );
     assert_eq!(
         [
@@ -161,55 +214,17 @@ fn build_core_can_be_built_through_the_public_api() -> Result<(), Box<dyn std::e
     generated.push_build(BuildKey::AuthFile, EntryValue::new("/run/quadlet-lens/auth.json")?)?;
     generated.push_build(BuildKey::IgnoreFile, EntryValue::new("./ignored-input")?)?;
     generated.push_build(BuildKey::Annotation, EntryValue::new("org.example.build=one")?)?;
+    generated.push_build(BuildKey::Environment, EntryValue::new("BUILD_ENV=one")?)?;
+    generated.push_build(BuildKey::ContainersConfModule, EntryValue::new("build.conf")?)?;
+    generated.push_build(BuildKey::GlobalArgs, EntryValue::new("--log-level=debug")?)?;
+    generated.push_build(BuildKey::ServiceName, EntryValue::new("quadlet-lens-build.service")?)?;
+    generated.push_build(BuildKey::Volume, EntryValue::new("cache.volume:/var/cache:Z")?)?;
     generated.push_build(
         BuildKey::PodmanArgs,
         EntryValue::new("--build-context extra=container-image://alpine:3.15")?,
     )?;
     generated.push_build(BuildKey::PodmanArgs, EntryValue::new("--layers")?)?;
-    assert_eq!(
-        generated.build(SourceId::new(180))?.text(),
-        concat!(
-            "[Build]\n",
-            "ImageTag=localhost/example:primary\n",
-            "ImageTag=localhost/example:secondary\n",
-            "Network=host\n",
-            "Network=none\n",
-            "Network=frontend.network\n",
-            "Label=build.label=one\n",
-            "Label=empty=\n",
-            "BuildArg=KEY=one\n",
-            "BuildArg=EMPTY=\n",
-            "BuildArg=bare text stays opaque\n",
-            "Secret=id=quadlet-lens-one,src=/run/quadlet-lens-placeholder-one\n",
-            "Secret=id=quadlet-lens-two,src=/run/quadlet-lens-placeholder-two\n",
-            "File=Containerfile.first\n",
-            "File=\n",
-            "File=https://example.invalid/Containerfile?ref=main\n",
-            "Target=build-stage\n",
-            "SetWorkingDirectory=unit\n",
-            "Arch=arm64\n",
-            "Variant=v8\n",
-            "Pull=always\n",
-            "Retry=4\n",
-            "RetryDelay=7s\n",
-            "TLSVerify=true\n",
-            "ForceRM=true\n",
-            "GroupAdd=1234\n",
-            "GroupAdd=5678\n",
-            "DNS=9.9.9.9\n",
-            "DNS=2001:4860:4860::8888\n",
-            "DNSOption=\n",
-            "DNSOption=ndots:1\n",
-            "DNSOption=use-vc\n",
-            "DNSSearch=corp.example\n",
-            "DNSSearch=.\n",
-            "AuthFile=/run/quadlet-lens/auth.json\n",
-            "IgnoreFile=./ignored-input\n",
-            "Annotation=org.example.build=one\n",
-            "PodmanArgs=--build-context extra=container-image://alpine:3.15\n",
-            "PodmanArgs=--layers\n",
-        )
-    );
+    assert_eq!(generated.build(SourceId::new(180))?.text(), BUILD_CORE_RENDERED);
     Ok(())
 }
 
@@ -240,9 +255,14 @@ fn growing_build_key_enum_preserves_public_discriminants() {
             BuildKey::AuthFile as isize,
             BuildKey::IgnoreFile as isize,
             BuildKey::Annotation as isize,
+            BuildKey::Environment as isize,
+            BuildKey::ContainersConfModule as isize,
+            BuildKey::GlobalArgs as isize,
+            BuildKey::ServiceName as isize,
+            BuildKey::Volume as isize,
         ],
         [
-            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22
+            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27
         ]
     );
 }
@@ -258,9 +278,70 @@ fn growing_volume_key_enum_preserves_published_discriminants() {
             VolumeKey::Device as isize,
             VolumeKey::Type as isize,
             VolumeKey::Copy as isize,
+            VolumeKey::ContainersConfModule as isize,
+            VolumeKey::GlobalArgs as isize,
+            VolumeKey::PodmanArgs as isize,
+            VolumeKey::User as isize,
+            VolumeKey::Group as isize,
+            VolumeKey::UID as isize,
+            VolumeKey::GID as isize,
+            VolumeKey::ServiceName as isize,
+            VolumeKey::Image as isize,
         ],
-        [0, 1, 2, 3, 4, 5, 6]
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
     );
+}
+
+#[test]
+fn image_key_and_builder_are_available_through_the_public_api() -> Result<(), Box<dyn std::error::Error>> {
+    assert_eq!(
+        [
+            ImageKey::Image as isize,
+            ImageKey::ImageTag as isize,
+            ImageKey::ServiceName as isize,
+            ImageKey::AllTags as isize,
+            ImageKey::Arch as isize,
+            ImageKey::AuthFile as isize,
+            ImageKey::CertDir as isize,
+            ImageKey::ContainersConfModule as isize,
+            ImageKey::Creds as isize,
+            ImageKey::DecryptionKey as isize,
+            ImageKey::GlobalArgs as isize,
+            ImageKey::OS as isize,
+        ],
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+    );
+    let mut image = QuadletDocumentBuilder::new(QuadletUnitType::Image);
+    image.push_image(ImageKey::Image, EntryValue::new("example.invalid/application:1")?)?;
+    image.push_image(ImageKey::ImageTag, EntryValue::new("localhost/application:stable")?)?;
+    image.push_image(ImageKey::ServiceName, EntryValue::new("application-pull")?)?;
+    image.push_image(ImageKey::AllTags, EntryValue::new("true")?)?;
+    image.push_image(ImageKey::Arch, EntryValue::new("arm64")?)?;
+    image.push_image(
+        ImageKey::AuthFile,
+        EntryValue::new("/placeholder/quadlet-lens-auth.json")?,
+    )?;
+    image.push_image(ImageKey::CertDir, EntryValue::new("/placeholder/quadlet-lens-certs")?)?;
+    image.push_image(ImageKey::ContainersConfModule, EntryValue::new("one.conf")?)?;
+    image.push_image(ImageKey::ContainersConfModule, EntryValue::new("two.conf")?)?;
+    image.push_image(
+        ImageKey::Creds,
+        EntryValue::new("public-api-placeholder-user:public-api-placeholder-password")?,
+    )?;
+    image.push_image(
+        ImageKey::DecryptionKey,
+        EntryValue::new("public-api-decryption-key-placeholder")?,
+    )?;
+    image.push_image(ImageKey::GlobalArgs, EntryValue::new("--log-level=debug")?)?;
+    image.push_image(ImageKey::GlobalArgs, EntryValue::new("")?)?;
+    image.push_image(ImageKey::OS, EntryValue::new("windows")?)?;
+    let generated = image.build(SourceId::new(446))?;
+    assert!(generated.document().entries().any(TypedEntry::is_sensitive));
+    assert_eq!(
+        generated.text(),
+        "[Image]\nImage=example.invalid/application:1\nImageTag=localhost/application:stable\nServiceName=application-pull\nAllTags=true\nArch=arm64\nAuthFile=/placeholder/quadlet-lens-auth.json\nCertDir=/placeholder/quadlet-lens-certs\nContainersConfModule=one.conf\nContainersConfModule=two.conf\nCreds=public-api-placeholder-user:public-api-placeholder-password\nDecryptionKey=public-api-decryption-key-placeholder\nGlobalArgs=--log-level=debug\nGlobalArgs=\nOS=windows\n"
+    );
+    Ok(())
 }
 
 #[test]
@@ -347,6 +428,24 @@ fn container_pull_can_be_built_and_recovered_through_the_public_api() -> Result<
 }
 
 #[test]
+fn container_reload_lifecycle_can_be_built_without_command_or_signal_interpretation()
+-> Result<(), Box<dyn std::error::Error>> {
+    let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    generated.push_container(ContainerKey::Image, EntryValue::new("example.invalid/application:1")?)?;
+    generated.push_container(ContainerKey::ReloadCmd, EntryValue::new("/usr/bin/reload --target=%i")?)?;
+    let generated = generated.build(SourceId::new(181))?;
+    assert_eq!(
+        generated.text(),
+        "[Container]\nImage=example.invalid/application:1\nReloadCmd=/usr/bin/reload --target=%i\n"
+    );
+    assert!(generated.document().entries().any(|entry| {
+        entry.kind() == EntryKind::Container(ContainerKey::ReloadCmd)
+            && entry.value().primary().text() == "/usr/bin/reload --target=%i"
+    }));
+    Ok(())
+}
+
+#[test]
 fn container_pids_limit_has_safe_typed_and_raw_public_construction() -> Result<(), Box<dyn std::error::Error>> {
     assert_eq!(PidsLimit::finite("0"), Err(PidsLimitError::Zero));
     assert_eq!(PidsLimit::finite("1.5"), Err(PidsLimitError::NonDecimal));
@@ -414,6 +513,42 @@ fn container_and_pod_shm_size_have_safe_typed_public_construction() -> Result<()
     let mut pod = QuadletDocumentBuilder::new(QuadletUnitType::Pod);
     pod.push_pod(PodKey::ShmSize, ShmSize::unlimited().into())?;
     assert_eq!(pod.build(SourceId::new(12))?.text(), "[Pod]\nShmSize=0\n");
+    Ok(())
+}
+
+#[test]
+fn pod_exit_policy_can_be_built_and_recovered_through_the_public_api() -> Result<(), Box<dyn std::error::Error>> {
+    let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Pod);
+    generated.push_pod(PodKey::ExitPolicy, EntryValue::new("continue")?)?;
+    let generated = generated.build(SourceId::new(474))?;
+    assert_eq!(generated.text(), "[Pod]\nExitPolicy=continue\n");
+    assert!(generated.document().entries().any(|entry| {
+        entry.kind() == EntryKind::Pod(PodKey::ExitPolicy) && entry.value().primary().text() == "continue"
+    }));
+    Ok(())
+}
+
+#[test]
+fn pod_stop_timeout_can_be_built_and_recovered_through_the_public_api() -> Result<(), Box<dyn std::error::Error>> {
+    let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Pod);
+    generated.push_pod(PodKey::StopTimeout, EntryValue::new("37")?)?;
+    let generated = generated.build(SourceId::new(477))?;
+    assert_eq!(generated.text(), "[Pod]\nStopTimeout=37\n");
+    assert!(generated.document().entries().any(|entry| {
+        entry.kind() == EntryKind::Pod(PodKey::StopTimeout) && entry.value().primary().text() == "37"
+    }));
+    Ok(())
+}
+
+#[test]
+fn pod_service_name_can_be_built_and_recovered_through_the_public_api() -> Result<(), Box<dyn std::error::Error>> {
+    let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Pod);
+    generated.push_pod(PodKey::ServiceName, EntryValue::new("chosen-name.service")?)?;
+    let generated = generated.build(SourceId::new(480))?;
+    assert_eq!(generated.text(), "[Pod]\nServiceName=chosen-name.service\n");
+    assert!(generated.document().entries().any(|entry| {
+        entry.kind() == EntryKind::Pod(PodKey::ServiceName) && entry.value().primary().text() == "chosen-name.service"
+    }));
     Ok(())
 }
 

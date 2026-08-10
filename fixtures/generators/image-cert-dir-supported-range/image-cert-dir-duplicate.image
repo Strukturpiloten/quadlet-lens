@@ -1,0 +1,4 @@
+[Image]
+Image=example.invalid/quadlet-lens-image-cert-dir-duplicate:latest
+CertDir=/placeholder/quadlet-lens-image-certs-first
+CertDir=/placeholder/quadlet-lens-image-certs-last

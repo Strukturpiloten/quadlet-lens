@@ -37,7 +37,8 @@ For official images, the harness:
 2. disables container label separation for that read-only test mount rather than relabelling source files;
 3. sets `QUADLET_UNIT_DIRS=/fixtures`;
 4. runs `/usr/lib/systemd/system-generators/podman-system-generator -dryrun -no-kmsg-log`;
-5. verifies stable generated service fragments for `.container`, `.pod`, `.network`, and `.volume`
+5. verifies stable generated service fragments for `.container`, `.pod`, `.network`, `.volume`, and
+   `.image` files.
    files.
 
 For source-backed releases it first checks out the recorded commit with Git, builds the standalone
@@ -153,6 +154,26 @@ effective sorted map as separate `--annotation` arguments after reset, tokenizat
 C-unescaping, and final-key collapse. Bare and malformed tokens are absent through 5.5.2 and present
 from 5.6.0. This records target command construction only; QuadletLens keeps the authored physical
 lines untouched and makes no OCI, image-metadata, build, runtime, Compose, or conversion claim.
+A Build Environment fixture authors pre-reset values, an empty reset, duplicate post-reset names,
+quoted and C-escaped values, embedded equals text, and bare/malformed forms. Every recorded generator
+emits a sorted effective map as separate `--env` arguments after reset, tokenization, unquoting,
+C-unescaping, and final-name selection. Bare and malformed tokens are absent through 5.5.2 and
+present from 5.6.0. This records target command construction only; QuadletLens keeps authored
+physical lines untouched and makes no host-lookup, build, runtime, Compose, or conversion claim.
+A Build ContainersConfModule fixture authors pre-reset values, an empty reset, and ordered
+post-reset entries. Every recorded generator emits only `--module=post-one` then
+`--module=post-two` before `build` and its final context. This records target logical lookup and
+command construction only; QuadletLens keeps authored physical lines untouched and makes no
+module-path resolution, module-read, configuration-effect, build, runtime, Compose, or conversion claim.
+A Build GlobalArgs fixture authors duplicate pre-reset values, an empty reset, quoted and
+C-escaped post-reset values, and a malformed physical line. Every recorded generator emits only
+the retained tokens in authored order between `podman` and `build`. This records target command
+construction only; QuadletLens keeps authored physical lines untouched and makes no option
+validation, semantic/security/runtime, build, Compose, or conversion claim.
+A separate Image GlobalArgs fixture authors the same pre-reset, reset, quoted, C-escaped, and
+malformed physical forms. Every recorded generator emits only decoded post-reset tokens in authored
+order between `podman` and `image pull`; QuadletLens preserves authored physical lines without
+tokenization, reset, unquoting, C-unescaping, option validation, or pull semantics.
 A separate Build PodmanArgs fixture requires exactly one separate
 `--build-context extra=container-image://alpine:3.15` immediately before final positional `.` across all 20 releases,
 rejecting equals, quoted, alternate, duplicate, and reordered forms. It runs only the dry-run generator and does not
@@ -527,6 +548,30 @@ The promoted fixtures record the following dry-run expectations across the full 
 | IPAM driver, subnet, gateway, range | Explicit/blank driver behavior and two indexed final groups after reset |
 | ExposeHostPort | Four ordered TCP/UDP-compatible values after reset |
 | Annotation | Two final key-sorted assignments after reset |
+| Build Environment | Final key-sorted `--env` arguments after reset; 5.6.0 bare-token boundary |
+| Build ContainersConfModule | Two ordered post-reset `--module=VALUE` arguments before `build` |
+| Build GlobalArgs | Ordered post-reset tokens between `podman` and `build`; malformed line omitted |
+| Image GlobalArgs | Ordered decoded post-reset tokens between `podman` and `image pull`; malformed line omitted |
+| Image OS | Normal/duplicate-last `--os VALUE`, final-blank omission, and endpoint-specific unmatched-quote presentation |
+| Build ServiceName | Last value, `.service` addition, and 5.7.0/5.8.2 naming boundaries |
+| Pod ServiceName | Omitted default, duplicate-last, `.service`, template/quote, blank, and extension-bearing naming observations |
+| Build Volume | Reset/continuation `-v` order, relative `.`, and `.volume` substitution/dependency |
+| Volume ContainersConfModule | Ordered post-reset `--module=VALUE` arguments before `volume create`; 5.4 literal-space/5.5 `\\x20` continuation presentation |
+| Volume GlobalArgs | Decoded post-reset tokens in authored order between `podman` and `volume create`; malformed line omitted |
+| Volume PodmanArgs | Decoded post-reset tokens in authored order at the end of `volume create` before the volume name; malformed line omitted |
+| Volume User | Unambiguous `User=123` emits `o=uid=123` before the volume name |
+| Volume Group | Unambiguous `Group=456` emits `o=gid=456` before the volume name |
+| Volume GID | Rejected through 5.8.5; exactly one `--gid 5678` before the volume name from 6.0.0 |
+| Volume ServiceName | Target last value, `.service`, ordinary/template, and unmatched-quote naming boundaries |
+| Volume Image | Literal, missing, ignored-driver, and exact image/build-reference observations |
+| Image core | Literal pull unit, missing/empty errors, and target duplicate-last source selection |
+| Image ImageTag | Normal/archive source commands plus target-only resource-name, dependency, default, and quote observations |
+| Image ServiceName | Target default, duplicate-last, `.service`, template, and unmatched-quote naming observations |
+| Image AllTags | Target true/false, duplicate-last, absent/blank, and 5.8.2 unmatched-quote pull-command observations |
+| Image Arch | Target normal, duplicate-last, blank omission, and 5.8.2 unmatched-quote pull-command observations |
+| Image AuthFile | Target normal, duplicate-last, blank omission, and 5.8.2 unmatched-quote pull-command observations |
+| Image CertDir | Target normal, duplicate-last, blank omission, and 5.8.2 unmatched-quote pull-command observations |
+| Image ContainersConfModule | Target reset and ordered post-reset `--module` arguments before image pull |
 | AppArmor | Rejected through 5.7.1; one separate option from 5.8.0 |
 | NoNewPrivileges and boolean label keys | One option for true; none for false |
 | Seccomp and valued label keys | One isolated separate option per value |
@@ -552,6 +597,32 @@ generator; it does not start a workload or establish cgroup enforcement, page ro
 interaction, host-memory availability, rootless behavior, runtime inspection, or Compose/BoxFerry
 equivalence. Pod `Memory` remains outside this evidence.
 
+`ReloadCmd` and `ReloadSignal` use isolated command and signal units plus a raw conflicting unit.
+The three 5.4.x generators reject the unsupported keys. Podman 5.5.x emits cidfile-targeted
+`ExecReload` commands, while 5.6.0 through 6.0.2 use the generated container name. The matrix also
+records final blank omission, malformed `ReloadCmd` tokenization, and every supported-range conflict.
+It invokes only the dry-run generator and establishes no command execution, signal delivery,
+container inspection, runtime reload, or cross-format semantics.
+
+Pod `ExitPolicy` uses isolated continue, stop, duplicate-final-stop, and final-blank units. The six
+recorded 5.4.0–5.5.2 generators reject the unsupported key; every 5.6.0–6.0.2 generator emits one
+`--exit-policy` argument after `--replace`, selecting the final duplicate and retaining an empty
+argument for a final blank assignment. This dry-run evidence does not create a pod or establish
+policy defaults, restart behavior, runtime behavior, or cross-format equivalence.
+
+Pod `StopTimeout` uses isolated normal-37, zero, negative-one, duplicate-final-37, and final-blank
+units. The nine recorded 5.4.0–5.6.2 generators reject the unsupported key; every 5.7.0–6.0.2
+generator emits exactly one final `--time=` form for the recorded values, retaining `--time=` for a
+final blank assignment. This dry-run evidence does not stop a pod or establish defaults, timing,
+systemd, restart, runtime, or cross-format equivalence.
+
+Pod `ServiceName` uses omitted-default, ordinary override, duplicate-final override, template,
+unmatched-quote, final-blank, and extension-bearing units. Every recorded 5.4.0–6.0.2 generator
+selects the final physical value and appends `.service`; template-default handling changes at 5.7.0
+and unmatched-quote lookup changes at 5.8.2. The blank and extension-bearing outputs are retained
+as generated text observations only; they do not assign Lens document/dependency identity, operate
+systemd, establish restart behavior, or claim runtime or cross-format semantics.
+
 ## Commands
 
 Podman is the default local engine:
@@ -569,9 +640,9 @@ QUADLET_LENS_CONTAINER_ENGINE=docker cargo ci-generators
 ```
 
 The smoke lane tests 5.4.0, the official-image boundary at 5.8.2, and current stable 6.0.2. The full
-lane tests the first-conversion, container-logging, container-network-identity, network
+lane tests the first-conversion, container-logging, container-network-identity, container-reload, network
 driver/options, network-labels, volume-labels, network-IPAM, and network-boolean fixtures on all 20 patch releases,
-and the separate Memory fixture on the same three unsupported 5.4.x boundaries plus all 17
+and the separate Memory and reload fixtures on the same three unsupported 5.4.x boundaries plus all 17
 supported 5.5.0-through-6.0.2
 patches: 14 digest-pinned official images and six exact source builds. It
 belongs in the scheduled/manual GitHub workflow rather than pull-request CI.
