@@ -21,8 +21,11 @@ const REPEATED_SINGLETON: DiagnosticCode = DiagnosticCode::new("QLM0004");
 const EMPTY_IMAGE: DiagnosticCode = DiagnosticCode::new("QLM0005");
 const CONFLICTING_IMAGE_ROOTFS: DiagnosticCode = DiagnosticCode::new("QLM0006");
 const EMPTY_ROOTFS: DiagnosticCode = DiagnosticCode::new("QLM0007");
+const MISSING_IMAGE_SOURCE: DiagnosticCode = DiagnosticCode::new("QLM0008");
+const EMPTY_IMAGE_SOURCE: DiagnosticCode = DiagnosticCode::new("QLM0009");
+const CONFLICTING_RELOAD_KEYS: DiagnosticCode = DiagnosticCode::new("QLM0010");
 
-/// Native Quadlet unit types supported by the first conversion milestone.
+/// Native Quadlet unit types supported by the typed model.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 #[non_exhaustive]
 pub enum QuadletUnitType {
@@ -34,6 +37,10 @@ pub enum QuadletUnitType {
     Network,
     /// A `.volume` unit.
     Volume,
+    /// A `.build` unit.
+    Build,
+    /// An `.image` unit.
+    Image,
 }
 
 impl QuadletUnitType {
@@ -45,6 +52,8 @@ impl QuadletUnitType {
             "pod" => Some(Self::Pod),
             "network" => Some(Self::Network),
             "volume" => Some(Self::Volume),
+            "build" => Some(Self::Build),
+            "image" => Some(Self::Image),
             _ => None,
         }
     }
@@ -57,6 +66,8 @@ impl QuadletUnitType {
             Self::Pod => SectionKind::Pod,
             Self::Network => SectionKind::Network,
             Self::Volume => SectionKind::Volume,
+            Self::Build => SectionKind::Build,
+            Self::Image => SectionKind::Image,
         }
     }
 }
@@ -81,6 +92,10 @@ pub enum SectionKind {
     Volume,
     /// Any other section, retained without interpretation.
     Unknown,
+    /// Native Quadlet `[Build]` section.
+    Build,
+    /// Native Quadlet `[Image]` section.
+    Image,
 }
 
 impl SectionKind {
@@ -93,12 +108,17 @@ impl SectionKind {
             "Pod" => Self::Pod,
             "Network" => Self::Network,
             "Volume" => Self::Volume,
+            "Build" => Self::Build,
+            "Image" => Self::Image,
             _ => Self::Unknown,
         }
     }
 
     const fn is_native(self) -> bool {
-        matches!(self, Self::Container | Self::Pod | Self::Network | Self::Volume)
+        matches!(
+            self,
+            Self::Container | Self::Pod | Self::Network | Self::Volume | Self::Build | Self::Image
+        )
     }
 }
 
@@ -218,6 +238,20 @@ pub enum ContainerKey {
     Mask,
     /// Authored container path list passed to Podman's unmask security option.
     Unmask,
+    /// Authored logging driver passed to the container.
+    LogDriver,
+    /// Authored logging options passed to the container.
+    LogOpt,
+    /// Authored static IPv4 address passed to the container.
+    IP,
+    /// Authored static IPv6 address passed to the container.
+    IP6,
+    /// Authored alias assigned to the container on its selected network.
+    NetworkAlias,
+    /// Authored command run by Podman when reloading the container.
+    ReloadCmd,
+    /// Authored signal sent by Podman when reloading the container.
+    ReloadSignal,
 }
 
 /// Pod keys required by the first Compose-to-Quadlet conversion.
@@ -238,6 +272,12 @@ pub enum PodKey {
     UserNS,
     /// Authored size of the pod shared-memory filesystem.
     ShmSize,
+    /// Authored policy controlling the pod when one member exits.
+    ExitPolicy,
+    /// Authored timeout passed to the generated pod stop action.
+    StopTimeout,
+    /// Authored generated service-name text for the pod unit.
+    ServiceName,
 }
 
 /// Network keys required by the first conversion.
@@ -246,6 +286,24 @@ pub enum PodKey {
 pub enum NetworkKey {
     /// Runtime name assigned to the generated Podman network.
     NetworkName,
+    /// Authored Podman network driver selection.
+    Driver,
+    /// Authored Podman network creation options.
+    Options,
+    /// Authored external-access restriction for the network.
+    Internal,
+    /// Authored dual-stack IPv6 network selection.
+    IPv6,
+    /// Authored IP address-management driver selection.
+    IPAMDriver,
+    /// Authored network subnet column value.
+    Subnet,
+    /// Authored gateway column value paired by the target with a subnet.
+    Gateway,
+    /// Authored allocatable address-range column value paired by the target with a subnet.
+    IPRange,
+    /// Authored OCI label assignment for the network.
+    Label,
 }
 
 /// Volume keys required by the first conversion.
@@ -254,6 +312,128 @@ pub enum NetworkKey {
 pub enum VolumeKey {
     /// Runtime name assigned to the generated Podman volume.
     VolumeName,
+    /// Authored Podman volume-driver selection.
+    Driver,
+    /// Authored raw mount-option string passed as one `o=` volume option.
+    Options,
+    /// Authored OCI label assignment attached to the volume.
+    Label,
+    /// Authored volume source passed as the local driver's `device` option.
+    Device,
+    /// Authored filesystem type passed as the local driver's `type` option.
+    Type,
+    /// Authored opaque copy-up selection retained without boolean coercion.
+    Copy,
+    /// Opaque containers.conf module text. Physical entries remain ordered and unparsed.
+    ContainersConfModule,
+    /// Opaque Podman global-argument text. Physical entries remain ordered and unparsed.
+    GlobalArgs,
+    /// Opaque Podman argument text. Physical entries remain ordered and unparsed.
+    PodmanArgs,
+    /// Opaque authored volume owner selection retained without user or UID interpretation.
+    User,
+    /// Opaque authored volume group selection retained without group or GID interpretation.
+    Group,
+    /// Opaque authored volume UID selection retained without numeric interpretation.
+    UID,
+    /// Opaque authored volume GID selection retained without numeric interpretation.
+    GID,
+    /// Opaque generated-service-name text retained without identity interpretation.
+    ServiceName,
+    /// Authored image source or exact `.image`/`.build` unit reference for the volume.
+    Image,
+}
+
+/// Minimal native Build keys with evidence-backed typed construction.
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[non_exhaustive]
+pub enum BuildKey {
+    /// Name assigned to the image built by this unit. Multiple tags remain ordered and distinct.
+    ImageTag,
+    /// Build context selected for Podman's build command and, for `file` or `unit`, its service.
+    SetWorkingDirectory,
+    /// Containerfile selection. Every authored physical line remains ordered and distinct.
+    File,
+    /// Build stage selection retained without stage-name validation.
+    Target,
+    /// Build-time network selection or an exact `.network` unit reference.
+    Network,
+    /// Opaque build-result label text. Physical entries remain ordered and unparsed.
+    Label,
+    /// Opaque build argument text. Physical entries remain ordered and unparsed.
+    BuildArg,
+    /// Opaque build secret text. Physical entries remain ordered and unparsed.
+    Secret,
+    /// Opaque architecture selection retained without platform grammar parsing.
+    Arch,
+    /// Opaque architecture-variant selection retained without platform grammar parsing.
+    Variant,
+    /// Opaque image pull-policy selection retained without policy validation.
+    Pull,
+    /// Opaque Podman build argument text. Physical entries remain ordered and unparsed.
+    PodmanArgs,
+    /// Opaque build retry-count text retained without integer parsing or default selection.
+    Retry,
+    /// Opaque build retry-delay text retained without duration parsing or default selection.
+    RetryDelay,
+    /// Opaque build TLS-verification text retained without boolean parsing or default selection.
+    TLSVerify,
+    /// Opaque build force-removal text retained without boolean parsing or default selection.
+    ForceRM,
+    /// Opaque build supplementary-group text. Physical entries remain ordered and unparsed.
+    GroupAdd,
+    /// Opaque build DNS-server text. Physical entries remain ordered and unparsed.
+    DNS,
+    /// Opaque build DNS-option text. Physical entries remain ordered and unparsed.
+    DNSOption,
+    /// Opaque build DNS-search text. Physical entries remain ordered and unparsed.
+    DNSSearch,
+    /// Opaque build registry-authentication file text retained without path interpretation.
+    AuthFile,
+    /// Opaque build ignore-file text retained without path or ignore-rule interpretation.
+    IgnoreFile,
+    /// Opaque build OCI annotation text. Physical entries remain ordered and unparsed.
+    Annotation,
+    /// Opaque build environment text. Physical entries remain ordered and unparsed.
+    Environment,
+    /// Opaque containers.conf module text. Physical entries remain ordered and unparsed.
+    ContainersConfModule,
+    /// Opaque Podman global-argument text. Physical entries remain ordered and unparsed.
+    GlobalArgs,
+    /// Opaque generated-service-name text retained without identity interpretation.
+    ServiceName,
+    /// Opaque build volume text with only an exact `.volume` source-prefix reference classification.
+    Volume,
+}
+
+/// Minimal native Image key with evidence-backed typed construction.
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[non_exhaustive]
+pub enum ImageKey {
+    /// Opaque native image source retained without image-reference interpretation.
+    Image,
+    /// Opaque image resource-name override retained without substitution interpretation.
+    ImageTag,
+    /// Opaque generated-service-name text retained without identity interpretation.
+    ServiceName,
+    /// Opaque pull-all-tags text retained without boolean interpretation.
+    AllTags,
+    /// Opaque image architecture text retained without platform interpretation.
+    Arch,
+    /// Opaque image authentication-file text retained without path or credential interpretation.
+    AuthFile,
+    /// Opaque image certificate-directory text retained without path or certificate interpretation.
+    CertDir,
+    /// Opaque containers.conf module text. Physical entries remain ordered and unparsed.
+    ContainersConfModule,
+    /// Opaque image credential text retained without username/password interpretation.
+    Creds,
+    /// Opaque image decryption-key text retained without key or passphrase interpretation.
+    DecryptionKey,
+    /// Opaque image global-argument text. Physical entries remain ordered and unparsed.
+    GlobalArgs,
+    /// Opaque image operating-system selection retained without platform interpretation.
+    OS,
 }
 
 /// Typed role of an authored entry.
@@ -272,9 +452,21 @@ pub enum EntryKind {
     Volume(VolumeKey),
     /// Unknown entry retained in its original section and position.
     Unknown,
+    /// Recognized key in `[Build]`.
+    Build(BuildKey),
+    /// Recognized key in `[Image]`.
+    Image(ImageKey),
 }
 
 impl EntryKind {
+    /// Returns whether this entry's authored value must be redacted by repository-owned debug output.
+    ///
+    /// This is crate-private metadata rather than a value-classification API: only `Image=Creds`
+    /// and `Image=DecryptionKey` have evidence-backed sensitive spellings at this layer.
+    pub(crate) const fn has_sensitive_value(self) -> bool {
+        matches!(self, Self::Image(ImageKey::Creds | ImageKey::DecryptionKey))
+    }
+
     /// Returns whether repeated entries are part of the documented first-conversion form.
     #[must_use]
     pub const fn is_repeatable(self) -> bool {
@@ -305,8 +497,39 @@ impl EntryKind {
                         | ContainerKey::Annotation
                         | ContainerKey::Mask
                         | ContainerKey::Unmask
+                        | ContainerKey::LogOpt
+                        | ContainerKey::NetworkAlias
                 )
                 | Self::Pod(PodKey::AddHost | PodKey::PublishPort | PodKey::Network | PodKey::Volume)
+                | Self::Network(
+                    NetworkKey::Options
+                        | NetworkKey::Subnet
+                        | NetworkKey::Gateway
+                        | NetworkKey::IPRange
+                        | NetworkKey::Label
+                )
+                | Self::Volume(
+                    VolumeKey::Label | VolumeKey::ContainersConfModule | VolumeKey::GlobalArgs | VolumeKey::PodmanArgs
+                )
+                | Self::Build(
+                    BuildKey::ImageTag
+                        | BuildKey::File
+                        | BuildKey::Network
+                        | BuildKey::Label
+                        | BuildKey::BuildArg
+                        | BuildKey::Secret
+                        | BuildKey::PodmanArgs
+                        | BuildKey::GroupAdd
+                        | BuildKey::DNS
+                        | BuildKey::DNSOption
+                        | BuildKey::DNSSearch
+                        | BuildKey::Annotation
+                        | BuildKey::Environment
+                        | BuildKey::ContainersConfModule
+                        | BuildKey::GlobalArgs
+                        | BuildKey::Volume
+                )
+                | Self::Image(ImageKey::ContainersConfModule | ImageKey::GlobalArgs)
                 | Self::Unknown
         )
     }
@@ -341,10 +564,26 @@ pub enum ValueKind {
 }
 
 /// Owned authored text paired with its precise source span.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct SourcedText {
     text: String,
     span: SourceSpan,
+    sensitive: bool,
+}
+
+impl fmt::Debug for SourcedText {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let text: &dyn fmt::Debug = if self.sensitive {
+            &"<redacted sensitive text>"
+        } else {
+            &self.text
+        };
+        formatter
+            .debug_struct("SourcedText")
+            .field("text", text)
+            .field("span", &self.span)
+            .finish()
+    }
 }
 
 impl SourcedText {
@@ -353,7 +592,16 @@ impl SourcedText {
             .slice(span)
             .ok_or(TypedModelError::InvalidSourceSpan(span))?
             .to_owned();
-        Ok(Self { text, span })
+        Ok(Self {
+            text,
+            span,
+            sensitive: false,
+        })
+    }
+
+    const fn with_sensitive_value(mut self, sensitive: bool) -> Self {
+        self.sensitive = sensitive;
+        self
     }
 
     /// Returns the exact authored text selected by the span.
@@ -398,7 +646,7 @@ impl AuthoredValue {
 }
 
 /// One typed entry retained in authored section and entry order.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct TypedEntry {
     key: SourcedText,
     value: AuthoredValue,
@@ -426,6 +674,16 @@ impl TypedEntry {
         self.kind
     }
 
+    /// Returns whether explicit raw-value access needs sensitive-data handling.
+    ///
+    /// This is currently true only for recognized `[Image] Creds=` and `DecryptionKey=` entries.
+    /// Rendering and [`Self::value`] retain the exact authored text, so callers must avoid
+    /// exposing that text.
+    #[must_use]
+    pub const fn is_sensitive(&self) -> bool {
+        self.kind.has_sensitive_value()
+    }
+
     /// Returns the conservative path or reference classification.
     #[must_use]
     pub const fn value_kind(&self) -> ValueKind {
@@ -446,15 +704,36 @@ impl TypedEntry {
         };
         let value = self.value.primary.text.trim();
         match self.kind {
-            EntryKind::Container(ContainerKey::Volume) | EntryKind::Pod(PodKey::Volume) => {
+            EntryKind::Container(ContainerKey::Volume)
+            | EntryKind::Pod(PodKey::Volume)
+            | EntryKind::Build(BuildKey::Volume) => {
                 Some(value.split_once(':').map_or(value, |(source, _)| source).trim())
             }
             EntryKind::Container(ContainerKey::Network | ContainerKey::Pod) | EntryKind::Pod(PodKey::Network) => {
                 Some(first_token(value))
             }
-            EntryKind::Container(ContainerKey::Image) => Some(value),
+            EntryKind::Container(ContainerKey::Image)
+            | EntryKind::Build(BuildKey::Network)
+            | EntryKind::Volume(VolumeKey::Image) => Some(value),
             _ => None,
         }
+    }
+}
+
+impl fmt::Debug for TypedEntry {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut debug = formatter.debug_struct("TypedEntry");
+        debug
+            .field("key", &self.key)
+            .field("kind", &self.kind)
+            .field("value_kind", &self.value_kind)
+            .field("source_line", &self.source_line);
+        if self.kind.has_sensitive_value() {
+            debug.field("value", &"<redacted sensitive value>")
+        } else {
+            debug.field("value", &self.value)
+        };
+        debug.finish()
     }
 }
 
@@ -534,10 +813,12 @@ impl QuadletDocument {
                         continue;
                     };
                     let key = SourcedText::from_span(syntax.source(), entry.key())?;
-                    let primary = SourcedText::from_span(syntax.source(), entry.value())?;
-                    let continuations = collect_continuations(syntax, line_index)?;
                     let section_kind = sections[section_index].kind;
                     let kind = classify_entry(section_kind, key.text());
+                    let sensitive = kind.has_sensitive_value();
+                    let primary =
+                        SourcedText::from_span(syntax.source(), entry.value())?.with_sensitive_value(sensitive);
+                    let continuations = collect_continuations(syntax, line_index, sensitive)?;
                     let value_kind = classify_value(kind, primary.text());
                     sections[section_index].entries.push(TypedEntry {
                         key,
@@ -664,6 +945,9 @@ impl QuadletDocument {
         if self.unit_type == QuadletUnitType::Container {
             diagnostics.extend(self.validate_container_source(first_expected));
         }
+        if self.unit_type == QuadletUnitType::Image {
+            diagnostics.extend(self.validate_image_source(first_expected));
+        }
 
         diagnostics
     }
@@ -711,6 +995,27 @@ impl QuadletDocument {
                 ),
             ));
         }
+        let reload_commands: Vec<_> = container_entries
+            .iter()
+            .copied()
+            .filter(|entry| entry.kind == EntryKind::Container(ContainerKey::ReloadCmd))
+            .collect();
+        let reload_signals: Vec<_> = container_entries
+            .iter()
+            .copied()
+            .filter(|entry| entry.kind == EntryKind::Container(ContainerKey::ReloadSignal))
+            .collect();
+        if !reload_commands.is_empty() && !reload_signals.is_empty() {
+            diagnostics.push(Diagnostic::new(
+                CONFLICTING_RELOAD_KEYS,
+                Severity::Error,
+                "container ReloadCmd and ReloadSignal entries conflict",
+                Label::new(
+                    reload_signals[0].key.span(),
+                    "remove either ReloadSignal or ReloadCmd from this Container section",
+                ),
+            ));
+        }
         diagnostics.extend(
             images
                 .iter()
@@ -739,10 +1044,45 @@ impl QuadletDocument {
         );
         diagnostics
     }
+
+    fn validate_image_source(&self, image_section: Option<&TypedSection>) -> Vec<Diagnostic> {
+        let images: Vec<_> = self
+            .sections
+            .iter()
+            .filter(|section| section.kind == SectionKind::Image)
+            .flat_map(|section| section.entries.iter())
+            .filter(|entry| entry.kind == EntryKind::Image(ImageKey::Image))
+            .collect();
+        let mut diagnostics = Vec::new();
+        if images.is_empty() {
+            if let Some(section) = image_section {
+                diagnostics.push(Diagnostic::new(
+                    MISSING_IMAGE_SOURCE,
+                    Severity::Error,
+                    "image unit is missing its required image source",
+                    Label::new(section.name.span(), "add `Image=` to this Image section"),
+                ));
+            }
+        }
+        diagnostics.extend(
+            images
+                .iter()
+                .filter(|entry| entry.value.primary.text.trim().is_empty())
+                .map(|entry| {
+                    Diagnostic::new(
+                        EMPTY_IMAGE_SOURCE,
+                        Severity::Error,
+                        "image unit Image entry is empty",
+                        Label::new(entry.value.primary.span(), "provide an image source"),
+                    )
+                }),
+        );
+        diagnostics
+    }
 }
 
 /// Combined syntax and typed-model result for one source file.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct QuadletParseResult {
     syntax: ParseResult,
     document: QuadletDocument,
@@ -785,6 +1125,24 @@ impl QuadletParseResult {
     }
 }
 
+impl fmt::Debug for QuadletParseResult {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut debug = formatter.debug_struct("QuadletParseResult");
+        if self.document.entries().any(TypedEntry::is_sensitive) {
+            debug.field(
+                "syntax",
+                &"<loss-aware syntax; access syntax() explicitly for raw source>",
+            );
+        } else {
+            debug.field("syntax", &self.syntax);
+        }
+        debug
+            .field("document", &self.document)
+            .field("model_diagnostics", &self.model_diagnostics)
+            .finish()
+    }
+}
+
 /// Internal consistency failure while interpreting parser-owned spans.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[non_exhaustive]
@@ -803,12 +1161,18 @@ impl fmt::Display for TypedModelError {
 
 impl Error for TypedModelError {}
 
-fn collect_continuations(syntax: &SyntaxDocument, entry_line: usize) -> Result<Vec<SourcedText>, TypedModelError> {
+fn collect_continuations(
+    syntax: &SyntaxDocument,
+    entry_line: usize,
+    sensitive: bool,
+) -> Result<Vec<SourcedText>, TypedModelError> {
     let mut values = Vec::new();
     for line in syntax.lines().iter().skip(entry_line + 1) {
         match line.kind() {
             SyntaxLineKind::Continuation(continuation) => {
-                values.push(SourcedText::from_span(syntax.source(), continuation.value())?);
+                values.push(
+                    SourcedText::from_span(syntax.source(), continuation.value())?.with_sensitive_value(sensitive),
+                );
             }
             SyntaxLineKind::Comment(comment) if comment.within_continuation() => {}
             _ => break,
@@ -877,6 +1241,13 @@ fn classify_entry(section: SectionKind, key: &str) -> EntryKind {
             "SecurityLabelType" => EntryKind::Container(ContainerKey::SecurityLabelType),
             "Mask" => EntryKind::Container(ContainerKey::Mask),
             "Unmask" => EntryKind::Container(ContainerKey::Unmask),
+            "LogDriver" => EntryKind::Container(ContainerKey::LogDriver),
+            "LogOpt" => EntryKind::Container(ContainerKey::LogOpt),
+            "IP" => EntryKind::Container(ContainerKey::IP),
+            "IP6" => EntryKind::Container(ContainerKey::IP6),
+            "NetworkAlias" => EntryKind::Container(ContainerKey::NetworkAlias),
+            "ReloadCmd" => EntryKind::Container(ContainerKey::ReloadCmd),
+            "ReloadSignal" => EntryKind::Container(ContainerKey::ReloadSignal),
             _ => EntryKind::Unknown,
         },
         SectionKind::Pod => match key {
@@ -887,24 +1258,111 @@ fn classify_entry(section: SectionKind, key: &str) -> EntryKind {
             "Volume" => EntryKind::Pod(PodKey::Volume),
             "UserNS" => EntryKind::Pod(PodKey::UserNS),
             "ShmSize" => EntryKind::Pod(PodKey::ShmSize),
+            "ExitPolicy" => EntryKind::Pod(PodKey::ExitPolicy),
+            "StopTimeout" => EntryKind::Pod(PodKey::StopTimeout),
+            "ServiceName" => EntryKind::Pod(PodKey::ServiceName),
             _ => EntryKind::Unknown,
         },
         SectionKind::Network => match key {
             "NetworkName" => EntryKind::Network(NetworkKey::NetworkName),
+            "Driver" => EntryKind::Network(NetworkKey::Driver),
+            "Options" => EntryKind::Network(NetworkKey::Options),
+            "Internal" => EntryKind::Network(NetworkKey::Internal),
+            "IPv6" => EntryKind::Network(NetworkKey::IPv6),
+            "IPAMDriver" => EntryKind::Network(NetworkKey::IPAMDriver),
+            "Subnet" => EntryKind::Network(NetworkKey::Subnet),
+            "Gateway" => EntryKind::Network(NetworkKey::Gateway),
+            "IPRange" => EntryKind::Network(NetworkKey::IPRange),
+            "Label" => EntryKind::Network(NetworkKey::Label),
             _ => EntryKind::Unknown,
         },
-        SectionKind::Volume => match key {
-            "VolumeName" => EntryKind::Volume(VolumeKey::VolumeName),
-            _ => EntryKind::Unknown,
-        },
+        SectionKind::Volume => classify_volume_entry(key),
+        SectionKind::Build => classify_build_entry(key),
+        SectionKind::Image => classify_image_entry(key),
         SectionKind::Unknown => EntryKind::Unknown,
     }
+}
+
+fn classify_image_entry(key: &str) -> EntryKind {
+    match key {
+        "Image" => EntryKind::Image(ImageKey::Image),
+        "ImageTag" => EntryKind::Image(ImageKey::ImageTag),
+        "ServiceName" => EntryKind::Image(ImageKey::ServiceName),
+        "AllTags" => EntryKind::Image(ImageKey::AllTags),
+        "Arch" => EntryKind::Image(ImageKey::Arch),
+        "AuthFile" => EntryKind::Image(ImageKey::AuthFile),
+        "CertDir" => EntryKind::Image(ImageKey::CertDir),
+        "ContainersConfModule" => EntryKind::Image(ImageKey::ContainersConfModule),
+        "Creds" => EntryKind::Image(ImageKey::Creds),
+        "DecryptionKey" => EntryKind::Image(ImageKey::DecryptionKey),
+        "GlobalArgs" => EntryKind::Image(ImageKey::GlobalArgs),
+        "OS" => EntryKind::Image(ImageKey::OS),
+        _ => EntryKind::Unknown,
+    }
+}
+
+fn classify_build_entry(key: &str) -> EntryKind {
+    let key = match key {
+        "ImageTag" => BuildKey::ImageTag,
+        "SetWorkingDirectory" => BuildKey::SetWorkingDirectory,
+        "File" => BuildKey::File,
+        "Target" => BuildKey::Target,
+        "Network" => BuildKey::Network,
+        "Label" => BuildKey::Label,
+        "BuildArg" => BuildKey::BuildArg,
+        "Secret" => BuildKey::Secret,
+        "Arch" => BuildKey::Arch,
+        "Variant" => BuildKey::Variant,
+        "Pull" => BuildKey::Pull,
+        "PodmanArgs" => BuildKey::PodmanArgs,
+        "Retry" => BuildKey::Retry,
+        "RetryDelay" => BuildKey::RetryDelay,
+        "TLSVerify" => BuildKey::TLSVerify,
+        "ForceRM" => BuildKey::ForceRM,
+        "GroupAdd" => BuildKey::GroupAdd,
+        "DNS" => BuildKey::DNS,
+        "DNSOption" => BuildKey::DNSOption,
+        "DNSSearch" => BuildKey::DNSSearch,
+        "AuthFile" => BuildKey::AuthFile,
+        "IgnoreFile" => BuildKey::IgnoreFile,
+        "Annotation" => BuildKey::Annotation,
+        "Environment" => BuildKey::Environment,
+        "ContainersConfModule" => BuildKey::ContainersConfModule,
+        "GlobalArgs" => BuildKey::GlobalArgs,
+        "ServiceName" => BuildKey::ServiceName,
+        "Volume" => BuildKey::Volume,
+        _ => return EntryKind::Unknown,
+    };
+    EntryKind::Build(key)
+}
+
+fn classify_volume_entry(key: &str) -> EntryKind {
+    let key = match key {
+        "VolumeName" => VolumeKey::VolumeName,
+        "Driver" => VolumeKey::Driver,
+        "Options" => VolumeKey::Options,
+        "Label" => VolumeKey::Label,
+        "Device" => VolumeKey::Device,
+        "Type" => VolumeKey::Type,
+        "Copy" => VolumeKey::Copy,
+        "ContainersConfModule" => VolumeKey::ContainersConfModule,
+        "GlobalArgs" => VolumeKey::GlobalArgs,
+        "PodmanArgs" => VolumeKey::PodmanArgs,
+        "User" => VolumeKey::User,
+        "Group" => VolumeKey::Group,
+        "UID" => VolumeKey::UID,
+        "GID" => VolumeKey::GID,
+        "ServiceName" => VolumeKey::ServiceName,
+        "Image" => VolumeKey::Image,
+        _ => return EntryKind::Unknown,
+    };
+    EntryKind::Volume(key)
 }
 
 fn classify_value(kind: EntryKind, raw: &str) -> ValueKind {
     let value = raw.trim();
     match kind {
-        EntryKind::Container(ContainerKey::Image) => reference_by_suffix(value)
+        EntryKind::Container(ContainerKey::Image) | EntryKind::Volume(VolumeKey::Image) => reference_by_suffix(value)
             .filter(|kind| matches!(kind, UnitReferenceKind::Image | UnitReferenceKind::Build))
             .map_or(ValueKind::Opaque, ValueKind::UnitReference),
         EntryKind::Container(ContainerKey::EnvironmentFile) => {
@@ -934,7 +1392,18 @@ fn classify_value(kind: EntryKind, raw: &str) -> ValueKind {
                 ValueKind::Path(classify_path(source))
             }
         }
+        EntryKind::Build(BuildKey::Volume) => {
+            let source = value.split_once(':').map_or(value, |(source, _)| source);
+            if reference_by_suffix(source) == Some(UnitReferenceKind::Volume) {
+                ValueKind::UnitReference(UnitReferenceKind::Volume)
+            } else {
+                ValueKind::Path(classify_path(source))
+            }
+        }
         EntryKind::Pod(PodKey::Network) => reference_by_suffix(first_token(value))
+            .filter(|kind| *kind == UnitReferenceKind::Network)
+            .map_or(ValueKind::Opaque, ValueKind::UnitReference),
+        EntryKind::Build(BuildKey::Network) => reference_by_suffix(value)
             .filter(|kind| *kind == UnitReferenceKind::Network)
             .map_or(ValueKind::Opaque, ValueKind::UnitReference),
         _ => ValueKind::Opaque,

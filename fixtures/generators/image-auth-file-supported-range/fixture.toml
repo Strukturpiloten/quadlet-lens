@@ -1,0 +1,15 @@
+schema = 1
+id = "image-auth-file-supported-range"
+suite = "generators"
+description = "Records target Image AuthFile command text without accessing paths or credentials in QuadletLens."
+secrets_reviewed = true
+files = ["image-auth-file-normal.image", "image-auth-file-duplicate.image", "image-auth-file-blank.image", "image-auth-file-unmatched.image", "expected-fragments.txt"]
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+[environment]
+description = "Dry-run generator only; placeholder paths are never read and no image pull, registry authentication, systemd operation, or runtime execution occurs."
+[expectations]
+summary = "Target-only normal, duplicate-last, blank-omission, and unmatched-quote AuthFile command-text observations; QuadletLens preserves authored physical text."

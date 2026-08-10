@@ -254,6 +254,48 @@ recorded patches through 6.0.2 emit exactly one final `--memory 16777216b`, whil
 generators reject or exclude the unsupported key and emit no memory argument. Runtime cgroup,
 page-size, swap, host-memory, rootless, and cross-format behavior remain outside this native slice.
 
+QuadletLens additionally types opaque singleton container `LogDriver` and opaque repeatable,
+resettable `LogOpt` at appended `ContainerKey` ordinals 56–57. Physical values, duplicates, order,
+empty option resets, quotes, and systemd specifiers remain source-aware without option-map
+parsing, validation, or defaults. Endpoint
+manuals, tagged 5.4.0/6.0.2 source, and an isolated all-20 generator fixture establish one driver
+argument plus ordered post-reset options only; runtime logging, host policy, log inspection, and
+cross-format behavior remain outside this native slice.
+
+QuadletLens additionally types opaque singleton container `IP` and `IP6` plus opaque repeatable,
+resettable `NetworkAlias` at appended `ContainerKey` ordinals 58–60. Physical values, duplicate
+singleton diagnostics, alias duplicates and order, empty resets, quotes, specifiers, and
+continuations remain source-aware. An isolated all-20 generator fixture with one `Network=` proves
+the two address flags and ordered final post-reset aliases without asserting map-dependent relative
+flag ordering or address, IPAM, DNS, network, runtime, or cross-format semantics.
+
+QuadletLens additionally types native network singleton `Driver` and repeatable/resettable
+`Options`. The model preserves every physical value and does not validate driver availability or
+provider-specific options. Tagged source and the complete generator matrix establish reset,
+duplicate-key collapse, sorted output, and the 5.4.0 bare-token drop versus 6.0.2 bare-token
+emission as generator evidence rather than model behavior.
+
+QuadletLens additionally types native network singleton `Internal` and `IPv6` as opaque values.
+Their source-aware model preserves literal true/false, invalid text, and duplicates without boolean
+parsing or Podman's last-value/invalid-as-false lookup. Complete generator evidence distinguishes
+omission, true, and false; `Internal` stays driver-conditional and `IPv6` stays a dual-stack
+selection, with no IPv4-enable key inferred.
+
+QuadletLens additionally types native network singleton `IPAMDriver` and repeatable/resettable
+`Subnet`, `Gateway`, and `IPRange`. It retains physical source values, empties, duplicates,
+quotes, specifiers, continuations, and order without applying the generator's resets or indexed
+column zipping. Endpoint manuals and tagged 5.4.0/6.0.2 source plus endpoint generator runs prove
+one explicit driver, blank-driver omission, and two ordered final groups. IPAM availability/defaults,
+network creation, runtime behavior, Compose equivalence, IPv4-disable inference, automatic IPv6
+inference, and BoxFerry-owned prefix-complete mapping policy remain outside QuadletLens.
+
+QuadletLens additionally types native repeatable/resettable volume `Label`, retaining every
+physical source value and allowing generated empty resets without OCI parsing or target-effective
+normalization. Endpoint manuals, tagged parser/helper source, and all 20 generator releases record
+reset, last-key collapse, lexical sorting, explicit empty and embedded-equals values, quoted
+whitespace presentation, and the bare-token boundary; volume creation, inspection, runtime, and
+BoxFerry policy remain outside this native slice.
+
 QuadletLens now types the native networking, annotation, and security keys added in
 `ContainerKey` ordinals 41–55. Repeatable values preserve order, duplicates, and resets; singleton
 values use the standard duplicate diagnostic. The 20-patch generator matrix covers Podman

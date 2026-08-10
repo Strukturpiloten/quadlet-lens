@@ -1,0 +1,9 @@
+[Volume]
+VolumeName=quadlet-lens-volume-global-args
+GlobalArgs=--log-level=info
+GlobalArgs=--events-backend=journald
+GlobalArgs=
+GlobalArgs=--log-level=debug
+GlobalArgs="--events-backend=none"
+GlobalArgs=--events-backend\x3dfile
+GlobalArgs=\\

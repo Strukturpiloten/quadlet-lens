@@ -1,0 +1,5 @@
+[Build]
+ImageTag=localhost/quadlet-lens-build-podman-args-sbom
+SetWorkingDirectory=.
+PodmanArgs=--sbom=syft
+PodmanArgs=--sbom-output=/tmp/quadlet-lens-sbom.json

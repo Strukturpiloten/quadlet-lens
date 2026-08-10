@@ -1,0 +1,18 @@
+schema = 1
+id = "build-podman-args-no-cache-supported-range"
+suite = "generators"
+description = "Records one exact opaque Build PodmanArgs --no-cache command argument across Podman 5.4.0 through 6.0.2."
+secrets_reviewed = true
+files = ["build-podman-args-no-cache.build", "expected-fragments.txt"]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "The harness mounts this directory read-only and invokes only Podman's dry-run Quadlet generator. It does not interpret cache behavior, resolve contexts, environments, paths, images, or services, validate the Podman CLI, build an image, or start a workload."
+
+[expectations]
+summary = "Every recorded generator emits one separate --no-cache argument immediately before final positional '.'. It rejects equals, quoted, alternate, duplicate, and reordered spellings and proves command text only."

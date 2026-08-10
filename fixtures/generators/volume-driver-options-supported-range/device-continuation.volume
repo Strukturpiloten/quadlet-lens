@@ -1,0 +1,6 @@
+[Volume]
+VolumeName=quadlet-lens-device-continuation
+Driver=local
+Device=tmp\
+fs
+Type=bind

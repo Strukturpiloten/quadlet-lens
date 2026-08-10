@@ -1,0 +1,7 @@
+[Build]
+ImageTag=localhost/quadlet-lens-build-dns-option
+SetWorkingDirectory=.
+DNSOption=rotate
+DNSOption=
+DNSOption=ndots:1
+DNSOption=use-vc

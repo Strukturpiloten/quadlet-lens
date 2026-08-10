@@ -1,0 +1,4 @@
+[Build]
+ImageTag=localhost/quadlet-lens-build-tls-verify-false
+SetWorkingDirectory=.
+TLSVerify=false

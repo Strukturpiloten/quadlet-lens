@@ -1,0 +1,15 @@
+schema = 1
+id = "image-creds-supported-range"
+suite = "generators"
+description = "Records target Image Creds command text using placeholder-only credentials without registry access."
+secrets_reviewed = true
+files = ["image-creds-normal.image", "image-creds-duplicate.image", "image-creds-blank.image", "image-creds-unmatched.image", "expected-fragments.txt"]
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+[environment]
+description = "Dry-run generator only; placeholder credentials are not used for authentication and no image pull, registry operation, systemd operation, or runtime execution occurs."
+[expectations]
+summary = "Target-only normal, duplicate-last, final-blank omission, and unmatched-quote Creds command-text observations; QuadletLens preserves physical source text and redacts it only from repository-owned debug output."

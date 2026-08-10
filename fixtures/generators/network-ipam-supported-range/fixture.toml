@@ -1,0 +1,18 @@
+schema = 1
+id = "network-ipam-supported-range"
+suite = "generators"
+description = "Exercises singleton IPAMDriver blank behavior and reset-aware repeatable Subnet, Gateway, and IPRange columns across the complete supported Podman generator range."
+secrets_reviewed = true
+files = ["expected-fragments.txt", "ipam-columns.network", "ipam-driver-blank.network"]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "The harness mounts this directory read-only with label separation disabled and invokes only exact Podman Quadlet generators in dry-run mode. It does not create or inspect networks, validate address grammar, IPAM-driver availability/defaults, provider behavior, or runtime state."
+
+[expectations]
+summary = "Every recorded Podman release emits one `--ipam-driver host-local`; then exactly two ordered subnet/gateway/ip-range groups after independently reset pre-values. The companion blank IPAMDriver unit emits no `--ipam-driver` form."

@@ -1,0 +1,4 @@
+[Container]
+Image=registry.example.invalid/reload-conflict-fixture:1
+ReloadCmd=/usr/bin/reload --opaque-value
+ReloadSignal=SIGUSR1

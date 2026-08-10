@@ -1,0 +1,15 @@
+schema = 1
+id = "image-arch-supported-range"
+suite = "generators"
+description = "Records target Image Arch command text without importing platform or pull behavior into QuadletLens."
+secrets_reviewed = true
+files = ["image-arch-normal.image", "image-arch-duplicate.image", "image-arch-blank.image", "image-arch-unmatched.image", "expected-fragments.txt"]
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+[environment]
+description = "Dry-run generator only; no image pull, metadata or storage lookup, registry, systemd operation, or runtime execution."
+[expectations]
+summary = "Target-only normal, duplicate-last, blank-omission, and unmatched-quote Arch command-text observations; QuadletLens preserves authored physical text."

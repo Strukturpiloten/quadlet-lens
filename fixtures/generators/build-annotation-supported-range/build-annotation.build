@@ -1,0 +1,13 @@
+[Build]
+ImageTag=localhost/quadlet-lens-build-annotation
+SetWorkingDirectory=.
+Annotation=org.example.pre=one
+Annotation=org.example.pre=two
+Annotation=
+Annotation=org.example.zeta=first
+Annotation=org.example.alpha=earlier
+Annotation=org.example.alpha=final
+Annotation=bare
+Annotation="org.example.quoted=Authored Value"
+Annotation=org.example.escape=literal\x20text
+Annotation= malformed = value 

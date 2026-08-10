@@ -1,0 +1,4 @@
+[Volume]
+VolumeName=quadlet-lens-type-without-device
+Driver=local
+Type=bind

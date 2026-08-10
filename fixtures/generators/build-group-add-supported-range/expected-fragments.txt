@@ -1,0 +1,2 @@
+---build-group-add-build.service---
+SourcePath=/fixtures/build-group-add.build

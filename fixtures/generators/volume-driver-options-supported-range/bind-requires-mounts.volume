@@ -1,0 +1,5 @@
+[Volume]
+VolumeName=quadlet-lens-bind-requires-mounts
+Driver=local
+Device=/tmp/quadlet lens
+Type=bind

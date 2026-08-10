@@ -1,0 +1,4 @@
+[Build]
+ImageTag=localhost/quadlet-lens-build-podman-args-shm-size-32m
+SetWorkingDirectory=.
+PodmanArgs=--shm-size=32m

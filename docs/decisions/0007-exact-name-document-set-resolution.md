@@ -28,9 +28,9 @@ same-named files would also hide a deployment ambiguity.
    references explicitly ambiguous; no candidate wins by insertion order.
 6. The graph retains every reference with a `Resolved`, `Missing`, or `Ambiguous` state. Only an
    exactly resolved reference becomes a dependency edge.
-7. The initial resolvable unit surface is `.container`, `.pod`, `.network`, and `.volume`.
-   Classified `.image` and `.build` references remain missing until those unit types receive native
-   typed models.
+7. The initial resolvable unit surface is `.container`, `.pod`, `.network`, `.volume`, `.build`,
+   and `.image` once their native typed models are available. Classified references to untyped unit
+   kinds remain missing rather than being guessed.
 8. Graph edges express native resource references only. Generic systemd ordering, cycles, target
    version support, and runtime availability remain separate validation layers.
 

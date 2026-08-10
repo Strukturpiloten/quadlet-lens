@@ -1,0 +1,18 @@
+schema = 1
+id = "build-core"
+suite = "typed-model"
+description = "Protects the minimal typed Build core while retaining repeated image tags, Network, Label, BuildArg, Secret, and File lines, opaque working-directory text, generic systemd directives, and unknown keys."
+secrets_reviewed = true
+files = ["application.build"]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "No build context, paths, URLs, systemd specifiers, Podman generator, or runtime are inspected."
+
+[expectations]
+summary = "ImageTag, Network, Label, BuildArg, Secret, and File remain repeatable and ordered; labels, build arguments, and build secret text remain opaque physical values, exact .network values classify as document-set references, network modes remain opaque, SetWorkingDirectory remains exact text, and unknown Build keys remain preserved."

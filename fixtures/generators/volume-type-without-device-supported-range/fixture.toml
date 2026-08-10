@@ -1,0 +1,18 @@
+schema = 1
+id = "volume-type-without-device-supported-range"
+suite = "generators"
+description = "Requires every supported Podman generator to reject Type without Device."
+secrets_reviewed = true
+files = ["type-without-device.volume"]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "The harness mounts this directory read-only and invokes only exact Podman Quadlet generators in dry-run mode. It does not create a volume or inspect a mount."
+
+[expectations]
+summary = "Every recorded Podman release from 5.4.0 through 6.0.2 rejects Type=bind without Device."

@@ -5,6 +5,23 @@ Versioning for its documented pre-1.0 public API.
 
 ## [Unreleased]
 
+## [0.1.12] - 2026-08-10
+
+### Added
+
+- Native `.image` support with source preservation, sensitive debug redaction, and exact
+  document-set references.
+- Complete current native Volume coverage for image references, naming, ownership fields, and
+  opaque configuration and argument entries.
+- Complete current native Build coverage for environment and configuration arguments, service
+  naming, and exact `.volume` references.
+- Container reload entries with conflict diagnostics, plus Pod exit policy, stop timeout, and
+  service naming.
+- Evidence-scoped generic `PodmanArgs`, container logging and network identity, Network, and
+  Volume support.
+- Exact capability and dry-run generator evidence across Podman 5.4.0–6.0.2, including recorded
+  version boundaries; no runtime or cross-format equivalence is claimed.
+
 ## [0.1.11] - 2026-08-07
 
 ### Added

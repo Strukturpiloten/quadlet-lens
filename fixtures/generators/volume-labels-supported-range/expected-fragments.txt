@@ -1,0 +1,2 @@
+---volume-labels-volume.service---
+SourcePath=/fixtures/volume-labels.volume

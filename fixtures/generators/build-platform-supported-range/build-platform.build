@@ -1,0 +1,6 @@
+[Build]
+ImageTag=localhost/quadlet-lens-build-platform
+File=Containerfile
+SetWorkingDirectory=file
+Arch=arm64
+Variant=v8

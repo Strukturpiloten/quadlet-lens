@@ -1,0 +1,2 @@
+---build-pull-build.service---
+SourcePath=/fixtures/build-pull.build

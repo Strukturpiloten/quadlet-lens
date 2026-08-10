@@ -1,0 +1,9 @@
+[Volume]
+VolumeName=quadlet-lens-volume-podman-args
+PodmanArgs=--label=pre-one
+PodmanArgs=--label=pre-two
+PodmanArgs=
+PodmanArgs=--label=post-one
+PodmanArgs="--label=quoted"
+PodmanArgs=--label\x3descaped
+PodmanArgs=\\

@@ -1,0 +1,4 @@
+---reload-command.service---
+SourcePath=/fixtures/reload-command.container
+---reload-signal.service---
+SourcePath=/fixtures/reload-signal.container

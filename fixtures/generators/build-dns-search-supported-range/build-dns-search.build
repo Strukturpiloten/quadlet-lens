@@ -1,0 +1,7 @@
+[Build]
+ImageTag=localhost/quadlet-lens-build-dns-search
+SetWorkingDirectory=.
+DNSSearch=old.example
+DNSSearch=
+DNSSearch=corp.example
+DNSSearch=.

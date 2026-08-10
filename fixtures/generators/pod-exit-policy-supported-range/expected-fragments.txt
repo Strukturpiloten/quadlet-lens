@@ -1,0 +1,4 @@
+---exit-policy-continue-pod.service---
+SourcePath=/fixtures/exit-policy-continue.pod
+---exit-policy-stop-pod.service---
+SourcePath=/fixtures/exit-policy-stop.pod

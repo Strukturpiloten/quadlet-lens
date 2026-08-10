@@ -1,0 +1,2 @@
+---logging.service---
+SourcePath=/fixtures/logging.container

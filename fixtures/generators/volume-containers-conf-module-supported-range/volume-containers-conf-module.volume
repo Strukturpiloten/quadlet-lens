@@ -1,0 +1,9 @@
+[Volume]
+VolumeName=quadlet-lens-volume-module
+ContainersConfModule=pre-one
+ContainersConfModule=pre-two
+ContainersConfModule=
+ContainersConfModule=post-one
+ContainersConfModule=post-two
+ContainersConfModule=continued-one \
+ continued-two

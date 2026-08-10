@@ -1,0 +1,2 @@
+---build-podman-args-sbom-build.service---
+SourcePath=/fixtures/build-podman-args-sbom.build

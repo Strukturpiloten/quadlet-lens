@@ -1,0 +1,18 @@
+schema = 1
+id = "build-tls-verify-supported-range"
+suite = "generators"
+description = "Exercises opaque singleton Build TLSVerify values across the recorded Podman range."
+secrets_reviewed = true
+files = ["build-tls-verify-true.build", "build-tls-verify-false.build", "expected-fragments.txt"]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "The harness mounts this directory read-only and invokes only Podman's dry-run Quadlet generator. It does not contact a registry, pull an image, run a build, validate certificates, or inspect runtime behavior."
+
+[expectations]
+summary = "Every recorded Podman release from 5.4.0 through 6.0.2 emits one bare --tls-verify for TLSVerify=true and one --tls-verify=false for TLSVerify=false, each before its final positional '.'."

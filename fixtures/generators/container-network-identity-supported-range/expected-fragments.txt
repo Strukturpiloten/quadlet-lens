@@ -1,0 +1,2 @@
+---network-identity.service---
+SourcePath=/fixtures/network-identity.container

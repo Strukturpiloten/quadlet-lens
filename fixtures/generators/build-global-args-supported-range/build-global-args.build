@@ -1,0 +1,10 @@
+[Build]
+ImageTag=localhost/quadlet-lens-build-global-args
+SetWorkingDirectory=.
+GlobalArgs=--log-level=info
+GlobalArgs=--log-level=info
+GlobalArgs=
+GlobalArgs=--log-level=debug
+GlobalArgs="--events-backend=none"
+GlobalArgs=--events-backend\x3dfile
+GlobalArgs=\\

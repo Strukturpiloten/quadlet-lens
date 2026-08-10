@@ -1,0 +1,26 @@
+schema = 1
+id = "network-booleans-supported-range"
+suite = "generators"
+description = "Distinguishes omitted, literal true, and literal false Network Internal and IPv6 generator forms across the complete supported Podman range."
+secrets_reviewed = true
+files = [
+  "expected-fragments.txt",
+  "network-internal-omitted.network",
+  "network-internal-true.network",
+  "network-internal-false.network",
+  "network-ipv6-omitted.network",
+  "network-ipv6-true.network",
+  "network-ipv6-false.network",
+]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "The harness mounts this directory read-only with label separation disabled and invokes only exact Podman Quadlet generators in dry-run mode. It does not select or validate drivers, create or inspect networks, infer an IPv4-enable key, or establish isolation or dual-stack runtime behavior."
+
+[expectations]
+summary = "Every recorded release emits no corresponding flag for omission, exactly one plain --internal or --ipv6 flag for explicit true, and exactly one --internal=false or --ipv6=false flag for explicit false. The test does not assert relative order between the two flag families."

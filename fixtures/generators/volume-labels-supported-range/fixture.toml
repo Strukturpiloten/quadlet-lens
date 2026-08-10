@@ -1,0 +1,18 @@
+schema = 1
+id = "volume-labels-supported-range"
+suite = "generators"
+description = "Exercises repeatable/resettable Volume Label command construction across the complete supported Podman generator range."
+secrets_reviewed = true
+files = ["expected-fragments.txt", "volume-labels.volume"]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "The harness mounts this directory read-only with label separation disabled and invokes only exact Podman Quadlet generators in dry-run mode. It does not create or inspect volumes, validate label naming or metadata semantics, or start workloads."
+
+[expectations]
+summary = "Every recorded Podman release clears pre-reset labels, keeps the final duplicate key, sorts final keys, preserves explicit empty and embedded-equals values, and emits quoted whitespace as one logical label argument. Bare Label tokens are absent through 5.5.2 and emitted exactly once from 5.6.0 through 6.0.2. Any observed quoted-whitespace presentation boundary is asserted separately."

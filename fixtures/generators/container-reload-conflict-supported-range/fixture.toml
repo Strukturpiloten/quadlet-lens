@@ -1,0 +1,18 @@
+schema = 1
+id = "container-reload-conflict-supported-range"
+suite = "generators"
+description = "Proves the generator rejects the mutually exclusive Container ReloadCmd and ReloadSignal pair without exposing values in the assertion."
+secrets_reviewed = true
+files = ["reload-conflict.container"]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "The harness mounts this directory read-only with label separation disabled and invokes only exact Podman Quadlet generators in dry-run mode. It does not start workloads, inspect containers, execute reload commands, or send signals."
+
+[expectations]
+summary = "Every recorded Podman release rejects this fixture: 5.4.x because neither key is supported and 5.5.0 through 6.0.2 because the two keys are mutually exclusive."

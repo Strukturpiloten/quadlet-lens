@@ -1,0 +1,3 @@
+[Container]
+Image=registry.example.invalid/reload-signal-fixture:1
+ReloadSignal=SIGUSR1

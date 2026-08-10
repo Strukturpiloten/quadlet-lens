@@ -1,0 +1,12 @@
+[Build]
+ImageTag=localhost/quadlet-lens-build:primary
+ImageTag=localhost/quadlet-lens-build:secondary
+Network=host
+Network=none
+Network=app.network
+Label=build.label=one
+Label=empty=
+File=Containerfile.first
+File=Containerfile.final
+Target=build-stage
+SetWorkingDirectory=file

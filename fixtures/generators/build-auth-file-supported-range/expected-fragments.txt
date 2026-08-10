@@ -1,0 +1,6 @@
+---build-auth-file-single-build.service---
+SourcePath=/fixtures/build-auth-file-single.build
+---build-auth-file-last-build.service---
+SourcePath=/fixtures/build-auth-file-last.build
+---build-auth-file-empty-build.service---
+SourcePath=/fixtures/build-auth-file-empty.build

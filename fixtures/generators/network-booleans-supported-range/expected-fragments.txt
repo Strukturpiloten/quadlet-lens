@@ -1,0 +1,12 @@
+---network-internal-omitted-network.service---
+SourcePath=/fixtures/network-internal-omitted.network
+---network-internal-true-network.service---
+SourcePath=/fixtures/network-internal-true.network
+---network-internal-false-network.service---
+SourcePath=/fixtures/network-internal-false.network
+---network-ipv6-omitted-network.service---
+SourcePath=/fixtures/network-ipv6-omitted.network
+---network-ipv6-true-network.service---
+SourcePath=/fixtures/network-ipv6-true.network
+---network-ipv6-false-network.service---
+SourcePath=/fixtures/network-ipv6-false.network

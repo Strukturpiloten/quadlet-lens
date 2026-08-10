@@ -1,0 +1,2 @@
+---build-dns-option-build.service---
+SourcePath=/fixtures/build-dns-option.build

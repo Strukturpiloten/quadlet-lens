@@ -1,0 +1,10 @@
+[Build]
+ImageTag=localhost/quadlet-lens-build-volume-reset
+SetWorkingDirectory=.
+Volume=pre-one:/pre-one
+Volume=pre-two:/pre-two
+Volume=
+Volume=post-one:/post-one
+Volume=post-two:/post-two
+Volume=continued-one:/continued-one \
+ continued-two:/continued-two

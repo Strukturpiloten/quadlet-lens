@@ -1,0 +1,4 @@
+[Build]
+ImageTag=localhost/quadlet-lens-build-podman-args-no-cache
+SetWorkingDirectory=.
+PodmanArgs=--no-cache

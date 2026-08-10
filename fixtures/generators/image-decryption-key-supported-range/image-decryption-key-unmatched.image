@@ -1,0 +1,3 @@
+[Image]
+Image=example.invalid/quadlet-lens-image-decryption-key-unmatched:latest
+DecryptionKey=quadlet-lens-decryption-key-placeholder-unmatched"

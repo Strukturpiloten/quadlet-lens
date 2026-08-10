@@ -1,0 +1,2 @@
+---options-without-device-volume.service---
+SourcePath=/fixtures/options-without-device.volume

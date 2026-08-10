@@ -1,0 +1,2 @@
+---network-labels-network.service---
+SourcePath=/fixtures/network-labels.network

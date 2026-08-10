@@ -10,8 +10,8 @@ use std::{error::Error, fmt};
 use crate::{
     diagnostic::Diagnostic,
     model::{
-        ContainerKey, EntryKind, NetworkKey, PodKey, QuadletDocument, QuadletParseResult, QuadletUnitType, SectionKind,
-        TypedModelError, VolumeKey,
+        BuildKey, ContainerKey, EntryKind, ImageKey, NetworkKey, PodKey, QuadletDocument, QuadletParseResult,
+        QuadletUnitType, SectionKind, TypedModelError, VolumeKey,
     },
     source::SourceId,
 };
@@ -320,12 +320,28 @@ impl SystemdSection {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 struct GeneratedEntry {
     section: SectionKind,
     kind: EntryKind,
     key: String,
     value: EntryValue,
+}
+
+impl fmt::Debug for GeneratedEntry {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut debug = formatter.debug_struct("GeneratedEntry");
+        debug
+            .field("section", &self.section)
+            .field("kind", &self.kind)
+            .field("key", &self.key);
+        if self.kind.has_sensitive_value() {
+            debug.field("value", &"<redacted sensitive value>")
+        } else {
+            debug.field("value", &self.value)
+        };
+        debug.finish()
+    }
 }
 
 /// Ordered builder for one supported Quadlet document.
@@ -362,6 +378,22 @@ impl QuadletDocumentBuilder {
     /// Returns [`RenderError::WrongUnitType`] for a non-container document and
     /// [`RenderError::DuplicateSingleton`] for a repeated singleton key.
     pub fn push_container(&mut self, key: ContainerKey, value: EntryValue) -> Result<(), RenderError> {
+        let attempted = container_key_name(key);
+        if let Some(existing) = match key {
+            ContainerKey::ReloadCmd => self.entries.iter().find_map(|entry| {
+                (entry.kind == EntryKind::Container(ContainerKey::ReloadSignal)).then_some("ReloadSignal")
+            }),
+            ContainerKey::ReloadSignal => self
+                .entries
+                .iter()
+                .find_map(|entry| (entry.kind == EntryKind::Container(ContainerKey::ReloadCmd)).then_some("ReloadCmd")),
+            _ => None,
+        } {
+            return Err(RenderError::ConflictingSingletons {
+                existing: existing.to_owned(),
+                attempted: attempted.to_owned(),
+            });
+        }
         self.push_native(
             QuadletUnitType::Container,
             SectionKind::Container,
@@ -415,6 +447,49 @@ impl QuadletDocumentBuilder {
             SectionKind::Volume,
             EntryKind::Volume(key),
             volume_key_name(key),
+            value,
+        )
+    }
+
+    /// Appends a typed `[Build]` entry.
+    ///
+    /// `ImageTag`, `File`, `Network`, `Label`, `BuildArg`, `Secret`, `GroupAdd`, `DNS`, `DNSOption`, `DNSSearch`,
+    /// `Annotation`, `Environment`, `ContainersConfModule`, `GlobalArgs`, `Volume`, and `PodmanArgs` entries remain repeatable and ordered; `SetWorkingDirectory`, `Target`, `Arch`, `Variant`,
+    /// `Pull`, `Retry`, `RetryDelay`, `TLSVerify`, `ForceRM`, `AuthFile`, `IgnoreFile`, and `ServiceName` are singletons. Values are exact
+    /// physical-line-safe native text and are not interpreted by the builder.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RenderError::WrongUnitType`] for a non-build document and
+    /// [`RenderError::DuplicateSingleton`] for a repeated singleton Build key.
+    pub fn push_build(&mut self, key: BuildKey, value: EntryValue) -> Result<(), RenderError> {
+        self.push_native(
+            QuadletUnitType::Build,
+            SectionKind::Build,
+            EntryKind::Build(key),
+            build_key_name(key),
+            value,
+        )
+    }
+
+    /// Appends a typed `[Image]` entry.
+    ///
+    /// `ContainersConfModule` and `GlobalArgs` entries remain repeatable and ordered. All other Image keys, including `OS`, are
+    /// singletons. `Creds` and `DecryptionKey` are debug-redacted after key assignment, while
+    /// explicit rendering and raw-value access remain exact. Values are exact physical-line-safe
+    /// native text and are not interpreted by the builder; it does not read paths or modules, parse configuration,
+    /// validate a CLI, or model pull, runtime, graph, or conversion semantics.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RenderError::WrongUnitType`] for a non-image document and
+    /// [`RenderError::DuplicateSingleton`] only for a repeated singleton Image key.
+    pub fn push_image(&mut self, key: ImageKey, value: EntryValue) -> Result<(), RenderError> {
+        self.push_native(
+            QuadletUnitType::Image,
+            SectionKind::Image,
+            EntryKind::Image(key),
+            image_key_name(key),
             value,
         )
     }
@@ -581,6 +656,13 @@ pub enum RenderError {
     },
     /// A singleton native key was added more than once.
     DuplicateSingleton(String),
+    /// Two mutually exclusive singleton native keys were added to one document.
+    ConflictingSingletons {
+        /// Existing native key.
+        existing: String,
+        /// Attempted native key.
+        attempted: String,
+    },
     /// Generated source failed syntax or native-model validation.
     InvalidDocument(Vec<Diagnostic>),
     /// Parser-owned spans could not be interpreted consistently.
@@ -607,6 +689,12 @@ impl fmt::Display for RenderError {
                 write!(formatter, "cannot add a {entry:?} entry to a {document:?} document")
             }
             Self::DuplicateSingleton(key) => write!(formatter, "singleton Quadlet key `{key}` is repeated"),
+            Self::ConflictingSingletons { existing, attempted } => {
+                write!(
+                    formatter,
+                    "singleton Quadlet keys `{existing}` and `{attempted}` conflict"
+                )
+            }
             Self::InvalidDocument(diagnostics) => {
                 write!(
                     formatter,
@@ -686,6 +774,63 @@ const fn container_key_name(key: ContainerKey) -> &'static str {
         ContainerKey::SecurityLabelType => "SecurityLabelType",
         ContainerKey::Mask => "Mask",
         ContainerKey::Unmask => "Unmask",
+        ContainerKey::LogDriver => "LogDriver",
+        ContainerKey::LogOpt => "LogOpt",
+        ContainerKey::IP => "IP",
+        ContainerKey::IP6 => "IP6",
+        ContainerKey::NetworkAlias => "NetworkAlias",
+        ContainerKey::ReloadCmd => "ReloadCmd",
+        ContainerKey::ReloadSignal => "ReloadSignal",
+    }
+}
+
+const fn build_key_name(key: BuildKey) -> &'static str {
+    match key {
+        BuildKey::ImageTag => "ImageTag",
+        BuildKey::SetWorkingDirectory => "SetWorkingDirectory",
+        BuildKey::File => "File",
+        BuildKey::Target => "Target",
+        BuildKey::Network => "Network",
+        BuildKey::Label => "Label",
+        BuildKey::BuildArg => "BuildArg",
+        BuildKey::Secret => "Secret",
+        BuildKey::Arch => "Arch",
+        BuildKey::Variant => "Variant",
+        BuildKey::Pull => "Pull",
+        BuildKey::PodmanArgs => "PodmanArgs",
+        BuildKey::Retry => "Retry",
+        BuildKey::RetryDelay => "RetryDelay",
+        BuildKey::TLSVerify => "TLSVerify",
+        BuildKey::ForceRM => "ForceRM",
+        BuildKey::GroupAdd => "GroupAdd",
+        BuildKey::DNS => "DNS",
+        BuildKey::DNSOption => "DNSOption",
+        BuildKey::DNSSearch => "DNSSearch",
+        BuildKey::AuthFile => "AuthFile",
+        BuildKey::IgnoreFile => "IgnoreFile",
+        BuildKey::Annotation => "Annotation",
+        BuildKey::Environment => "Environment",
+        BuildKey::ContainersConfModule => "ContainersConfModule",
+        BuildKey::GlobalArgs => "GlobalArgs",
+        BuildKey::ServiceName => "ServiceName",
+        BuildKey::Volume => "Volume",
+    }
+}
+
+const fn image_key_name(key: ImageKey) -> &'static str {
+    match key {
+        ImageKey::Image => "Image",
+        ImageKey::ImageTag => "ImageTag",
+        ImageKey::ServiceName => "ServiceName",
+        ImageKey::AllTags => "AllTags",
+        ImageKey::Arch => "Arch",
+        ImageKey::AuthFile => "AuthFile",
+        ImageKey::CertDir => "CertDir",
+        ImageKey::ContainersConfModule => "ContainersConfModule",
+        ImageKey::Creds => "Creds",
+        ImageKey::DecryptionKey => "DecryptionKey",
+        ImageKey::GlobalArgs => "GlobalArgs",
+        ImageKey::OS => "OS",
     }
 }
 
@@ -698,18 +843,45 @@ const fn pod_key_name(key: PodKey) -> &'static str {
         PodKey::Volume => "Volume",
         PodKey::UserNS => "UserNS",
         PodKey::ShmSize => "ShmSize",
+        PodKey::ExitPolicy => "ExitPolicy",
+        PodKey::StopTimeout => "StopTimeout",
+        PodKey::ServiceName => "ServiceName",
     }
 }
 
 const fn network_key_name(key: NetworkKey) -> &'static str {
     match key {
         NetworkKey::NetworkName => "NetworkName",
+        NetworkKey::Driver => "Driver",
+        NetworkKey::Options => "Options",
+        NetworkKey::Internal => "Internal",
+        NetworkKey::IPv6 => "IPv6",
+        NetworkKey::IPAMDriver => "IPAMDriver",
+        NetworkKey::Subnet => "Subnet",
+        NetworkKey::Gateway => "Gateway",
+        NetworkKey::IPRange => "IPRange",
+        NetworkKey::Label => "Label",
     }
 }
 
 const fn volume_key_name(key: VolumeKey) -> &'static str {
     match key {
         VolumeKey::VolumeName => "VolumeName",
+        VolumeKey::Driver => "Driver",
+        VolumeKey::Options => "Options",
+        VolumeKey::Label => "Label",
+        VolumeKey::Device => "Device",
+        VolumeKey::Type => "Type",
+        VolumeKey::Copy => "Copy",
+        VolumeKey::ContainersConfModule => "ContainersConfModule",
+        VolumeKey::GlobalArgs => "GlobalArgs",
+        VolumeKey::PodmanArgs => "PodmanArgs",
+        VolumeKey::User => "User",
+        VolumeKey::Group => "Group",
+        VolumeKey::UID => "UID",
+        VolumeKey::GID => "GID",
+        VolumeKey::ServiceName => "ServiceName",
+        VolumeKey::Image => "Image",
     }
 }
 
@@ -720,6 +892,8 @@ const fn section_name(section: SectionKind) -> &'static str {
         SectionKind::Pod => "Pod",
         SectionKind::Network => "Network",
         SectionKind::Volume => "Volume",
+        SectionKind::Build => "Build",
+        SectionKind::Image => "Image",
         SectionKind::Service => "Service",
         SectionKind::Install => "Install",
         SectionKind::Unknown => "Unknown",

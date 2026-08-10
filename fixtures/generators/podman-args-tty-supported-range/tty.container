@@ -1,0 +1,3 @@
+[Container]
+Image=registry.example.invalid/tty:1
+PodmanArgs=--tty

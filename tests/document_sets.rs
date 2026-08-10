@@ -59,6 +59,180 @@ fn document_set_resolves_container_pod_network_and_volume_dependencies() -> Resu
 }
 
 #[test]
+fn document_set_resolves_a_container_image_to_an_exact_build_unit() -> Result<(), String> {
+    let set = QuadletDocumentSet::new([
+        named(
+            "application.container",
+            QuadletUnitType::Container,
+            181,
+            "[Container]\nImage=application.build\n",
+        )?,
+        named(
+            "application.build",
+            QuadletUnitType::Build,
+            182,
+            "[Build]\nImageTag=localhost/application:latest\nTarget=build-stage\nSetWorkingDirectory=unit\n",
+        )?,
+    ])
+    .map_err(|error| error.to_string())?;
+    assert!(set.is_valid(), "{:#?}", set.diagnostics());
+    assert_eq!(set.graph().references().len(), 1);
+    assert_eq!(set.graph().edges().len(), 1);
+    assert_eq!(set.graph().references()[0].kind(), UnitReferenceKind::Build);
+    assert_eq!(
+        set.graph().references()[0].resolution(),
+        ReferenceResolution::Resolved { document_index: 1 }
+    );
+    assert_eq!(set.graph().edges()[0].target_document(), 1);
+    assert_eq!(
+        set.document("application.build")
+            .map(|document| document.document().unit_type()),
+        Some(QuadletUnitType::Build)
+    );
+    Ok(())
+}
+
+#[test]
+fn document_set_resolves_a_volume_image_to_an_exact_build_unit() -> Result<(), String> {
+    let set = QuadletDocumentSet::new([
+        named(
+            "cache.volume",
+            QuadletUnitType::Volume,
+            183,
+            "[Volume]\nImage=application.build\n",
+        )?,
+        named(
+            "application.build",
+            QuadletUnitType::Build,
+            184,
+            "[Build]\nImageTag=localhost/application:latest\nTarget=build-stage\nSetWorkingDirectory=unit\n",
+        )?,
+    ])
+    .map_err(|error| error.to_string())?;
+    assert!(set.is_valid(), "{:#?}", set.diagnostics());
+    assert_eq!(set.graph().references().len(), 1);
+    assert_eq!(set.graph().edges().len(), 1);
+    assert_eq!(set.graph().references()[0].kind(), UnitReferenceKind::Build);
+    assert_eq!(set.graph().references()[0].target_name(), "application.build");
+    Ok(())
+}
+
+#[test]
+fn document_set_resolves_exact_container_and_volume_image_references_to_an_image_unit() -> Result<(), String> {
+    let set = QuadletDocumentSet::new([
+        named(
+            "application.container",
+            QuadletUnitType::Container,
+            185,
+            "[Container]\nImage=application.image\n",
+        )?,
+        named(
+            "cache.volume",
+            QuadletUnitType::Volume,
+            186,
+            "[Volume]\nImage=application.image\n",
+        )?,
+        named(
+            "application.image",
+            QuadletUnitType::Image,
+            187,
+            "[Image]\nImage=example.invalid/application:latest\n",
+        )?,
+    ])
+    .map_err(|error| error.to_string())?;
+    assert!(set.is_valid(), "{:#?}", set.diagnostics());
+    assert_eq!(set.graph().references().len(), 2);
+    assert_eq!(set.graph().edges().len(), 2);
+    assert!(set.graph().references().iter().all(|reference| {
+        reference.kind() == UnitReferenceKind::Image
+            && reference.target_name() == "application.image"
+            && reference.resolution() == ReferenceResolution::Resolved { document_index: 2 }
+    }));
+    assert_eq!(
+        set.document("application.image")
+            .map(|document| document.document().unit_type()),
+        Some(QuadletUnitType::Image)
+    );
+    Ok(())
+}
+
+#[test]
+fn image_tag_does_not_create_or_mutate_document_set_edges() -> Result<(), String> {
+    let set = QuadletDocumentSet::new([
+        named(
+            "application.container",
+            QuadletUnitType::Container,
+            449,
+            "[Container]\nImage=application.image\n",
+        )?,
+        named(
+            "application.image",
+            QuadletUnitType::Image,
+            450,
+            "[Image]\nImage=example.invalid/application:latest\nImageTag=other.image\nServiceName=other.service\nAllTags=true\nArch=arm64\nAuthFile=/placeholder/quadlet-lens-auth.json\nCertDir=/placeholder/quadlet-lens-certs\nContainersConfModule=one.conf\nContainersConfModule=two.conf\n",
+        )?,
+    ])
+    .map_err(|error| error.to_string())?;
+    assert!(set.is_valid(), "{:#?}", set.diagnostics());
+    assert_eq!(set.graph().references().len(), 1);
+    assert_eq!(set.graph().edges().len(), 1);
+    assert_eq!(set.graph().references()[0].target_name(), "application.image");
+    assert_eq!(set.graph().references()[0].kind(), UnitReferenceKind::Image);
+    Ok(())
+}
+
+#[test]
+fn document_set_resolves_build_volume_source_prefix_without_mutating_identities() -> Result<(), String> {
+    let set = QuadletDocumentSet::new([
+        named(
+            "application.build",
+            QuadletUnitType::Build,
+            220,
+            "[Build]\nImageTag=localhost/application\nVolume=cache.volume:/var/cache:Z\n",
+        )?,
+        named("cache.volume", QuadletUnitType::Volume, 221, "[Volume]\n")?,
+    ])
+    .map_err(|error| error.to_string())?;
+    assert!(set.is_valid(), "{:#?}", set.diagnostics());
+    assert_eq!(set.graph().references().len(), 1);
+    assert_eq!(set.graph().references()[0].target_name(), "cache.volume");
+    assert_eq!(set.graph().references()[0].kind(), UnitReferenceKind::Volume);
+    assert_eq!(set.graph().edges().len(), 1);
+    assert_eq!(
+        set.documents()[set.graph().edges()[0].target_document()]
+            .name()
+            .as_str(),
+        "cache.volume"
+    );
+    Ok(())
+}
+
+#[test]
+fn document_set_resolves_an_exact_build_network_reference() -> Result<(), String> {
+    let set = QuadletDocumentSet::new([
+        named(
+            "application.build",
+            QuadletUnitType::Build,
+            183,
+            "[Build]\nNetwork=frontend.network\nNetwork=frontend.network:ip=192.0.2.10\nNetwork=frontend.container\n",
+        )?,
+        named("frontend.network", QuadletUnitType::Network, 184, "[Network]\n")?,
+    ])
+    .map_err(|error| error.to_string())?;
+    assert!(set.is_valid(), "{:#?}", set.diagnostics());
+    assert_eq!(set.graph().references().len(), 1);
+    assert_eq!(set.graph().edges().len(), 1);
+    assert_eq!(set.graph().references()[0].kind(), UnitReferenceKind::Network);
+    assert_eq!(set.graph().references()[0].target_name(), "frontend.network");
+    assert_eq!(
+        set.graph().references()[0].resolution(),
+        ReferenceResolution::Resolved { document_index: 1 }
+    );
+    assert_eq!(set.graph().edges()[0].target_document(), 1);
+    Ok(())
+}
+
+#[test]
 fn document_set_reports_missing_ambiguous_and_duplicate_identities() -> Result<(), String> {
     let missing = QuadletDocumentSet::new([named(
         "missing.container",
@@ -108,10 +282,19 @@ fn unit_file_names_are_basenames_with_matching_supported_suffixes() -> Result<()
         UnitFileName::new("nested/app.container"),
         Err(DocumentSetError::InvalidUnitFileName(_))
     ));
-    assert!(matches!(
-        UnitFileName::new("application.image"),
-        Err(DocumentSetError::UnsupportedUnitFileExtension(_))
-    ));
+    assert_eq!(
+        UnitFileName::new("application.image")
+            .map_err(|error| error.to_string())?
+            .unit_type(),
+        QuadletUnitType::Image
+    );
+
+    assert_eq!(
+        UnitFileName::new("application.build")
+            .map_err(|error| error.to_string())?
+            .unit_type(),
+        QuadletUnitType::Build
+    );
 
     let network = named_document(QuadletUnitType::Network, 61, "[Network]\n")?;
     assert!(matches!(

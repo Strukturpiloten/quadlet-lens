@@ -1,0 +1,3 @@
+[Pod]
+ExitPolicy=continue
+ExitPolicy=stop

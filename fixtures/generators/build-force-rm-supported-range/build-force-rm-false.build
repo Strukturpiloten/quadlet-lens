@@ -1,0 +1,4 @@
+[Build]
+ImageTag=localhost/quadlet-lens-build-force-rm-false
+SetWorkingDirectory=.
+ForceRM=false

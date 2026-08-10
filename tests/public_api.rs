@@ -2,8 +2,8 @@
 
 use quadlet_lens::capability::{CapabilityCatalogue, PodmanTarget, PodmanVersion, SupportClassification};
 use quadlet_lens::model::{
-    ContainerKey, EntryKind, NamedQuadletDocument, PodKey, QuadletDocument, QuadletDocumentSet, QuadletUnitType,
-    ValueKind,
+    BuildKey, ContainerKey, EntryKind, ImageKey, NamedQuadletDocument, NetworkKey, PodKey, QuadletDocument,
+    QuadletDocumentSet, QuadletUnitType, SectionKind, TypedEntry, ValueKind, VolumeKey,
 };
 use quadlet_lens::path::{PathForm, classify_path};
 use quadlet_lens::render::{
@@ -12,7 +12,55 @@ use quadlet_lens::render::{
 };
 use quadlet_lens::source::SourceId;
 
+const BUILD_CORE_RENDERED: &str = concat!(
+    "[Build]\n",
+    "ImageTag=localhost/example:primary\n",
+    "ImageTag=localhost/example:secondary\n",
+    "Network=host\n",
+    "Network=none\n",
+    "Network=frontend.network\n",
+    "Label=build.label=one\n",
+    "Label=empty=\n",
+    "BuildArg=KEY=one\n",
+    "BuildArg=EMPTY=\n",
+    "BuildArg=bare text stays opaque\n",
+    "Secret=id=quadlet-lens-one,src=/run/quadlet-lens-placeholder-one\n",
+    "Secret=id=quadlet-lens-two,src=/run/quadlet-lens-placeholder-two\n",
+    "File=Containerfile.first\n",
+    "File=\n",
+    "File=https://example.invalid/Containerfile?ref=main\n",
+    "Target=build-stage\n",
+    "SetWorkingDirectory=unit\n",
+    "Arch=arm64\n",
+    "Variant=v8\n",
+    "Pull=always\n",
+    "Retry=4\n",
+    "RetryDelay=7s\n",
+    "TLSVerify=true\n",
+    "ForceRM=true\n",
+    "GroupAdd=1234\n",
+    "GroupAdd=5678\n",
+    "DNS=9.9.9.9\n",
+    "DNS=2001:4860:4860::8888\n",
+    "DNSOption=\n",
+    "DNSOption=ndots:1\n",
+    "DNSOption=use-vc\n",
+    "DNSSearch=corp.example\n",
+    "DNSSearch=.\n",
+    "AuthFile=/run/quadlet-lens/auth.json\n",
+    "IgnoreFile=./ignored-input\n",
+    "Annotation=org.example.build=one\n",
+    "Environment=BUILD_ENV=one\n",
+    "ContainersConfModule=build.conf\n",
+    "GlobalArgs=--log-level=debug\n",
+    "ServiceName=quadlet-lens-build.service\n",
+    "Volume=cache.volume:/var/cache:Z\n",
+    "PodmanArgs=--build-context extra=container-image://alpine:3.15\n",
+    "PodmanArgs=--layers\n",
+);
+
 #[test]
+#[allow(clippy::too_many_lines)] // Public discriminants are intentionally listed in one compatibility contract.
 fn growing_public_key_enums_preserve_published_discriminants() {
     assert_eq!(
         [
@@ -72,10 +120,18 @@ fn growing_public_key_enums_preserve_published_discriminants() {
             ContainerKey::SecurityLabelType as isize,
             ContainerKey::Mask as isize,
             ContainerKey::Unmask as isize,
+            ContainerKey::LogDriver as isize,
+            ContainerKey::LogOpt as isize,
+            ContainerKey::IP as isize,
+            ContainerKey::IP6 as isize,
+            ContainerKey::NetworkAlias as isize,
+            ContainerKey::ReloadCmd as isize,
+            ContainerKey::ReloadSignal as isize,
         ],
         [
             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28,
             29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55,
+            56, 57, 58, 59, 60, 61, 62,
         ]
     );
     assert_eq!(
@@ -87,9 +143,216 @@ fn growing_public_key_enums_preserve_published_discriminants() {
             PodKey::Volume as isize,
             PodKey::UserNS as isize,
             PodKey::ShmSize as isize,
+            PodKey::ExitPolicy as isize,
+            PodKey::StopTimeout as isize,
+            PodKey::ServiceName as isize,
         ],
-        [0, 1, 2, 3, 4, 5, 6]
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     );
+    assert_eq!(
+        [
+            NetworkKey::NetworkName as isize,
+            NetworkKey::Driver as isize,
+            NetworkKey::Options as isize,
+            NetworkKey::Internal as isize,
+            NetworkKey::IPv6 as isize,
+            NetworkKey::IPAMDriver as isize,
+            NetworkKey::Subnet as isize,
+            NetworkKey::Gateway as isize,
+            NetworkKey::IPRange as isize,
+            NetworkKey::Label as isize,
+        ],
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    );
+}
+
+#[test]
+fn public_section_and_entry_kind_order_preserves_legacy_unknown_variants() {
+    assert_eq!(SectionKind::Unknown as isize, 7);
+    assert!(SectionKind::Unknown < SectionKind::Build);
+    assert!(SectionKind::Build < SectionKind::Image);
+
+    assert!(EntryKind::Volume(VolumeKey::VolumeName) < EntryKind::Unknown);
+    assert!(EntryKind::Unknown < EntryKind::Build(BuildKey::ImageTag));
+    assert!(EntryKind::Build(BuildKey::ImageTag) < EntryKind::Image(ImageKey::Image));
+}
+
+#[test]
+fn build_core_can_be_built_through_the_public_api() -> Result<(), Box<dyn std::error::Error>> {
+    let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Build);
+    generated.push_build(BuildKey::ImageTag, EntryValue::new("localhost/example:primary")?)?;
+    generated.push_build(BuildKey::ImageTag, EntryValue::new("localhost/example:secondary")?)?;
+    generated.push_build(BuildKey::Network, EntryValue::new("host")?)?;
+    generated.push_build(BuildKey::Network, EntryValue::new("none")?)?;
+    generated.push_build(BuildKey::Network, EntryValue::new("frontend.network")?)?;
+    generated.push_build(BuildKey::Label, EntryValue::new("build.label=one")?)?;
+    generated.push_build(BuildKey::Label, EntryValue::new("empty=")?)?;
+    generated.push_build(BuildKey::BuildArg, EntryValue::new("KEY=one")?)?;
+    generated.push_build(BuildKey::BuildArg, EntryValue::new("EMPTY=")?)?;
+    generated.push_build(BuildKey::BuildArg, EntryValue::new("bare text stays opaque")?)?;
+    generated.push_build(
+        BuildKey::Secret,
+        EntryValue::new("id=quadlet-lens-one,src=/run/quadlet-lens-placeholder-one")?,
+    )?;
+    generated.push_build(
+        BuildKey::Secret,
+        EntryValue::new("id=quadlet-lens-two,src=/run/quadlet-lens-placeholder-two")?,
+    )?;
+    generated.push_build(BuildKey::File, EntryValue::new("Containerfile.first")?)?;
+    generated.push_build(BuildKey::File, EntryValue::new("")?)?;
+    generated.push_build(
+        BuildKey::File,
+        EntryValue::new("https://example.invalid/Containerfile?ref=main")?,
+    )?;
+    generated.push_build(BuildKey::Target, EntryValue::new("build-stage")?)?;
+    generated.push_build(BuildKey::SetWorkingDirectory, EntryValue::new("unit")?)?;
+    generated.push_build(BuildKey::Arch, EntryValue::new("arm64")?)?;
+    generated.push_build(BuildKey::Variant, EntryValue::new("v8")?)?;
+    generated.push_build(BuildKey::Pull, EntryValue::new("always")?)?;
+    generated.push_build(BuildKey::Retry, EntryValue::new("4")?)?;
+    generated.push_build(BuildKey::RetryDelay, EntryValue::new("7s")?)?;
+    generated.push_build(BuildKey::TLSVerify, EntryValue::new("true")?)?;
+    generated.push_build(BuildKey::ForceRM, EntryValue::new("true")?)?;
+    generated.push_build(BuildKey::GroupAdd, EntryValue::new("1234")?)?;
+    generated.push_build(BuildKey::GroupAdd, EntryValue::new("5678")?)?;
+    generated.push_build(BuildKey::DNS, EntryValue::new("9.9.9.9")?)?;
+    generated.push_build(BuildKey::DNS, EntryValue::new("2001:4860:4860::8888")?)?;
+    generated.push_build(BuildKey::DNSOption, EntryValue::new("")?)?;
+    generated.push_build(BuildKey::DNSOption, EntryValue::new("ndots:1")?)?;
+    generated.push_build(BuildKey::DNSOption, EntryValue::new("use-vc")?)?;
+    generated.push_build(BuildKey::DNSSearch, EntryValue::new("corp.example")?)?;
+    generated.push_build(BuildKey::DNSSearch, EntryValue::new(".")?)?;
+    generated.push_build(BuildKey::AuthFile, EntryValue::new("/run/quadlet-lens/auth.json")?)?;
+    generated.push_build(BuildKey::IgnoreFile, EntryValue::new("./ignored-input")?)?;
+    generated.push_build(BuildKey::Annotation, EntryValue::new("org.example.build=one")?)?;
+    generated.push_build(BuildKey::Environment, EntryValue::new("BUILD_ENV=one")?)?;
+    generated.push_build(BuildKey::ContainersConfModule, EntryValue::new("build.conf")?)?;
+    generated.push_build(BuildKey::GlobalArgs, EntryValue::new("--log-level=debug")?)?;
+    generated.push_build(BuildKey::ServiceName, EntryValue::new("quadlet-lens-build.service")?)?;
+    generated.push_build(BuildKey::Volume, EntryValue::new("cache.volume:/var/cache:Z")?)?;
+    generated.push_build(
+        BuildKey::PodmanArgs,
+        EntryValue::new("--build-context extra=container-image://alpine:3.15")?,
+    )?;
+    generated.push_build(BuildKey::PodmanArgs, EntryValue::new("--layers")?)?;
+    assert_eq!(generated.build(SourceId::new(180))?.text(), BUILD_CORE_RENDERED);
+    Ok(())
+}
+
+#[test]
+fn growing_build_key_enum_preserves_public_discriminants() {
+    assert_eq!(
+        [
+            BuildKey::ImageTag as isize,
+            BuildKey::SetWorkingDirectory as isize,
+            BuildKey::File as isize,
+            BuildKey::Target as isize,
+            BuildKey::Network as isize,
+            BuildKey::Label as isize,
+            BuildKey::BuildArg as isize,
+            BuildKey::Secret as isize,
+            BuildKey::Arch as isize,
+            BuildKey::Variant as isize,
+            BuildKey::Pull as isize,
+            BuildKey::PodmanArgs as isize,
+            BuildKey::Retry as isize,
+            BuildKey::RetryDelay as isize,
+            BuildKey::TLSVerify as isize,
+            BuildKey::ForceRM as isize,
+            BuildKey::GroupAdd as isize,
+            BuildKey::DNS as isize,
+            BuildKey::DNSOption as isize,
+            BuildKey::DNSSearch as isize,
+            BuildKey::AuthFile as isize,
+            BuildKey::IgnoreFile as isize,
+            BuildKey::Annotation as isize,
+            BuildKey::Environment as isize,
+            BuildKey::ContainersConfModule as isize,
+            BuildKey::GlobalArgs as isize,
+            BuildKey::ServiceName as isize,
+            BuildKey::Volume as isize,
+        ],
+        [
+            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27
+        ]
+    );
+}
+
+#[test]
+fn growing_volume_key_enum_preserves_published_discriminants() {
+    assert_eq!(
+        [
+            VolumeKey::VolumeName as isize,
+            VolumeKey::Driver as isize,
+            VolumeKey::Options as isize,
+            VolumeKey::Label as isize,
+            VolumeKey::Device as isize,
+            VolumeKey::Type as isize,
+            VolumeKey::Copy as isize,
+            VolumeKey::ContainersConfModule as isize,
+            VolumeKey::GlobalArgs as isize,
+            VolumeKey::PodmanArgs as isize,
+            VolumeKey::User as isize,
+            VolumeKey::Group as isize,
+            VolumeKey::UID as isize,
+            VolumeKey::GID as isize,
+            VolumeKey::ServiceName as isize,
+            VolumeKey::Image as isize,
+        ],
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    );
+}
+
+#[test]
+fn image_key_and_builder_are_available_through_the_public_api() -> Result<(), Box<dyn std::error::Error>> {
+    assert_eq!(
+        [
+            ImageKey::Image as isize,
+            ImageKey::ImageTag as isize,
+            ImageKey::ServiceName as isize,
+            ImageKey::AllTags as isize,
+            ImageKey::Arch as isize,
+            ImageKey::AuthFile as isize,
+            ImageKey::CertDir as isize,
+            ImageKey::ContainersConfModule as isize,
+            ImageKey::Creds as isize,
+            ImageKey::DecryptionKey as isize,
+            ImageKey::GlobalArgs as isize,
+            ImageKey::OS as isize,
+        ],
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+    );
+    let mut image = QuadletDocumentBuilder::new(QuadletUnitType::Image);
+    image.push_image(ImageKey::Image, EntryValue::new("example.invalid/application:1")?)?;
+    image.push_image(ImageKey::ImageTag, EntryValue::new("localhost/application:stable")?)?;
+    image.push_image(ImageKey::ServiceName, EntryValue::new("application-pull")?)?;
+    image.push_image(ImageKey::AllTags, EntryValue::new("true")?)?;
+    image.push_image(ImageKey::Arch, EntryValue::new("arm64")?)?;
+    image.push_image(
+        ImageKey::AuthFile,
+        EntryValue::new("/placeholder/quadlet-lens-auth.json")?,
+    )?;
+    image.push_image(ImageKey::CertDir, EntryValue::new("/placeholder/quadlet-lens-certs")?)?;
+    image.push_image(ImageKey::ContainersConfModule, EntryValue::new("one.conf")?)?;
+    image.push_image(ImageKey::ContainersConfModule, EntryValue::new("two.conf")?)?;
+    image.push_image(
+        ImageKey::Creds,
+        EntryValue::new("public-api-placeholder-user:public-api-placeholder-password")?,
+    )?;
+    image.push_image(
+        ImageKey::DecryptionKey,
+        EntryValue::new("public-api-decryption-key-placeholder")?,
+    )?;
+    image.push_image(ImageKey::GlobalArgs, EntryValue::new("--log-level=debug")?)?;
+    image.push_image(ImageKey::GlobalArgs, EntryValue::new("")?)?;
+    image.push_image(ImageKey::OS, EntryValue::new("windows")?)?;
+    let generated = image.build(SourceId::new(446))?;
+    assert!(generated.document().entries().any(TypedEntry::is_sensitive));
+    assert_eq!(
+        generated.text(),
+        "[Image]\nImage=example.invalid/application:1\nImageTag=localhost/application:stable\nServiceName=application-pull\nAllTags=true\nArch=arm64\nAuthFile=/placeholder/quadlet-lens-auth.json\nCertDir=/placeholder/quadlet-lens-certs\nContainersConfModule=one.conf\nContainersConfModule=two.conf\nCreds=public-api-placeholder-user:public-api-placeholder-password\nDecryptionKey=public-api-decryption-key-placeholder\nGlobalArgs=--log-level=debug\nGlobalArgs=\nOS=windows\n"
+    );
+    Ok(())
 }
 
 #[test]
@@ -176,6 +439,24 @@ fn container_pull_can_be_built_and_recovered_through_the_public_api() -> Result<
 }
 
 #[test]
+fn container_reload_lifecycle_can_be_built_without_command_or_signal_interpretation()
+-> Result<(), Box<dyn std::error::Error>> {
+    let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    generated.push_container(ContainerKey::Image, EntryValue::new("example.invalid/application:1")?)?;
+    generated.push_container(ContainerKey::ReloadCmd, EntryValue::new("/usr/bin/reload --target=%i")?)?;
+    let generated = generated.build(SourceId::new(181))?;
+    assert_eq!(
+        generated.text(),
+        "[Container]\nImage=example.invalid/application:1\nReloadCmd=/usr/bin/reload --target=%i\n"
+    );
+    assert!(generated.document().entries().any(|entry| {
+        entry.kind() == EntryKind::Container(ContainerKey::ReloadCmd)
+            && entry.value().primary().text() == "/usr/bin/reload --target=%i"
+    }));
+    Ok(())
+}
+
+#[test]
 fn container_pids_limit_has_safe_typed_and_raw_public_construction() -> Result<(), Box<dyn std::error::Error>> {
     assert_eq!(PidsLimit::finite("0"), Err(PidsLimitError::Zero));
     assert_eq!(PidsLimit::finite("1.5"), Err(PidsLimitError::NonDecimal));
@@ -243,6 +524,42 @@ fn container_and_pod_shm_size_have_safe_typed_public_construction() -> Result<()
     let mut pod = QuadletDocumentBuilder::new(QuadletUnitType::Pod);
     pod.push_pod(PodKey::ShmSize, ShmSize::unlimited().into())?;
     assert_eq!(pod.build(SourceId::new(12))?.text(), "[Pod]\nShmSize=0\n");
+    Ok(())
+}
+
+#[test]
+fn pod_exit_policy_can_be_built_and_recovered_through_the_public_api() -> Result<(), Box<dyn std::error::Error>> {
+    let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Pod);
+    generated.push_pod(PodKey::ExitPolicy, EntryValue::new("continue")?)?;
+    let generated = generated.build(SourceId::new(474))?;
+    assert_eq!(generated.text(), "[Pod]\nExitPolicy=continue\n");
+    assert!(generated.document().entries().any(|entry| {
+        entry.kind() == EntryKind::Pod(PodKey::ExitPolicy) && entry.value().primary().text() == "continue"
+    }));
+    Ok(())
+}
+
+#[test]
+fn pod_stop_timeout_can_be_built_and_recovered_through_the_public_api() -> Result<(), Box<dyn std::error::Error>> {
+    let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Pod);
+    generated.push_pod(PodKey::StopTimeout, EntryValue::new("37")?)?;
+    let generated = generated.build(SourceId::new(477))?;
+    assert_eq!(generated.text(), "[Pod]\nStopTimeout=37\n");
+    assert!(generated.document().entries().any(|entry| {
+        entry.kind() == EntryKind::Pod(PodKey::StopTimeout) && entry.value().primary().text() == "37"
+    }));
+    Ok(())
+}
+
+#[test]
+fn pod_service_name_can_be_built_and_recovered_through_the_public_api() -> Result<(), Box<dyn std::error::Error>> {
+    let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Pod);
+    generated.push_pod(PodKey::ServiceName, EntryValue::new("chosen-name.service")?)?;
+    let generated = generated.build(SourceId::new(480))?;
+    assert_eq!(generated.text(), "[Pod]\nServiceName=chosen-name.service\n");
+    assert!(generated.document().entries().any(|entry| {
+        entry.kind() == EntryKind::Pod(PodKey::ServiceName) && entry.value().primary().text() == "chosen-name.service"
+    }));
     Ok(())
 }
 
@@ -515,6 +832,304 @@ fn container_add_device_uses_repeatable_raw_public_values() -> Result<(), Box<dy
             .classification(),
         SupportClassification::Native
     );
+    Ok(())
+}
+
+#[test]
+fn container_logging_uses_singleton_driver_and_repeatable_raw_options() -> Result<(), Box<dyn std::error::Error>> {
+    let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    generated.push_container(ContainerKey::Image, EntryValue::new("example.invalid/application:1")?)?;
+    generated.push_container(ContainerKey::LogDriver, EntryValue::new(r#""Vendor-%n Driver""#)?)?;
+    for authored in [
+        "path=/var/log/pre.log",
+        "",
+        "tag=final-%n",
+        r#""path=/var/log/Authored Value.log""#,
+        "tag=final-%n",
+    ] {
+        generated.push_container(ContainerKey::LogOpt, EntryValue::new(authored)?)?;
+    }
+    let generated = generated.build(SourceId::new(30))?;
+    assert_eq!(
+        generated
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::LogOpt))
+            .map(|entry| entry.value().primary().text())
+            .collect::<Vec<_>>(),
+        [
+            "path=/var/log/pre.log",
+            "",
+            "tag=final-%n",
+            r#""path=/var/log/Authored Value.log""#,
+            "tag=final-%n",
+        ]
+    );
+
+    let catalogue = CapabilityCatalogue::supported_range()?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    for capability in ["quadlet.container.log-driver", "quadlet.container.log-opt"] {
+        assert_eq!(
+            catalogue.evaluate(capability, target).classification(),
+            SupportClassification::Native
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn container_network_identity_uses_singletons_and_repeatable_raw_aliases() -> Result<(), Box<dyn std::error::Error>> {
+    let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    generated.push_container(ContainerKey::Image, EntryValue::new("example.invalid/application:1")?)?;
+    generated.push_container(ContainerKey::IP, EntryValue::new("192.0.2.%n")?)?;
+    generated.push_container(ContainerKey::IP6, EntryValue::new("2001:db8::%i")?)?;
+    for authored in ["pre.example", "", r#""final %n""#, "final-%i"] {
+        generated.push_container(ContainerKey::NetworkAlias, EntryValue::new(authored)?)?;
+    }
+    let generated = generated.build(SourceId::new(31))?;
+    assert_eq!(
+        generated
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::NetworkAlias))
+            .map(|entry| entry.value().primary().text())
+            .collect::<Vec<_>>(),
+        ["pre.example", "", r#""final %n""#, "final-%i"]
+    );
+
+    let catalogue = CapabilityCatalogue::supported_range()?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    for capability in [
+        "quadlet.container.ip",
+        "quadlet.container.ip6",
+        "quadlet.container.network-alias",
+    ] {
+        assert_eq!(
+            catalogue.evaluate(capability, target).classification(),
+            SupportClassification::Native
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn network_driver_and_options_use_public_singleton_and_repeatable_keys() -> Result<(), Box<dyn std::error::Error>> {
+    let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Network);
+    generated.push_network(NetworkKey::NetworkName, EntryValue::new("frontend")?)?;
+    generated.push_network(NetworkKey::Driver, EntryValue::new("bridge")?)?;
+    for authored in ["pre=one", "", "zeta=last", "alpha=first", "alpha=final", "bare-token"] {
+        generated.push_network(NetworkKey::Options, EntryValue::new(authored)?)?;
+    }
+    let generated = generated.build(SourceId::new(32))?;
+    assert_eq!(
+        generated
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Network(NetworkKey::Options))
+            .map(|entry| entry.value().primary().text())
+            .collect::<Vec<_>>(),
+        ["pre=one", "", "zeta=last", "alpha=first", "alpha=final", "bare-token"]
+    );
+
+    let catalogue = CapabilityCatalogue::supported_range()?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    for capability in ["quadlet.network.driver", "quadlet.network.options"] {
+        assert_eq!(
+            catalogue.evaluate(capability, target).classification(),
+            SupportClassification::Native
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn volume_driver_options_device_type_and_copy_use_public_singleton_keys() -> Result<(), Box<dyn std::error::Error>> {
+    let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Volume);
+    generated.push_volume(VolumeKey::VolumeName, EntryValue::new("cache")?)?;
+    generated.push_volume(VolumeKey::Driver, EntryValue::new("local")?)?;
+    generated.push_volume(VolumeKey::Options, EntryValue::new("mode=1777")?)?;
+    generated.push_volume(VolumeKey::Device, EntryValue::new("tmpfs")?)?;
+    generated.push_volume(VolumeKey::Type, EntryValue::new("bind")?)?;
+    generated.push_volume(VolumeKey::Copy, EntryValue::new("TrUe")?)?;
+    let generated = generated.build(SourceId::new(33))?;
+    assert_eq!(
+        generated.text(),
+        "[Volume]\nVolumeName=cache\nDriver=local\nOptions=mode=1777\nDevice=tmpfs\nType=bind\nCopy=TrUe\n"
+    );
+    assert!(generated.document().entries().any(|entry| {
+        entry.kind() == EntryKind::Volume(VolumeKey::Options) && entry.value().primary().text() == "mode=1777"
+    }));
+    let catalogue = CapabilityCatalogue::supported_range()?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    for capability in [
+        "quadlet.volume.driver",
+        "quadlet.volume.options",
+        "quadlet.volume.device",
+        "quadlet.volume.type",
+        "quadlet.volume.copy",
+    ] {
+        assert_eq!(
+            catalogue.evaluate(capability, target).classification(),
+            SupportClassification::Native
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn volume_labels_use_the_public_repeatable_opaque_key() -> Result<(), Box<dyn std::error::Error>> {
+    let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Volume);
+    for authored in [
+        "pre=discard",
+        "",
+        "alpha=first",
+        "alpha=final",
+        "empty=",
+        "embedded=a=b",
+        "bare-token",
+        r#""quoted=%h value""#,
+    ] {
+        generated.push_volume(VolumeKey::Label, EntryValue::new(authored)?)?;
+    }
+    let generated = generated.build(SourceId::new(36))?;
+    assert_eq!(
+        generated
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Volume(VolumeKey::Label))
+            .map(|entry| entry.value().primary().text())
+            .collect::<Vec<_>>(),
+        [
+            "pre=discard",
+            "",
+            "alpha=first",
+            "alpha=final",
+            "empty=",
+            "embedded=a=b",
+            "bare-token",
+            r#""quoted=%h value""#,
+        ]
+    );
+
+    let catalogue = CapabilityCatalogue::supported_range()?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    assert_eq!(
+        catalogue.evaluate("quadlet.volume.label", target).classification(),
+        SupportClassification::Native
+    );
+    Ok(())
+}
+
+#[test]
+fn network_labels_use_the_public_repeatable_opaque_key() -> Result<(), Box<dyn std::error::Error>> {
+    let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Network);
+    for authored in [
+        "pre=discard",
+        "",
+        "alpha=first",
+        "alpha=final",
+        "empty=",
+        "embedded=a=b",
+        "bare-token",
+        r#""quoted=%h value""#,
+    ] {
+        generated.push_network(NetworkKey::Label, EntryValue::new(authored)?)?;
+    }
+    let generated = generated.build(SourceId::new(35))?;
+    assert_eq!(
+        generated
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Network(NetworkKey::Label))
+            .map(|entry| entry.value().primary().text())
+            .collect::<Vec<_>>(),
+        [
+            "pre=discard",
+            "",
+            "alpha=first",
+            "alpha=final",
+            "empty=",
+            "embedded=a=b",
+            "bare-token",
+            r#""quoted=%h value""#,
+        ]
+    );
+
+    let catalogue = CapabilityCatalogue::supported_range()?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    assert_eq!(
+        catalogue.evaluate("quadlet.network.label", target).classification(),
+        SupportClassification::Native
+    );
+    Ok(())
+}
+
+#[test]
+fn network_internal_and_ipv6_use_public_opaque_singleton_keys() -> Result<(), Box<dyn std::error::Error>> {
+    let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Network);
+    generated.push_network(NetworkKey::NetworkName, EntryValue::new("frontend")?)?;
+    generated.push_network(NetworkKey::Internal, EntryValue::new("false")?)?;
+    generated.push_network(NetworkKey::IPv6, EntryValue::new("vendor-defined-%n")?)?;
+    let generated = generated.build(SourceId::new(33))?;
+    assert_eq!(
+        generated.text(),
+        "[Network]\nNetworkName=frontend\nInternal=false\nIPv6=vendor-defined-%n\n"
+    );
+
+    let catalogue = CapabilityCatalogue::supported_range()?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    for capability in ["quadlet.network.internal", "quadlet.network.ipv6"] {
+        assert_eq!(
+            catalogue.evaluate(capability, target).classification(),
+            SupportClassification::Native
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn network_ipam_keys_use_public_opaque_singleton_and_repeatable_forms() -> Result<(), Box<dyn std::error::Error>> {
+    let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Network);
+    generated.push_network(NetworkKey::IPAMDriver, EntryValue::new("")?)?;
+    for (key, values) in [
+        (NetworkKey::Subnet, ["pre-subnet", "", "10.88.0.0/24", "10.89.0.0/24"]),
+        (NetworkKey::Gateway, ["pre-gateway", "", "10.88.0.1", "10.89.0.1"]),
+        (NetworkKey::IPRange, ["pre-range", "", "10.88.0.64/26", "10.89.0.64/26"]),
+    ] {
+        for value in values {
+            generated.push_network(key, EntryValue::new(value)?)?;
+        }
+    }
+    let generated = generated.build(SourceId::new(34))?;
+    for key in [NetworkKey::Subnet, NetworkKey::Gateway, NetworkKey::IPRange] {
+        assert_eq!(
+            generated
+                .document()
+                .entries()
+                .filter(|entry| entry.kind() == EntryKind::Network(key))
+                .map(|entry| entry.value().primary().text())
+                .collect::<Vec<_>>(),
+            match key {
+                NetworkKey::Subnet => vec!["pre-subnet", "", "10.88.0.0/24", "10.89.0.0/24"],
+                NetworkKey::Gateway => vec!["pre-gateway", "", "10.88.0.1", "10.89.0.1"],
+                NetworkKey::IPRange => vec!["pre-range", "", "10.88.0.64/26", "10.89.0.64/26"],
+                _ => unreachable!(),
+            }
+        );
+    }
+    let catalogue = CapabilityCatalogue::supported_range()?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    for capability in [
+        "quadlet.network.ipam-driver",
+        "quadlet.network.subnet",
+        "quadlet.network.gateway",
+        "quadlet.network.ip-range",
+    ] {
+        assert_eq!(
+            catalogue.evaluate(capability, target).classification(),
+            SupportClassification::Native
+        );
+    }
     Ok(())
 }
 

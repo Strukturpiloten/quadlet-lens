@@ -1,0 +1,18 @@
+schema = 1
+id = "podman-args-tty-supported-range"
+suite = "generators"
+description = "Exercises the exact generic Container PodmanArgs=--tty escape-hatch form across the complete supported Podman generator range."
+secrets_reviewed = true
+files = ["expected-fragments.txt", "tty.container"]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "The harness mounts this directory read-only with label separation disabled and invokes only exact Podman Quadlet generators in dry-run mode. It does not start generated services or container workloads, allocate a terminal, inspect standard streams or pipes, or inspect runtime state."
+
+[expectations]
+summary = "Every recorded Podman release emits exactly one separate --tty argument immediately before the image in the generated podman run command, with no -t short, combined, equals, quoted, alternate, or duplicate form. This proves generated command text only, not runtime TTY, standard-stream, or pipe behavior."

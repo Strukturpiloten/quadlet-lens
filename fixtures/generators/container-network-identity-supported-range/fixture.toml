@@ -1,0 +1,18 @@
+schema = 1
+id = "container-network-identity-supported-range"
+suite = "generators"
+description = "Exercises isolated singleton IP and IP6 plus repeatable resettable NetworkAlias command construction with one selected Network across the complete supported Podman generator range."
+secrets_reviewed = true
+files = ["expected-fragments.txt", "network-identity.container"]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "The harness mounts this directory read-only with label separation disabled and invokes only exact Podman Quadlet generators in dry-run mode. It does not start workloads, inspect networks, resolver state, IPAM, DNS, or runtime behavior, and does not assert map-dependent relative ordering between network selection and identity flags."
+
+[expectations]
+summary = "Every recorded Podman release emits one `--ip 192.0.2.40`, one `--ip6 2001:db8::40`, one `--network bridge`, and exactly two ordered final post-reset `--network-alias final-one` and `--network-alias final-two` arguments without pre-reset, empty, equals, quoted, alternate, or duplicate identity forms."

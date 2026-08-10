@@ -1,0 +1,5 @@
+[Volume]
+VolumeName=quadlet-lens-device-matched-quote
+Driver=local
+Device="tmpfs"
+Type=bind

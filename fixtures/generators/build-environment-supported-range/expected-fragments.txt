@@ -1,0 +1,2 @@
+---build-environment-build.service---
+SourcePath=/fixtures/build-environment.build

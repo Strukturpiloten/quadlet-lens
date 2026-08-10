@@ -43,7 +43,17 @@ Typed documents represent native Quadlet unit types, including container, pod, n
 
 Generic systemd sections and unknown Quadlet entries remain attached to the document. Typed conversion cannot be destructive.
 
-The first implemented subset covers `.container`, `.pod`, `.network`, and `.volume`. It classifies the
+The first implemented subset covers `.container`, `.pod`, `.network`, `.volume`, and the minimal
+`.build` core. Build `ImageTag`, `Network`, `Label`, `File`, `BuildArg`, `Secret`, `GroupAdd`, `DNS`, `DNSOption`, `DNSSearch`, `Annotation`, `Environment`, `ContainersConfModule`, `GlobalArgs`, and `PodmanArgs` remain repeatable and source ordered, while
+`SetWorkingDirectory`, `Target`, `Arch`, `Variant`, `Pull`, `Retry`, `RetryDelay`, `TLSVerify`, `ForceRM`, `AuthFile`, `IgnoreFile`, and `ServiceName` remain opaque singletons. `File` stays unclassified and the model does
+not apply Podman's observed effective-last behavior. `Pull` does not validate policy spelling, inject a default,
+normalize text, or expose effective-last behavior. `Label`, `BuildArg`, `Secret`, `GroupAdd`, `DNS`, `DNSOption`, `DNSSearch`, and `PodmanArgs` are opaque
+physical-line text: they are not parsed as `KEY=VALUE`, unquoted, selected by duplicate name,
+map-collapsed, sorted, or validated. Build `Secret` additionally does not parse commas, arguments,
+environment forms, or paths, and never materializes secret data. Build `DNSSearch` does not apply reset or special-dot semantics. Build `Annotation` preserves raw ordered physical lines without tokenization, unquoting, C-unescaping, reset, duplicate-key collapse, sorting, OCI validation, or image-metadata inference. Build `Environment` likewise preserves raw ordered physical lines without tokenization, unquoting, C-unescaping, reset, duplicate-name selection, sorting, or host lookup. Build `ContainersConfModule` preserves raw ordered physical lines without path parsing, module reads, configuration inspection, reset, deduplication, tokenization, or normalization. Build `GlobalArgs` preserves raw ordered physical lines without tokenization, reset, unquoting, C-unescaping, option validation, or inferred semantic, security, or runtime effects. Build `AuthFile` is neither read nor path-validated, and its text is not classified as credential content or sensitive data. Build `IgnoreFile` is neither resolved nor read, parsed as ignore rules, defaulted from `.containerignore` or `.dockerignore`, relative-path-normalized, or assigned generator-effective-last semantics. `PodmanArgs` does not split or quote
+arguments, resolve contexts, paths, environments, images, or services, validate a CLI, or imply build/runtime behavior.
+Exact `.container` Image-to-`.build` and
+`.build` Network-to-`.network` references resolve only in document sets. It classifies the
 native keys needed by the first conversion, keeps repeated section occurrences and entries in
 source order, and owns the authored text plus source span for every typed name and value segment.
 That boundary includes container execution identity/context and pod-level user-namespace selection
@@ -71,6 +81,77 @@ Container `Memory` is an opaque singleton boundary introduced natively in Podman
 duplicates, empty assignments, quoting, specifiers, and exact one-line values remain source-aware;
 the model does not infer runtime limits or cross-format equivalence. A focused positive-decimal
 construction helper is additive to the unchanged raw-value boundary. Pod `Memory` remains unknown.
+Container `LogDriver` is an opaque singleton, while `LogOpt` is opaque, repeatable, and resettable.
+Both preserve physical values, quotes, specifiers, and authored order without driver/option
+validation, key/value parsing, default injection, or runtime interpretation. Other native scopes
+remain unknown and preserved.
+Container `IP` and `IP6` are opaque singletons, while `NetworkAlias` is opaque, repeatable, and
+resettable. Physical values, duplicates, order, quotes, specifiers, continuations, and standard
+cardinality diagnostics remain source-aware without address, IPAM, DNS, network, runtime, or
+cross-format interpretation. These keys are typed only for containers.
+Network `Driver` is an opaque singleton and `Options` is opaque, repeatable, and resettable.
+Every authored physical option remains available to callers; the model does not apply Podman's
+effective reset, tokenization, duplicate-key collapse, sorting, or version-specific bare-token
+handling, and does not validate driver availability or provider-specific options.
+Network `Label` is likewise opaque, repeatable, and resettable. Its physical entries preserve
+empty resets, duplicates, bare values, embedded equals signs, quotes, specifiers, continuations,
+and source order; target tokenization, map collapse, sorting, and bare-token behavior stay
+generator evidence rather than model semantics.
+Network `Internal` and `IPv6` are separate opaque singletons. Omission, literal true/false,
+duplicates, invalid or vendor-defined spelling, quotes, specifiers, and continuations remain
+source-aware; the model does not parse booleans or adopt Podman's last-value and invalid-as-false
+lookup behavior. `Internal` remains driver-conditional, while `IPv6` describes dual-stack behavior;
+neither key implies an IPv4-enable spelling.
+`IPAMDriver` is likewise an opaque singleton, while `Subnet`, `Gateway`, and `IPRange` are
+opaque repeatable physical entries. QuadletLens preserves their resets, duplicates, quoting,
+specifiers, continuations, and authored order without calculating the generator's indexed
+subnet/gateway/range groups, inferring IPv4 or IPv6 behavior, or creating a network.
+Volume `Driver` and `Options` are opaque singletons. `Options` is one raw mount-option string,
+not a repeatable network-style option map: duplicates, blank values, bare text, quotes,
+specifiers, and continuations remain physical source entries, while generated construction rejects
+duplicate singletons. Tagged-source and generator evidence describe the target's last-value,
+blank-omission, Device prerequisite, and quote-boundary behavior without importing it into the
+model or claiming driver/plugin, mount, rootless, runtime, or cross-format semantics.
+Volume `Label` is opaque, repeatable, and resettable. Its physical entries preserve empty resets,
+duplicates, bare values, embedded equals signs, quotes, specifiers, continuations, and source
+order; target tokenization, map collapse, sorting, and bare-token behavior stay generator evidence
+rather than model semantics.
+Volume `ContainersConfModule` is opaque and repeatable. Its physical entries preserve empty
+resets, duplicates, quotes, specifiers, continuations, and source order; target reset,
+continuation presentation, and `--module` construction remain generator evidence rather than
+model semantics. QuadletLens does not parse paths, read modules or configuration, infer
+sensitivity, or establish volume creation, filesystem, lifecycle, security, runtime, Compose, or
+conversion behavior.
+Image `GlobalArgs` is opaque and repeatable. Its physical entries preserve empty resets,
+duplicates, quotes, whitespace, specifiers, C-escapes, continuations, and source order; target
+tokenization, unquoting, C-unescaping, malformed-line omission, reset, and placement before
+`image pull` stay generator evidence rather than model semantics. QuadletLens does not parse or
+validate arguments, infer sensitivity, or establish image-pull, runtime, Compose, or conversion
+behavior.
+Volume `GlobalArgs` is opaque and repeatable. Its physical entries preserve empty resets,
+duplicates, quotes, whitespace, specifiers, C-escapes, continuations, and source order; target
+tokenization, unquoting, C-unescaping, malformed-line omission, reset, and command placement stay
+generator evidence rather than model semantics. QuadletLens does not parse or validate arguments,
+infer sensitivity, or establish volume creation, lifecycle, filesystem, runtime, Compose, or
+conversion behavior.
+Volume `PodmanArgs` is opaque and repeatable. Its physical entries preserve empty resets,
+duplicates, quotes, whitespace, specifiers, C-escapes, continuations, and source order; target
+tokenization, unquoting, C-unescaping, malformed-line omission, reset, and terminal placement
+remain generator evidence rather than model semantics. QuadletLens does not parse a CLI, assign
+dedicated-key behavior, infer sensitivity, or establish volume creation, lifecycle, filesystem,
+systemd, runtime, Compose, or conversion behavior.
+Volume `User` is an opaque singleton: authored physical lines and the ordinary duplicate diagnostic
+remain source-aware, while UID/name parsing, host lookup, generator defaults, ownership, mount,
+filesystem, runtime, Compose, and conversion behavior remain outside the model.
+Volume `GID` is likewise an opaque singleton: authored physical lines and the ordinary duplicate
+diagnostic remain source-aware, without parsing or otherwise interpreting the value.
+Volume `ServiceName` is likewise an opaque singleton: authored physical lines and the ordinary
+duplicate diagnostic remain source-aware, without naming or identity interpretation.
+Volume `Image` is an opaque singleton with only exact `.image` and `.build` reference classification;
+both resolve when their corresponding typed documents are present. The minimal native Image unit
+types its required opaque `Image` source, opaque singleton `ImageTag`/`ServiceName`/`AllTags`/`Arch`/`AuthFile`/`CertDir`/`Creds`/`DecryptionKey`/`OS`, and repeatable `ContainersConfModule`/`GlobalArgs`; target
+resource-name/service-name substitution, boolean/platform/auth-file/certificate-directory/operating-system/default handling, pull commands, credentials, certificates, and generated dependencies remain outside the model.
+Cross-format prefix-complete mapping policy remains BoxFerry-owned.
 Container `DNS`, `DNSOption`, `DNSSearch`, `ExposeHostPort`, `Annotation`, `Mask`,
 and `Unmask` are opaque repeatable boundaries. They preserve every physical value, reset
 assignment, duplicate, and source order without key-specific parsing or runtime interpretation.

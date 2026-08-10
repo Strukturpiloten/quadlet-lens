@@ -1,0 +1,8 @@
+[Container]
+Image=registry.example.invalid/logging-fixture:1
+LogDriver=k8s-file
+LogOpt=tag=quadlet-lens-pre
+LogOpt=path=/tmp/quadlet-lens-pre.log
+LogOpt=
+LogOpt=tag=quadlet-lens-final
+LogOpt=path=/tmp/quadlet-lens-final.log

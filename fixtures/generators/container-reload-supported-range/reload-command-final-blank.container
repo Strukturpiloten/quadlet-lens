@@ -1,0 +1,4 @@
+[Container]
+Image=registry.example.invalid/reload-command-final-blank-fixture:1
+ReloadCmd=/usr/bin/reload --earlier
+ReloadCmd=

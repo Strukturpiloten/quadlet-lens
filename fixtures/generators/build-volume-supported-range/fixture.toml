@@ -1,0 +1,15 @@
+schema = 1
+id = "build-volume-supported-range"
+suite = "generators"
+description = "Records target Build Volume reset, continuation, relative-source, and native-volume generated-unit behavior without importing mount semantics into QuadletLens."
+secrets_reviewed = true
+files = ["build-volume-reset.build", "build-volume-relative.build", "build-volume-native.build", "cache.volume", "expected-fragments.txt"]
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+[environment]
+description = "Dry-run generator only; no build, mount, filesystem access, or runtime execution."
+[expectations]
+summary = "The target applies reset and continuation lookup, preserves effective -v order, resolves relative sources, and substitutes/dependson exact .volume sources; QuadletLens keeps physical source values and resolves only authored exact .volume references."
