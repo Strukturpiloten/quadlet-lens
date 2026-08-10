@@ -928,7 +928,10 @@ fn generator_matrix_is_exact_complete_and_digest_pinned() -> Result<(), String> 
     assert_eq!(matrix.checked_on, "2026-08-06");
     assert_eq!(matrix.official_image_maximum, "5.8.2");
 
-    assert_eq!(matrix.source_repository, "https://github.com/containers/podman.git");
+    assert_eq!(
+        matrix.source_repository,
+        "https://github.com/podman-container-tools/podman.git"
+    );
     validate_digest_pinned_reference(&matrix.builder_reference, "docker.io/library/golang:")?;
 
     let image_versions: Vec<_> = matrix.image.iter().map(|image| image.version.as_str()).collect();

@@ -90,12 +90,12 @@ pub enum SectionKind {
     Network,
     /// Native Quadlet `[Volume]` section.
     Volume,
+    /// Any other section, retained without interpretation.
+    Unknown,
     /// Native Quadlet `[Build]` section.
     Build,
     /// Native Quadlet `[Image]` section.
     Image,
-    /// Any other section, retained without interpretation.
-    Unknown,
 }
 
 impl SectionKind {
@@ -450,12 +450,12 @@ pub enum EntryKind {
     Network(NetworkKey),
     /// Recognized key in `[Volume]`.
     Volume(VolumeKey),
+    /// Unknown entry retained in its original section and position.
+    Unknown,
     /// Recognized key in `[Build]`.
     Build(BuildKey),
     /// Recognized key in `[Image]`.
     Image(ImageKey),
-    /// Unknown entry retained in its original section and position.
-    Unknown,
 }
 
 impl EntryKind {

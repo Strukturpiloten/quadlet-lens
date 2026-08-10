@@ -73,12 +73,12 @@ omission only, and policy acceptance, defaults, Compose mapping, registry, image
 `--retry`/`--retry-delay` output in all three 5.4.x releases, then requires each of the 17 releases
 from 5.5.0 through 6.0.2 to emit exactly one separate `--retry 4` pair and one separate
 `--retry-delay 7s` pair before the final `.` context without a relative-order claim between pairs.
-The endpoint [5.5.0 Retry manual](https://docs.podman.io/en/v5.5.0/markdown/podman-build.unit.5.html#retry),
-[5.5.0 RetryDelay manual](https://docs.podman.io/en/v5.5.0/markdown/podman-build.unit.5.html#retrydelay),
-[6.0.2 Retry manual](https://docs.podman.io/en/v6.0.2/markdown/podman-build.unit.5.html#retry),
-[6.0.2 RetryDelay manual](https://docs.podman.io/en/v6.0.2/markdown/podman-build.unit.5.html#retrydelay),
-and tagged [5.5.0](https://github.com/containers/podman/blob/v5.5.0/pkg/systemd/quadlet/quadlet.go)
-and [6.0.2](https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go)
+The endpoint [5.5.0 Retry manual](https://docs.podman.io/en/v5.5.0/markdown/podman-systemd.unit.5.html#id54),
+[5.5.0 RetryDelay manual](https://docs.podman.io/en/v5.5.0/markdown/podman-systemd.unit.5.html#id55),
+[6.0.2 Retry manual](https://docs.podman.io/en/v6.0.2/markdown/podman-systemd.unit.5.html#id60),
+[6.0.2 RetryDelay manual](https://docs.podman.io/en/v6.0.2/markdown/podman-systemd.unit.5.html#id61),
+and tagged [5.5.0](https://github.com/podman-container-tools/podman/blob/v5.5.0/pkg/systemd/quadlet/quadlet.go)
+and [6.0.2](https://github.com/podman-container-tools/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go)
 source document the finite range. It does not parse integer or duration text, choose defaults,
 apply effective-last behavior, link Compose `dockerfile_inline`, contact a registry, execute retry
 or timing behavior, establish build success, inspect runtime behavior, or claim conversion behavior.
@@ -88,8 +88,8 @@ recorded generator from 5.4.0 through 6.0.2 must emit one bare `--tls-verify` fo
 one `--tls-verify=false` for the false unit, each before final `.`. Endpoint
 [5.4.0](https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#tlsverify) and
 [6.0.2](https://docs.podman.io/en/v6.0.2/markdown/podman-build.unit.5.html#tlsverify) manuals plus
-tagged [5.4.0](https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go)
-and [6.0.2](https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go)
+tagged [5.4.0](https://github.com/podman-container-tools/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go)
+and [6.0.2](https://github.com/podman-container-tools/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go)
 mapping/formatter source ground this command-text observation. It does not establish TLS
 connectivity, certificate validation, registry configuration, image pull, build success, security
 posture, provenance equivalence, runtime behavior, or conversion behavior.
@@ -100,8 +100,8 @@ generator from 5.4.0 through 6.0.2 must emit one bare `--force-rm` for the true 
 duplicate, or post-context forms. Endpoint
 [5.4.0](https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#forcerm) and
 [6.0.2](https://docs.podman.io/en/v6.0.2/markdown/podman-build.unit.5.html#forcerm) manuals plus
-tagged [5.4.0](https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go)
-and [6.0.2](https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go)
+tagged [5.4.0](https://github.com/podman-container-tools/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go)
+and [6.0.2](https://github.com/podman-container-tools/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go)
 mapping/formatter source ground this command-text observation. It does not parse booleans, select
 defaults, apply effective-last behavior, or establish cleanup occurrence, failure behavior,
 execution, defaults or configuration, cache equivalence, runtime behavior, or conversion behavior.
@@ -231,8 +231,8 @@ and [6.0.2 Build-unit](https://docs.podman.io/en/v6.0.2/markdown/podman-build.un
 manuals establish generic `PodmanArgs` forwarding. The matching [5.4.0](https://docs.podman.io/en/v5.4.0/markdown/podman-build.1.html#ulimit-type-soft-limit-hard-limit)
 and [6.0.2](https://docs.podman.io/en/v6.0.2/markdown/podman-build.1.html#ulimit-type-soft-limit-hard-limit)
 build manuals document `--ulimit=type=soft-limit[:hard-limit]` for `RUN` processes. Endpoint
-generator source at [5.4.0](https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L1949-L1953)
-and [6.0.2](https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L2009-L2013)
+generator source at [5.4.0](https://github.com/podman-container-tools/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L1949-L1953)
+and [6.0.2](https://github.com/podman-container-tools/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L2009-L2013)
 records repeatable `LookupAllArgs` forwarding before the final build context. None of this equates
 Compose names/ranges/`-1` with Podman, claims a native Build `Ulimit` key, or establishes host,
 rootless/rootful, `RUN`, cgroup, default, build, runtime, or conversion behavior.
@@ -242,8 +242,8 @@ and [6.0.2 Build-unit](https://docs.podman.io/en/v6.0.2/markdown/podman-build.un
 manuals establish generic `PodmanArgs` forwarding. The matching [5.4.0](https://docs.podman.io/en/v5.4.0/markdown/podman-build.1.html#add-host-hostname-hostname-ip)
 and [6.0.2](https://docs.podman.io/en/v6.0.2/markdown/podman-build.1.html#add-host-hostname-hostname-ip)
 build manuals document `--add-host=hostname:ip`. Endpoint generator source at
-[5.4.0](https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L1949-L1953)
-and [6.0.2](https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L2009-L2013)
+[5.4.0](https://github.com/podman-container-tools/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L1949-L1953)
+and [6.0.2](https://github.com/podman-container-tools/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L2009-L2013)
 records repeatable `LookupAllArgs` forwarding before the final build context. The all-20-release
 fixture proves only one terminal `--add-host=buildhost:192.0.2.10 .` command-text pair. It does
 not lower Compose list or map `extra_hosts` forms; establish IPv6 or `host-gateway` equivalence;
@@ -255,8 +255,8 @@ and [6.0.2 Build-unit](https://docs.podman.io/en/v6.0.2/markdown/podman-build.un
 manuals establish generic `PodmanArgs` forwarding. The matching [5.4.0](https://docs.podman.io/en/v5.4.0/markdown/podman-build.1.html#cap-add-capability)
 and [6.0.2](https://docs.podman.io/en/v6.0.2/markdown/podman-build.1.html#cap-add-capability)
 build manuals document `--cap-add=CAPABILITY`. Endpoint generator source at
-[5.4.0](https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L1949-L1953)
-and [6.0.2](https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L2009-L2013)
+[5.4.0](https://github.com/podman-container-tools/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L1949-L1953)
+and [6.0.2](https://github.com/podman-container-tools/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L2009-L2013)
 records repeatable `LookupAllArgs` forwarding before the final build context. The all-20-release
 fixture proves only one terminal `--cap-add=CAP_SYS_ADMIN .` command-text pair. It does not
 establish Compose entitlement equivalence or conversion; actual capability grants; build execution;
@@ -267,8 +267,8 @@ and [6.0.2 Build-unit](https://docs.podman.io/en/v6.0.2/markdown/podman-build.un
 manuals establish generic `PodmanArgs` forwarding. The matching 5.4.0 and 6.0.2 build manuals
 document [`--sbom=PRESET`](https://docs.podman.io/en/v5.4.0/markdown/podman-build.1.html#sbom-preset)
 and [`--sbom-output`](https://docs.podman.io/en/v6.0.2/markdown/podman-build.1.html#sbom-output-path).
-Endpoint generator source at [5.4.0](https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L1949-L1953)
-and [6.0.2](https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L2009-L2013)
+Endpoint generator source at [5.4.0](https://github.com/podman-container-tools/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L1949-L1953)
+and [6.0.2](https://github.com/podman-container-tools/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L2009-L2013)
 records repeatable `LookupAllArgs` forwarding before the final build context. This is command-text
 evidence only: it does not create files, download images, run scanners, or establish SBOM, PURL,
 attestation, publishing, provenance, build, runtime, security, or conversion behavior.
@@ -371,15 +371,15 @@ documents repeatable space-separated additions beyond the default set, but does 
 
 Exact tagged source at both evidence boundaries records the implementation behavior:
 
-- [Podman 5.4.0 command construction](https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L742-L751)
-  and [Podman 6.0.2 command construction](https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L814-L823)
+- [Podman 5.4.0 command construction](https://github.com/podman-container-tools/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L742-L751)
+  and [Podman 6.0.2 command construction](https://github.com/podman-container-tools/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L814-L823)
   lowercase individual capability arguments and append every drop before every addition;
-- the [Podman 5.4.0 list parser](https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/parser/unitfile.go#L760-L805)
-  and [Podman 6.0.2 list parser](https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/parser/unitfile.go#L769-L814)
+- the [Podman 5.4.0 list parser](https://github.com/podman-container-tools/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/parser/unitfile.go#L760-L805)
+  and [Podman 6.0.2 list parser](https://github.com/podman-container-tools/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/parser/unitfile.go#L769-L814)
   clear earlier repeated values on an empty assignment before splitting later space-separated
   values; and
-- the capability merger vendored by [Podman 5.4.0](https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/vendor/github.com/containers/common/pkg/capabilities/capabilities.go#L125-L196)
-  and [Podman 6.0.2](https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/vendor/go.podman.io/common/pkg/capabilities/capabilities.go#L125-L196)
+- the capability merger vendored by [Podman 5.4.0](https://github.com/podman-container-tools/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/vendor/github.com/containers/common/pkg/capabilities/capabilities.go#L125-L196)
+  and [Podman 6.0.2](https://github.com/podman-container-tools/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/vendor/go.podman.io/common/pkg/capabilities/capabilities.go#L125-L196)
   treats add-all as the known bounding set and drop-all plus specific additions as only those
   additions.
 
@@ -402,8 +402,8 @@ describes the supported options as Linux default mount flags and records
 `rw,noexec,nosuid,nodev` when options are omitted. Those CLI target/runtime details are not parser
 or generator validation rules.
 
-Tagged source at [Podman 5.4.0](https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L641-L651)
-and [Podman 6.0.2](https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L706-L716)
+Tagged source at [Podman 5.4.0](https://github.com/podman-container-tools/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L641-L651)
+and [Podman 6.0.2](https://github.com/podman-container-tools/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L706-L716)
 maps `Tmpfs` through the repeated-string helper, which uses `LookupAll`. The corresponding 5.4.0
 and 6.0.2 parser evidence cited by the catalogue shows that an empty assignment clears earlier
 logical values before later entries are returned. Every one of the 20 recorded generators then
@@ -423,8 +423,8 @@ Quadlet manuals document repeatable, space-separated `name=value` lists mapped t
 The corresponding Podman-run manuals limit accepted parameters by their namespaced IPC/network
 context; QuadletLens does not turn those runtime limits into parser or builder validation.
 
-Tagged generator source at [5.4.0](https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L754-L757)
-and [6.0.2](https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L826-L829)
+Tagged generator source at [5.4.0](https://github.com/podman-container-tools/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L754-L757)
+and [6.0.2](https://github.com/podman-container-tools/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L826-L829)
 uses `LookupAllStrv` to append one `--sysctl` pair per effective word. Separate tagged parser
 evidence in the catalogue records systemd-compatible whitespace/quote tokenization and the empty
 assignment that resets prior logical values. All 20 recorded generators confirm that
@@ -445,11 +445,11 @@ and [6.0.2](https://docs.podman.io/en/v6.0.2/markdown/podman-run.1.html#ulimit-o
 manuals document `TYPE=SOFT[:HARD]`, `-1`, and omission/default caveats. QuadletLens records those
 as target documentation without parsing or validating the grammar or adopting the defaults.
 
-Tagged generator source at [5.4.0](https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L641-L651)
-and [6.0.2](https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L706-L716)
+Tagged generator source at [5.4.0](https://github.com/podman-container-tools/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L641-L651)
+and [6.0.2](https://github.com/podman-container-tools/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L706-L716)
 maps `KeyUlimit` to `--ulimit` through the repeated-string helper. The endpoint helpers at
-[5.4.0](https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L2027-L2034)
-and [6.0.2](https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L2091-L2098)
+[5.4.0](https://github.com/podman-container-tools/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L2027-L2034)
+and [6.0.2](https://github.com/podman-container-tools/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L2091-L2098)
 use `LookupAll`, not `LookupAllStrv`, so every effective authored entry becomes one logical
 argument. Separate tagged parser evidence in the catalogue records the empty assignment that
 resets prior logical values.
@@ -470,8 +470,8 @@ inclusion. The corresponding [5.4.0](https://docs.podman.io/en/v5.4.0/markdown/p
 and [6.0.2](https://docs.podman.io/en/v6.0.2/markdown/podman-run.1.html#device-host-device-container-device-permissions)
 Podman-run manuals are retained as target caveat evidence, not runtime claims.
 
-Tagged generator source at [5.4.0](https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L724-L734)
-and [6.0.2](https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L795-L805)
+Tagged generator source at [5.4.0](https://github.com/podman-container-tools/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L724-L734)
+and [6.0.2](https://github.com/podman-container-tools/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L795-L805)
 uses `LookupAllStrv`, applies the documented conditional leading-minus branch, and appends one
 `--device` pair per retained word. Separate tagged parser evidence records systemd-compatible
 whitespace/quote tokenization and empty-assignment reset behavior. QuadletLens does not reproduce
@@ -490,8 +490,8 @@ The container-logging observation is similarly generator-only. The endpoint
 [5.4.0](https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#logdriver) and
 [6.0.2](https://docs.podman.io/en/v6.0.2/markdown/podman-systemd.unit.5.html#logdriver) manuals map
 `LogDriver` to `--log-driver`; their `LogOpt` sections document repeatable `--log-opt` mappings.
-Tagged [5.4.0](https://github.com/containers/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L1880-L1890)
-and [6.0.2](https://github.com/containers/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L1937-L1947)
+Tagged [5.4.0](https://github.com/podman-container-tools/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L1880-L1890)
+and [6.0.2](https://github.com/podman-container-tools/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L1937-L1947)
 source uses singleton `Lookup` for the driver and reset-aware ordered `LookupAllStrv` for options.
 All 20 generators must emit one `--log-driver k8s-file` followed by exactly two ordered post-reset
 options and no alternate form. QuadletLens does not reproduce tokenization, parse options as
@@ -585,10 +585,10 @@ commands, and expected fragments remain recorded in the fixture manifests and ca
 
 The memory-limit observation keeps introduction, singleton lookup, and generated command text
 separate. The upstream
-[`quadlet: support Memory=` change](https://github.com/containers/podman/commit/543be25ef35d3127eeea6a34e16e758ad6fd4418)
+[`quadlet: support Memory=` change](https://github.com/podman-container-tools/podman/commit/543be25ef35d3127eeea6a34e16e758ad6fd4418)
 first ships in Podman 5.5.0 and is absent from the 5.4 tags. Tagged
-[5.5.0 command construction](https://github.com/containers/podman/blob/v5.5.0/pkg/systemd/quadlet/quadlet.go#L655-L671)
-and [6.0.2 command construction](https://github.com/containers/podman/blob/v6.0.2/pkg/systemd/quadlet/quadlet.go#L690-L704)
+[5.5.0 command construction](https://github.com/podman-container-tools/podman/blob/v5.5.0/pkg/systemd/quadlet/quadlet.go#L655-L671)
+and [6.0.2 command construction](https://github.com/podman-container-tools/podman/blob/v6.0.2/pkg/systemd/quadlet/quadlet.go#L690-L704)
 map the last effective singleton value to one `--memory` pair; corresponding tagged parser source
 records last-assignment lookup. All three 5.4.x generators reject or exclude the unsupported
 fixture without emitting `--memory`. All 17 releases from 5.5.0 through 6.0.2 emit exactly one

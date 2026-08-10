@@ -3,7 +3,7 @@
 use quadlet_lens::capability::{CapabilityCatalogue, PodmanTarget, PodmanVersion, SupportClassification};
 use quadlet_lens::model::{
     BuildKey, ContainerKey, EntryKind, ImageKey, NamedQuadletDocument, NetworkKey, PodKey, QuadletDocument,
-    QuadletDocumentSet, QuadletUnitType, TypedEntry, ValueKind, VolumeKey,
+    QuadletDocumentSet, QuadletUnitType, SectionKind, TypedEntry, ValueKind, VolumeKey,
 };
 use quadlet_lens::path::{PathForm, classify_path};
 use quadlet_lens::render::{
@@ -164,6 +164,17 @@ fn growing_public_key_enums_preserve_published_discriminants() {
         ],
         [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     );
+}
+
+#[test]
+fn public_section_and_entry_kind_order_preserves_legacy_unknown_variants() {
+    assert_eq!(SectionKind::Unknown as isize, 7);
+    assert!(SectionKind::Unknown < SectionKind::Build);
+    assert!(SectionKind::Build < SectionKind::Image);
+
+    assert!(EntryKind::Volume(VolumeKey::VolumeName) < EntryKind::Unknown);
+    assert!(EntryKind::Unknown < EntryKind::Build(BuildKey::ImageTag));
+    assert!(EntryKind::Build(BuildKey::ImageTag) < EntryKind::Image(ImageKey::Image));
 }
 
 #[test]

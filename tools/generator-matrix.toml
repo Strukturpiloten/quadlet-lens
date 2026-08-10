@@ -4,7 +4,7 @@ support_minimum = "5.4.0"
 tracked_current = "6.0.2"
 checked_on = "2026-08-06"
 official_image_maximum = "5.8.2"
-source_repository = "https://github.com/containers/podman.git"
+source_repository = "https://github.com/podman-container-tools/podman.git"
 # renovate: datasource=docker depName=docker.io/library/golang
 builder_reference = "docker.io/library/golang:1.25.6-bookworm@sha256:f4490d7b261d73af4543c46ac6597d7d101b6e1755bcdd8c5159fda7046b6b3e"
 
