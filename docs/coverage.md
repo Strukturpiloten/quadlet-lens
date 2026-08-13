@@ -8,43 +8,43 @@ order live in the [roadmap](roadmap.md).
 
 ## Coverage layers
 
-| Layer | Contract |
-| --- | --- |
-| Syntax | Ordered sections, repeated keys, continuations, comments, unknown keys, and systemd specifiers are retained. |
-| Native type | A unit, section, or key can be inspected and constructed through a typed public API. |
-| Capability | The data catalogue states support over an explicit Podman version range and cites evidence. |
-| Generator | Repository fixtures have been accepted by the recorded real Quadlet generators. |
+| Layer       | Contract                                                                                                     |
+| ----------- | ------------------------------------------------------------------------------------------------------------ |
+| Syntax      | Ordered sections, repeated keys, continuations, comments, unknown keys, and systemd specifiers are retained. |
+| Native type | A unit, section, or key can be inspected and constructed through a typed public API.                         |
+| Capability  | The data catalogue states support over an explicit Podman version range and cites evidence.                  |
+| Generator   | Repository fixtures have been accepted by the recorded real Quadlet generators.                              |
 
 Recognition is not a version claim. A key is ready for BoxFerry generation only when the native
 type, capability, and relevant generator evidence agree.
 
 ## Unit types
 
-| Quadlet unit | Syntax preservation | Typed document/builder | Current BoxFerry output |
-| --- | --- | --- | --- |
-| `.container` | yes | yes | yes |
-| `.pod` | yes | yes | optional explicit grouping |
-| `.network` | yes | yes | application-owned networks |
-| `.volume` | yes | yes | application-owned volumes |
-| `.image` | yes | `Image`, `ImageTag`, `ServiceName`, `AllTags`, `Arch`, `AuthFile`, `CertDir`, `ContainersConfModule`, `Creds`, `DecryptionKey`, `GlobalArgs`, `OS` | no |
-| `.build` | yes | `ImageTag`, `Network`, `Label`, `File`, `SetWorkingDirectory`, `Target`, `BuildArg`, `Secret`, `Arch`, `Variant`, `Pull`, `Retry`, `RetryDelay`, `TLSVerify`, `ForceRM`, `AuthFile`, `IgnoreFile`, `ServiceName`, `GroupAdd`, `DNS`, `DNSOption`, `DNSSearch`, `Annotation`, `Environment`, `ContainersConfModule`, `GlobalArgs`, `Volume`, `PodmanArgs` | no |
-| `.kube` | yes | no | no |
-| `.artifact` | yes | no | no; the current manual marks it experimental |
+| Quadlet unit | Syntax preservation | Typed document/builder                                                                                                                                                                                                                                                                                                                                   | Current BoxFerry output                      |
+| ------------ | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| `.container` | yes                 | yes                                                                                                                                                                                                                                                                                                                                                      | yes                                          |
+| `.pod`       | yes                 | yes                                                                                                                                                                                                                                                                                                                                                      | optional explicit grouping                   |
+| `.network`   | yes                 | yes                                                                                                                                                                                                                                                                                                                                                      | application-owned networks                   |
+| `.volume`    | yes                 | yes                                                                                                                                                                                                                                                                                                                                                      | application-owned volumes                    |
+| `.image`     | yes                 | `Image`, `ImageTag`, `ServiceName`, `AllTags`, `Arch`, `AuthFile`, `CertDir`, `ContainersConfModule`, `Creds`, `DecryptionKey`, `GlobalArgs`, `OS`                                                                                                                                                                                                       | no                                           |
+| `.build`     | yes                 | `ImageTag`, `Network`, `Label`, `File`, `SetWorkingDirectory`, `Target`, `BuildArg`, `Secret`, `Arch`, `Variant`, `Pull`, `Retry`, `RetryDelay`, `TLSVerify`, `ForceRM`, `AuthFile`, `IgnoreFile`, `ServiceName`, `GroupAdd`, `DNS`, `DNSOption`, `DNSSearch`, `Annotation`, `Environment`, `ContainersConfModule`, `GlobalArgs`, `Volume`, `PodmanArgs` | no                                           |
+| `.kube`      | yes                 | no                                                                                                                                                                                                                                                                                                                                                       | no                                           |
+| `.artifact`  | yes                 | no                                                                                                                                                                                                                                                                                                                                                       | no; the current manual marks it experimental |
 
 Unsupported native sections remain available through the syntax tree. They are not mislabeled as
 one of the five typed unit types.
 
 ## Typed key boundary
 
-| Section | Typed keys |
-| --- | --- |
-| `[Container]` | 63 keys; see the [coverage ledger](roadmap.md#specification-coverage-ledger) |
-| `[Pod]` | `AddHost`, `PodName`, `PublishPort`, `Network`, `Volume`, `UserNS`, `ShmSize`, `ExitPolicy`, `StopTimeout`, `ServiceName` |
-| `[Network]` | `NetworkName`, `Driver`, `Options`, `Label`, `Internal`, `IPv6`, `IPAMDriver`, `Subnet`, `Gateway`, `IPRange` |
-| `[Volume]` | `VolumeName`, `Driver`, `Options`, `Label`, `Device`, `Type`, `Copy`, `ContainersConfModule`, `GlobalArgs`, `PodmanArgs`, `User`, `Group`, `UID`, `GID`, `ServiceName`, `Image` |
-| `[Build]` | repeatable `ImageTag`/`Network`/`Label`/`File`/`BuildArg`/`Secret`/`GroupAdd`/`DNS`/`DNSOption`/`DNSSearch`/`Annotation`/`Environment`/`ContainersConfModule`/`GlobalArgs`/`Volume`/`PodmanArgs`, singleton `SetWorkingDirectory`/`Target`/`Arch`/`Variant`/`Pull`/`Retry`/`RetryDelay`/`TLSVerify`/`ForceRM`/`AuthFile`/`IgnoreFile`/`ServiceName` |
-| `[Image]` | required opaque singleton `Image`; opaque singletons `ImageTag`, `ServiceName`, `AllTags`, `Arch`, `AuthFile`, `CertDir`, `Creds`, `DecryptionKey`, `OS`; repeatable `ContainersConfModule`, `GlobalArgs` |
-| `[Unit]`, `[Service]`, `[Install]` | Open-ended generic systemd directives with source/order preservation; typed generation and explicit capability evidence exist for `[Unit]` `Requires=`, `Wants=`, and `After=`, and `[Service]` `Restart=`. |
+| Section                            | Typed keys                                                                                                                                                                                                                                                                                                                                          |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `[Container]`                      | 63 keys; see the [coverage ledger](roadmap.md#specification-coverage-ledger)                                                                                                                                                                                                                                                                        |
+| `[Pod]`                            | `AddHost`, `PodName`, `PublishPort`, `Network`, `Volume`, `UserNS`, `ShmSize`, `ExitPolicy`, `StopTimeout`, `ServiceName`                                                                                                                                                                                                                           |
+| `[Network]`                        | `NetworkName`, `Driver`, `Options`, `Label`, `Internal`, `IPv6`, `IPAMDriver`, `Subnet`, `Gateway`, `IPRange`                                                                                                                                                                                                                                       |
+| `[Volume]`                         | `VolumeName`, `Driver`, `Options`, `Label`, `Device`, `Type`, `Copy`, `ContainersConfModule`, `GlobalArgs`, `PodmanArgs`, `User`, `Group`, `UID`, `GID`, `ServiceName`, `Image`                                                                                                                                                                     |
+| `[Build]`                          | repeatable `ImageTag`/`Network`/`Label`/`File`/`BuildArg`/`Secret`/`GroupAdd`/`DNS`/`DNSOption`/`DNSSearch`/`Annotation`/`Environment`/`ContainersConfModule`/`GlobalArgs`/`Volume`/`PodmanArgs`, singleton `SetWorkingDirectory`/`Target`/`Arch`/`Variant`/`Pull`/`Retry`/`RetryDelay`/`TLSVerify`/`ForceRM`/`AuthFile`/`IgnoreFile`/`ServiceName` |
+| `[Image]`                          | required opaque singleton `Image`; opaque singletons `ImageTag`, `ServiceName`, `AllTags`, `Arch`, `AuthFile`, `CertDir`, `Creds`, `DecryptionKey`, `OS`; repeatable `ContainersConfModule`, `GlobalArgs`                                                                                                                                           |
+| `[Unit]`, `[Service]`, `[Install]` | Open-ended generic systemd directives with source/order preservation; typed generation and explicit capability evidence exist for `[Unit]` `Requires=`, `Wants=`, and `After=`, and `[Service]` `Restart=`.                                                                                                                                         |
 
 The current manual contains exactly 27 additional container keys, 15 pod keys, 8 network keys, and no
 volume or build keys that are syntax-preserved but not typed. The complete
@@ -416,14 +416,14 @@ unknown outside that range. The matrix records target generated-unit naming obse
 
 The current promotion adds these container-only typed capabilities:
 
-| Keys | Cardinality | Reviewed native range |
-| --- | --- | --- |
-| `DNS`, `DNSOption`, `DNSSearch`, `ExposeHostPort`, `Annotation` | Repeatable | 5.4.0–6.0.2 |
-| `IP`, `IP6` | Singleton | 5.4.0–6.0.2 |
-| `NetworkAlias` | Repeatable | 5.4.0–6.0.2 |
-| `AppArmor` | Singleton | 5.8.0–6.0.2; unsupported through 5.7.1 |
-| `NoNewPrivileges`, `SeccompProfile`, `SecurityLabel*` | Singleton | 5.4.0–6.0.2 |
-| `Mask`, `Unmask` | Repeatable | 5.4.0–6.0.2; earlier introduction unknown |
+| Keys                                                            | Cardinality | Reviewed native range                     |
+| --------------------------------------------------------------- | ----------- | ----------------------------------------- |
+| `DNS`, `DNSOption`, `DNSSearch`, `ExposeHostPort`, `Annotation` | Repeatable  | 5.4.0–6.0.2                               |
+| `IP`, `IP6`                                                     | Singleton   | 5.4.0–6.0.2                               |
+| `NetworkAlias`                                                  | Repeatable  | 5.4.0–6.0.2                               |
+| `AppArmor`                                                      | Singleton   | 5.8.0–6.0.2; unsupported through 5.7.1    |
+| `NoNewPrivileges`, `SeccompProfile`, `SecurityLabel*`           | Singleton   | 5.4.0–6.0.2                               |
+| `Mask`, `Unmask`                                                | Repeatable  | 5.4.0–6.0.2; earlier introduction unknown |
 
 All retain opaque physical values and standard cardinality diagnostics. The complete generator
 matrix verifies version support, ordering, and reset effects without claiming resolver, OCI,

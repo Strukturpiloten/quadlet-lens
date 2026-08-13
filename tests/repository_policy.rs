@@ -25,6 +25,197 @@ fn repository_supply_chain_has_single_sources_and_immutable_pins() -> Result<(),
 }
 
 #[test]
+fn public_api_compatibility_runs_in_ci_and_release() -> Result<(), String> {
+    const ACTION: &str = "obi1kenobi/cargo-semver-checks-action@6b69fcf40e9b5fb17adeb57e4b6ecd020649a239 # v2.9";
+    const CONFIGURATION: &str = "package: quadlet-lens\n          release-type: patch";
+
+    for workflow_name in ["ci.yml", "release.yml"] {
+        let workflow_path = repository_root().join(".github/workflows").join(workflow_name);
+        let workflow = fs::read_to_string(&workflow_path)
+            .map_err(|error| format!("failed to read {}: {error}", workflow_path.display()))?;
+
+        let configured_action = format!("uses: {ACTION}\n        with:\n          {CONFIGURATION}");
+        if workflow.matches(ACTION).count() != 1 || workflow.matches(&configured_action).count() != 1 {
+            return Err(format!(
+                "{workflow_name} must contain one pinned cargo-semver-checks action for quadlet-lens patch releases"
+            ));
+        }
+    }
+
+    Ok(())
+}
+
+#[test]
+fn coverage_ratchet_runs_in_ci_and_release() -> Result<(), String> {
+    const INSTALL: &str = "cargo install --locked --version 0.8.7 cargo-llvm-cov";
+    const COMMAND: &str = "cargo llvm-cov --locked --workspace --all-features --all-targets --summary-only\n          --fail-under-regions 91 --fail-under-functions 92 --fail-under-lines 92";
+
+    for workflow_name in ["ci.yml", "release.yml"] {
+        let workflow_path = repository_root().join(".github/workflows").join(workflow_name);
+        let workflow = fs::read_to_string(&workflow_path)
+            .map_err(|error| format!("failed to read {}: {error}", workflow_path.display()))?;
+
+        for required in ["rustup component add llvm-tools-preview", INSTALL, COMMAND] {
+            if workflow.matches(required).count() != 1 {
+                return Err(format!(
+                    "{workflow_name} must contain one pinned QuadletLens coverage guard `{required}`"
+                ));
+            }
+        }
+    }
+
+    Ok(())
+}
+
+#[test]
+fn local_developer_workflow_covers_deterministic_release_checks() -> Result<(), String> {
+    let script = read_repository_file("scripts/check-all.sh")?;
+
+    for required in [
+        "cargo fmt --all",
+        "bash scripts/check-files.sh --fix",
+        "git --no-pager diff --check",
+        "actionlint",
+        "zizmor .github/workflows",
+        "cargo ci-check",
+        "cargo ci-catalogue",
+        "cargo ci-model",
+        "cargo ci-policy",
+        "cargo ci-clippy",
+        "cargo ci-test",
+        "cargo ci-doctest",
+        "cargo ci-doc",
+        "cargo package --locked --allow-dirty",
+        "cargo llvm-cov --locked --workspace --all-features",
+        "cargo \"+${msrv}\" ci-check",
+        "cargo \"+${msrv}\" ci-policy",
+        "cargo deny --all-features check",
+        "lychee --config lychee.toml --root-dir . --offline",
+        "semver_cargo_home",
+        "${CARGO_TARGET_DIR:-${repository_root}/target}/cargo-home",
+        "env CARGO_HOME=\"${semver_cargo_home}\"",
+        "cargo semver-checks check-release",
+        "--package quadlet-lens --release-type patch",
+    ] {
+        if !script.contains(required) {
+            return Err(format!("local validation runner missing `{required}`"));
+        }
+    }
+
+    if script.contains("semver_cargo_home=\"${CARGO_HOME:-}\"") {
+        return Err("local SemVer checks must not reuse ambient CARGO_HOME".to_owned());
+    }
+
+    for opt_in in ["cargo ci-generators", "cargo ci-real-world-quadlet"] {
+        if script.contains(opt_in) {
+            return Err(format!(
+                "local validation runner must not invoke opt-in tier `{opt_in}`"
+            ));
+        }
+    }
+
+    for (path, required) in [
+        (
+            ".vscode/settings.json",
+            &["rust-analyzer.check.command", "editor.formatOnSave"][..],
+        ),
+        (
+            ".vscode/extensions.json",
+            &[
+                "DavidAnson.vscode-markdownlint",
+                "esbenp.prettier-vscode",
+                "mkhl.shfmt",
+                "tamasfe.even-better-toml",
+                "timonwong.shellcheck",
+            ][..],
+        ),
+        (
+            ".vscode/tasks.json",
+            &[
+                "QuadletLens: Format, lint, and test all",
+                "scripts/check-all.sh",
+                "QuadletLens: Required Rust checks",
+                "QuadletLens: Opt-in generator smoke lane",
+                "QuadletLens: Package",
+            ][..],
+        ),
+    ] {
+        let contents = read_repository_file(path)?;
+        for value in required {
+            if !contents.contains(value) {
+                return Err(format!("{path} is missing `{value}`"));
+            }
+        }
+    }
+
+    Ok(())
+}
+
+#[test]
+fn non_rust_file_quality_is_locked_and_required() -> Result<(), String> {
+    let script = read_repository_file("scripts/check-files.sh")?;
+    for required in [
+        "git ls-files --cached --others --exclude-standard",
+        ":(exclude,glob)fixtures/**",
+        ":(exclude,glob)catalogue/**",
+        ":(exclude,glob)tools/**",
+        "markdownlint-cli2 --fix",
+        "prettier --write",
+        "prettier --check",
+        "taplo fmt",
+        "taplo check",
+        "shfmt -w",
+        "shellcheck --",
+        "hadolint",
+    ] {
+        if !script.contains(required) {
+            return Err(format!("non-Rust file runner missing `{required}`"));
+        }
+    }
+
+    let lock = read_repository_file("package-lock.json")?;
+    for package in ["markdownlint-cli2", "prettier"] {
+        if !lock.contains(&format!("\"{package}\"")) {
+            return Err(format!("package-lock.json must lock `{package}`"));
+        }
+    }
+
+    for workflow_name in ["ci.yml", "release.yml"] {
+        let workflow = read_repository_file(&format!(".github/workflows/{workflow_name}"))?;
+        for required in [
+            "npm ci --ignore-scripts",
+            "bash scripts/install-file-tools.sh /usr/local/bin",
+            "bash scripts/check-files.sh --check",
+        ] {
+            if !workflow.contains(required) {
+                return Err(format!("{workflow_name} is missing `{required}`"));
+            }
+        }
+    }
+
+    Ok(())
+}
+
+#[test]
+fn routine_link_checks_are_offline_and_external_checks_are_scheduled() -> Result<(), String> {
+    let ci = read_repository_file(".github/workflows/ci.yml")?;
+    for required in ["--config lychee.toml", "--offline"] {
+        if !ci.contains(required) {
+            return Err(format!("CI local-link check is missing `{required}`"));
+        }
+    }
+
+    let external = read_repository_file(".github/workflows/documentation-links.yml")?;
+    for required in ["schedule:", "workflow_dispatch:", "path: .lycheecache", "--cache"] {
+        if !external.contains(required) {
+            return Err(format!("scheduled external-link workflow is missing `{required}`"));
+        }
+    }
+
+    Ok(())
+}
+
+#[test]
 fn release_workflow_uses_the_create_response_as_its_draft_identity() -> Result<(), String> {
     let workflow_path = repository_root().join(".github/workflows/release.yml");
     let workflow = fs::read_to_string(&workflow_path)
@@ -190,4 +381,9 @@ summary = "Must not be accepted."
 
 fn repository_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+}
+
+fn read_repository_file(path: &str) -> Result<String, String> {
+    let path = repository_root().join(path);
+    fs::read_to_string(&path).map_err(|error| format!("failed to read {}: {error}", path.display()))
 }

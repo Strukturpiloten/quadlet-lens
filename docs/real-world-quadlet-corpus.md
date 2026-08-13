@@ -21,18 +21,18 @@ independent community deployment as equivalent runtime proof.
 
 ## Selected projects
 
-| Tier | Project and evidence class | Why it belongs in the corpus |
-| --- | --- | --- |
-| Baseline | [Algernon](https://github.com/xyproto/algernon/blob/2d67bdd445cbe4bbd30ae2ab70ca3e9d82ac5574/containers/algernon.container) (`upstream-project`) | Compact container with systemd ordering, installation, mounts, and a published port |
-| Baseline | [Bazzite Cockpit](https://github.com/ublue-os/bazzite/blob/1b0f180c9fd4cf6dd9cb74c770b937785aba4eea/system_files/desktop/shared/usr/share/containers/systemd/cockpit-container.container) (`distribution-project`) | Distribution integration using `PodmanArgs`, lifecycle settings, labels, and host mounts |
-| Baseline | [IBM HMC agent](https://github.com/IBM/project-pim/blob/9e33beaf34f2788696211dff590d578d0078f962/examples/hmc-agent/hmc_agent.container) (`vendor-example`) | Two related services with environment files, auto-update, networking, and SELinux type settings |
-| Baseline | [Red Hat rhproxy](https://github.com/RedHatInsights/rhproxy/blob/5ec1c573b6da1a0430af1a56a3c9caf72f9a236a/config/rhproxy.container) (`vendor-project`) | Packaged service with published/exposed ports, user namespaces, and a pre-start command |
-| Application | [Redpanda appstore stack](https://github.com/containers/appstore/blob/6a8826f4bbe4b1a84ff6616c12b5f0a767877b65/quadlet/redpanda/redpanda-server.container) (`organization-example`) | Complete container, network, and volume relationship set with explicit dependency ordering |
-| Application | [Immich Podman Quadlets](https://github.com/linux-universe/immich-podman-quadlets/blob/7ea8a1e1f36bd5d5a2f32c1e7fe9ec58c5482b0f/immich-server.container) (`community-deployment`) | Direct Compose-to-Quadlet migration example using a pod, health checks, mounts, and authored variables |
-| Application | [Metron](https://github.com/Metron-Project/metron/blob/a97b0bf12a7e35565c5cfcf8420e648c219843ad/.quadlet/metron-web.container) (`upstream-project`) | Full upstream web, proxy, database, cache, network, and volume deployment |
-| Stress | [containers/appstore AI stack](https://github.com/containers/appstore/blob/6a8826f4bbe4b1a84ff6616c12b5f0a767877b65/quadlet/ai-stack/ollama.container) (`organization-example`) | Ten-file pod topology with devices, raw arguments, logging, labels, auto-update, and health settings |
-| Stress | [containers/qm](https://github.com/containers/qm/blob/bfe94ccd2f87a6a44317d855fa6e716f2c5b7364/qm.container) (`platform-project`) | Large rootfs-backed platform unit with devices, capabilities, security labels, sysctls, and systemd resource controls |
-| Stress | [Universal Blue Fedora toolbox](https://github.com/ublue-os/toolboxes/blob/c8809b894cbb6035d5df091db419b7859da9d46d/quadlets/fedora-toolbox/fedora-distrobox-quadlet.container) (`distribution-project`) | Development container with many host mounts, user namespaces, ulimits, annotations, and privileged raw arguments |
+| Tier        | Project and evidence class                                                                                                                                                                                         | Why it belongs in the corpus                                                                                          |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| Baseline    | [Algernon](https://github.com/xyproto/algernon/blob/2d67bdd445cbe4bbd30ae2ab70ca3e9d82ac5574/containers/algernon.container) (`upstream-project`)                                                                   | Compact container with systemd ordering, installation, mounts, and a published port                                   |
+| Baseline    | [Bazzite Cockpit](https://github.com/ublue-os/bazzite/blob/1b0f180c9fd4cf6dd9cb74c770b937785aba4eea/system_files/desktop/shared/usr/share/containers/systemd/cockpit-container.container) (`distribution-project`) | Distribution integration using `PodmanArgs`, lifecycle settings, labels, and host mounts                              |
+| Baseline    | [IBM HMC agent](https://github.com/IBM/project-pim/blob/9e33beaf34f2788696211dff590d578d0078f962/examples/hmc-agent/hmc_agent.container) (`vendor-example`)                                                        | Two related services with environment files, auto-update, networking, and SELinux type settings                       |
+| Baseline    | [Red Hat rhproxy](https://github.com/RedHatInsights/rhproxy/blob/5ec1c573b6da1a0430af1a56a3c9caf72f9a236a/config/rhproxy.container) (`vendor-project`)                                                             | Packaged service with published/exposed ports, user namespaces, and a pre-start command                               |
+| Application | [Redpanda appstore stack](https://github.com/containers/appstore/blob/6a8826f4bbe4b1a84ff6616c12b5f0a767877b65/quadlet/redpanda/redpanda-server.container) (`organization-example`)                                | Complete container, network, and volume relationship set with explicit dependency ordering                            |
+| Application | [Immich Podman Quadlets](https://github.com/linux-universe/immich-podman-quadlets/blob/7ea8a1e1f36bd5d5a2f32c1e7fe9ec58c5482b0f/immich-server.container) (`community-deployment`)                                  | Direct Compose-to-Quadlet migration example using a pod, health checks, mounts, and authored variables                |
+| Application | [Metron](https://github.com/Metron-Project/metron/blob/a97b0bf12a7e35565c5cfcf8420e648c219843ad/.quadlet/metron-web.container) (`upstream-project`)                                                                | Full upstream web, proxy, database, cache, network, and volume deployment                                             |
+| Stress      | [containers/appstore AI stack](https://github.com/containers/appstore/blob/6a8826f4bbe4b1a84ff6616c12b5f0a767877b65/quadlet/ai-stack/ollama.container) (`organization-example`)                                    | Ten-file pod topology with devices, raw arguments, logging, labels, auto-update, and health settings                  |
+| Stress      | [containers/qm](https://github.com/containers/qm/blob/bfe94ccd2f87a6a44317d855fa6e716f2c5b7364/qm.container) (`platform-project`)                                                                                  | Large rootfs-backed platform unit with devices, capabilities, security labels, sysctls, and systemd resource controls |
+| Stress      | [Universal Blue Fedora toolbox](https://github.com/ublue-os/toolboxes/blob/c8809b894cbb6035d5df091db419b7859da9d46d/quadlets/fedora-toolbox/fedora-distrobox-quadlet.container) (`distribution-project`)           | Development container with many host mounts, user namespaces, ulimits, annotations, and privileged raw arguments      |
 
 Each upstream license is recorded in the catalogue. Downloading a file for a test does not change
 its license; copying one into an offline fixture would require a separate redistribution review.
@@ -41,19 +41,19 @@ its license; copying one into an offline fixture would require a separate redist
 
 The pinned corpus passed on 2026-08-05:
 
-| Project | Unit files | Typed-model errors | Native references | Resolved references |
-| --- | ---: | ---: | ---: | ---: |
-| Algernon | 1 | 0 | 0 | 0 |
-| Bazzite Cockpit | 1 | 0 | 0 | 0 |
-| IBM HMC agent | 2 | 0 | 0 | 0 |
-| Red Hat rhproxy | 1 | 0 | 0 | 0 |
-| Redpanda appstore stack | 4 | 0 | 3 | 3 |
-| Immich Podman Quadlets | 5 | 0 | 4 | 4 |
-| Metron | 9 | 0 | 6 | 6 |
-| containers/appstore AI stack | 10 | 0 | 1 | 1 |
-| containers/qm | 1 | 0 | 0 | 0 |
-| Universal Blue Fedora toolbox | 1 | 0 | 0 | 0 |
-| **Total** | **35** | **0** | **14** | **14** |
+| Project                       | Unit files | Typed-model errors | Native references | Resolved references |
+| ----------------------------- | ---------: | -----------------: | ----------------: | ------------------: |
+| Algernon                      |          1 |                  0 |                 0 |                   0 |
+| Bazzite Cockpit               |          1 |                  0 |                 0 |                   0 |
+| IBM HMC agent                 |          2 |                  0 |                 0 |                   0 |
+| Red Hat rhproxy               |          1 |                  0 |                 0 |                   0 |
+| Redpanda appstore stack       |          4 |                  0 |                 3 |                   3 |
+| Immich Podman Quadlets        |          5 |                  0 |                 4 |                   4 |
+| Metron                        |          9 |                  0 |                 6 |                   6 |
+| containers/appstore AI stack  |         10 |                  0 |                 1 |                   1 |
+| containers/qm                 |          1 |                  0 |                 0 |                   0 |
+| Universal Blue Fedora toolbox |          1 |                  0 |                 0 |                   0 |
+| **Total**                     |     **35** |              **0** |            **14** |              **14** |
 
 The 35 files comprise 23 `.container`, two `.pod`, three `.network`, and seven `.volume` units.
 Every file is syntactically valid, renders with byte-exact preservation, canonicalizes, and

@@ -76,9 +76,8 @@ including a version-derived public-API comparison with the latest normal crates.
 the locked package, creates a checksum and provenance attestation, creates an annotated tag and
 workflow-owned draft release, publishes the crate, and then publishes the immutable GitHub
 release. The semver action is pinned by full commit and exact release tag; Renovate maintains both.
-The same comparison runs in normal CI so a compatibility failure is found before release. The
-action derives the release type from the candidate and published versions; do not hard-code it in
-either workflow.
+The same explicit patch-level comparison runs in normal CI, matching the documented 0.1.x
+source-compatibility policy.
 The separately scheduled generator matrix remains the exhaustive external conformance tier; the
 release job validates its exact matrix contract without downloading all historical generators.
 

@@ -541,42 +541,42 @@ IPv4-enable key, or establish isolation or dual-stack runtime behavior.
 
 The promoted fixtures record the following dry-run expectations across the full matrix:
 
-| Fixture group | Required result |
-| --- | --- |
-| DNS, DNS option, DNS search | Ordered final values after an empty reset |
-| IP, IP6, network alias | One address flag each and ordered final aliases after reset |
-| IPAM driver, subnet, gateway, range | Explicit/blank driver behavior and two indexed final groups after reset |
-| ExposeHostPort | Four ordered TCP/UDP-compatible values after reset |
-| Annotation | Two final key-sorted assignments after reset |
-| Build Environment | Final key-sorted `--env` arguments after reset; 5.6.0 bare-token boundary |
-| Build ContainersConfModule | Two ordered post-reset `--module=VALUE` arguments before `build` |
-| Build GlobalArgs | Ordered post-reset tokens between `podman` and `build`; malformed line omitted |
-| Image GlobalArgs | Ordered decoded post-reset tokens between `podman` and `image pull`; malformed line omitted |
-| Image OS | Normal/duplicate-last `--os VALUE`, final-blank omission, and endpoint-specific unmatched-quote presentation |
-| Build ServiceName | Last value, `.service` addition, and 5.7.0/5.8.2 naming boundaries |
-| Pod ServiceName | Omitted default, duplicate-last, `.service`, template/quote, blank, and extension-bearing naming observations |
-| Build Volume | Reset/continuation `-v` order, relative `.`, and `.volume` substitution/dependency |
-| Volume ContainersConfModule | Ordered post-reset `--module=VALUE` arguments before `volume create`; 5.4 literal-space/5.5 `\\x20` continuation presentation |
-| Volume GlobalArgs | Decoded post-reset tokens in authored order between `podman` and `volume create`; malformed line omitted |
-| Volume PodmanArgs | Decoded post-reset tokens in authored order at the end of `volume create` before the volume name; malformed line omitted |
-| Volume User | Unambiguous `User=123` emits `o=uid=123` before the volume name |
-| Volume Group | Unambiguous `Group=456` emits `o=gid=456` before the volume name |
-| Volume GID | Rejected through 5.8.5; exactly one `--gid 5678` before the volume name from 6.0.0 |
-| Volume ServiceName | Target last value, `.service`, ordinary/template, and unmatched-quote naming boundaries |
-| Volume Image | Literal, missing, ignored-driver, and exact image/build-reference observations |
-| Image core | Literal pull unit, missing/empty errors, and target duplicate-last source selection |
-| Image ImageTag | Normal/archive source commands plus target-only resource-name, dependency, default, and quote observations |
-| Image ServiceName | Target default, duplicate-last, `.service`, template, and unmatched-quote naming observations |
-| Image AllTags | Target true/false, duplicate-last, absent/blank, and 5.8.2 unmatched-quote pull-command observations |
-| Image Arch | Target normal, duplicate-last, blank omission, and 5.8.2 unmatched-quote pull-command observations |
-| Image AuthFile | Target normal, duplicate-last, blank omission, and 5.8.2 unmatched-quote pull-command observations |
-| Image CertDir | Target normal, duplicate-last, blank omission, and 5.8.2 unmatched-quote pull-command observations |
-| Image ContainersConfModule | Target reset and ordered post-reset `--module` arguments before image pull |
-| AppArmor | Rejected through 5.7.1; one separate option from 5.8.0 |
-| NoNewPrivileges and boolean label keys | One option for true; none for false |
-| Seccomp and valued label keys | One isolated separate option per value |
-| Mask | One final path-list option after reset |
-| Unmask | Ordered `ALL` and path-list options after reset |
+| Fixture group                          | Required result                                                                                                               |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| DNS, DNS option, DNS search            | Ordered final values after an empty reset                                                                                     |
+| IP, IP6, network alias                 | One address flag each and ordered final aliases after reset                                                                   |
+| IPAM driver, subnet, gateway, range    | Explicit/blank driver behavior and two indexed final groups after reset                                                       |
+| ExposeHostPort                         | Four ordered TCP/UDP-compatible values after reset                                                                            |
+| Annotation                             | Two final key-sorted assignments after reset                                                                                  |
+| Build Environment                      | Final key-sorted `--env` arguments after reset; 5.6.0 bare-token boundary                                                     |
+| Build ContainersConfModule             | Two ordered post-reset `--module=VALUE` arguments before `build`                                                              |
+| Build GlobalArgs                       | Ordered post-reset tokens between `podman` and `build`; malformed line omitted                                                |
+| Image GlobalArgs                       | Ordered decoded post-reset tokens between `podman` and `image pull`; malformed line omitted                                   |
+| Image OS                               | Normal/duplicate-last `--os VALUE`, final-blank omission, and endpoint-specific unmatched-quote presentation                  |
+| Build ServiceName                      | Last value, `.service` addition, and 5.7.0/5.8.2 naming boundaries                                                            |
+| Pod ServiceName                        | Omitted default, duplicate-last, `.service`, template/quote, blank, and extension-bearing naming observations                 |
+| Build Volume                           | Reset/continuation `-v` order, relative `.`, and `.volume` substitution/dependency                                            |
+| Volume ContainersConfModule            | Ordered post-reset `--module=VALUE` arguments before `volume create`; 5.4 literal-space/5.5 `\\x20` continuation presentation |
+| Volume GlobalArgs                      | Decoded post-reset tokens in authored order between `podman` and `volume create`; malformed line omitted                      |
+| Volume PodmanArgs                      | Decoded post-reset tokens in authored order at the end of `volume create` before the volume name; malformed line omitted      |
+| Volume User                            | Unambiguous `User=123` emits `o=uid=123` before the volume name                                                               |
+| Volume Group                           | Unambiguous `Group=456` emits `o=gid=456` before the volume name                                                              |
+| Volume GID                             | Rejected through 5.8.5; exactly one `--gid 5678` before the volume name from 6.0.0                                            |
+| Volume ServiceName                     | Target last value, `.service`, ordinary/template, and unmatched-quote naming boundaries                                       |
+| Volume Image                           | Literal, missing, ignored-driver, and exact image/build-reference observations                                                |
+| Image core                             | Literal pull unit, missing/empty errors, and target duplicate-last source selection                                           |
+| Image ImageTag                         | Normal/archive source commands plus target-only resource-name, dependency, default, and quote observations                    |
+| Image ServiceName                      | Target default, duplicate-last, `.service`, template, and unmatched-quote naming observations                                 |
+| Image AllTags                          | Target true/false, duplicate-last, absent/blank, and 5.8.2 unmatched-quote pull-command observations                          |
+| Image Arch                             | Target normal, duplicate-last, blank omission, and 5.8.2 unmatched-quote pull-command observations                            |
+| Image AuthFile                         | Target normal, duplicate-last, blank omission, and 5.8.2 unmatched-quote pull-command observations                            |
+| Image CertDir                          | Target normal, duplicate-last, blank omission, and 5.8.2 unmatched-quote pull-command observations                            |
+| Image ContainersConfModule             | Target reset and ordered post-reset `--module` arguments before image pull                                                    |
+| AppArmor                               | Rejected through 5.7.1; one separate option from 5.8.0                                                                        |
+| NoNewPrivileges and boolean label keys | One option for true; none for false                                                                                           |
+| Seccomp and valued label keys          | One isolated separate option per value                                                                                        |
+| Mask                                   | One final path-list option after reset                                                                                        |
+| Unmask                                 | Ordered `ALL` and path-list options after reset                                                                               |
 
 The model preserves raw physical values and does not emulate the generator's effective lookup,
 sorting, reset, or tokenization rules. These fixtures start no workload and establish no resolver,

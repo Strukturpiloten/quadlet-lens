@@ -4,6 +4,8 @@
     "dockerfile": "Dockerfile",
     "context": ".."
   },
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/quadlet-lens,type=bind",
+  "workspaceFolder": "/workspaces/quadlet-lens",
   "remoteUser": "vscode",
   "updateRemoteUserUID": true,
   "features": {
@@ -12,9 +14,15 @@
     }
   },
   "containerEnv": {
+    "CARGO_HOME": "/workspaces/.quadlet-lens-cargo",
+    "CARGO_TARGET_DIR": "/workspaces/.quadlet-lens-target",
     "PATH": "/home/vscode/.local/bin:/usr/local/cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
   },
-  "postCreateCommand": "cargo fetch --locked",
+  "mounts": [
+    "source=quadlet-lens-cargo-${devcontainerId},target=/workspaces/.quadlet-lens-cargo,type=volume",
+    "source=quadlet-lens-target-${devcontainerId},target=/workspaces/.quadlet-lens-target,type=volume"
+  ],
+  "postCreateCommand": "bash .devcontainer/verify-tools.sh && cargo fetch --locked",
   "waitFor": "postCreateCommand",
   "hostRequirements": {
     "cpus": 2,
@@ -30,14 +38,7 @@
         "streetsidesoftware.code-spell-checker",
         "tamasfe.even-better-toml",
         "vadimcn.vscode-lldb"
-      ],
-      "settings": {
-        "editor.formatOnSave": true,
-        "files.watcherExclude": {
-          "**/target/**": true
-        },
-        "rust-analyzer.check.command": "clippy"
-      }
+      ]
     }
   }
 }

@@ -59,6 +59,8 @@ External fixtures and behavior-oracle results must record source, version, comma
 The crate uses Rust 2024, supports Rust 1.85.0 and newer, and pins the normal development toolchain in `rust-toolchain.toml`.
 
 ```shell
+./scripts/check-all.sh
+./scripts/check-files.sh --check
 cargo fmt --all -- --check
 cargo ci-check
 cargo ci-catalogue
