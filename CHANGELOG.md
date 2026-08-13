@@ -5,6 +5,19 @@ Versioning for its documented pre-1.0 public API.
 
 ## [Unreleased]
 
+## [0.1.13] - 2026-08-13
+
+### Added
+
+- Paired positive and negative tests for UTF-8 source locations, capability-schema validation,
+  version ranges, catalogue evaluation, filenames, and document-set reference spans.
+- A pinned CI and release coverage ratchet for the locked all-feature, all-target test suite.
+
+### Changed
+
+- Patch releases now run an explicit patch-level public-API comparison in both CI and release
+  validation.
+
 ## [0.1.12] - 2026-08-10
 
 ### Added

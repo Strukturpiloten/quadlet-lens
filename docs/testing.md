@@ -412,11 +412,18 @@ cargo ci-clippy
 cargo ci-test
 cargo ci-doctest
 RUSTDOCFLAGS="-D warnings" cargo ci-doc
+cargo llvm-cov --locked --workspace --all-features --all-targets --summary-only \
+  --fail-under-regions 91 --fail-under-functions 92 --fail-under-lines 92
 cargo +1.85.0 ci-check
 cargo +1.85.0 ci-policy
 cargo deny check
 ```
 
 The `ci-*` aliases use `--locked`, all workspace features, and all targets where the Cargo command
-supports them. CI also runs markdownlint and lychee over the documentation. Add exact property/fuzz
-and real-generator matrix commands here before those harnesses become required checks.
+supports them. CI also runs markdownlint and lychee over the documentation. Add exact deterministic
+property-style and real-generator matrix commands here before those harnesses become required checks.
+
+The pinned `cargo-llvm-cov` 0.8.7 gate runs the locked workspace with all features and targets.
+Its coarse integer floors—91% regions, 92% functions, and 92% lines—are regression guards, not a
+claim that line execution proves behavior. Positive and negative assertions remain required at
+each supported boundary.

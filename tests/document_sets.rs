@@ -278,16 +278,31 @@ fn document_set_reports_missing_ambiguous_and_duplicate_identities() -> Result<(
 
 #[test]
 fn unit_file_names_are_basenames_with_matching_supported_suffixes() -> Result<(), String> {
+    for invalid in [
+        "",
+        "application",
+        ".container",
+        "application.",
+        "nested/app.container",
+        "nested\\app.container",
+    ] {
+        assert!(
+            matches!(
+                UnitFileName::new(invalid),
+                Err(DocumentSetError::InvalidUnitFileName(_))
+            ),
+            "unexpectedly accepted {invalid:?}"
+        );
+    }
     assert!(matches!(
-        UnitFileName::new("nested/app.container"),
-        Err(DocumentSetError::InvalidUnitFileName(_))
+        UnitFileName::new("application.service"),
+        Err(DocumentSetError::UnsupportedUnitFileExtension(_))
     ));
-    assert_eq!(
-        UnitFileName::new("application.image")
-            .map_err(|error| error.to_string())?
-            .unit_type(),
-        QuadletUnitType::Image
-    );
+
+    let image = UnitFileName::new("application.image").map_err(|error| error.to_string())?;
+    assert_eq!(image.as_str(), "application.image");
+    assert_eq!(image.to_string(), "application.image");
+    assert_eq!(image.unit_type(), QuadletUnitType::Image);
 
     assert_eq!(
         UnitFileName::new("application.build")
@@ -297,10 +312,44 @@ fn unit_file_names_are_basenames_with_matching_supported_suffixes() -> Result<()
     );
 
     let network = named_document(QuadletUnitType::Network, 61, "[Network]\n")?;
-    assert!(matches!(
-        NamedQuadletDocument::new("wrong.volume", network),
-        Err(DocumentSetError::UnitTypeMismatch { .. })
-    ));
+    let mismatch = NamedQuadletDocument::new("wrong.volume", network);
+    assert!(matches!(mismatch, Err(DocumentSetError::UnitTypeMismatch { .. })));
+    assert_eq!(
+        mismatch.err().map(|error| error.to_string()),
+        Some("Quadlet filename `wrong.volume` implies Volume, but the document is Network".to_owned())
+    );
+    Ok(())
+}
+
+#[test]
+fn document_set_accessors_preserve_names_sources_and_reference_spans() -> Result<(), String> {
+    let source = "[Container]\nImage=example.invalid/app\nNetwork=frontend.network\n";
+    let set = QuadletDocumentSet::new([
+        named("app.container", QuadletUnitType::Container, 62, source)?,
+        named("frontend.network", QuadletUnitType::Network, 63, "[Network]\n")?,
+    ])
+    .map_err(|error| error.to_string())?;
+
+    let reference = &set.graph().references()[0];
+    let edge = set.graph().edges()[0];
+    let expected_start = source
+        .find("frontend.network")
+        .ok_or_else(|| "test source must contain its reference".to_owned())?;
+    assert_eq!(reference.source_document(), 0);
+    assert_eq!(reference.span().source_id(), SourceId::new(62));
+    assert_eq!(
+        (reference.span().start(), reference.span().end()),
+        (expected_start, source.len() - 1)
+    );
+    assert_eq!(edge.source_document(), 0);
+    assert_eq!(edge.target_document(), 1);
+    assert_eq!(edge.kind(), UnitReferenceKind::Network);
+    assert_eq!(edge.span(), reference.span());
+
+    let decomposed = named("standalone.network", QuadletUnitType::Network, 64, "[Network]\n")?;
+    let (name, document) = decomposed.into_parts();
+    assert_eq!(name.as_str(), "standalone.network");
+    assert_eq!(document.source_id(), SourceId::new(64));
     Ok(())
 }
 
