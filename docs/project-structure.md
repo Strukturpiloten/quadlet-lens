@@ -5,6 +5,11 @@ QuadletLens is one library crate with clear module boundaries. The crate foundat
 ```text
 quadlet-lens/
 ├── .devcontainer/         # digest-pinned VS Code environment and feature lock
+├── .vscode/               # shared editor settings, recommendations, and local tasks
+├── scripts/               # complete local checks and non-Rust file-quality tooling
+├── package.json           # pinned repository-only Node tooling
+├── package-lock.json      # complete repository-tool dependency graph
+├── lychee.toml            # offline/local and rate-limited external link policy
 ├── Cargo.toml
 ├── Cargo.lock
 ├── CHANGELOG.md
@@ -56,6 +61,7 @@ quadlet-lens/
     ├── renovate.json
     └── workflows/
         ├── ci.yml
+        ├── documentation-links.yml
         ├── generator-matrix.yml
         └── release.yml
 ```

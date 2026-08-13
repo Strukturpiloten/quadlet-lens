@@ -26,13 +26,13 @@ evidence beyond reviewed ranges.
 
 ## Supported entry points
 
-| Concern | Public modules |
-| --- | --- |
-| Source and diagnostics | `source`, `diagnostic` |
-| Loss-aware syntax and rendering | `syntax` |
-| Native typed documents and document sets | `model`, `path` |
-| Validated programmatic generation | `render` |
-| Versioned Podman capability evidence | `capability` |
+| Concern                                  | Public modules         |
+| ---------------------------------------- | ---------------------- |
+| Source and diagnostics                   | `source`, `diagnostic` |
+| Loss-aware syntax and rendering          | `syntax`               |
+| Native typed documents and document sets | `model`, `path`        |
+| Validated programmatic generation        | `render`               |
+| Versioned Podman capability evidence     | `capability`           |
 
 The compile-and-behavior contract in `tests/public_api.rs` exercises these stages as an external
 crate consumer would. The modules remain separate: QuadletLens does not hide source loading,

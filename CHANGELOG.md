@@ -12,11 +12,18 @@ Versioning for its documented pre-1.0 public API.
 - Paired positive and negative tests for UTF-8 source locations, capability-schema validation,
   version ranges, catalogue evaluation, filenames, and document-set reference spans.
 - A pinned CI and release coverage ratchet for the locked all-feature, all-target test suite.
+- A shared VS Code and Dev Container workflow with one-command Rust, file-quality, policy,
+  coverage, MSRV, offline-link, package, and API checks.
 
 ### Changed
 
 - Patch releases now run an explicit patch-level public-API comparison in both CI and release
   validation.
+
+### Fixed
+
+- Local API checks always use an isolated writable Cargo cache instead of the container image's
+  potentially read-only global package lock.
 
 ## [0.1.12] - 2026-08-10
 

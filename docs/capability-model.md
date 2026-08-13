@@ -621,12 +621,12 @@ Exact runtime detection can narrow validation to one version, but generated proj
 
 The security and metadata capabilities use the following reviewed ranges:
 
-| Keys | Native range | Evidence summary |
-| --- | --- | --- |
-| `Annotation` | 5.4.0–6.0.2 | Repeatable reset and sorted final command arguments |
-| `AppArmor` | 5.8.0–6.0.2 | Explicitly unsupported through 5.7.1 |
-| `NoNewPrivileges`, `SeccompProfile`, `SecurityLabel*` | 5.4.0–6.0.2 | Singleton/boolean command construction |
-| `Mask`, `Unmask` | 5.4.0–6.0.2 | Repeatable reset/tokenization command construction; earlier introduction unknown |
+| Keys                                                  | Native range | Evidence summary                                                                 |
+| ----------------------------------------------------- | ------------ | -------------------------------------------------------------------------------- |
+| `Annotation`                                          | 5.4.0–6.0.2  | Repeatable reset and sorted final command arguments                              |
+| `AppArmor`                                            | 5.8.0–6.0.2  | Explicitly unsupported through 5.7.1                                             |
+| `NoNewPrivileges`, `SeccompProfile`, `SecurityLabel*` | 5.4.0–6.0.2  | Singleton/boolean command construction                                           |
+| `Mask`, `Unmask`                                      | 5.4.0–6.0.2  | Repeatable reset/tokenization command construction; earlier introduction unknown |
 
 Parsed and constructed values remain opaque. Generator fixtures do not validate profiles, OCI or
 SELinux policy, paths, host state, runtime effects, or cross-format semantics.

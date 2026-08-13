@@ -16,27 +16,63 @@ suitable for parser, model, rendering, documentation, and repository-policy work
   integrity hashes.
 - `.devcontainer/Dockerfile` pins repository tooling; Renovate owns version proposals.
 
+## Shared editor setup
+
+Repository settings in `.vscode/settings.json` enable format-on-save, exclude Cargo output from
+search and file watching, use all Cargo features in rust-analyzer, and select the matching
+formatter for Rust, Markdown, JSON, YAML, TOML, and shell files. `.vscode/extensions.json`
+contains recommendations for contributors who open the checkout outside the container.
+
+Use **Tasks: Run Test Task** or **QuadletLens: Format, lint, and test all** for the complete local
+workflow. **QuadletLens: Required Rust checks** and the focused format, check, catalogue, model,
+policy, Clippy, test, documentation, and package tasks support shorter edit cycles. Generator and
+real-world corpus tasks are explicitly labelled opt-in.
+
 ## Included tools
 
 The image provides Rust, Cargo, rustfmt, Clippy, rust-analyzer, CodeLLDB, Git, GitHub CLI, Node.js,
-Markdown and YAML support. The cached image layer installs exact versions of `cargo-deny`,
-`cargo-semver-checks`, `lychee`, `zizmor`, `markdownlint-cli2`, and `actionlint`.
-Actionlint's downloaded archive is verified against its release checksum.
+`cargo-deny`, `cargo-llvm-cov`, `cargo-semver-checks`, `lychee`, `zizmor`, `actionlint`, Prettier,
+markdownlint-cli2, Taplo, shfmt, ShellCheck, and Hadolint. Node tools use the committed lockfile;
+downloaded native tools use reviewed SHA-256 checksums.
 
-Use the canonical checks documented in [the testing strategy](testing.md). Useful repository
-checks include:
+Run the complete deterministic local workflow with:
+
+```console
+./scripts/check-all.sh
+```
+
+It formats Rust and owned non-Rust files, then runs all deterministic checks. It intentionally
+does not execute generator containers or download the real-world corpus. Run only the non-Rust
+layer with `./scripts/check-files.sh --fix`; CI and release validation use its non-mutating
+`--check` mode. Authored fixtures, the capability catalogue, and generator-matrix data are
+syntax-checked but not rewritten, so exact versioned evidence remains stable. Routine
+documentation-link checks are offline. A scheduled workflow performs the slower, rate-limited
+external-link check.
+
+The final API-compatibility check always uses an isolated `cargo-home` directory under
+`CARGO_TARGET_DIR`. It never reuses the container image's `/usr/local/cargo`, because that
+directory can appear writable while its existing global package-lock file remains read-only.
+Registry downloads and the SemVer check's exclusive lock therefore stay in writable, disposable
+build storage.
+
+Useful focused checks include:
 
 ```console
 cargo fmt --all -- --check
+./scripts/check-files.sh --check
 cargo ci-check
+cargo ci-catalogue
+cargo ci-model
 cargo ci-policy
 cargo ci-clippy
 cargo ci-test
+cargo ci-doctest
+RUSTDOCFLAGS="-D warnings" cargo ci-doc
 cargo deny check
 actionlint
 zizmor .github/workflows
-markdownlint-cli2 "**/*.md" "#target/**"
-lychee --root-dir . --no-progress --exclude-path '(^|/)target/' "./**/*.md"
+lychee --config lychee.toml --root-dir . --offline './**/*.md'
+cargo semver-checks check-release --package quadlet-lens --release-type patch
 ```
 
 ## Updating the container

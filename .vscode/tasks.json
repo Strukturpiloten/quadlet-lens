@@ -1,0 +1,138 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "QuadletLens: Format, lint, and test all",
+      "type": "process",
+      "command": "${workspaceFolder}/scripts/check-all.sh",
+      "problemMatcher": "$rustc",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "QuadletLens: Format non-Rust files",
+      "type": "process",
+      "command": "${workspaceFolder}/scripts/check-files.sh",
+      "args": ["--fix"],
+      "problemMatcher": []
+    },
+    {
+      "label": "QuadletLens: Format check",
+      "type": "process",
+      "command": "cargo",
+      "args": ["fmt", "--all", "--", "--check"],
+      "problemMatcher": []
+    },
+    {
+      "label": "QuadletLens: Check",
+      "type": "process",
+      "command": "cargo",
+      "args": ["ci-check"],
+      "problemMatcher": "$rustc"
+    },
+    {
+      "label": "QuadletLens: Capability catalogue",
+      "type": "process",
+      "command": "cargo",
+      "args": ["ci-catalogue"],
+      "problemMatcher": "$rustc"
+    },
+    {
+      "label": "QuadletLens: Native model",
+      "type": "process",
+      "command": "cargo",
+      "args": ["ci-model"],
+      "problemMatcher": "$rustc"
+    },
+    {
+      "label": "QuadletLens: Policy",
+      "type": "process",
+      "command": "cargo",
+      "args": ["ci-policy"],
+      "problemMatcher": "$rustc"
+    },
+    {
+      "label": "QuadletLens: Clippy",
+      "type": "process",
+      "command": "cargo",
+      "args": ["ci-clippy"],
+      "problemMatcher": "$rustc"
+    },
+    {
+      "label": "QuadletLens: Test",
+      "type": "process",
+      "command": "cargo",
+      "args": ["ci-test"],
+      "problemMatcher": "$rustc"
+    },
+    {
+      "label": "QuadletLens: Doctest",
+      "type": "process",
+      "command": "cargo",
+      "args": ["ci-doctest"],
+      "problemMatcher": "$rustc"
+    },
+    {
+      "label": "QuadletLens: Documentation",
+      "type": "process",
+      "command": "cargo",
+      "args": ["ci-doc"],
+      "options": {
+        "env": {
+          "RUSTDOCFLAGS": "-D warnings"
+        }
+      },
+      "problemMatcher": "$rustc"
+    },
+    {
+      "label": "QuadletLens: Required Rust checks",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "QuadletLens: Format check",
+        "QuadletLens: Check",
+        "QuadletLens: Capability catalogue",
+        "QuadletLens: Native model",
+        "QuadletLens: Policy",
+        "QuadletLens: Clippy",
+        "QuadletLens: Test",
+        "QuadletLens: Doctest",
+        "QuadletLens: Documentation"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "QuadletLens: Build",
+      "type": "process",
+      "command": "cargo",
+      "args": ["build", "--locked", "--workspace", "--all-features"],
+      "problemMatcher": "$rustc",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "QuadletLens: Package",
+      "type": "process",
+      "command": "cargo",
+      "args": ["package", "--locked", "--allow-dirty"],
+      "problemMatcher": "$rustc"
+    },
+    {
+      "label": "QuadletLens: Opt-in generator smoke lane",
+      "type": "process",
+      "command": "cargo",
+      "args": ["ci-generators"],
+      "problemMatcher": "$rustc"
+    },
+    {
+      "label": "QuadletLens: Opt-in real-world corpus",
+      "type": "process",
+      "command": "cargo",
+      "args": ["ci-real-world-quadlet"],
+      "problemMatcher": "$rustc"
+    }
+  ]
+}

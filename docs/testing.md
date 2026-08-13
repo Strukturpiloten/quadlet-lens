@@ -401,6 +401,8 @@ Every compatibility fix adds a version-specific regression fixture. Catalogue co
 The crate uses Rust 2024 with an MSRV of 1.85.0. `rust-toolchain.toml` pins the normal development toolchain; the explicit MSRV command prevents that pin from hiding accidental use of newer language or library features.
 
 ```shell
+./scripts/check-all.sh
+./scripts/check-files.sh --check
 cargo fmt --all -- --check
 cargo ci-check
 cargo ci-catalogue
@@ -418,6 +420,11 @@ cargo +1.85.0 ci-check
 cargo +1.85.0 ci-policy
 cargo deny check
 ```
+
+`scripts/check-all.sh` is the one-command local gate. It formats owned files before checking the
+same deterministic Rust, coverage, MSRV, dependency, offline-link, package, and patch-SemVer
+boundaries used for release preparation. Generator execution and real-world downloads remain
+explicit opt-in commands.
 
 The `ci-*` aliases use `--locked`, all workspace features, and all targets where the Cargo command
 supports them. CI also runs markdownlint and lychee over the documentation. Add exact deterministic
