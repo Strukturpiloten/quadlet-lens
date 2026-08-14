@@ -1,0 +1,3 @@
+[Container]
+Image=registry.example.invalid/container-cgroups-enabled:1
+CgroupsMode=enabled

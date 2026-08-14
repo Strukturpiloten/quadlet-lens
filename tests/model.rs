@@ -3700,11 +3700,9 @@ fn volume_group_preserves_opaque_singleton_physical_lines_and_scope() -> Result<
 }
 
 #[test]
-#[allow(clippy::useless_concat)] // Embedded continuation text is clearer as one source fixture.
 fn volume_uid_preserves_opaque_singleton_physical_lines() -> Result<(), String> {
-    let source = concat!(
-        "[Volume]\nUID=1234\nUID=001234\nUID=name\nUID=\nUID=\"quoted-%i\"\nUID=%h/uid\nUID=continued \\\n text\n"
-    );
+    let source =
+        "[Volume]\nUID=1234\nUID=001234\nUID=name\nUID=\nUID=\"quoted-%i\"\nUID=%h/uid\nUID=continued \\\n text\n";
     let result = QuadletDocument::parse(QuadletUnitType::Volume, SourceId::new(324), source)
         .map_err(|error| error.to_string())?;
     assert!(result.is_valid(), "{:#?}", result.model_diagnostics());
@@ -3738,11 +3736,9 @@ fn volume_uid_preserves_opaque_singleton_physical_lines() -> Result<(), String> 
 }
 
 #[test]
-#[allow(clippy::useless_concat)] // Embedded continuation text is clearer as one source fixture.
 fn volume_gid_preserves_opaque_singleton_physical_lines() -> Result<(), String> {
-    let source = concat!(
-        "[Volume]\nGID=5678\nGID=005678\nGID=group\nGID=\nGID=\"quoted-%i\"\nGID=%h/gid\nGID=continued \\\n+ text\n"
-    );
+    let source =
+        "[Volume]\nGID=5678\nGID=005678\nGID=group\nGID=\nGID=\"quoted-%i\"\nGID=%h/gid\nGID=continued \\\n+ text\n";
     let result = QuadletDocument::parse(QuadletUnitType::Volume, SourceId::new(325), source)
         .map_err(|error| error.to_string())?;
     assert!(result.is_valid(), "{:#?}", result.model_diagnostics());
@@ -3777,11 +3773,8 @@ fn volume_gid_preserves_opaque_singleton_physical_lines() -> Result<(), String> 
 }
 
 #[test]
-#[allow(clippy::useless_concat)] // Embedded continuation text is clearer as one source fixture.
 fn volume_service_name_preserves_opaque_singleton_physical_lines() -> Result<(), String> {
-    let source = concat!(
-        "[Volume]\nServiceName=ordinary\nServiceName=\nServiceName= whitespace \nServiceName=\"quoted-%i\"\nServiceName=explicit.service\nServiceName=%i\nServiceName=escape\\x20text\nServiceName=continued \\\n+ text\nServiceName=\"unmatched\n"
-    );
+    let source = "[Volume]\nServiceName=ordinary\nServiceName=\nServiceName= whitespace \nServiceName=\"quoted-%i\"\nServiceName=explicit.service\nServiceName=%i\nServiceName=escape\\x20text\nServiceName=continued \\\n+ text\nServiceName=\"unmatched\n";
     let result = QuadletDocument::parse(QuadletUnitType::Volume, SourceId::new(326), source)
         .map_err(|error| error.to_string())?;
     assert!(result.is_valid(), "{:#?}", result.model_diagnostics());
@@ -5456,4 +5449,235 @@ fn container_entry(
         .filter(|entry| entry.kind() == EntryKind::Container(key))
         .nth(occurrence)
         .ok_or_else(|| format!("fixture has no {key:?} occurrence {occurrence}"))
+}
+
+#[test]
+fn container_batch_keys_preserve_opaque_values_repetition_and_relationship_diagnostics() -> Result<(), String> {
+    let source = concat!(
+        "[Container]\n",
+        "Image=example.invalid/app:1\n",
+        "AutoUpdate=registry\n",
+        "CgroupsMode=split\n",
+        "EnvironmentHost=false\n",
+        "GIDMap=0:100000:65536\n",
+        "GIDMap=1:200000:1\n",
+        "HttpProxy=true\n",
+        "Mount=type=volume,src=data.volume,dst=/data\n",
+        "Mount=type=image,src=assets.image,dst=/assets\n",
+        "ReadOnlyTmpfs=true\n",
+        "Retry=4\n",
+        "RetryDelay=7s\n",
+        "StartWithPod=false\n",
+        "SubGIDMap=keep-id\n",
+        "SubUIDMap=keep-id\n",
+        "Timezone=Europe/Berlin\n",
+        "UIDMap=0:100000:65536\n",
+        "HealthOnFailure=kill\n",
+    );
+    let result = QuadletDocument::parse(QuadletUnitType::Container, SourceId::new(980), source)
+        .map_err(|error| error.to_string())?;
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::GIDMap))
+            .map(|entry| entry.value().primary().text())
+            .collect::<Vec<_>>(),
+        ["0:100000:65536", "1:200000:1"]
+    );
+    for key in [
+        ContainerKey::AutoUpdate,
+        ContainerKey::CgroupsMode,
+        ContainerKey::EnvironmentHost,
+        ContainerKey::HttpProxy,
+        ContainerKey::Mount,
+        ContainerKey::ReadOnlyTmpfs,
+        ContainerKey::Retry,
+        ContainerKey::RetryDelay,
+        ContainerKey::StartWithPod,
+        ContainerKey::SubGIDMap,
+        ContainerKey::SubUIDMap,
+        ContainerKey::Timezone,
+        ContainerKey::UIDMap,
+        ContainerKey::HealthOnFailure,
+    ] {
+        assert!(
+            result
+                .document()
+                .entries()
+                .any(|entry| { entry.kind() == EntryKind::Container(key) && entry.value_kind() == ValueKind::Opaque })
+        );
+    }
+    assert_eq!(
+        result
+            .model_diagnostics()
+            .iter()
+            .map(|diagnostic| diagnostic.code().as_str())
+            .collect::<Vec<_>>(),
+        ["QLM0012", "QLM0014", "QLM0015"]
+    );
+    Ok(())
+}
+
+#[test]
+fn container_mapping_conflicts_have_stable_source_spanned_diagnostics() -> Result<(), String> {
+    let source = concat!(
+        "[Container]\nImage=example.invalid/app:1\nPod=app.pod\nUserNS=keep-id\n",
+        "UIDMap=0:100000:65536\nGIDMap=0:100000:65536\n",
+    );
+    let result = QuadletDocument::parse(QuadletUnitType::Container, SourceId::new(981), source)
+        .map_err(|error| error.to_string())?;
+    assert_eq!(
+        result
+            .model_diagnostics()
+            .iter()
+            .map(|diagnostic| (diagnostic.code().as_str(), diagnostic.labels()[0].span().start()))
+            .collect::<Vec<_>>(),
+        [("QLM0013", 52), ("QLM0016", 40)]
+    );
+    Ok(())
+}
+
+#[test]
+fn container_relationship_diagnostics_use_only_effective_active_values() -> Result<(), String> {
+    let cases = [
+        ("Pod=\nStartWithPod=true\n", vec!["QLM0011"]),
+        ("StartWithPod=false\n", vec![]),
+        ("Pod=\nStartWithPod=\"YES\"\n", vec!["QLM0011"]),
+        ("Pod=\nStartWithPod=\"off\"\n", vec![]),
+        ("Pod=\nStartWithPod=\\\"true\\\"\n", vec![]),
+        ("Pod=\nStartWithPod=tr\\x75e\n", vec![]),
+        ("StartWithPod=opaque\n", vec![]),
+        ("Pod=app.pod\nStartWithPod=true\n", vec![]),
+        ("ReadOnlyTmpfs=true\n", vec!["QLM0012"]),
+        ("ReadOnly=false\nReadOnlyTmpfs=true\n", vec!["QLM0012"]),
+        ("ReadOnly=true\nReadOnlyTmpfs=true\n", vec![]),
+        ("ReadOnly=\"On\"\nReadOnlyTmpfs=\"true\"\n", vec![]),
+        ("ReadOnly=\"off\"\nReadOnlyTmpfs=\"YES\"\n", vec!["QLM0012"]),
+        ("ReadOnlyTmpfs=\\\"true\\\"\n", vec![]),
+        ("ReadOnlyTmpfs=tr\\x75e\n", vec![]),
+        ("ReadOnlyTmpfs=false\n", vec![]),
+        ("ReadOnlyTmpfs=opaque\n", vec![]),
+        ("UserNS=\nUIDMap=\n", vec![]),
+        ("UIDMap=0:1:2\nUIDMap=\nSubUIDMap=keep-id\n", vec![]),
+        ("Pod=\nUIDMap=0:1:2\n", vec![]),
+    ];
+    for (source_id, (entries, expected)) in (990_u32..).zip(cases) {
+        let source = format!("[Container]\nImage=example.invalid/app:1\n{entries}");
+        let result = QuadletDocument::parse(QuadletUnitType::Container, SourceId::new(source_id), source)
+            .map_err(|error| error.to_string())?;
+        assert_eq!(
+            result
+                .model_diagnostics()
+                .iter()
+                .map(|diagnostic| diagnostic.code().as_str())
+                .collect::<Vec<_>>(),
+            expected
+        );
+    }
+
+    let quoted_source = concat!(
+        "[Container]\nImage=example.invalid/app:1\nStartWithPod=\"YES\"\n",
+        "ReadOnly=\"On\"\nReadOnlyTmpfs=\"true\"\n"
+    );
+    let quoted = QuadletDocument::parse(QuadletUnitType::Container, SourceId::new(1_070), quoted_source)
+        .map_err(|error| error.to_string())?;
+    assert_eq!(quoted.syntax().document().render_preserved(), quoted_source);
+    assert_eq!(
+        quoted
+            .document()
+            .entries()
+            .filter(|entry| {
+                matches!(
+                    entry.kind(),
+                    EntryKind::Container(
+                        ContainerKey::StartWithPod | ContainerKey::ReadOnly | ContainerKey::ReadOnlyTmpfs
+                    )
+                )
+            })
+            .map(|entry| entry.value().primary().text())
+            .collect::<Vec<_>>(),
+        ["\"YES\"", "\"On\"", "\"true\""]
+    );
+    Ok(())
+}
+
+#[test]
+fn start_with_pod_relationship_diagnostic_recognizes_effective_boolean_forms() -> Result<(), String> {
+    for (source_id, spelling) in (1_010_u32..).zip(["1", "yes", "true", "on", "YES", "On"]) {
+        let source = format!("[Container]\nImage=example.invalid/app:1\nPod=\nStartWithPod={spelling}\n");
+        let result = QuadletDocument::parse(QuadletUnitType::Container, SourceId::new(source_id), source)
+            .map_err(|error| error.to_string())?;
+        assert_eq!(
+            result
+                .model_diagnostics()
+                .iter()
+                .map(|diagnostic| diagnostic.code().as_str())
+                .collect::<Vec<_>>(),
+            ["QLM0011"],
+            "StartWithPod={spelling} must be recognized as true"
+        );
+    }
+    for (source_id, spelling) in (1_020_u32..).zip(["0", "no", "false", "off", "NO", "Off"]) {
+        let source = format!("[Container]\nImage=example.invalid/app:1\nPod=\nStartWithPod={spelling}\n");
+        let result = QuadletDocument::parse(QuadletUnitType::Container, SourceId::new(source_id), source)
+            .map_err(|error| error.to_string())?;
+        assert!(
+            result.model_diagnostics().is_empty(),
+            "StartWithPod={spelling} must be recognized as false"
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn read_only_tmpfs_relationship_diagnostic_recognizes_effective_boolean_forms() -> Result<(), String> {
+    for (source_id, spelling) in (1_030_u32..).zip(["1", "yes", "true", "on", "YES", "On"]) {
+        let source = format!("[Container]\nImage=example.invalid/app:1\nReadOnly={spelling}\nReadOnlyTmpfs=On\n");
+        let result = QuadletDocument::parse(QuadletUnitType::Container, SourceId::new(source_id), source)
+            .map_err(|error| error.to_string())?;
+        assert!(
+            result.model_diagnostics().is_empty(),
+            "ReadOnly={spelling} must satisfy ReadOnlyTmpfs=On"
+        );
+    }
+    for (source_id, spelling) in (1_040_u32..).zip(["0", "no", "false", "off", "NO", "Off"]) {
+        let source = format!("[Container]\nImage=example.invalid/app:1\nReadOnly={spelling}\nReadOnlyTmpfs=YES\n");
+        let result = QuadletDocument::parse(QuadletUnitType::Container, SourceId::new(source_id), source)
+            .map_err(|error| error.to_string())?;
+        assert_eq!(
+            result
+                .model_diagnostics()
+                .iter()
+                .map(|diagnostic| diagnostic.code().as_str())
+                .collect::<Vec<_>>(),
+            ["QLM0012"],
+            "ReadOnly={spelling} must not satisfy ReadOnlyTmpfs=YES"
+        );
+    }
+    for (source_id, spelling) in (1_060_u32..).zip(["1", "yes", "true", "on", "YES", "On"]) {
+        let source = format!("[Container]\nImage=example.invalid/app:1\nReadOnlyTmpfs={spelling}\n");
+        let result = QuadletDocument::parse(QuadletUnitType::Container, SourceId::new(source_id), source)
+            .map_err(|error| error.to_string())?;
+        assert_eq!(
+            result
+                .model_diagnostics()
+                .iter()
+                .map(|diagnostic| diagnostic.code().as_str())
+                .collect::<Vec<_>>(),
+            ["QLM0012"],
+            "ReadOnlyTmpfs={spelling} must be recognized as true"
+        );
+    }
+    for (source_id, spelling) in (1_050_u32..).zip(["0", "no", "false", "off", "NO", "Off"]) {
+        let source = format!("[Container]\nImage=example.invalid/app:1\nReadOnlyTmpfs={spelling}\n");
+        let result = QuadletDocument::parse(QuadletUnitType::Container, SourceId::new(source_id), source)
+            .map_err(|error| error.to_string())?;
+        assert!(
+            result.model_diagnostics().is_empty(),
+            "ReadOnlyTmpfs={spelling} must be recognized as false"
+        );
+    }
+    Ok(())
 }

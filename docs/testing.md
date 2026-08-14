@@ -64,6 +64,21 @@ The isolated Image fixture records a literal pull unit, missing and empty source
 duplicate-last selection across all 20 releases. It does not pull an image or establish registry,
 authentication, TLS, image-storage, systemd, runtime, or conversion behavior.
 
+The container batch coverage proves `AutoUpdate` registry/local labels, all four documented
+`CgroupsMode` values, `EnvironmentHost=false`, `ReadOnlyTmpfs`, `Timezone`, and
+`HealthOnFailure`, plus ordered post-reset `Mount` output. Separate direct-map and subordinate-map
+fixtures prevent unsupported mapping combinations while proving ordered post-reset `UIDMap` and
+`GIDMap` pairs and isolated `SubUIDMap`/`SubGIDMap` forms. The version-scoped retry fixture rejects
+`Retry`/`RetryDelay` through 5.4.2 and requires exact pairs from 5.5.0; the proxy fixture rejects
+`HttpProxy` through 5.6.2 and requires exactly `--http-proxy=false` from 5.7.0. The StartWithPod
+fixture records `%t/batch-pod.pod-id` before 5.7.0 and `--pod systemd-batch` from 5.7.0. Model
+tests separately include source-spanned diagnostics for effective mapping/UserNS/subordinate-map/
+pod relationships and `StartWithPod`/`Pod` and `ReadOnlyTmpfs`/`ReadOnly` relationships. Those
+two diagnostic checks recognize case-insensitive `1`/`yes`/`true`/`on` and
+`0`/`no`/`false`/`off` forms only, after target-style trailing-whitespace removal and matched
+double-quote lookup; blank resets and unknown or escaped spellings remain undiagnosed. No test
+reads host environment, proxy, subordinate-ID, timezone, filesystem, registry, or runtime state.
+
 An isolated `Sysctl` fixture likewise authors two pre-reset assignments, an empty reset, and one
 final entry; every patch must emit exactly one final `--sysctl net.ipv4.ip_forward=1`, no other
 sysctl form, and neither pre-reset setting. An isolated `Ulimit` fixture authors pre-reset `core`

@@ -127,11 +127,26 @@ fn growing_public_key_enums_preserve_published_discriminants() {
             ContainerKey::NetworkAlias as isize,
             ContainerKey::ReloadCmd as isize,
             ContainerKey::ReloadSignal as isize,
+            ContainerKey::AutoUpdate as isize,
+            ContainerKey::CgroupsMode as isize,
+            ContainerKey::EnvironmentHost as isize,
+            ContainerKey::GIDMap as isize,
+            ContainerKey::HttpProxy as isize,
+            ContainerKey::Mount as isize,
+            ContainerKey::ReadOnlyTmpfs as isize,
+            ContainerKey::Retry as isize,
+            ContainerKey::RetryDelay as isize,
+            ContainerKey::StartWithPod as isize,
+            ContainerKey::SubGIDMap as isize,
+            ContainerKey::SubUIDMap as isize,
+            ContainerKey::Timezone as isize,
+            ContainerKey::UIDMap as isize,
+            ContainerKey::HealthOnFailure as isize,
         ],
         [
             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28,
             29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55,
-            56, 57, 58, 59, 60, 61, 62,
+            56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77,
         ]
     );
     assert_eq!(
@@ -164,6 +179,45 @@ fn growing_public_key_enums_preserve_published_discriminants() {
         ],
         [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     );
+}
+
+#[test]
+fn container_batch_keys_are_public_opaque_builder_values() -> Result<(), Box<dyn std::error::Error>> {
+    let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    generated.push_container(ContainerKey::Image, EntryValue::new("example.invalid/application:1")?)?;
+    for (key, value) in [
+        (ContainerKey::AutoUpdate, "registry"),
+        (ContainerKey::CgroupsMode, "split"),
+        (ContainerKey::EnvironmentHost, "false"),
+        (ContainerKey::GIDMap, "0:100000:65536"),
+        (ContainerKey::GIDMap, "1:200000:1"),
+        (ContainerKey::HttpProxy, "true"),
+        (ContainerKey::Mount, "type=volume,src=data.volume,dst=/data"),
+        (ContainerKey::Mount, "type=image,src=assets.image,dst=/assets"),
+        (ContainerKey::ReadOnlyTmpfs, "true"),
+        (ContainerKey::Retry, "4"),
+        (ContainerKey::RetryDelay, "7s"),
+        (ContainerKey::StartWithPod, "false"),
+        (ContainerKey::Timezone, "Europe/Berlin"),
+        (ContainerKey::HealthOnFailure, "kill"),
+    ] {
+        generated.push_container(key, EntryValue::new(value)?)?;
+    }
+    let built = generated.build(SourceId::new(979))?;
+    assert!(built.text().contains("Mount=type=image,src=assets.image,dst=/assets\n"));
+    assert_eq!(
+        built
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::GIDMap))
+            .count(),
+        2
+    );
+    assert!(matches!(
+        built.document().entries().find(|entry| entry.kind() == EntryKind::Container(ContainerKey::Timezone)),
+        Some(entry) if entry.value_kind() == ValueKind::Opaque
+    ));
+    Ok(())
 }
 
 #[test]

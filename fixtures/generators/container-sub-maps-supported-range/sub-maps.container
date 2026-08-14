@@ -1,0 +1,4 @@
+[Container]
+Image=registry.example.invalid/container-sub-maps:1
+SubUIDMap=keep-id
+SubGIDMap=keep-id

@@ -1,0 +1,7 @@
+[Container]
+Image=registry.example.invalid/container-mount-reset:1
+Mount=type=tmpfs,destination=/pre-one
+Mount=type=tmpfs,destination=/pre-two
+Mount=
+Mount=type=tmpfs,destination=/final-one
+Mount=type=tmpfs,destination=/final-two

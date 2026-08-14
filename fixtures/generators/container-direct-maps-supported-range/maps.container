@@ -1,0 +1,10 @@
+[Container]
+Image=registry.example.invalid/container-direct-maps:1
+UIDMap=0:100000:65536
+UIDMap=
+UIDMap=0:200000:65536
+UIDMap=1:300000:1
+GIDMap=0:100000:65536
+GIDMap=
+GIDMap=0:200000:65536
+GIDMap=1:300000:1

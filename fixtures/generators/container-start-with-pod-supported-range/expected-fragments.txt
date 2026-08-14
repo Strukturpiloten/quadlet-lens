@@ -1,0 +1,6 @@
+---batch.service---
+BindsTo=batch-pod.service
+After=batch-pod.service
+---batch-pod.service---
+Wants=batch.service
+Before=batch.service

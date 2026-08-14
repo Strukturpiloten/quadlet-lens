@@ -781,6 +781,21 @@ const fn container_key_name(key: ContainerKey) -> &'static str {
         ContainerKey::NetworkAlias => "NetworkAlias",
         ContainerKey::ReloadCmd => "ReloadCmd",
         ContainerKey::ReloadSignal => "ReloadSignal",
+        ContainerKey::AutoUpdate => "AutoUpdate",
+        ContainerKey::CgroupsMode => "CgroupsMode",
+        ContainerKey::EnvironmentHost => "EnvironmentHost",
+        ContainerKey::GIDMap => "GIDMap",
+        ContainerKey::HttpProxy => "HttpProxy",
+        ContainerKey::Mount => "Mount",
+        ContainerKey::ReadOnlyTmpfs => "ReadOnlyTmpfs",
+        ContainerKey::Retry => "Retry",
+        ContainerKey::RetryDelay => "RetryDelay",
+        ContainerKey::StartWithPod => "StartWithPod",
+        ContainerKey::SubGIDMap => "SubGIDMap",
+        ContainerKey::SubUIDMap => "SubUIDMap",
+        ContainerKey::Timezone => "Timezone",
+        ContainerKey::UIDMap => "UIDMap",
+        ContainerKey::HealthOnFailure => "HealthOnFailure",
     }
 }
 

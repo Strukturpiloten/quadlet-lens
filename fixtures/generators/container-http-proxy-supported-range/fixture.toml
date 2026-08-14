@@ -1,0 +1,18 @@
+schema = 1
+id = "container-http-proxy-supported-range"
+suite = "generators"
+description = "Exercises Container HttpProxy rejection through 5.6.2 and exact false command construction from 5.7.0 through 6.0.2."
+secrets_reviewed = true
+files = ["http-proxy.container", "expected-fragments.txt"]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "Dry-run generator only; the fixture neither reads nor logs proxy environment variables."
+
+[expectations]
+summary = "Pre-5.7 generators reject HttpProxy. Later recorded releases emit exactly one --http-proxy=false argument."

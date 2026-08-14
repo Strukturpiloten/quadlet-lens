@@ -23,7 +23,7 @@ that the syntax parser rejects it.
 
 | Section/unit                 | Current keys | Typed keys | Syntax-preserved only |
 | ---------------------------- | -----------: | ---------: | --------------------: |
-| `[Container]` / `.container` |           90 |         63 |                    27 |
+| `[Container]` / `.container` |           90 |         78 |                    12 |
 | `[Pod]` / `.pod`             |           25 |         10 |                    15 |
 | `[Network]` / `.network`     |           18 |         10 |                     8 |
 | `[Volume]` / `.volume`       |           16 |         16 |                     0 |
@@ -38,19 +38,14 @@ evidence are separate layers documented in [Native coverage](coverage.md).
 
 ### Missing `[Container]` keys
 
-The following 29 current keys are syntax-preserved but not typed:
+The following 12 current keys are syntax-preserved but not typed:
 
-`AutoUpdate`, `CgroupsMode`,
-`ContainersConfModule`, `EnvironmentHost`,
-`GIDMap`, `GlobalArgs`, `HealthLogDestination`,
-`HealthMaxLogCount`, `HealthMaxLogSize`, `HealthOnFailure`, `HealthStartupCmd`,
+`ContainersConfModule`, `GlobalArgs`, `HealthLogDestination`,
+`HealthMaxLogCount`, `HealthMaxLogSize`, `HealthStartupCmd`,
 `HealthStartupInterval`, `HealthStartupRetries`, `HealthStartupSuccess`,
-`HealthStartupTimeout`, `HttpProxy`, `ImageVolume`, `Mount`,
-`ReadOnlyTmpfs`, `Retry`, `RetryDelay`,
-`ServiceName`, `StartWithPod`,
-`SubGIDMap`, `SubUIDMap`, `Timezone`, and `UIDMap`.
+`HealthStartupTimeout`, `ImageVolume`, and `ServiceName`.
 
-The 63 typed keys are `AddHost`, `ContainerName`, `Image`, `Rootfs`, `Entrypoint`, `RunInit`,
+The 78 typed keys are `AddHost`, `ContainerName`, `Image`, `Rootfs`, `Entrypoint`, `RunInit`,
 `StopSignal`, `StopTimeout`, `Pull`, `PidsLimit`, `HostName`, `ShmSize`, `ReloadCmd`, `ReloadSignal`, `DropCapability`,
 `AddCapability`, `Tmpfs`, `Sysctl`, `Ulimit`, `AddDevice`, `Memory`, `LogDriver`, `LogOpt`, `IP`,
 `IP6`, `NetworkAlias`, `DNS`, `DNSOption`, `DNSSearch`, `ExposeHostPort`, `Annotation`, `AppArmor`,
@@ -58,8 +53,10 @@ The 63 typed keys are `AddHost`, `ContainerName`, `Image`, `Rootfs`, `Entrypoint
 `SecurityLabelLevel`, `SecurityLabelNested`, `SecurityLabelType`, `Mask`, `Unmask`, `Exec`,
 `Environment`, `EnvironmentFile`, `Label`, `Secret`, `User`, `Group`,
 `UserNS`, `GroupAdd`, `WorkingDir`, `ReadOnly`, `PublishPort`, `Volume`, `Network`, `Pod`,
-`HealthCmd`, `Notify`, `HealthInterval`, `HealthRetries`, `HealthStartPeriod`, `HealthTimeout`, and
-`PodmanArgs`.
+`HealthCmd`, `Notify`, `HealthInterval`, `HealthRetries`, `HealthStartPeriod`, `HealthTimeout`,
+`PodmanArgs`, `AutoUpdate`, `CgroupsMode`, `EnvironmentHost`, repeatable `GIDMap`/`UIDMap`,
+`HttpProxy`, repeatable `Mount`, `ReadOnlyTmpfs`, `Retry`, `RetryDelay`, `StartWithPod`,
+`SubGIDMap`, `SubUIDMap`, `Timezone`, and `HealthOnFailure`.
 
 ### Missing `[Pod]` keys
 

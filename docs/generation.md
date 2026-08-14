@@ -291,6 +291,17 @@ reading the referenced Podman secret.
 the builder preserves insertion order and does not enforce reverse-DNS naming recommendations or
 merge duplicate label names.
 
+`AutoUpdate`, `CgroupsMode`, `EnvironmentHost`, `HttpProxy`, `ReadOnlyTmpfs`, `Retry`,
+`RetryDelay`, `StartWithPod`, `SubGIDMap`, `SubUIDMap`, `Timezone`, and `HealthOnFailure` are
+opaque singleton values. Repeatable `GIDMap`, `UIDMap`, and `Mount` retain exact physical-line
+text in insertion order. Generated documents retain authored reset assignments; only the target
+generator's effective-value behavior is asserted by isolated generator fixtures. `Retry`,
+`RetryDelay`, and `HttpProxy` have target-version capability boundaries, while `StartWithPod`
+has a target generator command boundary at Podman 5.7.0. The builder never reads process/proxy
+environments, host mapping or timezone files, image registries, or the filesystem; it neither
+performs pulls nor starts, mounts, retries, or executes health checks. `Mount` remains opaque
+because the current document-set grammar has no evidenced native `--mount` reference extractor.
+
 `PodKey::UserNS` configures the namespace shared by pod members and is a singleton. It is distinct
 from `ContainerKey::UserNS`: Podman ignores container-level namespace selection after a container
 joins a pod.

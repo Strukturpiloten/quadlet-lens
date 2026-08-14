@@ -8157,3 +8157,183 @@ evidence = [
   "podman-6-0-2-build-podman-args-source",
   "podman-5-4-through-current-build-podman-args-generators"
 ]
+
+[[evidence]]
+id = "podman-5-4-container-batch-keys"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Quadlet manual documents the promoted Container keys except HttpProxy, Retry, and RetryDelay; the tagged v5.4.0 generator source records their native lookup and command construction boundaries."
+test = "capabilities::supported_range_records_container_batch_keys"
+gap = "QuadletLens retains opaque source text and does not read process, proxy, host, timezone, filesystem, subordinate-ID, image, health, cgroup, systemd, or runtime state."
+
+[[evidence]]
+id = "podman-6-0-2-container-batch-keys"
+verification = "documentation"
+url = "https://github.com/containers/podman/blob/v6.0.2/pkg/systemd/quadlet/quadlet.go"
+target = "6.0.2"
+claim = "Tagged Podman v6.0.2 generator source retains native lookup and command construction for every promoted Container key, including HttpProxy, Retry, and RetryDelay."
+test = "capabilities::supported_range_records_container_batch_keys"
+gap = "Tagged source establishes generator text only; it does not establish host inspection, image pulls, health execution, environment inheritance, proxy use, mounts, cgroups, mappings, timezone, systemd activation, or runtime behavior."
+
+[[evidence]]
+id = "podman-5-4-through-current-container-batch-generators"
+verification = "generator"
+url = "https://github.com/containers/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every recorded Podman patch release from 5.4.0 through 6.0.2 emits the isolated AutoUpdate, CgroupsMode, EnvironmentHost, GIDMap, Mount, ReadOnlyTmpfs, SubGIDMap, SubUIDMap, Timezone, UIDMap, HealthOnFailure, and StartWithPod forms; Retry and RetryDelay are rejected through 5.4.2 then emitted from 5.5.0, while HttpProxy is rejected through 5.6.2 then emitted from 5.7.0."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Dry-run generator evidence records command construction only; it does not inspect host or process state, start workloads, perform pulls, execute health checks, create mounts, or establish runtime semantics."
+
+[[capability]]
+id = "quadlet.container.auto-update"
+description = "Opaque automatic image-update policy text retained as a singleton without image-reference, pull, registry, or runtime interpretation."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["registry", "local"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-batch-keys", "podman-6-0-2-container-batch-keys", "podman-5-4-through-current-container-batch-generators"]
+
+[[capability]]
+id = "quadlet.container.cgroups-mode"
+description = "Opaque cgroup-management mode text retained as a singleton without default injection or cgroup interpretation."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["enabled", "disabled", "no-conmon", "split"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-batch-keys", "podman-6-0-2-container-batch-keys", "podman-5-4-through-current-container-batch-generators"]
+
+[[capability]]
+id = "quadlet.container.environment-host"
+description = "Opaque environment-inheritance selection retained as a singleton without reading the process environment."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["boolean"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-batch-keys", "podman-6-0-2-container-batch-keys", "podman-5-4-through-current-container-batch-generators"]
+
+[[capability]]
+id = "quadlet.container.gid-map"
+description = "Opaque ordered physical group-ID mapping text retained without host mapping, reset application, or runtime interpretation."
+unit_types = ["container"]
+sections = ["Container"]
+repeatable = true
+value_forms = ["opaque-physical-mapping-line"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-batch-keys", "podman-6-0-2-container-batch-keys", "podman-5-4-through-current-container-batch-generators"]
+
+[[capability]]
+id = "quadlet.container.http-proxy"
+description = "Opaque proxy-environment selection retained as a singleton without inspecting or logging proxy environment variables."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["boolean"]
+native = { minimum = "5.7.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-batch-keys", "podman-6-0-2-container-batch-keys", "podman-5-4-through-current-container-batch-generators"]
+
+[[capability.unsupported]]
+versions = { minimum = "5.4.0", maximum = "5.6.2" }
+summary = "Recorded manual and generator evidence does not support HttpProxy before Podman 5.7.0."
+evidence = ["podman-5-4-container-batch-keys"]
+
+[[capability]]
+id = "quadlet.container.mount"
+description = "Opaque ordered native --mount physical text retained without mount parsing, filesystem access, or reference resolution."
+unit_types = ["container"]
+sections = ["Container"]
+repeatable = true
+value_forms = ["opaque-physical-mount-spelling"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-batch-keys", "podman-6-0-2-container-batch-keys", "podman-5-4-through-current-container-batch-generators"]
+
+[[capability]]
+id = "quadlet.container.read-only-tmpfs"
+description = "Opaque temporary-filesystem read-only selection retained as a singleton without mount or runtime claims."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["boolean"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-batch-keys", "podman-6-0-2-container-batch-keys", "podman-5-4-through-current-container-batch-generators"]
+
+[[capability]]
+id = "quadlet.container.retry"
+description = "Opaque retry-count text retained as a singleton without integer parsing, default selection, or execution claims."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["opaque-one-line-retry-count"]
+native = { minimum = "5.5.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-batch-keys", "podman-6-0-2-container-batch-keys", "podman-5-4-through-current-container-batch-generators"]
+
+[[capability.unsupported]]
+versions = { minimum = "5.4.0", maximum = "5.4.2" }
+summary = "Recorded generators reject or exclude Retry before Podman 5.5.0."
+evidence = ["podman-5-4-container-batch-keys"]
+
+[[capability]]
+id = "quadlet.container.retry-delay"
+description = "Opaque retry-delay text retained as a singleton without duration parsing, default selection, or execution claims."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["opaque-one-line-retry-delay"]
+native = { minimum = "5.5.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-batch-keys", "podman-6-0-2-container-batch-keys", "podman-5-4-through-current-container-batch-generators"]
+
+[[capability.unsupported]]
+versions = { minimum = "5.4.0", maximum = "5.4.2" }
+summary = "Recorded generators reject or exclude RetryDelay before Podman 5.5.0."
+evidence = ["podman-5-4-container-batch-keys"]
+
+[[capability]]
+id = "quadlet.container.start-with-pod"
+description = "Opaque pod-start selection retained as a singleton without systemd activation interpretation."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["boolean"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-batch-keys", "podman-6-0-2-container-batch-keys", "podman-5-4-through-current-container-batch-generators"]
+
+[[capability]]
+id = "quadlet.container.subgid-map"
+description = "Opaque subordinate group-mapping text retained as a singleton without host-file access or mapping interpretation."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["opaque-one-line-subordinate-mapping"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-batch-keys", "podman-6-0-2-container-batch-keys", "podman-5-4-through-current-container-batch-generators"]
+
+[[capability]]
+id = "quadlet.container.subuid-map"
+description = "Opaque subordinate user-mapping text retained as a singleton without host-file access or mapping interpretation."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["opaque-one-line-subordinate-mapping"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-batch-keys", "podman-6-0-2-container-batch-keys", "podman-5-4-through-current-container-batch-generators"]
+
+[[capability]]
+id = "quadlet.container.timezone"
+description = "Opaque timezone text retained as a singleton without host timezone lookup."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["utc", "iana-zone", "local"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-batch-keys", "podman-6-0-2-container-batch-keys", "podman-5-4-through-current-container-batch-generators"]
+
+[[capability]]
+id = "quadlet.container.uid-map"
+description = "Opaque ordered physical user-ID mapping text retained without host mapping, reset application, or runtime interpretation."
+unit_types = ["container"]
+sections = ["Container"]
+repeatable = true
+value_forms = ["opaque-physical-mapping-line"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-batch-keys", "podman-6-0-2-container-batch-keys", "podman-5-4-through-current-container-batch-generators"]
+
+[[capability]]
+id = "quadlet.container.health-on-failure"
+description = "Opaque health-failure action text retained as a singleton without health-check parsing or execution."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["opaque-one-line-health-action"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-batch-keys", "podman-6-0-2-container-batch-keys", "podman-5-4-through-current-container-batch-generators"]

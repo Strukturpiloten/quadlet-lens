@@ -5,6 +5,12 @@ Versioning for its documented pre-1.0 public API.
 
 ## [Unreleased]
 
+### Added
+
+- Typed opaque Container support for automatic updates, cgroup and environment/proxy controls,
+  user mappings, native mounts, retry/start/timezone/health-failure controls, with repeatability
+  and relationship diagnostics preserved without host inspection or runtime claims.
+
 ## [0.1.13] - 2026-08-13
 
 ### Added

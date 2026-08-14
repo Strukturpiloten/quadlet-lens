@@ -25,8 +25,8 @@ fn supported_range_has_the_reviewed_first_conversion_surface() -> Result<(), Str
         .collect();
     let expected: BTreeSet<_> = EXPECTED_CAPABILITIES.lines().filter(|line| !line.is_empty()).collect();
     assert_eq!(actual, expected);
-    assert_eq!(catalogue.capabilities().len(), 161);
-    assert_eq!(catalogue.evidence().len(), 623);
+    assert_eq!(catalogue.capabilities().len(), 176);
+    assert_eq!(catalogue.evidence().len(), 626);
 
     let documentation: Vec<_> = catalogue
         .evidence()
@@ -34,7 +34,7 @@ fn supported_range_has_the_reviewed_first_conversion_surface() -> Result<(), Str
         .filter(|evidence| evidence.level() == VerificationLevel::Documentation)
         .collect();
     assert!(!documentation.is_empty());
-    assert_eq!(documentation.len(), 526);
+    assert_eq!(documentation.len(), 528);
     assert!(documentation.iter().all(|evidence| evidence.gap().is_some()));
     let generator = catalogue
         .evidence()
@@ -44,6 +44,64 @@ fn supported_range_has_the_reviewed_first_conversion_surface() -> Result<(), Str
     assert_eq!(generator.versions().minimum(), version(5, 4, 0));
     assert_eq!(generator.versions().maximum(), version(6, 0, 2));
     assert_eq!(generator.gap(), None);
+    Ok(())
+}
+
+#[test]
+fn supported_range_records_container_batch_keys() -> Result<(), String> {
+    let catalogue = CapabilityCatalogue::supported_range().map_err(|error| error.to_string())?;
+    for (id, repeatable, minimum) in [
+        ("quadlet.container.auto-update", false, Some(version(5, 4, 0))),
+        ("quadlet.container.cgroups-mode", false, Some(version(5, 4, 0))),
+        ("quadlet.container.environment-host", false, Some(version(5, 4, 0))),
+        ("quadlet.container.gid-map", true, Some(version(5, 4, 0))),
+        ("quadlet.container.http-proxy", false, Some(version(5, 7, 0))),
+        ("quadlet.container.mount", true, Some(version(5, 4, 0))),
+        ("quadlet.container.read-only-tmpfs", false, Some(version(5, 4, 0))),
+        ("quadlet.container.retry", false, Some(version(5, 5, 0))),
+        ("quadlet.container.retry-delay", false, Some(version(5, 5, 0))),
+        ("quadlet.container.start-with-pod", false, Some(version(5, 4, 0))),
+        ("quadlet.container.subgid-map", false, Some(version(5, 4, 0))),
+        ("quadlet.container.subuid-map", false, Some(version(5, 4, 0))),
+        ("quadlet.container.timezone", false, Some(version(5, 4, 0))),
+        ("quadlet.container.uid-map", true, Some(version(5, 4, 0))),
+        ("quadlet.container.health-on-failure", false, Some(version(5, 4, 0))),
+    ] {
+        let capability = catalogue.capability(id).ok_or_else(|| format!("missing {id}"))?;
+        assert_eq!(capability.unit_types(), ["container"]);
+        assert_eq!(capability.sections(), ["Container"]);
+        assert_eq!(capability.is_repeatable(), repeatable);
+        let target = PodmanTarget::new(version(6, 0, 2), Some(version(6, 0, 2))).map_err(|error| error.to_string())?;
+        if let Some(minimum) = minimum {
+            let native = capability
+                .native_range()
+                .ok_or_else(|| format!("{id} lacks native range"))?;
+            assert_eq!(native.minimum(), minimum);
+            assert_eq!(native.maximum(), version(6, 0, 2));
+            assert_eq!(
+                catalogue.evaluate(id, target).classification(),
+                SupportClassification::Native
+            );
+            assert!(!capability.evidence().is_empty());
+        } else {
+            assert!(capability.native_range().is_none());
+            assert_eq!(
+                catalogue.evaluate(id, target).classification(),
+                SupportClassification::Unknown
+            );
+        }
+    }
+    for id in [
+        "quadlet.container.http-proxy",
+        "quadlet.container.retry",
+        "quadlet.container.retry-delay",
+    ] {
+        let target = PodmanTarget::new(version(5, 4, 0), Some(version(5, 4, 0))).map_err(|error| error.to_string())?;
+        assert_eq!(
+            catalogue.evaluate(id, target).classification(),
+            SupportClassification::Unsupported
+        );
+    }
     Ok(())
 }
 

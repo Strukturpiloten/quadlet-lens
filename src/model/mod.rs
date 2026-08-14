@@ -24,6 +24,12 @@ const EMPTY_ROOTFS: DiagnosticCode = DiagnosticCode::new("QLM0007");
 const MISSING_IMAGE_SOURCE: DiagnosticCode = DiagnosticCode::new("QLM0008");
 const EMPTY_IMAGE_SOURCE: DiagnosticCode = DiagnosticCode::new("QLM0009");
 const CONFLICTING_RELOAD_KEYS: DiagnosticCode = DiagnosticCode::new("QLM0010");
+const START_WITH_POD_WITHOUT_POD: DiagnosticCode = DiagnosticCode::new("QLM0011");
+const READ_ONLY_TMPFS_WITHOUT_READ_ONLY: DiagnosticCode = DiagnosticCode::new("QLM0012");
+const CONFLICTING_USERNS_MAPPING: DiagnosticCode = DiagnosticCode::new("QLM0013");
+const CONFLICTING_UID_MAPPING: DiagnosticCode = DiagnosticCode::new("QLM0014");
+const CONFLICTING_GID_MAPPING: DiagnosticCode = DiagnosticCode::new("QLM0015");
+const MAPPING_WITH_POD: DiagnosticCode = DiagnosticCode::new("QLM0016");
 
 /// Native Quadlet unit types supported by the typed model.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -252,6 +258,36 @@ pub enum ContainerKey {
     ReloadCmd,
     /// Authored signal sent by Podman when reloading the container.
     ReloadSignal,
+    /// Authored automatic image-update policy retained without image-pull interpretation.
+    AutoUpdate,
+    /// Authored cgroup-management mode retained without cgroup interpretation.
+    CgroupsMode,
+    /// Authored environment-inheritance selection retained without reading the process environment.
+    EnvironmentHost,
+    /// Authored supplementary group-ID mapping. Physical entries remain ordered and unparsed.
+    GIDMap,
+    /// Authored proxy-environment selection retained without inspecting proxy environment variables.
+    HttpProxy,
+    /// Authored native `--mount` spelling. Physical entries remain ordered and unparsed.
+    Mount,
+    /// Authored temporary-filesystem read-only selection retained without mount interpretation.
+    ReadOnlyTmpfs,
+    /// Authored retry-count text retained without integer parsing or default selection.
+    Retry,
+    /// Authored retry-delay text retained without duration parsing or default selection.
+    RetryDelay,
+    /// Authored pod-start selection retained without systemd activation interpretation.
+    StartWithPod,
+    /// Authored subordinate group-mapping selection retained without host-file access.
+    SubGIDMap,
+    /// Authored subordinate user-mapping selection retained without host-file access.
+    SubUIDMap,
+    /// Authored timezone selection retained without host timezone lookup.
+    Timezone,
+    /// Authored user-ID mapping. Physical entries remain ordered and unparsed.
+    UIDMap,
+    /// Authored action selected after a health-check failure retained without health execution.
+    HealthOnFailure,
 }
 
 /// Pod keys required by the first Compose-to-Quadlet conversion.
@@ -499,6 +535,9 @@ impl EntryKind {
                         | ContainerKey::Unmask
                         | ContainerKey::LogOpt
                         | ContainerKey::NetworkAlias
+                        | ContainerKey::GIDMap
+                        | ContainerKey::Mount
+                        | ContainerKey::UIDMap
                 )
                 | Self::Pod(PodKey::AddHost | PodKey::PublishPort | PodKey::Network | PodKey::Volume)
                 | Self::Network(
@@ -959,89 +998,12 @@ impl QuadletDocument {
             .filter(|section| section.kind == SectionKind::Container)
             .flat_map(|section| section.entries.iter())
             .collect();
-        let images: Vec<_> = container_entries
-            .iter()
-            .copied()
-            .filter(|entry| entry.kind == EntryKind::Container(ContainerKey::Image))
-            .collect();
-        let root_filesystems: Vec<_> = container_entries
-            .iter()
-            .copied()
-            .filter(|entry| entry.kind == EntryKind::Container(ContainerKey::Rootfs))
-            .collect();
-        let mut diagnostics = Vec::new();
-
-        if images.is_empty() && root_filesystems.is_empty() {
-            if let Some(section) = container_section {
-                diagnostics.push(Diagnostic::new(
-                    MISSING_IMAGE,
-                    Severity::Error,
-                    "container unit is missing its required image or root filesystem",
-                    Label::new(
-                        section.name.span(),
-                        "add either `Image=` or `Rootfs=` to this Container section",
-                    ),
-                ));
-            }
-        }
-        if !images.is_empty() && !root_filesystems.is_empty() {
-            diagnostics.push(Diagnostic::new(
-                CONFLICTING_IMAGE_ROOTFS,
-                Severity::Error,
-                "container Image and Rootfs entries conflict",
-                Label::new(
-                    root_filesystems[0].value.primary.span(),
-                    "remove either this Rootfs entry or every Image entry",
-                ),
-            ));
-        }
-        let reload_commands: Vec<_> = container_entries
-            .iter()
-            .copied()
-            .filter(|entry| entry.kind == EntryKind::Container(ContainerKey::ReloadCmd))
-            .collect();
-        let reload_signals: Vec<_> = container_entries
-            .iter()
-            .copied()
-            .filter(|entry| entry.kind == EntryKind::Container(ContainerKey::ReloadSignal))
-            .collect();
-        if !reload_commands.is_empty() && !reload_signals.is_empty() {
-            diagnostics.push(Diagnostic::new(
-                CONFLICTING_RELOAD_KEYS,
-                Severity::Error,
-                "container ReloadCmd and ReloadSignal entries conflict",
-                Label::new(
-                    reload_signals[0].key.span(),
-                    "remove either ReloadSignal or ReloadCmd from this Container section",
-                ),
-            ));
-        }
-        diagnostics.extend(
-            images
-                .iter()
-                .filter(|entry| entry.value.primary.text.trim().is_empty())
-                .map(|entry| {
-                    Diagnostic::new(
-                        EMPTY_IMAGE,
-                        Severity::Error,
-                        "container Image entry is empty",
-                        Label::new(entry.value.primary.span(), "provide an image or unit reference"),
-                    )
-                }),
-        );
-        diagnostics.extend(
-            root_filesystems
-                .iter()
-                .filter(|entry| entry.value.primary.text.trim().is_empty())
-                .map(|entry| {
-                    Diagnostic::new(
-                        EMPTY_ROOTFS,
-                        Severity::Error,
-                        "container Rootfs entry is empty",
-                        Label::new(entry.value.primary.span(), "provide a Podman root filesystem"),
-                    )
-                }),
-        );
+        let images = container_entries_with_key(&container_entries, ContainerKey::Image);
+        let root_filesystems = container_entries_with_key(&container_entries, ContainerKey::Rootfs);
+        let mut diagnostics = validate_container_workload_sources(container_section, &images, &root_filesystems);
+        diagnostics.extend(validate_container_reload_keys(&container_entries));
+        diagnostics.extend(validate_container_relationships(&container_entries));
+        diagnostics.extend(validate_empty_container_workload_sources(&images, &root_filesystems));
         diagnostics
     }
 
@@ -1181,75 +1143,226 @@ fn collect_continuations(
     Ok(values)
 }
 
+fn container_entries_with_key<'a>(entries: &[&'a TypedEntry], key: ContainerKey) -> Vec<&'a TypedEntry> {
+    entries
+        .iter()
+        .copied()
+        .filter(|entry| entry.kind == EntryKind::Container(key))
+        .collect()
+}
+
+fn validate_container_workload_sources(
+    container_section: Option<&TypedSection>,
+    images: &[&TypedEntry],
+    root_filesystems: &[&TypedEntry],
+) -> Vec<Diagnostic> {
+    let mut diagnostics = Vec::new();
+    if images.is_empty() && root_filesystems.is_empty() {
+        if let Some(section) = container_section {
+            diagnostics.push(Diagnostic::new(
+                MISSING_IMAGE,
+                Severity::Error,
+                "container unit is missing its required image or root filesystem",
+                Label::new(
+                    section.name.span(),
+                    "add either `Image=` or `Rootfs=` to this Container section",
+                ),
+            ));
+        }
+    }
+    if !images.is_empty() && !root_filesystems.is_empty() {
+        diagnostics.push(Diagnostic::new(
+            CONFLICTING_IMAGE_ROOTFS,
+            Severity::Error,
+            "container Image and Rootfs entries conflict",
+            Label::new(
+                root_filesystems[0].value.primary.span(),
+                "remove either this Rootfs entry or every Image entry",
+            ),
+        ));
+    }
+    diagnostics
+}
+
+fn validate_container_reload_keys(entries: &[&TypedEntry]) -> Vec<Diagnostic> {
+    let reload_commands = container_entries_with_key(entries, ContainerKey::ReloadCmd);
+    let reload_signals = container_entries_with_key(entries, ContainerKey::ReloadSignal);
+    if reload_commands.is_empty() || reload_signals.is_empty() {
+        return Vec::new();
+    }
+    vec![Diagnostic::new(
+        CONFLICTING_RELOAD_KEYS,
+        Severity::Error,
+        "container ReloadCmd and ReloadSignal entries conflict",
+        Label::new(
+            reload_signals[0].key.span(),
+            "remove either ReloadSignal or ReloadCmd from this Container section",
+        ),
+    )]
+}
+
+fn validate_empty_container_workload_sources(
+    images: &[&TypedEntry],
+    root_filesystems: &[&TypedEntry],
+) -> Vec<Diagnostic> {
+    let mut diagnostics = Vec::new();
+    diagnostics.extend(
+        images
+            .iter()
+            .filter(|entry| entry.value.primary.text.trim().is_empty())
+            .map(|entry| {
+                Diagnostic::new(
+                    EMPTY_IMAGE,
+                    Severity::Error,
+                    "container Image entry is empty",
+                    Label::new(entry.value.primary.span(), "provide an image or unit reference"),
+                )
+            }),
+    );
+    diagnostics.extend(
+        root_filesystems
+            .iter()
+            .filter(|entry| entry.value.primary.text.trim().is_empty())
+            .map(|entry| {
+                Diagnostic::new(
+                    EMPTY_ROOTFS,
+                    Severity::Error,
+                    "container Rootfs entry is empty",
+                    Label::new(entry.value.primary.span(), "provide a Podman root filesystem"),
+                )
+            }),
+    );
+    diagnostics
+}
+
+struct ContainerRelationshipEntries<'a> {
+    pod: Vec<&'a TypedEntry>,
+    user_namespace: Vec<&'a TypedEntry>,
+    direct_maps: [Vec<&'a TypedEntry>; 2],
+    subordinate_maps: [Vec<&'a TypedEntry>; 2],
+    start_with_pod: Vec<&'a TypedEntry>,
+    read_only_tmpfs: Vec<&'a TypedEntry>,
+    read_only: Vec<&'a TypedEntry>,
+}
+
+impl<'a> ContainerRelationshipEntries<'a> {
+    fn collect(entries: &[&'a TypedEntry]) -> Self {
+        Self {
+            pod: container_entries_with_key(entries, ContainerKey::Pod),
+            user_namespace: container_entries_with_key(entries, ContainerKey::UserNS),
+            direct_maps: [
+                container_entries_with_key(entries, ContainerKey::UIDMap),
+                container_entries_with_key(entries, ContainerKey::GIDMap),
+            ],
+            subordinate_maps: [
+                container_entries_with_key(entries, ContainerKey::SubUIDMap),
+                container_entries_with_key(entries, ContainerKey::SubGIDMap),
+            ],
+            start_with_pod: container_entries_with_key(entries, ContainerKey::StartWithPod),
+            read_only_tmpfs: container_entries_with_key(entries, ContainerKey::ReadOnlyTmpfs),
+            read_only: container_entries_with_key(entries, ContainerKey::ReadOnly),
+        }
+    }
+}
+
+fn validate_container_relationships(entries: &[&TypedEntry]) -> Vec<Diagnostic> {
+    let relationships = ContainerRelationshipEntries::collect(entries);
+    let active_pod = effective_singleton(&relationships.pod);
+    let active_direct_maps = [
+        reset_aware_entries(&relationships.direct_maps[0]),
+        reset_aware_entries(&relationships.direct_maps[1]),
+    ];
+    let active_subordinate_maps = [
+        effective_singleton(&relationships.subordinate_maps[0]),
+        effective_singleton(&relationships.subordinate_maps[1]),
+    ];
+    let has_active_mappings =
+        active_direct_maps.iter().any(|maps| !maps.is_empty()) || active_subordinate_maps.iter().any(Option::is_some);
+    let mut diagnostics = Vec::new();
+
+    if let Some((entry, true)) = effective_boolean(&relationships.start_with_pod) {
+        if active_pod.is_none() {
+            diagnostics.push(container_relationship_diagnostic(
+                START_WITH_POD_WITHOUT_POD,
+                Severity::Warning,
+                "container StartWithPod entry has no Pod entry",
+                entry,
+                "add Pod= or remove StartWithPod=",
+            ));
+        }
+    }
+    if let Some((entry, true)) = effective_boolean(&relationships.read_only_tmpfs) {
+        if !matches!(effective_boolean(&relationships.read_only), Some((_, true))) {
+            diagnostics.push(container_relationship_diagnostic(
+                READ_ONLY_TMPFS_WITHOUT_READ_ONLY,
+                Severity::Warning,
+                "container ReadOnlyTmpfs entry has no ReadOnly entry",
+                entry,
+                "add ReadOnly= or remove ReadOnlyTmpfs=",
+            ));
+        }
+    }
+    if let Some(user_namespace) = effective_singleton(&relationships.user_namespace) {
+        if has_active_mappings {
+            diagnostics.push(container_relationship_diagnostic(
+                CONFLICTING_USERNS_MAPPING,
+                Severity::Error,
+                "container UserNS and explicit user mappings conflict",
+                user_namespace,
+                "remove UserNS= or the explicit mapping entries",
+            ));
+        }
+    }
+    if let Some(subordinate_user) = active_subordinate_maps[0] {
+        if !active_direct_maps[0].is_empty() {
+            diagnostics.push(container_relationship_diagnostic(
+                CONFLICTING_UID_MAPPING,
+                Severity::Error,
+                "container UIDMap and SubUIDMap entries conflict",
+                subordinate_user,
+                "remove UIDMap= or SubUIDMap=",
+            ));
+        }
+    }
+    if let Some(subordinate_group) = active_subordinate_maps[1] {
+        if !active_direct_maps[1].is_empty() {
+            diagnostics.push(container_relationship_diagnostic(
+                CONFLICTING_GID_MAPPING,
+                Severity::Error,
+                "container GIDMap and SubGIDMap entries conflict",
+                subordinate_group,
+                "remove GIDMap= or SubGIDMap=",
+            ));
+        }
+    }
+    if let Some(pod) = active_pod {
+        if has_active_mappings {
+            diagnostics.push(container_relationship_diagnostic(
+                MAPPING_WITH_POD,
+                Severity::Error,
+                "container explicit user mappings conflict with Pod membership",
+                pod,
+                "move namespace mapping policy to the Pod or remove Pod=",
+            ));
+        }
+    }
+    diagnostics
+}
+
+fn container_relationship_diagnostic(
+    code: DiagnosticCode,
+    severity: Severity,
+    message: &'static str,
+    entry: &TypedEntry,
+    label: &'static str,
+) -> Diagnostic {
+    Diagnostic::new(code, severity, message, Label::new(entry.key.span(), label))
+}
+
 fn classify_entry(section: SectionKind, key: &str) -> EntryKind {
     match section {
         SectionKind::Unit | SectionKind::Service | SectionKind::Install => EntryKind::GenericSystemd,
-        SectionKind::Container => match key {
-            "AddHost" => EntryKind::Container(ContainerKey::AddHost),
-            "Image" => EntryKind::Container(ContainerKey::Image),
-            "Exec" => EntryKind::Container(ContainerKey::Exec),
-            "Environment" => EntryKind::Container(ContainerKey::Environment),
-            "EnvironmentFile" => EntryKind::Container(ContainerKey::EnvironmentFile),
-            "Label" => EntryKind::Container(ContainerKey::Label),
-            "Secret" => EntryKind::Container(ContainerKey::Secret),
-            "PublishPort" => EntryKind::Container(ContainerKey::PublishPort),
-            "Volume" => EntryKind::Container(ContainerKey::Volume),
-            "Network" => EntryKind::Container(ContainerKey::Network),
-            "Pod" => EntryKind::Container(ContainerKey::Pod),
-            "HealthCmd" => EntryKind::Container(ContainerKey::HealthCmd),
-            "Notify" => EntryKind::Container(ContainerKey::Notify),
-            "HealthInterval" => EntryKind::Container(ContainerKey::HealthInterval),
-            "HealthRetries" => EntryKind::Container(ContainerKey::HealthRetries),
-            "HealthStartPeriod" => EntryKind::Container(ContainerKey::HealthStartPeriod),
-            "HealthTimeout" => EntryKind::Container(ContainerKey::HealthTimeout),
-            "PodmanArgs" => EntryKind::Container(ContainerKey::PodmanArgs),
-            "User" => EntryKind::Container(ContainerKey::User),
-            "Group" => EntryKind::Container(ContainerKey::Group),
-            "UserNS" => EntryKind::Container(ContainerKey::UserNS),
-            "GroupAdd" => EntryKind::Container(ContainerKey::GroupAdd),
-            "WorkingDir" => EntryKind::Container(ContainerKey::WorkingDir),
-            "ReadOnly" => EntryKind::Container(ContainerKey::ReadOnly),
-            "Rootfs" => EntryKind::Container(ContainerKey::Rootfs),
-            "ContainerName" => EntryKind::Container(ContainerKey::ContainerName),
-            "Entrypoint" => EntryKind::Container(ContainerKey::Entrypoint),
-            "RunInit" => EntryKind::Container(ContainerKey::RunInit),
-            "StopSignal" => EntryKind::Container(ContainerKey::StopSignal),
-            "StopTimeout" => EntryKind::Container(ContainerKey::StopTimeout),
-            "Pull" => EntryKind::Container(ContainerKey::Pull),
-            "PidsLimit" => EntryKind::Container(ContainerKey::PidsLimit),
-            "HostName" => EntryKind::Container(ContainerKey::HostName),
-            "ShmSize" => EntryKind::Container(ContainerKey::ShmSize),
-            "DropCapability" => EntryKind::Container(ContainerKey::DropCapability),
-            "AddCapability" => EntryKind::Container(ContainerKey::AddCapability),
-            "Tmpfs" => EntryKind::Container(ContainerKey::Tmpfs),
-            "Sysctl" => EntryKind::Container(ContainerKey::Sysctl),
-            "Ulimit" => EntryKind::Container(ContainerKey::Ulimit),
-            "AddDevice" => EntryKind::Container(ContainerKey::AddDevice),
-            "Memory" => EntryKind::Container(ContainerKey::Memory),
-            "DNS" => EntryKind::Container(ContainerKey::DNS),
-            "DNSOption" => EntryKind::Container(ContainerKey::DNSOption),
-            "DNSSearch" => EntryKind::Container(ContainerKey::DNSSearch),
-            "ExposeHostPort" => EntryKind::Container(ContainerKey::ExposeHostPort),
-            "Annotation" => EntryKind::Container(ContainerKey::Annotation),
-            "AppArmor" => EntryKind::Container(ContainerKey::AppArmor),
-            "NoNewPrivileges" => EntryKind::Container(ContainerKey::NoNewPrivileges),
-            "SeccompProfile" => EntryKind::Container(ContainerKey::SeccompProfile),
-            "SecurityLabelDisable" => EntryKind::Container(ContainerKey::SecurityLabelDisable),
-            "SecurityLabelFileType" => EntryKind::Container(ContainerKey::SecurityLabelFileType),
-            "SecurityLabelLevel" => EntryKind::Container(ContainerKey::SecurityLabelLevel),
-            "SecurityLabelNested" => EntryKind::Container(ContainerKey::SecurityLabelNested),
-            "SecurityLabelType" => EntryKind::Container(ContainerKey::SecurityLabelType),
-            "Mask" => EntryKind::Container(ContainerKey::Mask),
-            "Unmask" => EntryKind::Container(ContainerKey::Unmask),
-            "LogDriver" => EntryKind::Container(ContainerKey::LogDriver),
-            "LogOpt" => EntryKind::Container(ContainerKey::LogOpt),
-            "IP" => EntryKind::Container(ContainerKey::IP),
-            "IP6" => EntryKind::Container(ContainerKey::IP6),
-            "NetworkAlias" => EntryKind::Container(ContainerKey::NetworkAlias),
-            "ReloadCmd" => EntryKind::Container(ContainerKey::ReloadCmd),
-            "ReloadSignal" => EntryKind::Container(ContainerKey::ReloadSignal),
-            _ => EntryKind::Unknown,
-        },
+        SectionKind::Container => classify_container_entry(key),
         SectionKind::Pod => match key {
             "AddHost" => EntryKind::Pod(PodKey::AddHost),
             "PodName" => EntryKind::Pod(PodKey::PodName),
@@ -1280,6 +1393,90 @@ fn classify_entry(section: SectionKind, key: &str) -> EntryKind {
         SectionKind::Build => classify_build_entry(key),
         SectionKind::Image => classify_image_entry(key),
         SectionKind::Unknown => EntryKind::Unknown,
+    }
+}
+
+fn classify_container_entry(key: &str) -> EntryKind {
+    match key {
+        "AddHost" => EntryKind::Container(ContainerKey::AddHost),
+        "Image" => EntryKind::Container(ContainerKey::Image),
+        "Exec" => EntryKind::Container(ContainerKey::Exec),
+        "Environment" => EntryKind::Container(ContainerKey::Environment),
+        "EnvironmentFile" => EntryKind::Container(ContainerKey::EnvironmentFile),
+        "Label" => EntryKind::Container(ContainerKey::Label),
+        "Secret" => EntryKind::Container(ContainerKey::Secret),
+        "PublishPort" => EntryKind::Container(ContainerKey::PublishPort),
+        "Volume" => EntryKind::Container(ContainerKey::Volume),
+        "Network" => EntryKind::Container(ContainerKey::Network),
+        "Pod" => EntryKind::Container(ContainerKey::Pod),
+        "HealthCmd" => EntryKind::Container(ContainerKey::HealthCmd),
+        "Notify" => EntryKind::Container(ContainerKey::Notify),
+        "HealthInterval" => EntryKind::Container(ContainerKey::HealthInterval),
+        "HealthRetries" => EntryKind::Container(ContainerKey::HealthRetries),
+        "HealthStartPeriod" => EntryKind::Container(ContainerKey::HealthStartPeriod),
+        "HealthTimeout" => EntryKind::Container(ContainerKey::HealthTimeout),
+        "PodmanArgs" => EntryKind::Container(ContainerKey::PodmanArgs),
+        "User" => EntryKind::Container(ContainerKey::User),
+        "Group" => EntryKind::Container(ContainerKey::Group),
+        "UserNS" => EntryKind::Container(ContainerKey::UserNS),
+        "GroupAdd" => EntryKind::Container(ContainerKey::GroupAdd),
+        "WorkingDir" => EntryKind::Container(ContainerKey::WorkingDir),
+        "ReadOnly" => EntryKind::Container(ContainerKey::ReadOnly),
+        "Rootfs" => EntryKind::Container(ContainerKey::Rootfs),
+        "ContainerName" => EntryKind::Container(ContainerKey::ContainerName),
+        "Entrypoint" => EntryKind::Container(ContainerKey::Entrypoint),
+        "RunInit" => EntryKind::Container(ContainerKey::RunInit),
+        "StopSignal" => EntryKind::Container(ContainerKey::StopSignal),
+        "StopTimeout" => EntryKind::Container(ContainerKey::StopTimeout),
+        "Pull" => EntryKind::Container(ContainerKey::Pull),
+        "PidsLimit" => EntryKind::Container(ContainerKey::PidsLimit),
+        "HostName" => EntryKind::Container(ContainerKey::HostName),
+        "ShmSize" => EntryKind::Container(ContainerKey::ShmSize),
+        "DropCapability" => EntryKind::Container(ContainerKey::DropCapability),
+        "AddCapability" => EntryKind::Container(ContainerKey::AddCapability),
+        "Tmpfs" => EntryKind::Container(ContainerKey::Tmpfs),
+        "Sysctl" => EntryKind::Container(ContainerKey::Sysctl),
+        "Ulimit" => EntryKind::Container(ContainerKey::Ulimit),
+        "AddDevice" => EntryKind::Container(ContainerKey::AddDevice),
+        "Memory" => EntryKind::Container(ContainerKey::Memory),
+        "DNS" => EntryKind::Container(ContainerKey::DNS),
+        "DNSOption" => EntryKind::Container(ContainerKey::DNSOption),
+        "DNSSearch" => EntryKind::Container(ContainerKey::DNSSearch),
+        "ExposeHostPort" => EntryKind::Container(ContainerKey::ExposeHostPort),
+        "Annotation" => EntryKind::Container(ContainerKey::Annotation),
+        "AppArmor" => EntryKind::Container(ContainerKey::AppArmor),
+        "NoNewPrivileges" => EntryKind::Container(ContainerKey::NoNewPrivileges),
+        "SeccompProfile" => EntryKind::Container(ContainerKey::SeccompProfile),
+        "SecurityLabelDisable" => EntryKind::Container(ContainerKey::SecurityLabelDisable),
+        "SecurityLabelFileType" => EntryKind::Container(ContainerKey::SecurityLabelFileType),
+        "SecurityLabelLevel" => EntryKind::Container(ContainerKey::SecurityLabelLevel),
+        "SecurityLabelNested" => EntryKind::Container(ContainerKey::SecurityLabelNested),
+        "SecurityLabelType" => EntryKind::Container(ContainerKey::SecurityLabelType),
+        "Mask" => EntryKind::Container(ContainerKey::Mask),
+        "Unmask" => EntryKind::Container(ContainerKey::Unmask),
+        "LogDriver" => EntryKind::Container(ContainerKey::LogDriver),
+        "LogOpt" => EntryKind::Container(ContainerKey::LogOpt),
+        "IP" => EntryKind::Container(ContainerKey::IP),
+        "IP6" => EntryKind::Container(ContainerKey::IP6),
+        "NetworkAlias" => EntryKind::Container(ContainerKey::NetworkAlias),
+        "ReloadCmd" => EntryKind::Container(ContainerKey::ReloadCmd),
+        "ReloadSignal" => EntryKind::Container(ContainerKey::ReloadSignal),
+        "AutoUpdate" => EntryKind::Container(ContainerKey::AutoUpdate),
+        "CgroupsMode" => EntryKind::Container(ContainerKey::CgroupsMode),
+        "EnvironmentHost" => EntryKind::Container(ContainerKey::EnvironmentHost),
+        "GIDMap" => EntryKind::Container(ContainerKey::GIDMap),
+        "HttpProxy" => EntryKind::Container(ContainerKey::HttpProxy),
+        "Mount" => EntryKind::Container(ContainerKey::Mount),
+        "ReadOnlyTmpfs" => EntryKind::Container(ContainerKey::ReadOnlyTmpfs),
+        "Retry" => EntryKind::Container(ContainerKey::Retry),
+        "RetryDelay" => EntryKind::Container(ContainerKey::RetryDelay),
+        "StartWithPod" => EntryKind::Container(ContainerKey::StartWithPod),
+        "SubGIDMap" => EntryKind::Container(ContainerKey::SubGIDMap),
+        "SubUIDMap" => EntryKind::Container(ContainerKey::SubUIDMap),
+        "Timezone" => EntryKind::Container(ContainerKey::Timezone),
+        "UIDMap" => EntryKind::Container(ContainerKey::UIDMap),
+        "HealthOnFailure" => EntryKind::Container(ContainerKey::HealthOnFailure),
+        _ => EntryKind::Unknown,
     }
 }
 
@@ -1357,6 +1554,55 @@ fn classify_volume_entry(key: &str) -> EntryKind {
         _ => return EntryKind::Unknown,
     };
     EntryKind::Volume(key)
+}
+
+fn effective_singleton<'a>(entries: &[&'a TypedEntry]) -> Option<&'a TypedEntry> {
+    entries
+        .last()
+        .copied()
+        .filter(|entry| !entry.value.primary.text.trim().is_empty())
+}
+
+fn reset_aware_entries<'a>(entries: &[&'a TypedEntry]) -> Vec<&'a TypedEntry> {
+    let reset = entries
+        .iter()
+        .rposition(|entry| entry.value.primary.text.trim().is_empty());
+    entries
+        .iter()
+        .skip(reset.map_or(0, |index| index + 1))
+        .copied()
+        .filter(|entry| !entry.value.primary.text.trim().is_empty())
+        .collect()
+}
+
+fn effective_boolean<'a>(entries: &[&'a TypedEntry]) -> Option<(&'a TypedEntry, bool)> {
+    let entry = effective_singleton(entries)?;
+    let value = systemd_lookup_value(entry.value.primary.text());
+    if ["1", "yes", "true", "on"]
+        .iter()
+        .any(|form| value.eq_ignore_ascii_case(form))
+    {
+        return Some((entry, true));
+    }
+    if ["0", "no", "false", "off"]
+        .iter()
+        .any(|form| value.eq_ignore_ascii_case(form))
+    {
+        return Some((entry, false));
+    }
+    None
+}
+
+/// Mirrors the semantic preprocessing performed by Podman's `UnitFile.Lookup` for one value.
+///
+/// Authored text remains source-owned and unchanged; this is used only for narrow diagnostics
+/// that need the generator's matched-double-quote behavior before evaluating a boolean spelling.
+fn systemd_lookup_value(value: &str) -> &str {
+    let value = value.trim_end_matches(char::is_whitespace);
+    value
+        .strip_prefix('"')
+        .and_then(|unquoted| unquoted.strip_suffix('"'))
+        .unwrap_or(value)
 }
 
 fn classify_value(kind: EntryKind, raw: &str) -> ValueKind {

@@ -1,0 +1,4 @@
+[Container]
+Image=registry.example.invalid/container-retry:1
+Retry=4
+RetryDelay=7s

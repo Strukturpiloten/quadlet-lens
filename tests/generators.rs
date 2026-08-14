@@ -841,6 +841,12 @@ struct SecurityLabelFixtures {
 }
 
 struct GeneratorFixtures {
+    container_batch: (PathBuf, Vec<String>),
+    container_direct_maps: (PathBuf, Vec<String>),
+    container_sub_maps: (PathBuf, Vec<String>),
+    container_retry: (PathBuf, Vec<String>),
+    container_http_proxy: (PathBuf, Vec<String>),
+    container_start_with_pod: (PathBuf, Vec<String>),
     memory: (PathBuf, Vec<String>),
     build_retry: (PathBuf, Vec<String>),
     build_tls_verify: (PathBuf, Vec<String>),
@@ -1980,6 +1986,12 @@ fn load_build_podman_args_sbom_fixture() -> Result<(PathBuf, Vec<String>), Strin
 
 fn load_generator_fixtures() -> Result<GeneratorFixtures, String> {
     Ok(GeneratorFixtures {
+        container_batch: load_container_batch_fixture()?,
+        container_direct_maps: load_named_container_fixture("container-direct-maps-supported-range")?,
+        container_sub_maps: load_named_container_fixture("container-sub-maps-supported-range")?,
+        container_retry: load_named_container_fixture("container-retry-supported-range")?,
+        container_http_proxy: load_named_container_fixture("container-http-proxy-supported-range")?,
+        container_start_with_pod: load_named_container_fixture("container-start-with-pod-supported-range")?,
         memory: load_memory_fixture()?,
         build_retry: load_build_retry_fixture()?,
         build_tls_verify: load_build_tls_verify_fixture()?,
@@ -2050,6 +2062,20 @@ fn load_logging_fixture() -> Result<(PathBuf, Vec<String>), String> {
     let fixture = logging_fixture_directory()?;
     let expected = expected_fragments(&fixture)?;
     Ok((fixture, expected))
+}
+
+fn load_container_batch_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    load_named_container_fixture("container-batch-supported-range")
+}
+
+fn load_named_container_fixture(name: &str) -> Result<(PathBuf, Vec<String>), String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("fixtures/generators")
+        .join(name);
+    let fixture = path
+        .canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))?;
+    Ok((fixture.clone(), expected_fragments(&fixture)?))
 }
 
 fn load_network_identity_fixture() -> Result<(PathBuf, Vec<String>), String> {
@@ -2350,6 +2376,36 @@ fn verify_image_isolated_fixtures(
     image: &GeneratorImage,
     fixtures: &GeneratorFixtures,
 ) -> Result<(), String> {
+    verify_container_batch_generator_output(
+        &image.version,
+        &fixtures.container_batch.1,
+        &run_generator_raw(engine, image, &fixtures.container_batch.0)?,
+    )?;
+    verify_container_direct_maps_generator_output(
+        &image.version,
+        &fixtures.container_direct_maps.1,
+        &run_generator_raw(engine, image, &fixtures.container_direct_maps.0)?,
+    )?;
+    verify_container_sub_maps_generator_output(
+        &image.version,
+        &fixtures.container_sub_maps.1,
+        &run_generator_raw(engine, image, &fixtures.container_sub_maps.0)?,
+    )?;
+    verify_container_retry_generator_output(
+        &image.version,
+        &fixtures.container_retry.1,
+        &run_generator_raw(engine, image, &fixtures.container_retry.0)?,
+    )?;
+    verify_container_http_proxy_generator_output(
+        &image.version,
+        &fixtures.container_http_proxy.1,
+        &run_generator_raw(engine, image, &fixtures.container_http_proxy.0)?,
+    )?;
+    verify_container_start_with_pod_generator_output(
+        &image.version,
+        &fixtures.container_start_with_pod.1,
+        &run_generator_raw(engine, image, &fixtures.container_start_with_pod.0)?,
+    )?;
     verify_image_memory(engine, image, &fixtures.memory)?;
     verify_image_build_retry(engine, image, &fixtures.build_retry)?;
     verify_image_build_tls_verify(engine, image, &fixtures.build_tls_verify)?;
@@ -3192,6 +3248,72 @@ fn verify_source_isolated_fixtures(
     generator: &Path,
     fixtures: &GeneratorFixtures,
 ) -> Result<(), String> {
+    verify_container_batch_generator_output(
+        &source.version,
+        &fixtures.container_batch.1,
+        &run_source_generator_raw(
+            engine,
+            &matrix.builder_reference,
+            source,
+            generator,
+            &fixtures.container_batch.0,
+        )?,
+    )?;
+    verify_container_direct_maps_generator_output(
+        &source.version,
+        &fixtures.container_direct_maps.1,
+        &run_source_generator_raw(
+            engine,
+            &matrix.builder_reference,
+            source,
+            generator,
+            &fixtures.container_direct_maps.0,
+        )?,
+    )?;
+    verify_container_sub_maps_generator_output(
+        &source.version,
+        &fixtures.container_sub_maps.1,
+        &run_source_generator_raw(
+            engine,
+            &matrix.builder_reference,
+            source,
+            generator,
+            &fixtures.container_sub_maps.0,
+        )?,
+    )?;
+    verify_container_retry_generator_output(
+        &source.version,
+        &fixtures.container_retry.1,
+        &run_source_generator_raw(
+            engine,
+            &matrix.builder_reference,
+            source,
+            generator,
+            &fixtures.container_retry.0,
+        )?,
+    )?;
+    verify_container_http_proxy_generator_output(
+        &source.version,
+        &fixtures.container_http_proxy.1,
+        &run_source_generator_raw(
+            engine,
+            &matrix.builder_reference,
+            source,
+            generator,
+            &fixtures.container_http_proxy.0,
+        )?,
+    )?;
+    verify_container_start_with_pod_generator_output(
+        &source.version,
+        &fixtures.container_start_with_pod.1,
+        &run_source_generator_raw(
+            engine,
+            &matrix.builder_reference,
+            source,
+            generator,
+            &fixtures.container_start_with_pod.0,
+        )?,
+    )?;
     verify_source_memory(engine, matrix, source, generator, &fixtures.memory)?;
     verify_source_build_retry(engine, matrix, source, generator, &fixtures.build_retry)?;
     verify_source_build_tls_verify(engine, matrix, source, generator, &fixtures.build_tls_verify)?;
@@ -7335,6 +7457,310 @@ fn verify_privileged_unit(
     {
         return Err(format!(
             "Podman {version} generator output for {unit_name} must place exactly one separate `{expected_argument}` immediately before `{image}` with no --privileged=true, positional false, short, quoted, bundled, alternate, duplicate, or conflicting form; found expected-pair={expected_count}, all-privileged={all_privileged_count}, short-or-bundled={short_or_bundled_forms:?}, alternate={alternate_forms:?}\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+        ));
+    }
+    Ok(())
+}
+
+fn verify_container_batch_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let generated = String::from_utf8(output.stdout.clone())
+        .map_err(|error| format!("{version} container batch generator emitted non-UTF-8 output: {error}"))?;
+    ensure_success(version, "container batch generator", output)?;
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} container batch generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{}",
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
+    }
+    let unit = generated_unit(version, &generated, "batch.service", output)?;
+    let run = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| format!("Podman {version} container batch output has no podman run command"))?;
+    let arguments = exec_arguments(run);
+    for pair in [
+        ["--cgroups", "split"],
+        ["--tz", "UTC"],
+        ["--env-host=false", ""],
+        ["--read-only-tmpfs", ""],
+        ["--read-only", ""],
+        ["--label", "io.containers.autoupdate=registry"],
+        ["--mount", "type=tmpfs,destination=/scratch,tmpfs-size=65536"],
+        ["--health-on-failure", "kill"],
+    ] {
+        if count_argument_pair(&arguments, pair[0], pair[1]) != 1 {
+            return Err(format!(
+                "Podman {version} container batch output must contain exact argument pair {pair:?} once"
+            ));
+        }
+    }
+    verify_container_batch_variants(version, &generated, output)?;
+    eprintln!(
+        "Podman {version} container batch: stable cgroup, timezone, environment, mapping, mount, read-only tmpfs, auto-update, and health-failure command construction"
+    );
+    Ok(())
+}
+
+fn exec_arguments(command: &str) -> Vec<&str> {
+    // These fixtures use opaque CLI values without whitespace or C escapes, so token splitting
+    // verifies exact argument pairs without claiming a general systemd ExecStart parser.
+    command.split_whitespace().collect()
+}
+
+fn count_argument_pair(arguments: &[&str], flag: &str, value: &str) -> usize {
+    if value.is_empty() {
+        return arguments.iter().filter(|argument| **argument == flag).count();
+    }
+    arguments
+        .windows(2)
+        .filter(|pair| pair[0] == flag && pair[1] == value)
+        .count()
+}
+
+fn verify_container_batch_variants(version: &str, generated: &str, output: &Output) -> Result<(), String> {
+    let expected_modes = ["enabled", "disabled", "no-conmon", "split"];
+    for mode in expected_modes {
+        let unit = generated_unit(version, generated, &format!("cgroups-{mode}.service"), output)?;
+        let run = unit
+            .lines()
+            .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+            .ok_or_else(|| format!("Podman {version} cgroups {mode} output has no run command"))?;
+        if count_argument_pair(&exec_arguments(run), "--cgroups", mode) != 1 {
+            return Err(format!("Podman {version} must emit one exact --cgroups {mode} pair"));
+        }
+    }
+    for (unit_name, value) in [("batch.service", "registry"), ("auto-local.service", "local")] {
+        let unit = generated_unit(version, generated, unit_name, output)?;
+        let run = unit
+            .lines()
+            .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+            .ok_or_else(|| format!("Podman {version} {unit_name} output has no run command"))?;
+        if count_argument_pair(
+            &exec_arguments(run),
+            "--label",
+            &format!("io.containers.autoupdate={value}"),
+        ) != 1
+        {
+            return Err(format!(
+                "Podman {version} must emit AutoUpdate={value} as one exact label pair"
+            ));
+        }
+    }
+    let unit = generated_unit(version, generated, "mount-reset.service", output)?;
+    let run = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| format!("Podman {version} mount reset output has no run command"))?;
+    let arguments = exec_arguments(run);
+    let final_one = ["--mount", "type=tmpfs,destination=/final-one"];
+    let final_two = ["--mount", "type=tmpfs,destination=/final-two"];
+    if count_argument_pair(&arguments, final_one[0], final_one[1]) != 1
+        || count_argument_pair(&arguments, final_two[0], final_two[1]) != 1
+        || arguments
+            .windows(2)
+            .position(|pair| pair == final_one)
+            .unwrap_or(usize::MAX)
+            >= arguments.windows(2).position(|pair| pair == final_two).unwrap_or(0)
+        || arguments.iter().any(|argument| argument.contains("/pre-"))
+    {
+        return Err(format!(
+            "Podman {version} must retain only ordered post-reset Mount arguments"
+        ));
+    }
+    Ok(())
+}
+
+fn verify_container_retry_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    if parsed < PodmanVersion::new(5, 5, 0) {
+        if output.status.success() || String::from_utf8_lossy(&output.stdout).contains("--retry") {
+            return Err(format!(
+                "Podman {version} must reject Container Retry and RetryDelay without emitting retry arguments"
+            ));
+        }
+        return Ok(());
+    }
+    ensure_success(version, "container retry generator", output)?;
+    let generated = String::from_utf8_lossy(&output.stdout);
+    if !expected.iter().all(|fragment| generated.contains(fragment)) {
+        return Err(format!(
+            "Podman {version} container retry output misses an expected fixture fragment"
+        ));
+    }
+    let unit = generated_unit(version, &generated, "retry.service", output)?;
+    let run = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| format!("Podman {version} retry output has no podman run command"))?;
+    let arguments = exec_arguments(run);
+    if count_argument_pair(&arguments, "--retry", "4") != 1
+        || count_argument_pair(&arguments, "--retry-delay", "7s") != 1
+        || arguments.iter().filter(|argument| **argument == "--retry").count() != 1
+        || arguments
+            .iter()
+            .filter(|argument| **argument == "--retry-delay")
+            .count()
+            != 1
+    {
+        return Err(format!(
+            "Podman {version} must emit exactly one separate --retry 4 and --retry-delay 7s argument"
+        ));
+    }
+    Ok(())
+}
+
+fn verify_container_http_proxy_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    if parsed < PodmanVersion::new(5, 7, 0) {
+        if output.status.success() || String::from_utf8_lossy(&output.stdout).contains("--http-proxy") {
+            return Err(format!(
+                "Podman {version} must reject Container HttpProxy without emitting proxy arguments"
+            ));
+        }
+        return Ok(());
+    }
+    ensure_success(version, "container HttpProxy generator", output)?;
+    let generated = String::from_utf8_lossy(&output.stdout);
+    if !expected.iter().all(|fragment| generated.contains(fragment)) {
+        return Err(format!(
+            "Podman {version} container HttpProxy output misses an expected fixture fragment"
+        ));
+    }
+    let unit = generated_unit(version, &generated, "http-proxy.service", output)?;
+    let run = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| format!("Podman {version} HttpProxy output has no podman run command"))?;
+    let arguments = exec_arguments(run);
+    if arguments
+        .iter()
+        .filter(|argument| **argument == "--http-proxy=false")
+        .count()
+        != 1
+        || arguments
+            .iter()
+            .filter(|argument| argument.starts_with("--http-proxy"))
+            .count()
+            != 1
+    {
+        return Err(format!(
+            "Podman {version} must emit exactly one --http-proxy=false argument"
+        ));
+    }
+    Ok(())
+}
+
+fn verify_container_start_with_pod_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    ensure_success(version, "container StartWithPod generator", output)?;
+    let generated = String::from_utf8_lossy(&output.stdout);
+    if !expected.iter().all(|fragment| generated.contains(fragment)) {
+        return Err(format!(
+            "Podman {version} container StartWithPod output misses an expected relationship fragment"
+        ));
+    }
+    let unit = generated_unit(version, &generated, "batch.service", output)?;
+    let run = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| format!("Podman {version} StartWithPod output has no podman run command"))?;
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    let expected_argument = if parsed < PodmanVersion::new(5, 7, 0) {
+        "--pod-id-file %t/batch-pod.pod-id"
+    } else {
+        "--pod systemd-batch"
+    };
+    let arguments = exec_arguments(run);
+    let expected_count = if expected_argument.starts_with("--pod-id-file") {
+        count_argument_pair(&arguments, "--pod-id-file", "%t/batch-pod.pod-id")
+    } else {
+        count_argument_pair(&arguments, "--pod", "systemd-batch")
+    };
+    if expected_count != 1 {
+        return Err(format!(
+            "Podman {version} StartWithPod output must contain exactly one `{expected_argument}` argument"
+        ));
+    }
+    Ok(())
+}
+
+fn verify_container_direct_maps_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    ensure_success(version, "container direct maps generator", output)?;
+    let generated = String::from_utf8_lossy(&output.stdout);
+    if !expected.iter().all(|fragment| generated.contains(fragment)) {
+        return Err(format!(
+            "Podman {version} direct maps output misses an expected fixture fragment"
+        ));
+    }
+    let unit = generated_unit(version, &generated, "maps.service", output)?;
+    let run = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| format!("Podman {version} direct maps output has no run command"))?;
+    let arguments = exec_arguments(run);
+    for (flag, first, second, pre) in [
+        ("--uidmap", "0:200000:65536", "1:300000:1", "0:100000:65536"),
+        ("--gidmap", "0:200000:65536", "1:300000:1", "0:100000:65536"),
+    ] {
+        let first_position = arguments
+            .windows(2)
+            .position(|pair| pair[0] == flag && pair[1] == first);
+        let second_position = arguments
+            .windows(2)
+            .position(|pair| pair[0] == flag && pair[1] == second);
+        if first_position.is_none()
+            || second_position.is_none()
+            || first_position >= second_position
+            || arguments.contains(&pre)
+            || arguments.iter().filter(|argument| **argument == flag).count() != 2
+        {
+            return Err(format!(
+                "Podman {version} must emit two ordered post-reset {flag} pairs without pre-reset values"
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn verify_container_sub_maps_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    ensure_success(version, "container subordinate maps generator", output)?;
+    let generated = String::from_utf8_lossy(&output.stdout);
+    if !expected.iter().all(|fragment| generated.contains(fragment)) {
+        return Err(format!(
+            "Podman {version} subordinate maps output misses an expected fixture fragment"
+        ));
+    }
+    let unit = generated_unit(version, &generated, "sub-maps.service", output)?;
+    let run = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| format!("Podman {version} subordinate maps output has no run command"))?;
+    let arguments = exec_arguments(run);
+    if count_argument_pair(&arguments, "--subuidname", "keep-id") != 1
+        || count_argument_pair(&arguments, "--subgidname", "keep-id") != 1
+        || arguments
+            .iter()
+            .any(|argument| *argument == "--uidmap" || *argument == "--gidmap")
+    {
+        return Err(format!(
+            "Podman {version} must emit independent subordinate mapping pairs without direct maps"
         ));
     }
     Ok(())

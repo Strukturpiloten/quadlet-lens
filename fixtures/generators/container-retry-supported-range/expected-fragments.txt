@@ -1,0 +1,2 @@
+---retry.service---
+SourcePath=/fixtures/retry.container
