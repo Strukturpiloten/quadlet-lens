@@ -8,8 +8,9 @@ QuadletLens 0.1.1 adds a validated construction boundary for tools that generate
 `QuadletDocumentBuilder` is created for one `QuadletUnitType`. Typed `push_container`, `push_pod`,
 `push_network`, `push_volume`, `push_build`, and `push_image` methods prevent native keys from being written into the wrong
 section. `push_systemd` adds open-ended directives to `[Unit]`, `[Service]`, or `[Install]`.
-`push_systemd_unit` provides typed `Requires`, `Wants`, and `After` spellings for the dependency
-subset protected by capability and real-generator evidence.
+`push_systemd_unit` provides typed `Requires`, `Wants`, `After`, `Requisite`, `BindsTo`, `PartOf`,
+`Upholds`, `Conflicts`, and `Before` spellings protected by capability and real-generator evidence.
+All remain repeatable and accept exact physical-line-safe systemd unit-list text.
 
 Container `ReloadCmd` and `ReloadSignal` are opaque singleton entries. The builder rejects a
 duplicate of either key and rejects either insertion order of their mutually exclusive pair with a
@@ -26,9 +27,27 @@ Pod `ServiceName` is an opaque singleton entry. The builder accepts blank, quote
 specifier-bearing physical-line-safe text and rejects a duplicate without extension handling,
 name derivation, template/specifier evaluation, identity mutation, or restart semantics.
 
+Pod `ContainersConfModule`, `DNS`, `DNSOption`, `DNSSearch`, `GIDMap`, `GlobalArgs`, `Label`,
+`NetworkAlias`, `PodmanArgs`, and `UIDMap` are repeatable opaque physical entries. The builder
+retains authored order and accepts empty source-safe entries, but does not apply Podman's reset,
+tokenize arguments, parse mappings or labels, inspect DNS, allocate addresses, or interpret
+network/runtime behavior. `HostName`, `IP`, `IP6`, `SubGIDMap`, and `SubUIDMap` are opaque Pod
+singletons. Construction rejects a duplicate without hostname, IPAM, address, ID, namespace, or
+host interpretation. Direct and subordinate map forms remain mutually exclusive; a builder emits
+the same source-spanned mapping-conflict diagnostics as parsed input.
+
 Repeated native keys retain insertion order. Native keys classified as singletons are rejected
 when repeated. Generic systemd directives may repeat because their list and reset semantics are
 directive-specific.
+
+Container `ContainersConfModule`, `GlobalArgs`, and `ImageVolume` are repeatable opaque physical
+entries. The builder retains their order and accepts empty source-safe entries; it does not apply
+Podman's reset, tokenization, module-loading, or image-volume semantics. `HealthLogDestination`,
+`HealthMaxLogCount`, `HealthMaxLogSize`, `HealthStartupCmd`, `HealthStartupInterval`,
+`HealthStartupRetries`, `HealthStartupSuccess`, `HealthStartupTimeout`, and `ServiceName` are
+opaque singletons: the builder rejects a duplicate but does not parse a path, number, size,
+duration, command, service identity, or health behavior. Versioned generator evidence covers the
+first eleven native keys through 6.0.2; `ImageVolume` intentionally has no positive support claim.
 
 A generated container requires exactly one workload source. `ContainerKey::Image` selects an image
 or native image/build reference; `ContainerKey::Rootfs` selects a Podman root filesystem. Building
@@ -424,3 +443,13 @@ assert_eq!(
 rejects a second generated value; it does not parse booleans or add an `Image` field. The recorded
 generator facts are dry-run command text only, not copy-up, volume creation, image pulls, runtime,
 rootless, plugin, Compose, or BoxFerry behavior.
+
+## Experimental Artifact and shared Quadlet options
+
+`QuadletDocumentBuilder::push_artifact` accepts the thirteen typed experimental Artifact keys.
+`Artifact` is required and nonblank at build time; `ContainersConfModule`, `GlobalArgs`, and
+`PodmanArgs` retain ordered repeats while other Artifact keys are singletons. `Creds` and
+`DecryptionKey` are redacted only from repository-owned debug output after they are paired with
+their key; explicit rendering remains exact. `push_quadlet(QuadletKey::DefaultDependencies, ...)`
+accepts one opaque physical-line-safe value on every typed unit. Neither API parses values, opens
+files, contacts a registry, derives a service name, or constructs runtime behavior.

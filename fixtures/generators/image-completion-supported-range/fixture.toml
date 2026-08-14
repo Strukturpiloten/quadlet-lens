@@ -1,0 +1,15 @@
+schema = 1
+id = "image-completion-supported-range"
+suite = "generators"
+description = "Records Image pull-control command construction and version boundaries without pulling an image or inferring registry, policy, TLS, platform, retry, or runtime behavior."
+secrets_reviewed = true
+files = ["image-completion.image", "expected-fragments.txt"]
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+[environment]
+description = "Dry-run Quadlet generator only; no image is pulled, inspected, authenticated, or stored."
+[expectations]
+summary = "The generator retains final post-reset PodmanArgs in authored order. It rejects or excludes Retry/RetryDelay before 5.5.0 and Policy before 5.6.0; supported versions emit one exact policy, retry, retry-delay, TLS, variant, and terminal PodmanArgs form before the image source."

@@ -1,0 +1,17 @@
+[Unit]
+Description=QuadletLens systemd relationship rewrite evidence
+Requires=discarded.container
+Requires=
+Requires=c.container p.pod n.network v.volume b.build i.image k.kube ordinary.service ordinary.target
+Wants=c.container p.pod n.network v.volume b.build i.image k.kube ordinary.service ordinary.target
+After=c.container \
+ p.pod n.network v.volume b.build i.image k.kube ordinary.service ordinary.target
+Requisite=c.container c.container p.pod n.network v.volume b.build i.image k.kube ordinary.service ordinary.target
+BindsTo=c.container p.pod n.network v.volume b.build i.image k.kube ordinary.service ordinary.target
+PartOf=c.container p.pod n.network v.volume b.build i.image k.kube ordinary.service ordinary.target
+Upholds=c.container p.pod n.network v.volume b.build i.image k.kube ordinary.service ordinary.target
+Conflicts=c.container p.pod n.network v.volume b.build i.image k.kube ordinary.service ordinary.target
+Before=c.container p.pod n.network v.volume b.build i.image k.kube ordinary.service ordinary.target
+
+[Container]
+Image=example.invalid/relationships:1

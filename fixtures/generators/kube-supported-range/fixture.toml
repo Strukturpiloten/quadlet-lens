@@ -1,0 +1,15 @@
+schema = 1
+id = "kube-supported-range"
+suite = "generators"
+description = "Records Kube-unit command construction without reading or validating Kubernetes YAML."
+secrets_reviewed = true
+files = ["application.kube", "frontend.network", "expected-fragments.txt"]
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+[environment]
+description = "Dry-run Quadlet generation only; no YAML, ConfigMap, network, or kube workload is loaded or executed."
+[expectations]
+summary = "Every recorded generator emits reset-aware Kube play and cleanup command text, exact network dependency observation, and no Kubernetes execution claim."

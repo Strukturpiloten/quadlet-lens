@@ -1,0 +1,4 @@
+[Artifact]
+Artifact=registry.invalid/quadlet-lens/artifact-override:latest
+ServiceName=ignored-first
+ServiceName=chosen-artifact

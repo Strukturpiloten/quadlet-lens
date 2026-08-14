@@ -1,0 +1,15 @@
+schema = 1
+id = "network-completion-supported-range"
+suite = "generators"
+description = "Records Network completion-key command construction and version boundaries without creating a network or interpreting DNS, interface, module, or cleanup runtime behavior."
+secrets_reviewed = true
+files = ["network-completion.network", "expected-fragments.txt"]
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+[environment]
+description = "Dry-run Quadlet generator only; no network is created, deleted, inspected, or attached to a workload."
+[expectations]
+summary = "The generator retains final post-reset module, DNS, global, and Podman arguments in order. It rejects or excludes NetworkDeleteOnStop before 5.5.0 and InterfaceName before 5.6.0; supported versions emit the documented network create and systemd cleanup forms."

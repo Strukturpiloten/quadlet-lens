@@ -2,8 +2,9 @@
 
 use quadlet_lens::capability::{CapabilityCatalogue, PodmanTarget, PodmanVersion, SupportClassification};
 use quadlet_lens::model::{
-    BuildKey, ContainerKey, EntryKind, ImageKey, NamedQuadletDocument, NetworkKey, PodKey, QuadletDocument,
-    QuadletDocumentSet, QuadletUnitType, SectionKind, TypedEntry, ValueKind, VolumeKey,
+    ArtifactKey, BuildKey, ContainerKey, EntryKind, ImageKey, KubeKey, NamedQuadletDocument, NetworkKey, PodKey,
+    QuadletDocument, QuadletDocumentSet, QuadletKey, QuadletUnitType, SectionKind,
+    SystemdUnitKey as ModelSystemdUnitKey, TypedEntry, UnitReferenceKind, ValueKind, VolumeKey,
 };
 use quadlet_lens::path::{PathForm, classify_path};
 use quadlet_lens::render::{
@@ -142,11 +143,24 @@ fn growing_public_key_enums_preserve_published_discriminants() {
             ContainerKey::Timezone as isize,
             ContainerKey::UIDMap as isize,
             ContainerKey::HealthOnFailure as isize,
+            ContainerKey::ContainersConfModule as isize,
+            ContainerKey::GlobalArgs as isize,
+            ContainerKey::HealthLogDestination as isize,
+            ContainerKey::HealthMaxLogCount as isize,
+            ContainerKey::HealthMaxLogSize as isize,
+            ContainerKey::HealthStartupCmd as isize,
+            ContainerKey::HealthStartupInterval as isize,
+            ContainerKey::HealthStartupRetries as isize,
+            ContainerKey::HealthStartupSuccess as isize,
+            ContainerKey::HealthStartupTimeout as isize,
+            ContainerKey::ImageVolume as isize,
+            ContainerKey::ServiceName as isize,
         ],
         [
             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28,
             29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55,
-            56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77,
+            56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82,
+            83, 84, 85, 86, 87, 88, 89,
         ]
     );
     assert_eq!(
@@ -161,8 +175,25 @@ fn growing_public_key_enums_preserve_published_discriminants() {
             PodKey::ExitPolicy as isize,
             PodKey::StopTimeout as isize,
             PodKey::ServiceName as isize,
+            PodKey::ContainersConfModule as isize,
+            PodKey::DNS as isize,
+            PodKey::DNSOption as isize,
+            PodKey::DNSSearch as isize,
+            PodKey::GIDMap as isize,
+            PodKey::GlobalArgs as isize,
+            PodKey::HostName as isize,
+            PodKey::IP as isize,
+            PodKey::IP6 as isize,
+            PodKey::Label as isize,
+            PodKey::NetworkAlias as isize,
+            PodKey::PodmanArgs as isize,
+            PodKey::SubGIDMap as isize,
+            PodKey::SubUIDMap as isize,
+            PodKey::UIDMap as isize,
         ],
-        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+        [
+            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24
+        ]
     );
     assert_eq!(
         [
@@ -176,8 +207,16 @@ fn growing_public_key_enums_preserve_published_discriminants() {
             NetworkKey::Gateway as isize,
             NetworkKey::IPRange as isize,
             NetworkKey::Label as isize,
+            NetworkKey::ContainersConfModule as isize,
+            NetworkKey::DisableDNS as isize,
+            NetworkKey::DNS as isize,
+            NetworkKey::GlobalArgs as isize,
+            NetworkKey::InterfaceName as isize,
+            NetworkKey::NetworkDeleteOnStop as isize,
+            NetworkKey::PodmanArgs as isize,
+            NetworkKey::ServiceName as isize,
         ],
-        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
     );
 }
 
@@ -229,6 +268,80 @@ fn public_section_and_entry_kind_order_preserves_legacy_unknown_variants() {
     assert!(EntryKind::Volume(VolumeKey::VolumeName) < EntryKind::Unknown);
     assert!(EntryKind::Unknown < EntryKind::Build(BuildKey::ImageTag));
     assert!(EntryKind::Build(BuildKey::ImageTag) < EntryKind::Image(ImageKey::Image));
+    assert!(EntryKind::Image(ImageKey::Image) < EntryKind::Kube(KubeKey::Yaml));
+    assert!(EntryKind::Quadlet(QuadletKey::DefaultDependencies) < EntryKind::SystemdUnit(SystemdUnitKey::Requires));
+}
+
+#[test]
+fn systemd_relationship_and_reference_enums_preserve_published_discriminants_and_reexports() {
+    assert_eq!(
+        [
+            SystemdUnitKey::Requires as isize,
+            SystemdUnitKey::Wants as isize,
+            SystemdUnitKey::After as isize,
+            SystemdUnitKey::Requisite as isize,
+            SystemdUnitKey::BindsTo as isize,
+            SystemdUnitKey::PartOf as isize,
+            SystemdUnitKey::Upholds as isize,
+            SystemdUnitKey::Conflicts as isize,
+            SystemdUnitKey::Before as isize,
+        ],
+        [0, 1, 2, 3, 4, 5, 6, 7, 8]
+    );
+    assert_eq!(
+        [
+            UnitReferenceKind::Image as isize,
+            UnitReferenceKind::Build as isize,
+            UnitReferenceKind::Pod as isize,
+            UnitReferenceKind::Network as isize,
+            UnitReferenceKind::Volume as isize,
+            UnitReferenceKind::Artifact as isize,
+            UnitReferenceKind::Container as isize,
+            UnitReferenceKind::Kube as isize,
+        ],
+        [0, 1, 2, 3, 4, 5, 6, 7]
+    );
+
+    let model_path: ModelSystemdUnitKey = SystemdUnitKey::Before;
+    let render_path: SystemdUnitKey = model_path;
+    assert_eq!(render_path, SystemdUnitKey::Before);
+}
+
+#[test]
+fn kube_key_and_builder_are_available_through_the_public_api() -> Result<(), Box<dyn std::error::Error>> {
+    assert_eq!(
+        [
+            KubeKey::AutoUpdate as isize,
+            KubeKey::ConfigMap as isize,
+            KubeKey::ContainersConfModule as isize,
+            KubeKey::ExitCodePropagation as isize,
+            KubeKey::GlobalArgs as isize,
+            KubeKey::KubeDownForce as isize,
+            KubeKey::LogDriver as isize,
+            KubeKey::Network as isize,
+            KubeKey::PodmanArgs as isize,
+            KubeKey::PublishPort as isize,
+            KubeKey::ServiceName as isize,
+            KubeKey::SetWorkingDirectory as isize,
+            KubeKey::UserNS as isize,
+            KubeKey::Yaml as isize,
+            KubeKey::LogOpt as isize,
+            KubeKey::RemapGid as isize,
+            KubeKey::RemapUid as isize,
+            KubeKey::RemapUidSize as isize,
+            KubeKey::RemapUsers as isize,
+        ],
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
+    );
+    let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Kube);
+    generated.push_kube(KubeKey::Yaml, EntryValue::new("./placeholder.yaml")?)?;
+    generated.push_kube(KubeKey::Network, EntryValue::new("frontend.network")?)?;
+    let built = generated.build(SourceId::new(1_100))?;
+    assert!(matches!(
+        built.document().entries().find(|entry| entry.kind() == EntryKind::Kube(KubeKey::Network)),
+        Some(entry) if entry.value_kind() == ValueKind::UnitReference(UnitReferenceKind::Network)
+    ));
+    Ok(())
 }
 
 #[test]
@@ -373,8 +486,14 @@ fn image_key_and_builder_are_available_through_the_public_api() -> Result<(), Bo
             ImageKey::DecryptionKey as isize,
             ImageKey::GlobalArgs as isize,
             ImageKey::OS as isize,
+            ImageKey::PodmanArgs as isize,
+            ImageKey::Policy as isize,
+            ImageKey::Retry as isize,
+            ImageKey::RetryDelay as isize,
+            ImageKey::TLSVerify as isize,
+            ImageKey::Variant as isize,
         ],
-        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
     );
     let mut image = QuadletDocumentBuilder::new(QuadletUnitType::Image);
     image.push_image(ImageKey::Image, EntryValue::new("example.invalid/application:1")?)?;
@@ -400,11 +519,73 @@ fn image_key_and_builder_are_available_through_the_public_api() -> Result<(), Bo
     image.push_image(ImageKey::GlobalArgs, EntryValue::new("--log-level=debug")?)?;
     image.push_image(ImageKey::GlobalArgs, EntryValue::new("")?)?;
     image.push_image(ImageKey::OS, EntryValue::new("windows")?)?;
+    image.push_image(ImageKey::PodmanArgs, EntryValue::new("--quiet")?)?;
+    image.push_image(ImageKey::PodmanArgs, EntryValue::new("--all-tags")?)?;
+    image.push_image(ImageKey::Policy, EntryValue::new("newer")?)?;
+    image.push_image(ImageKey::Retry, EntryValue::new("4")?)?;
+    image.push_image(ImageKey::RetryDelay, EntryValue::new("7s")?)?;
+    image.push_image(ImageKey::TLSVerify, EntryValue::new("false")?)?;
+    image.push_image(ImageKey::Variant, EntryValue::new("v8")?)?;
     let generated = image.build(SourceId::new(446))?;
     assert!(generated.document().entries().any(TypedEntry::is_sensitive));
     assert_eq!(
         generated.text(),
-        "[Image]\nImage=example.invalid/application:1\nImageTag=localhost/application:stable\nServiceName=application-pull\nAllTags=true\nArch=arm64\nAuthFile=/placeholder/quadlet-lens-auth.json\nCertDir=/placeholder/quadlet-lens-certs\nContainersConfModule=one.conf\nContainersConfModule=two.conf\nCreds=public-api-placeholder-user:public-api-placeholder-password\nDecryptionKey=public-api-decryption-key-placeholder\nGlobalArgs=--log-level=debug\nGlobalArgs=\nOS=windows\n"
+        "[Image]\nImage=example.invalid/application:1\nImageTag=localhost/application:stable\nServiceName=application-pull\nAllTags=true\nArch=arm64\nAuthFile=/placeholder/quadlet-lens-auth.json\nCertDir=/placeholder/quadlet-lens-certs\nContainersConfModule=one.conf\nContainersConfModule=two.conf\nCreds=public-api-placeholder-user:public-api-placeholder-password\nDecryptionKey=public-api-decryption-key-placeholder\nGlobalArgs=--log-level=debug\nGlobalArgs=\nOS=windows\nPodmanArgs=--quiet\nPodmanArgs=--all-tags\nPolicy=newer\nRetry=4\nRetryDelay=7s\nTLSVerify=false\nVariant=v8\n"
+    );
+    Ok(())
+}
+
+#[test]
+fn artifact_and_quadlet_keys_are_available_through_the_public_api() -> Result<(), Box<dyn std::error::Error>> {
+    assert_eq!(
+        [
+            ArtifactKey::Artifact as isize,
+            ArtifactKey::AuthFile as isize,
+            ArtifactKey::CertDir as isize,
+            ArtifactKey::Creds as isize,
+            ArtifactKey::DecryptionKey as isize,
+            ArtifactKey::Quiet as isize,
+            ArtifactKey::Retry as isize,
+            ArtifactKey::RetryDelay as isize,
+            ArtifactKey::ServiceName as isize,
+            ArtifactKey::TLSVerify as isize,
+            ArtifactKey::ContainersConfModule as isize,
+            ArtifactKey::GlobalArgs as isize,
+            ArtifactKey::PodmanArgs as isize,
+        ],
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    );
+    assert_eq!(QuadletKey::DefaultDependencies as isize, 0);
+    let mut artifact = QuadletDocumentBuilder::new(QuadletUnitType::Artifact);
+    artifact.push_quadlet(QuadletKey::DefaultDependencies, EntryValue::new("false")?)?;
+    artifact.push_artifact(
+        ArtifactKey::Artifact,
+        EntryValue::new("registry.invalid/example/artifact:1")?,
+    )?;
+    artifact.push_artifact(
+        ArtifactKey::Creds,
+        EntryValue::new("public-api-artifact-creds-placeholder")?,
+    )?;
+    artifact.push_artifact(
+        ArtifactKey::DecryptionKey,
+        EntryValue::new("public-api-artifact-key-placeholder")?,
+    )?;
+    artifact.push_artifact(ArtifactKey::ContainersConfModule, EntryValue::new("one.conf")?)?;
+    artifact.push_artifact(ArtifactKey::ContainersConfModule, EntryValue::new("two.conf")?)?;
+    artifact.push_artifact(ArtifactKey::GlobalArgs, EntryValue::new("--log-level=debug")?)?;
+    artifact.push_artifact(ArtifactKey::PodmanArgs, EntryValue::new("--pull=never")?)?;
+    let generated = artifact.build(SourceId::new(4_620))?;
+    assert!(generated.document().entries().any(TypedEntry::is_sensitive));
+    assert_eq!(
+        generated.text(),
+        concat!(
+            "[Quadlet]\nDefaultDependencies=false\n\n[Artifact]\n",
+            "Artifact=registry.invalid/example/artifact:1\n",
+            "Creds=public-api-artifact-creds-placeholder\n",
+            "DecryptionKey=public-api-artifact-key-placeholder\n",
+            "ContainersConfModule=one.conf\nContainersConfModule=two.conf\n",
+            "GlobalArgs=--log-level=debug\nPodmanArgs=--pull=never\n",
+        )
     );
     Ok(())
 }

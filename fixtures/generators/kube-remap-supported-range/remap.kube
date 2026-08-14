@@ -1,0 +1,10 @@
+[Kube]
+Yaml=./quadlet-lens-remap-placeholder.yaml
+RemapGid=200000
+RemapGid=
+RemapGid=200001
+RemapUid=100000
+RemapUid=
+RemapUid=100001
+RemapUidSize=65536
+RemapUsers=auto

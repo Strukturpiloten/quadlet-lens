@@ -14,6 +14,17 @@ its version exists. Unsupported means evidence shows that no representation exis
 the required evidence is incomplete.
 
 The exact tracked current release and date live in [`../tools/generator-matrix.toml`](../tools/generator-matrix.toml).
+
+## Systemd Unit relationship references
+
+The isolated Unit-relationship fixtures cover `Requires`, `Wants`, `After`, `Requisite`,
+`BindsTo`, `PartOf`, `Upholds`, `Conflicts`, and `Before`. Podman 5.4.x must preserve native
+Quadlet basenames literally; Podman 5.5.0 and newer must rewrite container, pod, network, volume,
+build, image, and kube basenames to generated service names. From Artifact-unit introduction, the
+matrix also requires `.artifact` to become `-artifact.service`. Duplicate tokens, source order,
+empty resets, continuations, ordinary `.service`/`.target` names, and missing-source failure are
+checked explicitly. This is dry-run generator evidence only; no unit is started and no generated
+Podman command is executed. `Upholds` additionally requires systemd 249 or newer.
 Renovate watches the current release value so new Podman releases create visible maintenance work.
 
 ## Official versioned containers
@@ -37,9 +48,8 @@ For official images, the harness:
 2. disables container label separation for that read-only test mount rather than relabelling source files;
 3. sets `QUADLET_UNIT_DIRS=/fixtures`;
 4. runs `/usr/lib/systemd/system-generators/podman-system-generator -dryrun -no-kmsg-log`;
-5. verifies stable generated service fragments for `.container`, `.pod`, `.network`, `.volume`, and
-   `.image` files.
-   files.
+5. verifies stable generated service fragments for `.container`, `.pod`, `.network`, `.volume`,
+   `.image`, and `.kube` files.
 
 For source-backed releases it first checks out the recorded commit with Git, builds the standalone
 generator using read-only source plus persistent Go caches, and then performs the same version and
@@ -548,6 +558,7 @@ The promoted fixtures record the following dry-run expectations across the full 
 | IPAM driver, subnet, gateway, range    | Explicit/blank driver behavior and two indexed final groups after reset                                                       |
 | ExposeHostPort                         | Four ordered TCP/UDP-compatible values after reset                                                                            |
 | Annotation                             | Two final key-sorted assignments after reset                                                                                  |
+| Container completion keys              | Ordered post-reset `--module` and GlobalArgs before `run`; health-log/startup pairs; final `ServiceName` output name          |
 | Build Environment                      | Final key-sorted `--env` arguments after reset; 5.6.0 bare-token boundary                                                     |
 | Build ContainersConfModule             | Two ordered post-reset `--module=VALUE` arguments before `build`                                                              |
 | Build GlobalArgs                       | Ordered post-reset tokens between `podman` and `build`; malformed line omitted                                                |
@@ -555,6 +566,7 @@ The promoted fixtures record the following dry-run expectations across the full 
 | Image OS                               | Normal/duplicate-last `--os VALUE`, final-blank omission, and endpoint-specific unmatched-quote presentation                  |
 | Build ServiceName                      | Last value, `.service` addition, and 5.7.0/5.8.2 naming boundaries                                                            |
 | Pod ServiceName                        | Omitted default, duplicate-last, `.service`, template/quote, blank, and extension-bearing naming observations                 |
+| Pod completion keys                    | Post-reset modules/global arguments; final DNS/label/alias values; direct or subordinate maps; final-only PodmanArgs placement |
 | Build Volume                           | Reset/continuation `-v` order, relative `.`, and `.volume` substitution/dependency                                            |
 | Volume ContainersConfModule            | Ordered post-reset `--module=VALUE` arguments before `volume create`; 5.4 literal-space/5.5 `\\x20` continuation presentation |
 | Volume GlobalArgs                      | Decoded post-reset tokens in authored order between `podman` and `volume create`; malformed line omitted                      |
@@ -577,6 +589,8 @@ The promoted fixtures record the following dry-run expectations across the full 
 | Seccomp and valued label keys          | One isolated separate option per value                                                                                        |
 | Mask                                   | One final path-list option after reset                                                                                        |
 | Unmask                                 | Ordered `ALL` and path-list options after reset                                                                               |
+| Kube                                   | Required YAML source, reset-aware module/global/argument forms, native network dependency, and force-cleanup command text    |
+| Artifact                               | 5.7.0 boundary, required final source, reset-aware arguments, oneshot defaults, naming observations, and DefaultDependencies |
 
 The model preserves raw physical values and does not emulate the generator's effective lookup,
 sorting, reset, or tokenization rules. These fixtures start no workload and establish no resolver,

@@ -1,0 +1,25 @@
+[Quadlet]
+DefaultDependencies=false
+
+[Artifact]
+Artifact=registry.invalid/quadlet-lens/artifact-preceding:latest
+Artifact=registry.invalid/quadlet-lens/artifact-completion:latest
+AuthFile=/run/quadlet-lens/artifact-auth-placeholder.json
+CertDir=/run/quadlet-lens/artifact-certs-placeholder
+Creds=quadlet-lens-artifact-placeholder-user:quadlet-lens-artifact-placeholder-password
+DecryptionKey=quadlet-lens-artifact-decryption-key-placeholder
+Quiet=true
+Retry=4
+RetryDelay=7s
+ServiceName=quadlet-lens-artifact-completion
+TLSVerify=false
+ContainersConfModule=pre.conf
+ContainersConfModule=
+ContainersConfModule=post-one.conf
+ContainersConfModule=post-two.conf
+GlobalArgs=--log-level=debug
+GlobalArgs=
+GlobalArgs=--events-backend=file
+PodmanArgs=--pre
+PodmanArgs=
+PodmanArgs=--format oci

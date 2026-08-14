@@ -1,0 +1,13 @@
+[Unit]
+Requires=a.artifact
+Wants=a.artifact
+After=a.artifact
+Requisite=a.artifact
+BindsTo=a.artifact
+PartOf=a.artifact
+Upholds=a.artifact
+Conflicts=a.artifact
+Before=a.artifact
+
+[Container]
+Image=example.invalid/relationships:1

@@ -4481,6 +4481,33 @@ test = "generators::supported_generators_match_the_first_conversion_fixture"
 gap = "Dry-run generated-unit text only; target service-name selection, defaults, template expansion, quote lookup, blank and extension behavior, and identity semantics are not Lens API behavior. No systemd operation, restart, runtime, or conversion claim."
 
 [[evidence]]
+id = "podman-5-4-pod-completion-keys"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Quadlet manual documents the promoted Pod configuration, resolver, mapping, hostname, address, label, alias, and argument keys."
+test = "capabilities::supported_range_records_pod_completion_keys"
+gap = "QuadletLens retains opaque physical text; this does not establish resolver, IPAM, routing, label, map, tokenization, filesystem, systemd, or runtime behavior."
+
+[[evidence]]
+id = "podman-6-0-2-pod-completion-keys"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-pod.unit.5.html"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Pod-unit manual retains the promoted Pod configuration, resolver, mapping, hostname, address, label, alias, and argument keys."
+test = "capabilities::supported_range_records_pod_completion_keys"
+gap = "Documentation establishes native-key availability only, not value interpretation or execution semantics."
+
+[[evidence]]
+id = "podman-5-4-through-current-pod-completion-generators"
+verification = "generator"
+url = "https://github.com/podman-container-tools/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every recorded Podman patch release from 5.4.0 through 6.0.2 emits isolated reset-aware Pod ContainersConfModule, GlobalArgs, DNS, DNSOption, DNSSearch, direct and subordinate ID-map, HostName, IP, IP6, Label, NetworkAlias, and final-only PodmanArgs command forms."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Dry-run generator evidence records command construction only; it does not resolve names, inspect DNS, allocate addresses, apply labels or mappings, read modules, create pods, or establish runtime semantics."
+
+[[evidence]]
 id = "podman-5-5-container-reload-cmd"
 verification = "documentation"
 url = "https://docs.podman.io/en/v5.5.0/markdown/podman-systemd.unit.5.html#reloadcmd"
@@ -5850,6 +5877,96 @@ evidence = [
   "podman-5-4-through-current-volume-image-generators"
 ]
 
+[[evidence]]
+id = "podman-5-4-network-completion"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#network-units-network"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Network-unit manual documents repeatable ContainersConfModule, DNS, GlobalArgs, and PodmanArgs values, and singleton DisableDNS and ServiceName values."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens preserves authored physical lines and does not load modules, resolve DNS, tokenize arguments, select defaults, create a network, or establish runtime behavior."
+
+[[evidence]]
+id = "podman-6-0-2-network-completion"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-network.unit.5.html"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Network-unit manual retains the documented completion keys, including InterfaceName and NetworkDeleteOnStop."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Documentation describes generator mapping only; QuadletLens does not create, delete, inspect, or attach a network."
+
+[[evidence]]
+id = "podman-5-5-network-delete-on-stop"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.5.0/markdown/podman-systemd.unit.5.html#networkdeleteonstop-defaults-to-false"
+target = "5.5.0"
+claim = "The Podman 5.5.0 Network-unit manual documents NetworkDeleteOnStop as adding generated service cleanup that deletes the network when the unit is stopped."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The fixture checks generated ExecStopPost text only; it does not stop a systemd unit or prove a network deletion occurs."
+
+[[evidence]]
+id = "podman-5-6-network-interface-name"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.6.0/markdown/podman-systemd.unit.5.html#interfacename"
+target = "5.6.0"
+claim = "The Podman 5.6.0 Network-unit manual documents InterfaceName as equivalent to podman network create --interface-name."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens retains opaque text without validating an interface, driver, parent device, host state, or resulting network configuration."
+
+[[evidence]]
+id = "podman-5-4-image-completion"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-image.unit.5.html"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Image-unit manual documents repeatable PodmanArgs and singleton TLSVerify and Variant values for podman image pull."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens preserves opaque values without tokenization, boolean or platform parsing, registry access, TLS validation, image pulling, or runtime claims."
+
+[[evidence]]
+id = "podman-6-0-2-image-completion"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-image.unit.5.html"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Image-unit manual retains PodmanArgs, Policy, Retry, RetryDelay, TLSVerify, and Variant for image pull generation."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The library does not choose pull policies or retry defaults, perform retries, contact registries, validate TLS, select platform images, or establish pull/runtime behavior."
+
+[[evidence]]
+id = "podman-5-5-image-retry"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.5.0/markdown/podman-image.unit.5.html#retry"
+target = "5.5.0"
+claim = "The Podman 5.5.0 Image-unit manual documents Retry and RetryDelay as podman image pull retry controls."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The fixture records command text only and does not attempt a pull, retry timing, default selection, or registry behavior."
+
+[[evidence]]
+id = "podman-5-6-image-policy"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.6.0/markdown/podman-image.unit.5.html#policy"
+target = "5.6.0"
+claim = "The Podman 5.6.0 Image-unit manual documents Policy as the image-pull policy argument."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "QuadletLens retains opaque policy text without validating spelling, selecting defaults, inspecting local storage, contacting a registry, or claiming pull behavior."
+
+[[evidence]]
+id = "podman-5-4-through-current-network-completion-generators"
+verification = "generator"
+url = "https://github.com/podman-container-tools/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "The isolated Network completion fixture checks post-reset ordered module, DNS, global, and Podman argument command construction; 5.4.x excludes or rejects NetworkDeleteOnStop and InterfaceName, 5.5.x enables cleanup only, and 5.6.0 through 6.0.2 emit cleanup plus --interface-name."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Dry-run generated-unit text only; no network lifecycle, deletion, resolver, module, interface, or runtime behavior is established."
+
+[[evidence]]
+id = "podman-5-4-through-current-image-completion-generators"
+verification = "generator"
+url = "https://github.com/podman-container-tools/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "The isolated Image completion fixture checks post-reset ordered PodmanArgs and exact pull command forms; 5.4.x excludes or rejects Retry/RetryDelay, 5.5.x excludes or rejects Policy, and 5.6.0 through 6.0.2 emit Policy, Retry, RetryDelay, TLSVerify, Variant, and terminal arguments."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Dry-run generated-unit text only; no pull, retry timing, registry, TLS, image selection, storage, or runtime behavior is established."
+
 [[capability]]
 id = "quadlet.image.image"
 description = "Opaque authored Image-unit source retained as a singleton without image-reference or pull interpretation."
@@ -6212,6 +6329,42 @@ evidence = [
   "podman-5-4-through-current-build-podman-args-sbom-generators"
 ]
 
+[[evidence]]
+id = "podman-6-0-2-systemd-unit-reference-rewrite"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-systemd.unit.5.html"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Quadlet manual documents native Quadlet basename rewriting in Unit relationship directives, including Requisite, BindsTo, PartOf, Upholds, Conflicts, Before, Requires, Wants, and After."
+test = "capabilities::supported_range_records_systemd_unit_relationships_and_rewrite_boundary"
+gap = "Documentation and dry-run generation establish generated unit text only; they do not start systemd units or establish transaction, ordering, failure, restart, or runtime behavior."
+
+[[evidence]]
+id = "systemd-249-upholds"
+verification = "documentation"
+url = "https://www.freedesktop.org/software/systemd/man/latest/systemd.unit.html#Upholds="
+target = "6.0.2"
+claim = "The systemd Unit manual records Upholds= as added in systemd version 249."
+test = "capabilities::supported_range_records_systemd_unit_relationships_and_rewrite_boundary"
+gap = "The Podman-target capability schema does not select or inspect a host systemd version, so callers must enforce the systemd 249 minimum separately."
+
+[[evidence]]
+id = "podman-5-4-through-current-systemd-unit-relationship-generators"
+verification = "generator"
+url = "https://github.com/podman-container-tools/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Recorded dry-run generators preserve reset-aware, ordered, duplicate-bearing Unit relationship lists: Podman 5.4.x retains native Quadlet basenames literally, while Podman 5.5.0 through 6.0.2 rewrites container, pod, network, volume, build, image, and kube basenames and fails closed when a referenced source is missing."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The fixture does not start generated services or execute generated Podman commands; it establishes generator text and missing-source failure only."
+
+[[evidence]]
+id = "podman-5-7-through-current-systemd-unit-artifact-relationship-generators"
+verification = "generator"
+url = "https://github.com/podman-container-tools/podman/releases"
+versions = { minimum = "5.7.0", maximum = "6.0.2" }
+claim = "Recorded dry-run generators from Artifact-unit introduction through Podman 6.0.2 rewrite an Artifact basename to its generated service name in all nine reviewed Unit relationship directives."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The fixture does not pull artifacts, create mounts, start generated services, or execute generated Podman commands."
+
 [[capability]]
 id = "systemd.service.restart"
 description = "Service restart policy remains a generic systemd Service-section responsibility."
@@ -6234,7 +6387,8 @@ value_forms = ["systemd-unit-list"]
 native = { minimum = "5.4.0", maximum = "6.0.2" }
 evidence = [
   "podman-5-4-general",
-  "podman-5-4-through-current-first-conversion-generators"
+  "podman-6-0-2-systemd-unit-reference-rewrite",
+  "podman-5-4-through-current-systemd-unit-relationship-generators"
 ]
 
 [[capability]]
@@ -6247,8 +6401,107 @@ value_forms = ["systemd-unit-list"]
 native = { minimum = "5.4.0", maximum = "6.0.2" }
 evidence = [
   "podman-5-4-general",
-  "podman-5-4-through-current-first-conversion-generators"
+  "podman-6-0-2-systemd-unit-reference-rewrite",
+  "podman-5-4-through-current-systemd-unit-relationship-generators"
 ]
+
+[[capability]]
+id = "systemd.unit.requisite"
+description = "Systemd prerequisite relationship passed through from a Quadlet Unit section."
+unit_types = ["*"]
+sections = ["Unit"]
+repeatable = true
+value_forms = ["systemd-unit-list"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = [
+  "podman-6-0-2-systemd-unit-reference-rewrite",
+  "podman-5-4-through-current-systemd-unit-relationship-generators"
+]
+
+[[capability]]
+id = "systemd.unit.binds-to"
+description = "Systemd lifecycle binding passed through from a Quadlet Unit section."
+unit_types = ["*"]
+sections = ["Unit"]
+repeatable = true
+value_forms = ["systemd-unit-list"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = [
+  "podman-6-0-2-systemd-unit-reference-rewrite",
+  "podman-5-4-through-current-systemd-unit-relationship-generators"
+]
+
+[[capability]]
+id = "systemd.unit.part-of"
+description = "Systemd lifecycle propagation relationship passed through from a Quadlet Unit section."
+unit_types = ["*"]
+sections = ["Unit"]
+repeatable = true
+value_forms = ["systemd-unit-list"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = [
+  "podman-6-0-2-systemd-unit-reference-rewrite",
+  "podman-5-4-through-current-systemd-unit-relationship-generators"
+]
+
+[[capability]]
+id = "systemd.unit.upholds"
+description = "Systemd Upholds relationship passed through from a Quadlet Unit section; using it requires systemd 249 or newer."
+unit_types = ["*"]
+sections = ["Unit"]
+repeatable = true
+value_forms = ["systemd-unit-list"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = [
+  "podman-6-0-2-systemd-unit-reference-rewrite",
+  "systemd-249-upholds",
+  "podman-5-4-through-current-systemd-unit-relationship-generators"
+]
+
+[[capability]]
+id = "systemd.unit.conflicts"
+description = "Systemd mutual-exclusion relationship passed through from a Quadlet Unit section."
+unit_types = ["*"]
+sections = ["Unit"]
+repeatable = true
+value_forms = ["systemd-unit-list"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = [
+  "podman-6-0-2-systemd-unit-reference-rewrite",
+  "podman-5-4-through-current-systemd-unit-relationship-generators"
+]
+
+[[capability]]
+id = "systemd.unit.before"
+description = "Systemd startup ordering before referenced units, passed through from a Quadlet Unit section."
+unit_types = ["*"]
+sections = ["Unit"]
+repeatable = true
+value_forms = ["systemd-unit-list"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = [
+  "podman-6-0-2-systemd-unit-reference-rewrite",
+  "podman-5-4-through-current-systemd-unit-relationship-generators"
+]
+
+[[capability]]
+id = "systemd.unit.quadlet-reference-rewrite"
+description = "Native Quadlet basenames in reviewed Unit relationship lists are rewritten to generated systemd service names."
+unit_types = ["*"]
+sections = ["Unit"]
+repeatable = true
+value_forms = ["native-quadlet-unit-list-rewrite"]
+native = { minimum = "5.5.0", maximum = "6.0.2" }
+evidence = [
+  "podman-6-0-2-systemd-unit-reference-rewrite",
+  "podman-5-4-through-current-systemd-unit-relationship-generators",
+  "podman-5-7-through-current-systemd-unit-artifact-relationship-generators"
+]
+
+[[capability.unsupported]]
+versions = { minimum = "5.4.0", maximum = "5.4.2" }
+summary = "Podman 5.4.x preserves native Quadlet basenames literally in generic Unit relationships."
+evidence = ["podman-5-4-through-current-systemd-unit-relationship-generators"]
 
 [[capability]]
 id = "systemd.unit.after"
@@ -6260,7 +6513,8 @@ value_forms = ["systemd-unit-list"]
 native = { minimum = "5.4.0", maximum = "6.0.2" }
 evidence = [
   "podman-5-4-general",
-  "podman-5-4-through-current-first-conversion-generators"
+  "podman-6-0-2-systemd-unit-reference-rewrite",
+  "podman-5-4-through-current-systemd-unit-relationship-generators"
 ]
 
 [[capability]]
@@ -7463,6 +7717,156 @@ evidence = [
 ]
 
 [[capability]]
+id = "quadlet.pod.containers-conf-module"
+description = "Opaque ordered Pod containers.conf module text retained without path parsing, module reads, reset interpretation, or runtime claims."
+unit_types = ["pod"]
+sections = ["Pod"]
+repeatable = true
+value_forms = ["opaque-one-line-pod-containers-conf-module"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-pod-completion-keys", "podman-6-0-2-pod-completion-keys", "podman-5-4-through-current-pod-completion-generators"]
+
+[[capability]]
+id = "quadlet.pod.dns"
+description = "Opaque ordered Pod DNS text retained without resolver, address, network, or runtime interpretation."
+unit_types = ["pod"]
+sections = ["Pod"]
+repeatable = true
+value_forms = ["opaque-one-line-pod-dns"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-pod-completion-keys", "podman-6-0-2-pod-completion-keys", "podman-5-4-through-current-pod-completion-generators"]
+
+[[capability]]
+id = "quadlet.pod.dns-option"
+description = "Opaque ordered Pod DNS-option text retained without option, resolver, network, or runtime interpretation."
+unit_types = ["pod"]
+sections = ["Pod"]
+repeatable = true
+value_forms = ["opaque-one-line-pod-dns-option"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-pod-completion-keys", "podman-6-0-2-pod-completion-keys", "podman-5-4-through-current-pod-completion-generators"]
+
+[[capability]]
+id = "quadlet.pod.dns-search"
+description = "Opaque ordered Pod DNS-search text retained without domain, resolver, network, or runtime interpretation."
+unit_types = ["pod"]
+sections = ["Pod"]
+repeatable = true
+value_forms = ["opaque-one-line-pod-dns-search"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-pod-completion-keys", "podman-6-0-2-pod-completion-keys", "podman-5-4-through-current-pod-completion-generators"]
+
+[[capability]]
+id = "quadlet.pod.gid-map"
+description = "Opaque ordered Pod GID-map text retained without ID, namespace, host, or runtime interpretation."
+unit_types = ["pod"]
+sections = ["Pod"]
+repeatable = true
+value_forms = ["opaque-one-line-pod-gid-map"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-pod-completion-keys", "podman-6-0-2-pod-completion-keys", "podman-5-4-through-current-pod-completion-generators"]
+
+[[capability]]
+id = "quadlet.pod.global-args"
+description = "Opaque ordered Podman global-argument text retained without tokenization, reset interpretation, or runtime claims."
+unit_types = ["pod"]
+sections = ["Pod"]
+repeatable = true
+value_forms = ["opaque-one-line-pod-global-args"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-pod-completion-keys", "podman-6-0-2-pod-completion-keys", "podman-5-4-through-current-pod-completion-generators"]
+
+[[capability]]
+id = "quadlet.pod.hostname"
+description = "Opaque Pod hostname text retained as a singleton without hostname, network, or runtime interpretation."
+unit_types = ["pod"]
+sections = ["Pod"]
+repeatable = false
+value_forms = ["opaque-one-line-pod-hostname"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-pod-completion-keys", "podman-6-0-2-pod-completion-keys", "podman-5-4-through-current-pod-completion-generators"]
+
+[[capability]]
+id = "quadlet.pod.ip"
+description = "Opaque Pod IPv4-address text retained as a singleton without address, IPAM, network, or runtime interpretation."
+unit_types = ["pod"]
+sections = ["Pod"]
+repeatable = false
+value_forms = ["opaque-one-line-pod-ip"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-pod-completion-keys", "podman-6-0-2-pod-completion-keys", "podman-5-4-through-current-pod-completion-generators"]
+
+[[capability]]
+id = "quadlet.pod.ip6"
+description = "Opaque Pod IPv6-address text retained as a singleton without address, IPAM, network, or runtime interpretation."
+unit_types = ["pod"]
+sections = ["Pod"]
+repeatable = false
+value_forms = ["opaque-one-line-pod-ip6"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-pod-completion-keys", "podman-6-0-2-pod-completion-keys", "podman-5-4-through-current-pod-completion-generators"]
+
+[[capability]]
+id = "quadlet.pod.label"
+description = "Opaque ordered Pod label text retained without key/value parsing, metadata, network, or runtime interpretation."
+unit_types = ["pod"]
+sections = ["Pod"]
+repeatable = true
+value_forms = ["opaque-one-line-pod-label"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-pod-completion-keys", "podman-6-0-2-pod-completion-keys", "podman-5-4-through-current-pod-completion-generators"]
+
+[[capability]]
+id = "quadlet.pod.network-alias"
+description = "Opaque ordered Pod network-alias text retained without alias, DNS, network, or runtime interpretation."
+unit_types = ["pod"]
+sections = ["Pod"]
+repeatable = true
+value_forms = ["opaque-one-line-pod-network-alias"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-pod-completion-keys", "podman-6-0-2-pod-completion-keys", "podman-5-4-through-current-pod-completion-generators"]
+
+[[capability]]
+id = "quadlet.pod.podman-args"
+description = "Opaque ordered Podman argument text retained without tokenization, option validation, reset interpretation, or runtime claims."
+unit_types = ["pod"]
+sections = ["Pod"]
+repeatable = true
+value_forms = ["opaque-one-line-pod-podman-args"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-pod-completion-keys", "podman-6-0-2-pod-completion-keys", "podman-5-4-through-current-pod-completion-generators"]
+
+[[capability]]
+id = "quadlet.pod.subgid-map"
+description = "Opaque Pod subordinate GID-map text retained as a singleton without ID, namespace, host, or runtime interpretation."
+unit_types = ["pod"]
+sections = ["Pod"]
+repeatable = false
+value_forms = ["opaque-one-line-pod-subgid-map"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-pod-completion-keys", "podman-6-0-2-pod-completion-keys", "podman-5-4-through-current-pod-completion-generators"]
+
+[[capability]]
+id = "quadlet.pod.subuid-map"
+description = "Opaque Pod subordinate UID-map text retained as a singleton without ID, namespace, host, or runtime interpretation."
+unit_types = ["pod"]
+sections = ["Pod"]
+repeatable = false
+value_forms = ["opaque-one-line-pod-subuid-map"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-pod-completion-keys", "podman-6-0-2-pod-completion-keys", "podman-5-4-through-current-pod-completion-generators"]
+
+[[capability]]
+id = "quadlet.pod.uid-map"
+description = "Opaque ordered Pod UID-map text retained without ID, namespace, host, or runtime interpretation."
+unit_types = ["pod"]
+sections = ["Pod"]
+repeatable = true
+value_forms = ["opaque-one-line-pod-uid-map"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-pod-completion-keys", "podman-6-0-2-pod-completion-keys", "podman-5-4-through-current-pod-completion-generators"]
+
+[[capability]]
 id = "quadlet.network.name"
 description = "Override the generated Podman network name."
 unit_types = ["network"]
@@ -8181,7 +8585,7 @@ id = "podman-5-4-through-current-container-batch-generators"
 verification = "generator"
 url = "https://github.com/containers/podman/releases"
 versions = { minimum = "5.4.0", maximum = "6.0.2" }
-claim = "Every recorded Podman patch release from 5.4.0 through 6.0.2 emits the isolated AutoUpdate, CgroupsMode, EnvironmentHost, GIDMap, Mount, ReadOnlyTmpfs, SubGIDMap, SubUIDMap, Timezone, UIDMap, HealthOnFailure, and StartWithPod forms; Retry and RetryDelay are rejected through 5.4.2 then emitted from 5.5.0, while HttpProxy is rejected through 5.6.2 then emitted from 5.7.0."
+claim = "Every recorded Podman patch release from 5.4.0 through 6.0.2 emits the isolated AutoUpdate, CgroupsMode, EnvironmentHost, GIDMap, Mount, ReadOnlyTmpfs, SubGIDMap, SubUIDMap, Timezone, UIDMap, HealthOnFailure, StartWithPod, ContainersConfModule, GlobalArgs, health-log, health-startup, and ServiceName forms; Retry and RetryDelay are rejected through 5.4.2 then emitted from 5.5.0, while HttpProxy is rejected through 5.6.2 then emitted from 5.7.0."
 test = "generators::supported_generators_match_the_first_conversion_fixture"
 gap = "Dry-run generator evidence records command construction only; it does not inspect host or process state, start workloads, perform pulls, execute health checks, create mounts, or establish runtime semantics."
 
@@ -8193,6 +8597,261 @@ sections = ["Container"]
 value_forms = ["registry", "local"]
 native = { minimum = "5.4.0", maximum = "6.0.2" }
 evidence = ["podman-5-4-container-batch-keys", "podman-6-0-2-container-batch-keys", "podman-5-4-through-current-container-batch-generators"]
+
+[[capability]]
+id = "quadlet.network.containers-conf-module"
+description = "Ordered opaque Network ContainersConfModule physical entries."
+unit_types = ["network"]
+sections = ["Network"]
+repeatable = true
+value_forms = ["opaque-one-line-network-containers-conf-module"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-network-completion", "podman-6-0-2-network-completion", "podman-5-4-through-current-network-completion-generators"]
+
+[[capability]]
+id = "quadlet.network.disable-dns"
+description = "Opaque Network DisableDNS singleton."
+unit_types = ["network"]
+sections = ["Network"]
+value_forms = ["opaque-one-line-network-disable-dns"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-network-completion", "podman-6-0-2-network-completion", "podman-5-4-through-current-network-completion-generators"]
+
+[[capability]]
+id = "quadlet.network.dns"
+description = "Ordered opaque Network DNS physical entries."
+unit_types = ["network"]
+sections = ["Network"]
+repeatable = true
+value_forms = ["opaque-one-line-network-dns"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-network-completion", "podman-6-0-2-network-completion", "podman-5-4-through-current-network-completion-generators"]
+
+[[capability]]
+id = "quadlet.network.global-args"
+description = "Ordered opaque Network global-argument physical entries."
+unit_types = ["network"]
+sections = ["Network"]
+repeatable = true
+value_forms = ["opaque-one-line-network-global-args"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-network-completion", "podman-6-0-2-network-completion", "podman-5-4-through-current-network-completion-generators"]
+
+[[capability]]
+id = "quadlet.network.interface-name"
+description = "Opaque Network InterfaceName singleton."
+unit_types = ["network"]
+sections = ["Network"]
+value_forms = ["opaque-one-line-network-interface-name"]
+unsupported = [{ versions = { minimum = "5.4.0", maximum = "5.5.2" }, summary = "InterfaceName is not native before Podman 5.6.0.", evidence = ["podman-5-6-network-interface-name"] }]
+native = { minimum = "5.6.0", maximum = "6.0.2" }
+evidence = ["podman-5-6-network-interface-name", "podman-6-0-2-network-completion", "podman-5-4-through-current-network-completion-generators"]
+
+[[capability]]
+id = "quadlet.network.delete-on-stop"
+description = "Opaque NetworkDeleteOnStop singleton controlling generated service cleanup text."
+unit_types = ["network"]
+sections = ["Network"]
+value_forms = ["opaque-one-line-network-delete-on-stop"]
+unsupported = [{ versions = { minimum = "5.4.0", maximum = "5.4.2" }, summary = "NetworkDeleteOnStop is not native before Podman 5.5.0.", evidence = ["podman-5-5-network-delete-on-stop"] }]
+native = { minimum = "5.5.0", maximum = "6.0.2" }
+evidence = ["podman-5-5-network-delete-on-stop", "podman-6-0-2-network-completion", "podman-5-4-through-current-network-completion-generators"]
+
+[[capability]]
+id = "quadlet.network.podman-args"
+description = "Ordered opaque Network PodmanArgs physical entries."
+unit_types = ["network"]
+sections = ["Network"]
+repeatable = true
+value_forms = ["opaque-one-line-network-podman-args"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-network-completion", "podman-6-0-2-network-completion", "podman-5-4-through-current-network-completion-generators"]
+
+[[capability]]
+id = "quadlet.network.service-name"
+description = "Opaque Network generated-service-name singleton."
+unit_types = ["network"]
+sections = ["Network"]
+value_forms = ["opaque-one-line-network-service-name"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-network-completion", "podman-6-0-2-network-completion", "podman-5-4-through-current-network-completion-generators"]
+
+[[capability]]
+id = "quadlet.image.podman-args"
+description = "Ordered opaque Image PodmanArgs physical entries."
+unit_types = ["image"]
+sections = ["Image"]
+repeatable = true
+value_forms = ["opaque-one-line-image-podman-args"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-image-completion", "podman-6-0-2-image-completion", "podman-5-4-through-current-image-completion-generators"]
+
+[[capability]]
+id = "quadlet.image.policy"
+description = "Opaque Image pull-policy singleton."
+unit_types = ["image"]
+sections = ["Image"]
+value_forms = ["opaque-one-line-image-policy"]
+unsupported = [{ versions = { minimum = "5.4.0", maximum = "5.5.2" }, summary = "Image Policy is not native before Podman 5.6.0.", evidence = ["podman-5-6-image-policy"] }]
+native = { minimum = "5.6.0", maximum = "6.0.2" }
+evidence = ["podman-5-6-image-policy", "podman-6-0-2-image-completion", "podman-5-4-through-current-image-completion-generators"]
+
+[[capability]]
+id = "quadlet.image.retry"
+description = "Opaque Image retry-count singleton."
+unit_types = ["image"]
+sections = ["Image"]
+value_forms = ["opaque-one-line-image-retry"]
+unsupported = [{ versions = { minimum = "5.4.0", maximum = "5.4.2" }, summary = "Image Retry is not native before Podman 5.5.0.", evidence = ["podman-5-5-image-retry"] }]
+native = { minimum = "5.5.0", maximum = "6.0.2" }
+evidence = ["podman-5-5-image-retry", "podman-6-0-2-image-completion", "podman-5-4-through-current-image-completion-generators"]
+
+[[capability]]
+id = "quadlet.image.retry-delay"
+description = "Opaque Image retry-delay singleton."
+unit_types = ["image"]
+sections = ["Image"]
+value_forms = ["opaque-one-line-image-retry-delay"]
+unsupported = [{ versions = { minimum = "5.4.0", maximum = "5.4.2" }, summary = "Image RetryDelay is not native before Podman 5.5.0.", evidence = ["podman-5-5-image-retry"] }]
+native = { minimum = "5.5.0", maximum = "6.0.2" }
+evidence = ["podman-5-5-image-retry", "podman-6-0-2-image-completion", "podman-5-4-through-current-image-completion-generators"]
+
+[[capability]]
+id = "quadlet.image.tls-verify"
+description = "Opaque Image TLSVerify singleton."
+unit_types = ["image"]
+sections = ["Image"]
+value_forms = ["opaque-one-line-image-tls-verify"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-image-completion", "podman-6-0-2-image-completion", "podman-5-4-through-current-image-completion-generators"]
+
+[[capability]]
+id = "quadlet.image.variant"
+description = "Opaque Image architecture-variant singleton."
+unit_types = ["image"]
+sections = ["Image"]
+value_forms = ["opaque-one-line-image-variant"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-image-completion", "podman-6-0-2-image-completion", "podman-5-4-through-current-image-completion-generators"]
+
+[[evidence]]
+id = "podman-5-4-container-completion-keys"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Quadlet manual documents Container configuration, health-log, health-startup, and ServiceName keys promoted by this slice."
+test = "capabilities::supported_range_records_container_completion_keys"
+gap = "QuadletLens retains opaque physical text; this does not establish value grammar, health execution, logging, service identity, filesystem, image, systemd, or runtime behavior."
+
+[[evidence]]
+id = "podman-6-0-2-container-completion-keys"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-systemd.unit.5.html"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Quadlet manual retains the promoted Container configuration, health-log, health-startup, and ServiceName keys."
+test = "capabilities::supported_range_records_container_completion_keys"
+gap = "Documentation establishes native-key availability only, not interpretation or execution semantics."
+
+[[capability]]
+id = "quadlet.container.containers-conf-module"
+description = "Opaque ordered containers.conf module text retained without path parsing, module reads, reset interpretation, or runtime claims."
+unit_types = ["container"]
+sections = ["Container"]
+repeatable = true
+value_forms = ["opaque-one-line-container-containers-conf-module"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-completion-keys", "podman-6-0-2-container-completion-keys", "podman-5-4-through-current-container-batch-generators"]
+
+[[capability]]
+id = "quadlet.container.global-args"
+description = "Opaque ordered Podman global-argument text retained without tokenization, reset interpretation, or runtime claims."
+unit_types = ["container"]
+sections = ["Container"]
+repeatable = true
+value_forms = ["opaque-one-line-container-global-args"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-completion-keys", "podman-6-0-2-container-completion-keys", "podman-5-4-through-current-container-batch-generators"]
+
+[[capability]]
+id = "quadlet.container.health-log-destination"
+description = "Opaque health-check log destination retained without filesystem or logging interpretation."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["opaque-one-line-health-log-destination"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-completion-keys", "podman-6-0-2-container-completion-keys", "podman-5-4-through-current-container-batch-generators"]
+
+[[capability]]
+id = "quadlet.container.health-max-log-count"
+description = "Opaque health-check maximum log count retained without numeric parsing."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["opaque-one-line-health-max-log-count"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-completion-keys", "podman-6-0-2-container-completion-keys", "podman-5-4-through-current-container-batch-generators"]
+
+[[capability]]
+id = "quadlet.container.health-max-log-size"
+description = "Opaque health-check maximum log size retained without size parsing."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["opaque-one-line-health-max-log-size"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-completion-keys", "podman-6-0-2-container-completion-keys", "podman-5-4-through-current-container-batch-generators"]
+
+[[capability]]
+id = "quadlet.container.health-startup-cmd"
+description = "Opaque startup health command retained without parsing or health execution semantics."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["opaque-one-line-health-startup-command"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-completion-keys", "podman-6-0-2-container-completion-keys", "podman-5-4-through-current-container-batch-generators"]
+
+[[capability]]
+id = "quadlet.container.health-startup-interval"
+description = "Opaque startup health interval retained without duration parsing or health execution semantics."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["opaque-one-line-health-startup-interval"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-completion-keys", "podman-6-0-2-container-completion-keys", "podman-5-4-through-current-container-batch-generators"]
+
+[[capability]]
+id = "quadlet.container.health-startup-retries"
+description = "Opaque startup health retry count retained without numeric parsing or health execution semantics."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["opaque-one-line-health-startup-retries"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-completion-keys", "podman-6-0-2-container-completion-keys", "podman-5-4-through-current-container-batch-generators"]
+
+[[capability]]
+id = "quadlet.container.health-startup-success"
+description = "Opaque startup health success threshold retained without numeric parsing or health execution semantics."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["opaque-one-line-health-startup-success"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-completion-keys", "podman-6-0-2-container-completion-keys", "podman-5-4-through-current-container-batch-generators"]
+
+[[capability]]
+id = "quadlet.container.health-startup-timeout"
+description = "Opaque startup health timeout retained without duration parsing or health execution semantics."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["opaque-one-line-health-startup-timeout"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-completion-keys", "podman-6-0-2-container-completion-keys", "podman-5-4-through-current-container-batch-generators"]
+
+[[capability]]
+id = "quadlet.container.service-name"
+description = "Opaque generated service-name text retained without extension stripping, default derivation, or identity interpretation."
+unit_types = ["container"]
+sections = ["Container"]
+value_forms = ["opaque-one-line-container-service-name"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-container-completion-keys", "podman-6-0-2-container-completion-keys", "podman-5-4-through-current-container-batch-generators"]
 
 [[capability]]
 id = "quadlet.container.cgroups-mode"
@@ -8337,3 +8996,427 @@ sections = ["Container"]
 value_forms = ["opaque-one-line-health-action"]
 native = { minimum = "5.4.0", maximum = "6.0.2" }
 evidence = ["podman-5-4-container-batch-keys", "podman-6-0-2-container-batch-keys", "podman-5-4-through-current-container-batch-generators"]
+
+[[evidence]]
+id = "podman-5-4-kube-keys"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#kube-units-kube"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Quadlet manual documents the Kube-unit YAML source, play controls, cleanup control, and generated-service options."
+test = "capabilities::supported_range_records_kube_keys"
+gap = "Documentation establishes native-key availability only; QuadletLens does not read files, parse Kubernetes YAML, run kube play or kube down, contact networks, or establish runtime behavior."
+
+[[evidence]]
+id = "podman-6-0-2-kube-keys"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-kube.unit.5.html"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Kube-unit manual retains the Kube YAML source, play controls, cleanup control, and generated-service options."
+test = "capabilities::supported_range_records_kube_keys"
+gap = "Documentation establishes native-key availability only; QuadletLens does not read files, parse Kubernetes YAML, run kube play or kube down, contact networks, or establish runtime behavior."
+
+[[evidence]]
+id = "podman-5-4-through-current-kube-generators"
+verification = "generator"
+url = "https://github.com/podman-container-tools/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every recorded Podman patch release from 5.4.0 through 6.0.2 emits the isolated Kube YAML, ConfigMap, module, global, play, network, port, naming, and cleanup command forms with reset-aware ordered repeatables."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Dry-run generated-unit text only; no Kubernetes YAML is read or validated and no kube play/down action, network operation, config-map loading, or runtime behavior is established."
+
+[[capability]]
+id = "quadlet.kube.auto-update"
+description = "Opaque Kube automatic-update selection retained without registry or runtime interpretation."
+unit_types = ["kube"]
+sections = ["Kube"]
+repeatable = true
+value_forms = ["opaque-one-line-kube-auto-update"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-kube-keys", "podman-6-0-2-kube-keys", "podman-5-4-through-current-kube-generators"]
+
+[[capability]]
+id = "quadlet.kube.config-map"
+description = "Ordered opaque ConfigMap path text retained without file access or Kubernetes parsing."
+unit_types = ["kube"]
+sections = ["Kube"]
+repeatable = true
+value_forms = ["opaque-one-line-kube-config-map"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-kube-keys", "podman-6-0-2-kube-keys", "podman-5-4-through-current-kube-generators"]
+
+[[capability]]
+id = "quadlet.kube.containers-conf-module"
+description = "Ordered opaque Kube containers.conf module text retained without module reads."
+unit_types = ["kube"]
+sections = ["Kube"]
+repeatable = true
+value_forms = ["opaque-one-line-kube-containers-conf-module"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-kube-keys", "podman-6-0-2-kube-keys", "podman-5-4-through-current-kube-generators"]
+
+[[capability]]
+id = "quadlet.kube.exit-code-propagation"
+description = "Opaque Kube exit-code propagation selection retained without execution semantics."
+unit_types = ["kube"]
+sections = ["Kube"]
+value_forms = ["opaque-one-line-kube-exit-code-propagation"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-kube-keys", "podman-6-0-2-kube-keys", "podman-5-4-through-current-kube-generators"]
+
+[[capability]]
+id = "quadlet.kube.global-args"
+description = "Ordered opaque Kube Podman global-argument text retained without tokenization."
+unit_types = ["kube"]
+sections = ["Kube"]
+repeatable = true
+value_forms = ["opaque-one-line-kube-global-args"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-kube-keys", "podman-6-0-2-kube-keys", "podman-5-4-through-current-kube-generators"]
+
+[[capability]]
+id = "quadlet.kube.down-force"
+description = "Opaque generated Kube cleanup-force selection retained without lifecycle interpretation."
+unit_types = ["kube"]
+sections = ["Kube"]
+value_forms = ["opaque-one-line-kube-down-force"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-kube-keys", "podman-6-0-2-kube-keys", "podman-5-4-through-current-kube-generators"]
+
+[[capability]]
+id = "quadlet.kube.log-driver"
+description = "Opaque Kube log-driver text retained without logging interpretation."
+unit_types = ["kube"]
+sections = ["Kube"]
+value_forms = ["opaque-one-line-kube-log-driver"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-kube-keys", "podman-6-0-2-kube-keys", "podman-5-4-through-current-kube-generators"]
+
+[[capability]]
+id = "quadlet.kube.network"
+description = "Ordered opaque Kube network text retained without network or runtime interpretation."
+unit_types = ["kube"]
+sections = ["Kube"]
+repeatable = true
+value_forms = ["opaque-one-line-kube-network"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-kube-keys", "podman-6-0-2-kube-keys", "podman-5-4-through-current-kube-generators"]
+
+[[capability]]
+id = "quadlet.kube.podman-args"
+description = "Ordered opaque Kube Podman argument text retained without tokenization."
+unit_types = ["kube"]
+sections = ["Kube"]
+repeatable = true
+value_forms = ["opaque-one-line-kube-podman-args"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-kube-keys", "podman-6-0-2-kube-keys", "podman-5-4-through-current-kube-generators"]
+
+[[capability]]
+id = "quadlet.kube.publish-port"
+description = "Ordered opaque Kube published-port text retained without port parsing."
+unit_types = ["kube"]
+sections = ["Kube"]
+repeatable = true
+value_forms = ["opaque-one-line-kube-publish-port"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-kube-keys", "podman-6-0-2-kube-keys", "podman-5-4-through-current-kube-generators"]
+
+[[capability]]
+id = "quadlet.kube.service-name"
+description = "Opaque generated Kube service-name text retained without identity interpretation."
+unit_types = ["kube"]
+sections = ["Kube"]
+value_forms = ["opaque-one-line-kube-service-name"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-kube-keys", "podman-6-0-2-kube-keys", "podman-5-4-through-current-kube-generators"]
+
+[[capability]]
+id = "quadlet.kube.set-working-directory"
+description = "Opaque Kube working-directory selection retained without path resolution."
+unit_types = ["kube"]
+sections = ["Kube"]
+value_forms = ["opaque-one-line-kube-set-working-directory"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-kube-keys", "podman-6-0-2-kube-keys", "podman-5-4-through-current-kube-generators"]
+
+[[capability]]
+id = "quadlet.kube.userns"
+description = "Opaque Kube user-namespace text retained without host or namespace interpretation."
+unit_types = ["kube"]
+sections = ["Kube"]
+value_forms = ["opaque-one-line-kube-userns"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-kube-keys", "podman-6-0-2-kube-keys", "podman-5-4-through-current-kube-generators"]
+
+[[capability]]
+id = "quadlet.kube.yaml"
+description = "Required ordered Kubernetes-YAML source path text retained without file access or YAML parsing."
+unit_types = ["kube"]
+sections = ["Kube"]
+repeatable = true
+value_forms = ["opaque-one-line-kube-yaml-source"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-kube-keys", "podman-6-0-2-kube-keys", "podman-5-4-through-current-kube-generators"]
+
+[[capability]]
+id = "quadlet.kube.log-opt"
+description = "Ordered opaque Kube log-option text retained without logging interpretation."
+unit_types = ["kube"]
+sections = ["Kube"]
+repeatable = true
+value_forms = ["opaque-one-line-kube-log-opt"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-kube-keys", "podman-6-0-2-kube-keys", "podman-5-4-through-current-kube-generators"]
+
+[[capability]]
+id = "quadlet.kube.remap-gid"
+description = "Opaque Kube group-remapping text retained without host or namespace interpretation."
+unit_types = ["kube"]
+sections = ["Kube"]
+repeatable = true
+value_forms = ["opaque-one-line-kube-remap-gid"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-kube-keys", "podman-6-0-2-kube-keys", "podman-5-4-through-current-kube-generators"]
+
+[[capability]]
+id = "quadlet.kube.remap-uid"
+description = "Opaque Kube user-remapping text retained without host or namespace interpretation."
+unit_types = ["kube"]
+sections = ["Kube"]
+repeatable = true
+value_forms = ["opaque-one-line-kube-remap-uid"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-kube-keys", "podman-6-0-2-kube-keys", "podman-5-4-through-current-kube-generators"]
+
+[[capability]]
+id = "quadlet.kube.remap-uid-size"
+description = "Opaque Kube user-remapping-size text retained without numeric parsing."
+unit_types = ["kube"]
+sections = ["Kube"]
+value_forms = ["opaque-one-line-kube-remap-uid-size"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-kube-keys", "podman-6-0-2-kube-keys", "podman-5-4-through-current-kube-generators"]
+
+[[capability]]
+id = "quadlet.kube.remap-users"
+description = "Opaque Kube remap-users text retained without boolean or namespace interpretation."
+unit_types = ["kube"]
+sections = ["Kube"]
+value_forms = ["opaque-one-line-kube-remap-users"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-kube-keys", "podman-6-0-2-kube-keys", "podman-5-4-through-current-kube-generators"]
+
+[[evidence]]
+id = "podman-5-7-artifact-keys"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.7.0/markdown/podman-systemd.unit.5.html#artifact-units-artifact"
+target = "5.7.0"
+claim = "The Podman 5.7.0 Quadlet manual introduces experimental Artifact units with required Artifact and the documented registry, retry, argument, naming, and TLS keys."
+test = "capabilities::supported_range_records_artifact_and_default_dependencies"
+gap = "Documentation establishes experimental native-key availability only; QuadletLens does not access registries or files, parse credentials or decryption material, pull artifacts, create mounts, or establish systemd/runtime behavior."
+
+[[evidence]]
+id = "podman-5-7-artifact-source"
+verification = "documentation"
+url = "https://github.com/podman-container-tools/podman/blob/v5.7.0/pkg/systemd/quadlet/quadlet.go"
+target = "5.7.0"
+claim = "The tagged Podman v5.7.0 generator source registers Artifact units, uses Artifact= as a required final lookup, and constructs podman artifact pull arguments from the documented keys."
+test = "capabilities::supported_range_records_artifact_and_default_dependencies"
+gap = "Tagged source establishes generator construction only; it does not establish argument validity, effective registry state, authentication, decryption, pulling, mounts, systemd activation, or runtime behavior."
+
+[[evidence]]
+id = "podman-6-0-2-artifact-keys"
+verification = "documentation"
+url = "https://docs.podman.io/en/v6.0.2/markdown/podman-systemd.unit.5.html#artifact-units-artifact"
+target = "6.0.2"
+claim = "The Podman 6.0.2 Quadlet manual retains experimental Artifact units and the documented Artifact key surface."
+test = "capabilities::supported_range_records_artifact_and_default_dependencies"
+gap = "Documentation establishes experimental native-key availability only; no registry, filesystem, credential, decryption, pull, mount, systemd, or runtime behavior is claimed."
+
+[[evidence]]
+id = "podman-6-0-2-artifact-source"
+verification = "documentation"
+url = "https://github.com/podman-container-tools/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go"
+target = "6.0.2"
+claim = "The immutable recorded Podman 6.0.2 generator source retains Artifact-unit registration, required final Artifact lookup, pull command construction, oneshot defaults, and Artifact service naming."
+test = "capabilities::supported_range_records_artifact_and_default_dependencies"
+gap = "Tagged source establishes generator construction only; it does not establish argument validity, registry state, authentication, decryption, pulling, mounts, systemd activation, or runtime behavior."
+
+[[evidence]]
+id = "podman-5-7-through-current-artifact-generators"
+verification = "generator"
+url = "https://github.com/podman-container-tools/podman/releases"
+versions = { minimum = "5.7.0", maximum = "6.0.2" }
+claim = "Every recorded generator from Podman 5.7.0 through 6.0.2 accepts the isolated Artifact fixture, applies repeatable reset-aware module/global/terminal arguments, uses the final Artifact positional argument, generates a oneshot service, and records default, override, and template service-name observations."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Dry-run generated-unit text only; no artifact is contacted, authenticated, decrypted, pulled, mounted, or executed."
+
+[[evidence]]
+id = "podman-5-4-through-5-6-artifact-generators"
+verification = "generator"
+url = "https://github.com/podman-container-tools/podman/releases"
+versions = { minimum = "5.4.0", maximum = "5.6.2" }
+claim = "Every recorded generator before Podman 5.7.0 rejects or excludes the isolated experimental Artifact fixture and emits no Artifact service."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Dry-run generator evidence establishes only the absence of Artifact service generation before the experimental unit exists; no pull, mount, or runtime behavior is claimed."
+
+[[evidence]]
+id = "podman-5-4-default-dependencies"
+verification = "documentation"
+url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#defaultdependencies"
+target = "5.4.0"
+claim = "The Podman 5.4.0 Quadlet manual documents shared Quadlet DefaultDependencies with a default of true and false disabling implicit network dependencies."
+test = "capabilities::supported_range_records_artifact_and_default_dependencies"
+gap = "QuadletLens retains opaque authored text and does not operate systemd or infer default/effective values."
+
+[[capability]]
+id = "quadlet.artifact.artifact"
+description = "Required opaque experimental Artifact source retained as a singleton without reference parsing, registry access, pulling, or mount semantics."
+unit_types = ["artifact"]
+sections = ["Artifact"]
+value_forms = ["opaque-one-line-artifact-source"]
+unsupported = [{ versions = { minimum = "5.4.0", maximum = "5.6.2" }, summary = "Artifact units are not native before Podman 5.7.0.", evidence = ["podman-5-4-through-5-6-artifact-generators"] }]
+native = { minimum = "5.7.0", maximum = "6.0.2" }
+evidence = ["podman-5-7-artifact-keys", "podman-5-7-artifact-source", "podman-6-0-2-artifact-keys", "podman-6-0-2-artifact-source", "podman-5-7-through-current-artifact-generators"]
+
+[[capability]]
+id = "quadlet.artifact.auth-file"
+description = "Opaque experimental Artifact authentication-file text retained as a singleton without path reads, credential parsing, registry authentication, or pull behavior."
+unit_types = ["artifact"]
+sections = ["Artifact"]
+value_forms = ["opaque-one-line-artifact-auth-file"]
+unsupported = [{ versions = { minimum = "5.4.0", maximum = "5.6.2" }, summary = "Artifact units are not native before Podman 5.7.0.", evidence = ["podman-5-4-through-5-6-artifact-generators"] }]
+native = { minimum = "5.7.0", maximum = "6.0.2" }
+evidence = ["podman-5-7-artifact-keys", "podman-5-7-artifact-source", "podman-6-0-2-artifact-keys", "podman-6-0-2-artifact-source", "podman-5-7-through-current-artifact-generators"]
+
+[[capability]]
+id = "quadlet.artifact.cert-dir"
+description = "Opaque experimental Artifact certificate-directory text retained as a singleton without path or certificate validation, registry access, or pull behavior."
+unit_types = ["artifact"]
+sections = ["Artifact"]
+value_forms = ["opaque-one-line-artifact-cert-dir"]
+unsupported = [{ versions = { minimum = "5.4.0", maximum = "5.6.2" }, summary = "Artifact units are not native before Podman 5.7.0.", evidence = ["podman-5-4-through-5-6-artifact-generators"] }]
+native = { minimum = "5.7.0", maximum = "6.0.2" }
+evidence = ["podman-5-7-artifact-keys", "podman-5-7-artifact-source", "podman-6-0-2-artifact-keys", "podman-6-0-2-artifact-source", "podman-5-7-through-current-artifact-generators"]
+
+[[capability]]
+id = "quadlet.artifact.creds"
+description = "Opaque experimental Artifact credential text retained as a singleton and redacted only from repository-owned debug output without username/password parsing or authentication behavior."
+unit_types = ["artifact"]
+sections = ["Artifact"]
+value_forms = ["opaque-one-line-artifact-creds"]
+unsupported = [{ versions = { minimum = "5.4.0", maximum = "5.6.2" }, summary = "Artifact units are not native before Podman 5.7.0.", evidence = ["podman-5-4-through-5-6-artifact-generators"] }]
+native = { minimum = "5.7.0", maximum = "6.0.2" }
+evidence = ["podman-5-7-artifact-keys", "podman-5-7-artifact-source", "podman-6-0-2-artifact-keys", "podman-6-0-2-artifact-source", "podman-5-7-through-current-artifact-generators"]
+
+[[capability]]
+id = "quadlet.artifact.decryption-key"
+description = "Opaque experimental Artifact decryption-key text retained as a singleton and redacted only from repository-owned debug output without key/passphrase parsing, decryption, or pull behavior."
+unit_types = ["artifact"]
+sections = ["Artifact"]
+value_forms = ["opaque-one-line-artifact-decryption-key"]
+unsupported = [{ versions = { minimum = "5.4.0", maximum = "5.6.2" }, summary = "Artifact units are not native before Podman 5.7.0.", evidence = ["podman-5-4-through-5-6-artifact-generators"] }]
+native = { minimum = "5.7.0", maximum = "6.0.2" }
+evidence = ["podman-5-7-artifact-keys", "podman-5-7-artifact-source", "podman-6-0-2-artifact-keys", "podman-6-0-2-artifact-source", "podman-5-7-through-current-artifact-generators"]
+
+[[capability]]
+id = "quadlet.artifact.quiet"
+description = "Opaque experimental Artifact quiet-selection text retained as a singleton without boolean/default parsing or pull behavior."
+unit_types = ["artifact"]
+sections = ["Artifact"]
+value_forms = ["opaque-one-line-artifact-quiet"]
+unsupported = [{ versions = { minimum = "5.4.0", maximum = "5.6.2" }, summary = "Artifact units are not native before Podman 5.7.0.", evidence = ["podman-5-4-through-5-6-artifact-generators"] }]
+native = { minimum = "5.7.0", maximum = "6.0.2" }
+evidence = ["podman-5-7-artifact-keys", "podman-5-7-artifact-source", "podman-6-0-2-artifact-keys", "podman-6-0-2-artifact-source", "podman-5-7-through-current-artifact-generators"]
+
+[[capability]]
+id = "quadlet.artifact.retry"
+description = "Opaque experimental Artifact retry-count text retained as a singleton without numeric/default parsing or retry behavior."
+unit_types = ["artifact"]
+sections = ["Artifact"]
+value_forms = ["opaque-one-line-artifact-retry"]
+unsupported = [{ versions = { minimum = "5.4.0", maximum = "5.6.2" }, summary = "Artifact units are not native before Podman 5.7.0.", evidence = ["podman-5-4-through-5-6-artifact-generators"] }]
+native = { minimum = "5.7.0", maximum = "6.0.2" }
+evidence = ["podman-5-7-artifact-keys", "podman-5-7-artifact-source", "podman-6-0-2-artifact-keys", "podman-6-0-2-artifact-source", "podman-5-7-through-current-artifact-generators"]
+
+[[capability]]
+id = "quadlet.artifact.retry-delay"
+description = "Opaque experimental Artifact retry-delay text retained as a singleton without duration/default parsing or retry behavior."
+unit_types = ["artifact"]
+sections = ["Artifact"]
+value_forms = ["opaque-one-line-artifact-retry-delay"]
+unsupported = [{ versions = { minimum = "5.4.0", maximum = "5.6.2" }, summary = "Artifact units are not native before Podman 5.7.0.", evidence = ["podman-5-4-through-5-6-artifact-generators"] }]
+native = { minimum = "5.7.0", maximum = "6.0.2" }
+evidence = ["podman-5-7-artifact-keys", "podman-5-7-artifact-source", "podman-6-0-2-artifact-keys", "podman-6-0-2-artifact-source", "podman-5-7-through-current-artifact-generators"]
+
+[[capability]]
+id = "quadlet.artifact.service-name"
+description = "Opaque experimental Artifact service-name text retained as a singleton without identity, default, template, extension, or substitution interpretation."
+unit_types = ["artifact"]
+sections = ["Artifact"]
+value_forms = ["opaque-one-line-artifact-service-name"]
+unsupported = [{ versions = { minimum = "5.4.0", maximum = "5.6.2" }, summary = "Artifact units are not native before Podman 5.7.0.", evidence = ["podman-5-4-through-5-6-artifact-generators"] }]
+native = { minimum = "5.7.0", maximum = "6.0.2" }
+evidence = ["podman-5-7-artifact-keys", "podman-5-7-artifact-source", "podman-6-0-2-artifact-keys", "podman-6-0-2-artifact-source", "podman-5-7-through-current-artifact-generators"]
+
+[[capability]]
+id = "quadlet.artifact.tls-verify"
+description = "Opaque experimental Artifact TLS-verification text retained as a singleton without boolean/default parsing, certificate validation, or pull behavior."
+unit_types = ["artifact"]
+sections = ["Artifact"]
+value_forms = ["opaque-one-line-artifact-tls-verify"]
+unsupported = [{ versions = { minimum = "5.4.0", maximum = "5.6.2" }, summary = "Artifact units are not native before Podman 5.7.0.", evidence = ["podman-5-4-through-5-6-artifact-generators"] }]
+native = { minimum = "5.7.0", maximum = "6.0.2" }
+evidence = ["podman-5-7-artifact-keys", "podman-5-7-artifact-source", "podman-6-0-2-artifact-keys", "podman-6-0-2-artifact-source", "podman-5-7-through-current-artifact-generators"]
+
+[[capability]]
+id = "quadlet.artifact.containers-conf-module"
+description = "Ordered opaque experimental Artifact containers.conf module text retained without path parsing, module reads, reset interpretation, or pull behavior."
+unit_types = ["artifact"]
+sections = ["Artifact"]
+repeatable = true
+value_forms = ["opaque-one-line-artifact-containers-conf-module"]
+unsupported = [{ versions = { minimum = "5.4.0", maximum = "5.6.2" }, summary = "Artifact units are not native before Podman 5.7.0.", evidence = ["podman-5-4-through-5-6-artifact-generators"] }]
+native = { minimum = "5.7.0", maximum = "6.0.2" }
+evidence = ["podman-5-7-artifact-keys", "podman-5-7-artifact-source", "podman-6-0-2-artifact-keys", "podman-6-0-2-artifact-source", "podman-5-7-through-current-artifact-generators"]
+
+[[capability]]
+id = "quadlet.artifact.global-args"
+description = "Ordered opaque experimental Artifact global-argument text retained without tokenization, reset interpretation, or pull behavior."
+unit_types = ["artifact"]
+sections = ["Artifact"]
+repeatable = true
+value_forms = ["opaque-one-line-artifact-global-args"]
+unsupported = [{ versions = { minimum = "5.4.0", maximum = "5.6.2" }, summary = "Artifact units are not native before Podman 5.7.0.", evidence = ["podman-5-4-through-5-6-artifact-generators"] }]
+native = { minimum = "5.7.0", maximum = "6.0.2" }
+evidence = ["podman-5-7-artifact-keys", "podman-5-7-artifact-source", "podman-6-0-2-artifact-keys", "podman-6-0-2-artifact-source", "podman-5-7-through-current-artifact-generators"]
+
+[[capability]]
+id = "quadlet.artifact.podman-args"
+description = "Ordered opaque experimental Artifact Podman argument text retained without tokenization, reset interpretation, or pull behavior."
+unit_types = ["artifact"]
+sections = ["Artifact"]
+repeatable = true
+value_forms = ["opaque-one-line-artifact-podman-args"]
+unsupported = [{ versions = { minimum = "5.4.0", maximum = "5.6.2" }, summary = "Artifact units are not native before Podman 5.7.0.", evidence = ["podman-5-4-through-5-6-artifact-generators"] }]
+native = { minimum = "5.7.0", maximum = "6.0.2" }
+evidence = ["podman-5-7-artifact-keys", "podman-5-7-artifact-source", "podman-6-0-2-artifact-keys", "podman-6-0-2-artifact-source", "podman-5-7-through-current-artifact-generators"]
+
+[[capability]]
+id = "quadlet.default-dependencies"
+description = "Opaque shared Quadlet DefaultDependencies text retained as a singleton without boolean/default parsing or systemd dependency behavior."
+unit_types = ["container", "pod", "network", "volume", "build", "image", "kube"]
+sections = ["Quadlet"]
+value_forms = ["opaque-one-line-default-dependencies"]
+native = { minimum = "5.4.0", maximum = "6.0.2" }
+evidence = ["podman-5-4-default-dependencies"]
+
+[[capability]]
+id = "quadlet.artifact.default-dependencies"
+description = "Opaque shared Quadlet DefaultDependencies text for experimental Artifact units, retained as a singleton without boolean/default parsing or systemd dependency behavior."
+unit_types = ["artifact"]
+sections = ["Quadlet"]
+value_forms = ["opaque-one-line-default-dependencies"]
+unsupported = [{ versions = { minimum = "5.4.0", maximum = "5.6.2" }, summary = "Artifact units are not native before Podman 5.7.0.", evidence = ["podman-5-4-through-5-6-artifact-generators"] }]
+native = { minimum = "5.7.0", maximum = "6.0.2" }
+evidence = ["podman-5-7-artifact-keys", "podman-5-7-artifact-source", "podman-6-0-2-artifact-keys", "podman-6-0-2-artifact-source", "podman-5-7-through-current-artifact-generators"]

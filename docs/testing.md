@@ -66,7 +66,10 @@ authentication, TLS, image-storage, systemd, runtime, or conversion behavior.
 
 The container batch coverage proves `AutoUpdate` registry/local labels, all four documented
 `CgroupsMode` values, `EnvironmentHost=false`, `ReadOnlyTmpfs`, `Timezone`, and
-`HealthOnFailure`, plus ordered post-reset `Mount` output. Separate direct-map and subordinate-map
+`HealthOnFailure`, plus ordered post-reset `Mount` output. The completion fixture independently
+asserts post-reset ordered `ContainersConfModule`/`GlobalArgs` command construction, all promoted
+health-log and health-startup argument pairs, and final `ServiceName` output naming across the
+recorded range. `ImageVolume` intentionally has no generator claim. Separate direct-map and subordinate-map
 fixtures prevent unsupported mapping combinations while proving ordered post-reset `UIDMap` and
 `GIDMap` pairs and isolated `SubUIDMap`/`SubGIDMap` forms. The version-scoped retry fixture rejects
 `Retry`/`RetryDelay` through 5.4.2 and requires exact pairs from 5.5.0; the proxy fixture rejects
@@ -78,6 +81,14 @@ two diagnostic checks recognize case-insensitive `1`/`yes`/`true`/`on` and
 `0`/`no`/`false`/`off` forms only, after target-style trailing-whitespace removal and matched
 double-quote lookup; blank resets and unknown or escaped spellings remain undiagnosed. No test
 reads host environment, proxy, subordinate-ID, timezone, filesystem, registry, or runtime state.
+
+The Pod completion fixture extends the isolated Pod ServiceName directory with post-reset
+`ContainersConfModule`, `GlobalArgs`, DNS, DNS-option, DNS-search, label, and network-alias forms;
+singleton hostname and IPv4/IPv6 forms; reset-aware final-only opaque `PodmanArgs`; and separate valid direct
+and subordinate mapping documents. Every recorded generator must retain only the final values in
+the expected order and must not combine direct with subordinate maps. It verifies generated command
+construction, not module loading, argument semantics, resolver behavior, ID lookup, IPAM, network
+creation, labels, pod creation, or runtime state.
 
 An isolated `Sysctl` fixture likewise authors two pre-reset assignments, an empty reset, and one
 final entry; every patch must emit exactly one final `--sysctl net.ipv4.ip_forward=1`, no other
@@ -286,6 +297,12 @@ cgroup, page-size, swap, host-memory, rootless, runtime, or cross-format behavio
 
 Systemd-dependent fixtures record the systemd version and rootless/rootful context.
 
+The Unit-relationship generator fixtures cover literal Podman 5.4 basenames, the Podman 5.5
+rewrite boundary, all nine reviewed keys, all eight current native suffixes, ordinary systemd unit
+names, duplicates, source order, empty resets, continuations, and missing-source failure. They run
+the generator in dry-run mode only and never start a generated service or execute its Podman
+command. `Upholds=` is recorded as requiring systemd 249; no runtime activation claim is made.
+
 ### Real-world fixtures
 
 Fixtures require source provenance, redistribution permission, version assumptions, secret review, and an explanation of the protected behavior.
@@ -332,6 +349,23 @@ observations without a flag-order or quote-boundary claim.
 Image `GlobalArgs` retains raw physical text, including duplicates, blank resets, quotes,
 C-escapes, continuations, malformed text, and specifiers. Its 20-release dry-run matrix records
 only decoded post-reset tokens in authored order between `podman` and `image pull`.
+Network completion and Image pull-control tests preserve physical ordering for repeatable
+`ContainersConfModule`/`DNS`/`GlobalArgs`/`PodmanArgs` entries, preserve opaque singleton text,
+and exercise duplicate-singleton diagnostics. Their independently versioned generator assertions
+cover the documented command forms, reset/order behavior, and 5.5.0/5.6.0 boundaries rather than
+inferring behavior from similarly named Container, Build, Pod, or Volume keys.
+Kube tests apply blank `Yaml=` reset semantics and require at least one resulting effective source,
+retain every physical source/configuration line, and observe exact `.network` references without reading those paths or parsing Kubernetes
+YAML. The generator fixture records command construction and KubeDownForce cleanup text only; it
+does not execute `kube play` or `kube down`.
+Artifact tests retain every native key, reset-aware repeatable values, duplicate singleton source
+warnings, final `Artifact=` diagnostics (`QLM0021`/`QLM0022`), and seeded credential/decryption-key
+canaries redacted from repository-owned debug output. Document-set tests resolve exact Artifact
+Volume/Mount references and report missing or ambiguous targets without parsing mount text. The
+generator fixture requires pre-5.7 rejection or exclusion and 5.7.0–6.0.2 command construction,
+oneshot defaults, naming observations, and `DefaultDependencies` true/false/noncanonical/empty
+dependency output. It never contacts a registry, reads an auth/key file, pulls an artifact, mounts
+content, or starts a service.
 Image `OS` retains raw singleton physical text and duplicate diagnostics; its 20-release fixture
 records target normal/duplicate-last output, final-blank omission, and endpoint-specific unmatched-quote presentation.
 Build labels additionally retain opaque physical lines, including bare, duplicate, empty, embedded

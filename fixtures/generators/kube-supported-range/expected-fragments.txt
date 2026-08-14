@@ -1,0 +1,13 @@
+---quadlet-lens-kube.service---
+ExecStart=/usr/bin/podman
+kube play
+--module=post.conf
+--events-backend=file
+--configmap /run/quadlet-lens/configmap-placeholder.yaml
+--network frontend
+--publish 8080:80
+--log-driver k8s-file
+--userns keep-id
+./quadlet-lens-placeholder.yaml
+ExecStopPost=/usr/bin/podman --module=post.conf --events-backend=file kube down
+--force

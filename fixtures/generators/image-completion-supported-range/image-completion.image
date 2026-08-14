@@ -1,0 +1,11 @@
+[Image]
+Image=example.invalid/quadlet-lens-image-completion:latest
+PodmanArgs=--quiet
+PodmanArgs=
+PodmanArgs=--all-tags
+PodmanArgs=--format oci
+Policy=newer
+Retry=4
+RetryDelay=7s
+TLSVerify=false
+Variant=v8

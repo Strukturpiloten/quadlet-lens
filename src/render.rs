@@ -7,11 +7,13 @@
 
 use std::{error::Error, fmt};
 
+pub use crate::model::SystemdUnitKey;
+
 use crate::{
     diagnostic::Diagnostic,
     model::{
-        BuildKey, ContainerKey, EntryKind, ImageKey, NetworkKey, PodKey, QuadletDocument, QuadletParseResult,
-        QuadletUnitType, SectionKind, TypedModelError, VolumeKey,
+        ArtifactKey, BuildKey, ContainerKey, EntryKind, ImageKey, KubeKey, NetworkKey, PodKey, QuadletDocument,
+        QuadletKey, QuadletParseResult, QuadletUnitType, SectionKind, TypedModelError, VolumeKey,
     },
     source::SourceId,
 };
@@ -288,28 +290,6 @@ pub enum SystemdSection {
     Install,
 }
 
-/// Evidence-backed dependency and ordering directives in a generic systemd `[Unit]` section.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[non_exhaustive]
-pub enum SystemdUnitKey {
-    /// Strong requirement that also pulls the referenced unit into the transaction.
-    Requires,
-    /// Weak requirement that does not fail this unit when the referenced unit fails.
-    Wants,
-    /// Orders this unit after the referenced unit without pulling it into the transaction.
-    After,
-}
-
-impl SystemdUnitKey {
-    const fn name(self) -> &'static str {
-        match self {
-            Self::Requires => "Requires",
-            Self::Wants => "Wants",
-            Self::After => "After",
-        }
-    }
-}
-
 impl SystemdSection {
     const fn kind(self) -> SectionKind {
         match self {
@@ -474,7 +454,7 @@ impl QuadletDocumentBuilder {
 
     /// Appends a typed `[Image]` entry.
     ///
-    /// `ContainersConfModule` and `GlobalArgs` entries remain repeatable and ordered. All other Image keys, including `OS`, are
+    /// `ContainersConfModule`, `GlobalArgs`, and `PodmanArgs` entries remain repeatable and ordered. All other Image keys, including `OS`, are
     /// singletons. `Creds` and `DecryptionKey` are debug-redacted after key assignment, while
     /// explicit rendering and raw-value access remain exact. Values are exact physical-line-safe
     /// native text and are not interpreted by the builder; it does not read paths or modules, parse configuration,
@@ -490,6 +470,68 @@ impl QuadletDocumentBuilder {
             SectionKind::Image,
             EntryKind::Image(key),
             image_key_name(key),
+            value,
+        )
+    }
+
+    /// Appends a typed `[Kube]` entry.
+    ///
+    /// `AutoUpdate`, `ConfigMap`, `ContainersConfModule`, `GlobalArgs`, `LogOpt`, `RemapGid`,
+    /// `RemapUid`, `Network`,
+    /// `PodmanArgs`, `PublishPort`, and required `Yaml` entries remain repeatable and ordered. All other Kube keys are
+    /// singletons. Values are exact physical-line-safe native text; this builder neither reads
+    /// files nor parses Kubernetes YAML, Podman arguments, ports, paths, or runtime behavior.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RenderError::WrongUnitType`] for a non-Kube document,
+    /// [`RenderError::DuplicateSingleton`] for a repeated singleton Kube key, or
+    /// [`RenderError::InvalidDocument`] when no nonblank required `Yaml=` source is present.
+    pub fn push_kube(&mut self, key: KubeKey, value: EntryValue) -> Result<(), RenderError> {
+        self.push_native(
+            QuadletUnitType::Kube,
+            SectionKind::Kube,
+            EntryKind::Kube(key),
+            kube_key_name(key),
+            value,
+        )
+    }
+
+    /// Appends a typed experimental `[Artifact]` entry.
+    ///
+    /// `ContainersConfModule`, `GlobalArgs`, and `PodmanArgs` entries remain repeatable and
+    /// ordered. The required `Artifact` source and every other Artifact key are singletons.
+    /// `Creds` and `DecryptionKey` are redacted only from repository-owned debug output;
+    /// rendering and explicit raw-value access remain exact. Values remain physical-line-safe
+    /// opaque native text: this builder does not access a registry or filesystem, parse
+    /// credentials, select retry defaults, or perform an artifact pull.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RenderError::WrongUnitType`] for a non-artifact document,
+    /// [`RenderError::DuplicateSingleton`] for a repeated singleton key, or
+    /// [`RenderError::InvalidDocument`] when the required final `Artifact=` source is absent or
+    /// blank at build time.
+    pub fn push_artifact(&mut self, key: ArtifactKey, value: EntryValue) -> Result<(), RenderError> {
+        self.push_native(
+            QuadletUnitType::Artifact,
+            SectionKind::Artifact,
+            EntryKind::Artifact(key),
+            artifact_key_name(key),
+            value,
+        )
+    }
+
+    /// Appends a shared `[Quadlet]` entry to any Quadlet unit type.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RenderError::DuplicateSingleton`] when `DefaultDependencies=` is repeated.
+    pub fn push_quadlet(&mut self, key: QuadletKey, value: EntryValue) -> Result<(), RenderError> {
+        self.push_generated(
+            SectionKind::Quadlet,
+            EntryKind::Quadlet(key),
+            quadlet_key_name(key),
             value,
         )
     }
@@ -532,7 +574,7 @@ impl QuadletDocumentBuilder {
     ///
     /// Returns the same errors as [`Self::push_systemd`].
     pub fn push_systemd_unit(&mut self, key: SystemdUnitKey, value: EntryValue) -> Result<(), RenderError> {
-        self.push_systemd(SystemdSection::Unit, key.name(), value)
+        self.push_generated(SectionKind::Unit, EntryKind::SystemdUnit(key), key.name(), value)
     }
 
     /// Renders, reparses, and validates the complete generated document.
@@ -566,6 +608,16 @@ impl QuadletDocumentBuilder {
                 entry: required,
             });
         }
+        self.push_generated(section, kind, key, value)
+    }
+
+    fn push_generated(
+        &mut self,
+        section: SectionKind,
+        kind: EntryKind,
+        key: &str,
+        value: EntryValue,
+    ) -> Result<(), RenderError> {
         if !kind.is_repeatable() && self.entries.iter().any(|entry| entry.kind == kind) {
             return Err(RenderError::DuplicateSingleton(key.to_owned()));
         }
@@ -580,7 +632,13 @@ impl QuadletDocumentBuilder {
 
     fn render_text(&self) -> String {
         let native = self.unit_type.native_section();
-        let sections = [SectionKind::Unit, native, SectionKind::Service, SectionKind::Install];
+        let sections = [
+            SectionKind::Unit,
+            SectionKind::Quadlet,
+            native,
+            SectionKind::Service,
+            SectionKind::Install,
+        ];
         let mut output = String::new();
         let mut wrote_section = false;
 
@@ -796,6 +854,18 @@ const fn container_key_name(key: ContainerKey) -> &'static str {
         ContainerKey::Timezone => "Timezone",
         ContainerKey::UIDMap => "UIDMap",
         ContainerKey::HealthOnFailure => "HealthOnFailure",
+        ContainerKey::ContainersConfModule => "ContainersConfModule",
+        ContainerKey::GlobalArgs => "GlobalArgs",
+        ContainerKey::HealthLogDestination => "HealthLogDestination",
+        ContainerKey::HealthMaxLogCount => "HealthMaxLogCount",
+        ContainerKey::HealthMaxLogSize => "HealthMaxLogSize",
+        ContainerKey::HealthStartupCmd => "HealthStartupCmd",
+        ContainerKey::HealthStartupInterval => "HealthStartupInterval",
+        ContainerKey::HealthStartupRetries => "HealthStartupRetries",
+        ContainerKey::HealthStartupSuccess => "HealthStartupSuccess",
+        ContainerKey::HealthStartupTimeout => "HealthStartupTimeout",
+        ContainerKey::ImageVolume => "ImageVolume",
+        ContainerKey::ServiceName => "ServiceName",
     }
 }
 
@@ -846,6 +916,60 @@ const fn image_key_name(key: ImageKey) -> &'static str {
         ImageKey::DecryptionKey => "DecryptionKey",
         ImageKey::GlobalArgs => "GlobalArgs",
         ImageKey::OS => "OS",
+        ImageKey::PodmanArgs => "PodmanArgs",
+        ImageKey::Policy => "Policy",
+        ImageKey::Retry => "Retry",
+        ImageKey::RetryDelay => "RetryDelay",
+        ImageKey::TLSVerify => "TLSVerify",
+        ImageKey::Variant => "Variant",
+    }
+}
+
+const fn kube_key_name(key: KubeKey) -> &'static str {
+    match key {
+        KubeKey::AutoUpdate => "AutoUpdate",
+        KubeKey::ConfigMap => "ConfigMap",
+        KubeKey::ContainersConfModule => "ContainersConfModule",
+        KubeKey::ExitCodePropagation => "ExitCodePropagation",
+        KubeKey::GlobalArgs => "GlobalArgs",
+        KubeKey::KubeDownForce => "KubeDownForce",
+        KubeKey::LogDriver => "LogDriver",
+        KubeKey::Network => "Network",
+        KubeKey::PodmanArgs => "PodmanArgs",
+        KubeKey::PublishPort => "PublishPort",
+        KubeKey::ServiceName => "ServiceName",
+        KubeKey::SetWorkingDirectory => "SetWorkingDirectory",
+        KubeKey::UserNS => "UserNS",
+        KubeKey::Yaml => "Yaml",
+        KubeKey::LogOpt => "LogOpt",
+        KubeKey::RemapGid => "RemapGid",
+        KubeKey::RemapUid => "RemapUid",
+        KubeKey::RemapUidSize => "RemapUidSize",
+        KubeKey::RemapUsers => "RemapUsers",
+    }
+}
+
+const fn artifact_key_name(key: ArtifactKey) -> &'static str {
+    match key {
+        ArtifactKey::Artifact => "Artifact",
+        ArtifactKey::AuthFile => "AuthFile",
+        ArtifactKey::CertDir => "CertDir",
+        ArtifactKey::Creds => "Creds",
+        ArtifactKey::DecryptionKey => "DecryptionKey",
+        ArtifactKey::Quiet => "Quiet",
+        ArtifactKey::Retry => "Retry",
+        ArtifactKey::RetryDelay => "RetryDelay",
+        ArtifactKey::ServiceName => "ServiceName",
+        ArtifactKey::TLSVerify => "TLSVerify",
+        ArtifactKey::ContainersConfModule => "ContainersConfModule",
+        ArtifactKey::GlobalArgs => "GlobalArgs",
+        ArtifactKey::PodmanArgs => "PodmanArgs",
+    }
+}
+
+const fn quadlet_key_name(key: QuadletKey) -> &'static str {
+    match key {
+        QuadletKey::DefaultDependencies => "DefaultDependencies",
     }
 }
 
@@ -861,6 +985,21 @@ const fn pod_key_name(key: PodKey) -> &'static str {
         PodKey::ExitPolicy => "ExitPolicy",
         PodKey::StopTimeout => "StopTimeout",
         PodKey::ServiceName => "ServiceName",
+        PodKey::ContainersConfModule => "ContainersConfModule",
+        PodKey::DNS => "DNS",
+        PodKey::DNSOption => "DNSOption",
+        PodKey::DNSSearch => "DNSSearch",
+        PodKey::GIDMap => "GIDMap",
+        PodKey::GlobalArgs => "GlobalArgs",
+        PodKey::HostName => "HostName",
+        PodKey::IP => "IP",
+        PodKey::IP6 => "IP6",
+        PodKey::Label => "Label",
+        PodKey::NetworkAlias => "NetworkAlias",
+        PodKey::PodmanArgs => "PodmanArgs",
+        PodKey::SubGIDMap => "SubGIDMap",
+        PodKey::SubUIDMap => "SubUIDMap",
+        PodKey::UIDMap => "UIDMap",
     }
 }
 
@@ -876,6 +1015,14 @@ const fn network_key_name(key: NetworkKey) -> &'static str {
         NetworkKey::Gateway => "Gateway",
         NetworkKey::IPRange => "IPRange",
         NetworkKey::Label => "Label",
+        NetworkKey::ContainersConfModule => "ContainersConfModule",
+        NetworkKey::DisableDNS => "DisableDNS",
+        NetworkKey::DNS => "DNS",
+        NetworkKey::GlobalArgs => "GlobalArgs",
+        NetworkKey::InterfaceName => "InterfaceName",
+        NetworkKey::NetworkDeleteOnStop => "NetworkDeleteOnStop",
+        NetworkKey::PodmanArgs => "PodmanArgs",
+        NetworkKey::ServiceName => "ServiceName",
     }
 }
 
@@ -909,6 +1056,9 @@ const fn section_name(section: SectionKind) -> &'static str {
         SectionKind::Volume => "Volume",
         SectionKind::Build => "Build",
         SectionKind::Image => "Image",
+        SectionKind::Kube => "Kube",
+        SectionKind::Artifact => "Artifact",
+        SectionKind::Quadlet => "Quadlet",
         SectionKind::Service => "Service",
         SectionKind::Install => "Install",
         SectionKind::Unknown => "Unknown",

@@ -25,8 +25,8 @@ fn supported_range_has_the_reviewed_first_conversion_surface() -> Result<(), Str
         .collect();
     let expected: BTreeSet<_> = EXPECTED_CAPABILITIES.lines().filter(|line| !line.is_empty()).collect();
     assert_eq!(actual, expected);
-    assert_eq!(catalogue.capabilities().len(), 176);
-    assert_eq!(catalogue.evidence().len(), 626);
+    assert_eq!(catalogue.capabilities().len(), 257);
+    assert_eq!(catalogue.evidence().len(), 655);
 
     let documentation: Vec<_> = catalogue
         .evidence()
@@ -34,7 +34,7 @@ fn supported_range_has_the_reviewed_first_conversion_surface() -> Result<(), Str
         .filter(|evidence| evidence.level() == VerificationLevel::Documentation)
         .collect();
     assert!(!documentation.is_empty());
-    assert_eq!(documentation.len(), 528);
+    assert_eq!(documentation.len(), 549);
     assert!(documentation.iter().all(|evidence| evidence.gap().is_some()));
     let generator = catalogue
         .evidence()
@@ -44,6 +44,167 @@ fn supported_range_has_the_reviewed_first_conversion_surface() -> Result<(), Str
     assert_eq!(generator.versions().minimum(), version(5, 4, 0));
     assert_eq!(generator.versions().maximum(), version(6, 0, 2));
     assert_eq!(generator.gap(), None);
+    Ok(())
+}
+
+#[test]
+fn supported_range_records_network_and_image_completion_boundaries() -> Result<(), String> {
+    let catalogue = CapabilityCatalogue::supported_range().map_err(|error| error.to_string())?;
+    for (id, repeatable, minimum) in [
+        ("quadlet.network.containers-conf-module", true, version(5, 4, 0)),
+        ("quadlet.network.disable-dns", false, version(5, 4, 0)),
+        ("quadlet.network.dns", true, version(5, 4, 0)),
+        ("quadlet.network.global-args", true, version(5, 4, 0)),
+        ("quadlet.network.interface-name", false, version(5, 6, 0)),
+        ("quadlet.network.delete-on-stop", false, version(5, 5, 0)),
+        ("quadlet.network.podman-args", true, version(5, 4, 0)),
+        ("quadlet.network.service-name", false, version(5, 4, 0)),
+        ("quadlet.image.podman-args", true, version(5, 4, 0)),
+        ("quadlet.image.policy", false, version(5, 6, 0)),
+        ("quadlet.image.retry", false, version(5, 5, 0)),
+        ("quadlet.image.retry-delay", false, version(5, 5, 0)),
+        ("quadlet.image.tls-verify", false, version(5, 4, 0)),
+        ("quadlet.image.variant", false, version(5, 4, 0)),
+    ] {
+        let record = catalogue.capability(id).ok_or_else(|| format!("missing {id}"))?;
+        assert_eq!(record.is_repeatable(), repeatable, "{id}");
+        assert_eq!(
+            record
+                .native_range()
+                .map(quadlet_lens::capability::VersionRange::minimum),
+            Some(minimum),
+            "{id}"
+        );
+    }
+    for (id, target) in [
+        ("quadlet.network.delete-on-stop", version(5, 4, 2)),
+        ("quadlet.network.interface-name", version(5, 5, 2)),
+        ("quadlet.image.retry", version(5, 4, 2)),
+        ("quadlet.image.retry-delay", version(5, 4, 2)),
+        ("quadlet.image.policy", version(5, 5, 2)),
+    ] {
+        assert_eq!(
+            catalogue
+                .evaluate(
+                    id,
+                    PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?
+                )
+                .classification(),
+            SupportClassification::Unsupported,
+            "{id} at {target}"
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn supported_range_records_kube_keys() -> Result<(), String> {
+    let catalogue = CapabilityCatalogue::supported_range().map_err(|error| error.to_string())?;
+    for (id, repeatable) in [
+        ("quadlet.kube.auto-update", true),
+        ("quadlet.kube.config-map", true),
+        ("quadlet.kube.containers-conf-module", true),
+        ("quadlet.kube.exit-code-propagation", false),
+        ("quadlet.kube.global-args", true),
+        ("quadlet.kube.down-force", false),
+        ("quadlet.kube.log-driver", false),
+        ("quadlet.kube.network", true),
+        ("quadlet.kube.podman-args", true),
+        ("quadlet.kube.publish-port", true),
+        ("quadlet.kube.service-name", false),
+        ("quadlet.kube.set-working-directory", false),
+        ("quadlet.kube.userns", false),
+        ("quadlet.kube.yaml", true),
+        ("quadlet.kube.log-opt", true),
+        ("quadlet.kube.remap-gid", true),
+        ("quadlet.kube.remap-uid", true),
+        ("quadlet.kube.remap-uid-size", false),
+        ("quadlet.kube.remap-users", false),
+    ] {
+        let record = catalogue.capability(id).ok_or_else(|| format!("missing {id}"))?;
+        assert_eq!(record.unit_types(), ["kube"], "{id}");
+        assert_eq!(record.sections(), ["Kube"], "{id}");
+        assert_eq!(record.is_repeatable(), repeatable, "{id}");
+        let native = record
+            .native_range()
+            .ok_or_else(|| format!("missing native range for {id}"))?;
+        assert_eq!(native.minimum(), version(5, 4, 0), "{id}");
+        assert_eq!(native.maximum(), version(6, 0, 2), "{id}");
+    }
+    Ok(())
+}
+
+#[test]
+fn supported_range_records_artifact_and_default_dependencies() -> Result<(), String> {
+    let catalogue = CapabilityCatalogue::supported_range().map_err(|error| error.to_string())?;
+    for (id, repeatable) in [
+        ("quadlet.artifact.artifact", false),
+        ("quadlet.artifact.auth-file", false),
+        ("quadlet.artifact.cert-dir", false),
+        ("quadlet.artifact.creds", false),
+        ("quadlet.artifact.decryption-key", false),
+        ("quadlet.artifact.quiet", false),
+        ("quadlet.artifact.retry", false),
+        ("quadlet.artifact.retry-delay", false),
+        ("quadlet.artifact.service-name", false),
+        ("quadlet.artifact.tls-verify", false),
+        ("quadlet.artifact.containers-conf-module", true),
+        ("quadlet.artifact.global-args", true),
+        ("quadlet.artifact.podman-args", true),
+        ("quadlet.artifact.default-dependencies", false),
+    ] {
+        let record = catalogue.capability(id).ok_or_else(|| format!("missing {id}"))?;
+        assert_eq!(record.unit_types(), ["artifact"], "{id}");
+        if id == "quadlet.artifact.default-dependencies" {
+            assert_eq!(record.sections(), ["Quadlet"], "{id}");
+        } else {
+            assert_eq!(record.sections(), ["Artifact"], "{id}");
+        }
+        assert_eq!(record.is_repeatable(), repeatable, "{id}");
+        let native = record
+            .native_range()
+            .ok_or_else(|| format!("missing native range for {id}"))?;
+        assert_eq!(native.minimum(), version(5, 7, 0), "{id}");
+        assert_eq!(native.maximum(), version(6, 0, 2), "{id}");
+        for target in [version(5, 4, 0), version(5, 6, 2)] {
+            assert_eq!(
+                catalogue
+                    .evaluate(
+                        id,
+                        PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?
+                    )
+                    .classification(),
+                SupportClassification::Unsupported,
+                "{id} at {target}"
+            );
+        }
+        for target in [version(5, 7, 0), version(6, 0, 2)] {
+            assert_eq!(
+                catalogue
+                    .evaluate(
+                        id,
+                        PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?
+                    )
+                    .classification(),
+                SupportClassification::Native,
+                "{id} at {target}"
+            );
+        }
+    }
+    let defaults = catalogue
+        .capability("quadlet.default-dependencies")
+        .ok_or("missing shared DefaultDependencies capability")?;
+    assert_eq!(
+        defaults.unit_types(),
+        ["container", "pod", "network", "volume", "build", "image", "kube"]
+    );
+    assert_eq!(defaults.sections(), ["Quadlet"]);
+    assert!(!defaults.is_repeatable());
+    let native = defaults
+        .native_range()
+        .ok_or("DefaultDependencies native range missing")?;
+    assert_eq!(native.minimum(), version(5, 4, 0));
+    assert_eq!(native.maximum(), version(6, 0, 2));
     Ok(())
 }
 
@@ -66,6 +227,37 @@ fn supported_range_records_container_batch_keys() -> Result<(), String> {
         ("quadlet.container.timezone", false, Some(version(5, 4, 0))),
         ("quadlet.container.uid-map", true, Some(version(5, 4, 0))),
         ("quadlet.container.health-on-failure", false, Some(version(5, 4, 0))),
+        ("quadlet.container.containers-conf-module", true, Some(version(5, 4, 0))),
+        ("quadlet.container.global-args", true, Some(version(5, 4, 0))),
+        (
+            "quadlet.container.health-log-destination",
+            false,
+            Some(version(5, 4, 0)),
+        ),
+        ("quadlet.container.health-max-log-count", false, Some(version(5, 4, 0))),
+        ("quadlet.container.health-max-log-size", false, Some(version(5, 4, 0))),
+        ("quadlet.container.health-startup-cmd", false, Some(version(5, 4, 0))),
+        (
+            "quadlet.container.health-startup-interval",
+            false,
+            Some(version(5, 4, 0)),
+        ),
+        (
+            "quadlet.container.health-startup-retries",
+            false,
+            Some(version(5, 4, 0)),
+        ),
+        (
+            "quadlet.container.health-startup-success",
+            false,
+            Some(version(5, 4, 0)),
+        ),
+        (
+            "quadlet.container.health-startup-timeout",
+            false,
+            Some(version(5, 4, 0)),
+        ),
+        ("quadlet.container.service-name", false, Some(version(5, 4, 0))),
     ] {
         let capability = catalogue.capability(id).ok_or_else(|| format!("missing {id}"))?;
         assert_eq!(capability.unit_types(), ["container"]);
@@ -2566,6 +2758,72 @@ fn supported_range_records_paths_references_and_repetition() -> Result<(), Strin
 }
 
 #[test]
+fn supported_range_records_systemd_unit_relationships_and_rewrite_boundary() -> Result<(), String> {
+    let catalogue = CapabilityCatalogue::supported_range().map_err(|error| error.to_string())?;
+    for capability in [
+        "systemd.unit.requires",
+        "systemd.unit.wants",
+        "systemd.unit.after",
+        "systemd.unit.requisite",
+        "systemd.unit.binds-to",
+        "systemd.unit.part-of",
+        "systemd.unit.upholds",
+        "systemd.unit.conflicts",
+        "systemd.unit.before",
+    ] {
+        let record = catalogue
+            .capability(capability)
+            .ok_or_else(|| format!("{capability} capability must exist"))?;
+        assert_eq!(record.sections(), ["Unit"]);
+        assert!(record.is_repeatable());
+        assert_eq!(record.value_forms(), ["systemd-unit-list"]);
+        let native = record
+            .native_range()
+            .ok_or_else(|| format!("{capability} must have native coverage"))?;
+        assert_eq!(native.minimum(), version(5, 4, 0));
+        assert_eq!(native.maximum(), version(6, 0, 2));
+    }
+
+    let upholds = catalogue
+        .capability("systemd.unit.upholds")
+        .ok_or_else(|| "Upholds capability must exist".to_owned())?;
+    assert!(
+        upholds
+            .evidence()
+            .iter()
+            .any(|evidence| evidence == "systemd-249-upholds")
+    );
+
+    let rewrite = catalogue
+        .capability("systemd.unit.quadlet-reference-rewrite")
+        .ok_or_else(|| "Quadlet relationship rewrite capability must exist".to_owned())?;
+    assert_eq!(rewrite.sections(), ["Unit"]);
+    assert!(rewrite.is_repeatable());
+    assert_eq!(rewrite.value_forms(), ["native-quadlet-unit-list-rewrite"]);
+    let native = rewrite
+        .native_range()
+        .ok_or_else(|| "rewrite capability must have native coverage".to_owned())?;
+    assert_eq!(native.minimum(), version(5, 5, 0));
+    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(rewrite.unsupported_ranges().len(), 1);
+
+    for (target, expected) in [
+        (version(5, 4, 2), SupportClassification::Unsupported),
+        (version(5, 5, 0), SupportClassification::Native),
+        (version(6, 0, 2), SupportClassification::Native),
+    ] {
+        let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
+        assert_eq!(
+            catalogue
+                .evaluate("systemd.unit.quadlet-reference-rewrite", target)
+                .classification(),
+            expected
+        );
+    }
+    Ok(())
+}
+
+#[test]
 fn supported_range_records_container_stop_lifecycle() -> Result<(), String> {
     let catalogue = CapabilityCatalogue::supported_range().map_err(|error| error.to_string())?;
     for (id, value_form) in [
@@ -2898,6 +3156,59 @@ fn supported_range_records_pod_service_name() -> Result<(), String> {
         assert_eq!(
             catalogue.evaluate("quadlet.pod.service-name", target).classification(),
             expected
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn supported_range_records_pod_completion_keys() -> Result<(), String> {
+    let catalogue = CapabilityCatalogue::supported_range().map_err(|error| error.to_string())?;
+    for (id, repeatable) in [
+        ("quadlet.pod.containers-conf-module", true),
+        ("quadlet.pod.dns", true),
+        ("quadlet.pod.dns-option", true),
+        ("quadlet.pod.dns-search", true),
+        ("quadlet.pod.gid-map", true),
+        ("quadlet.pod.global-args", true),
+        ("quadlet.pod.hostname", false),
+        ("quadlet.pod.ip", false),
+        ("quadlet.pod.ip6", false),
+        ("quadlet.pod.label", true),
+        ("quadlet.pod.network-alias", true),
+        ("quadlet.pod.podman-args", true),
+        ("quadlet.pod.subgid-map", false),
+        ("quadlet.pod.subuid-map", false),
+        ("quadlet.pod.uid-map", true),
+    ] {
+        let capability = catalogue.capability(id).ok_or_else(|| format!("missing {id}"))?;
+        assert_eq!(capability.unit_types(), ["pod"]);
+        assert_eq!(capability.sections(), ["Pod"]);
+        assert_eq!(capability.is_repeatable(), repeatable);
+        assert_eq!(
+            capability
+                .native_range()
+                .map(quadlet_lens::capability::VersionRange::minimum),
+            Some(version(5, 4, 0))
+        );
+        assert_eq!(
+            capability
+                .native_range()
+                .map(quadlet_lens::capability::VersionRange::maximum),
+            Some(version(6, 0, 2))
+        );
+        assert_eq!(
+            capability.evidence(),
+            [
+                "podman-5-4-pod-completion-keys",
+                "podman-6-0-2-pod-completion-keys",
+                "podman-5-4-through-current-pod-completion-generators",
+            ]
+        );
+        let target = PodmanTarget::new(version(6, 0, 2), Some(version(6, 0, 2))).map_err(|error| error.to_string())?;
+        assert_eq!(
+            catalogue.evaluate(id, target).classification(),
+            SupportClassification::Native
         );
     }
     Ok(())

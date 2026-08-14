@@ -3,7 +3,7 @@ id = "container-batch-supported-range"
 suite = "generators"
 description = "Exercises isolated Container AutoUpdate registry/local forms, all CgroupsMode forms, EnvironmentHost, reset-aware Mount, ReadOnlyTmpfs, Timezone, and HealthOnFailure command construction across the complete supported Podman generator range."
 secrets_reviewed = true
-files = ["auto-local.container", "batch.container", "cgroups-disabled.container", "cgroups-enabled.container", "cgroups-no-conmon.container", "cgroups-split.container", "expected-fragments.txt", "mount-reset.container"]
+files = ["auto-local.container", "batch.container", "cgroups-disabled.container", "cgroups-enabled.container", "cgroups-no-conmon.container", "cgroups-split.container", "completion.container", "expected-fragments.txt", "mount-reset.container"]
 
 [provenance]
 source = "authored"
@@ -15,4 +15,4 @@ modifications = "none"
 description = "The harness mounts this directory read-only with label separation disabled and invokes only exact Podman Quadlet generators in dry-run mode. It does not read process, proxy, timezone, or filesystem state; pull images; create mounts; or start workloads."
 
 [expectations]
-summary = "Every recorded Podman release emits one --cgroups split, --tz UTC, --env-host=false, --read-only-tmpfs, --read-only, AutoUpdate label, --mount, and --health-on-failure kill form."
+summary = "Every recorded Podman release emits established batch arguments plus reset-aware Container configuration/global arguments, health log/startup pairs, and final ServiceName output naming."

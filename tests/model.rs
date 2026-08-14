@@ -2,8 +2,8 @@
 
 use quadlet_lens::diagnostic::Severity;
 use quadlet_lens::model::{
-    BuildKey, ContainerKey, EntryKind, ImageKey, NetworkKey, PodKey, QuadletDocument, QuadletUnitType, SectionKind,
-    TypedEntry, UnitReferenceKind, ValueKind, VolumeKey,
+    ArtifactKey, BuildKey, ContainerKey, EntryKind, ImageKey, KubeKey, NetworkKey, PodKey, QuadletDocument, QuadletKey,
+    QuadletUnitType, SectionKind, SystemdUnitKey, TypedEntry, UnitReferenceKind, ValueKind, VolumeKey,
 };
 use quadlet_lens::path::PathForm;
 use quadlet_lens::source::SourceId;
@@ -18,6 +18,78 @@ const BUILD_TARGET_DUPLICATES: &str = "[Build]\nTarget=builder\nTarget=final\n";
 const BUILD_PLATFORM_DUPLICATES: &str = "[Build]\nArch=\nArch=arm64\nVariant=\nVariant=v8\n";
 const BUILD_PODMAN_ARGS: &str =
     "[Build]\nPodmanArgs=--build-context extra=container-image://alpine:3.15\nPodmanArgs=--layers\n";
+
+#[test]
+fn systemd_unit_relationships_are_typed_repeatable_and_lossless() -> Result<(), String> {
+    let source = concat!(
+        "[Unit]\n",
+        "Requires=alpha.container beta.pod\n",
+        "Wants=\"quoted.network\"\n",
+        "After=continued.volume \\\n",
+        "  continued.build\n",
+        "Requisite=requisite.image\n",
+        "BindsTo=binds.container\n",
+        "PartOf=part.pod\n",
+        "Upholds=upholds.kube\n",
+        "Conflicts=conflicts.artifact\n",
+        "Before=malformed\"\n",
+        "Description=generic systemd text\n",
+        "requires=case-sensitive\n",
+        "[Service]\n",
+        "Requires=still generic outside Unit\n",
+        "[Container]\n",
+        "Image=example.invalid/application\n",
+    );
+    let parsed = QuadletDocument::parse(QuadletUnitType::Container, SourceId::new(9_100), source)
+        .map_err(|error| error.to_string())?;
+    assert!(parsed.is_valid(), "{:#?}", parsed.model_diagnostics());
+    assert_eq!(parsed.syntax().document().render_preserved(), source);
+
+    let typed = parsed
+        .document()
+        .entries()
+        .filter_map(|entry| match entry.kind() {
+            EntryKind::SystemdUnit(key) => Some((key, entry.value().primary().text(), entry.value().is_continued())),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        typed,
+        [
+            (SystemdUnitKey::Requires, "alpha.container beta.pod", false),
+            (SystemdUnitKey::Wants, "\"quoted.network\"", false),
+            (SystemdUnitKey::After, "continued.volume \\", true),
+            (SystemdUnitKey::Requisite, "requisite.image", false),
+            (SystemdUnitKey::BindsTo, "binds.container", false),
+            (SystemdUnitKey::PartOf, "part.pod", false),
+            (SystemdUnitKey::Upholds, "upholds.kube", false),
+            (SystemdUnitKey::Conflicts, "conflicts.artifact", false),
+            (SystemdUnitKey::Before, "malformed\"", false),
+        ]
+    );
+    assert!(
+        typed
+            .iter()
+            .all(|(key, _, _)| EntryKind::SystemdUnit(*key).is_repeatable())
+    );
+    assert!(
+        parsed
+            .document()
+            .entries()
+            .filter(|entry| matches!(entry.kind(), EntryKind::SystemdUnit(_)))
+            .all(|entry| entry.value_kind() == ValueKind::Opaque)
+    );
+    assert_eq!(
+        parsed
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::GenericSystemd)
+            .map(|entry| entry.key().text())
+            .collect::<Vec<_>>(),
+        ["Description", "requires", "Requires"]
+    );
+    Ok(())
+}
 
 #[test]
 fn pod_exit_policy_is_an_opaque_singleton_without_effective_value_selection() -> Result<(), String> {
@@ -991,7 +1063,7 @@ fn build_service_name_preserves_opaque_singleton_physical_lines_and_scope() -> R
         wrong_section
             .document()
             .entries()
-            .any(|entry| { entry.kind() == EntryKind::Unknown && entry.key().text() == "ServiceName" })
+            .any(|entry| entry.kind() == EntryKind::Container(ContainerKey::ServiceName))
     );
     Ok(())
 }
@@ -1195,7 +1267,7 @@ fn build_containers_conf_module_preserves_opaque_physical_lines_and_wrong_sectio
     .map_err(|error| error.to_string())?;
     assert_eq!(
         wrong.document().entries().next().ok_or("missing")?.kind(),
-        EntryKind::Unknown
+        EntryKind::Pod(PodKey::ContainersConfModule)
     );
     Ok(())
 }
@@ -1242,7 +1314,7 @@ fn build_global_args_preserves_exact_repeatable_physical_lines_and_wrong_section
     .map_err(|error| error.to_string())?;
     assert_eq!(
         wrong.document().entries().next().ok_or("missing")?.kind(),
-        EntryKind::Unknown
+        EntryKind::Pod(PodKey::GlobalArgs)
     );
     Ok(())
 }
@@ -1524,7 +1596,16 @@ fn container_model_retains_order_repetition_unknowns_and_generic_systemd() -> Re
         .filter(|entry| entry.kind() == EntryKind::GenericSystemd)
         .map(|entry| entry.key().text())
         .collect();
-    assert_eq!(generic, ["Description", "After", "After", "Restart", "WantedBy"]);
+    assert_eq!(generic, ["Description", "Restart", "WantedBy"]);
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::SystemdUnit(SystemdUnitKey::After))
+            .map(|entry| entry.value().primary().text())
+            .collect::<Vec<_>>(),
+        ["network-online.target", "frontend.network"]
+    );
 
     let known: Vec<_> = result
         .document()
@@ -2238,10 +2319,12 @@ fn container_network_identity_preserves_opaque_values_cardinality_continuations_
     assert_eq!(
         pod.document()
             .entries()
-            .filter(|entry| entry.kind() == EntryKind::Unknown)
-            .map(|entry| entry.key().text())
+            .filter_map(|entry| match entry.kind() {
+                EntryKind::Pod(key) => Some(key),
+                _ => None,
+            })
             .collect::<Vec<_>>(),
-        ["IP", "IP6", "NetworkAlias"]
+        [PodKey::IP, PodKey::IP6, PodKey::NetworkAlias]
     );
     Ok(())
 }
@@ -2300,17 +2383,23 @@ fn dns_omission_reset_duplicates_order_case_quoting_specifiers_and_raw_values_re
             .any(|entry| entry.kind() == EntryKind::Unknown && entry.key().text() == "Dns")
     );
 
-    for (unit_type, source_id, source) in [
-        (QuadletUnitType::Pod, SourceId::new(130), "[Pod]\nDNS=1.1.1.1\n"),
-        (QuadletUnitType::Network, SourceId::new(131), "[Network]\nDNS=1.1.1.1\n"),
-    ] {
-        let result = QuadletDocument::parse(unit_type, source_id, source).map_err(|error| error.to_string())?;
-        assert!(result.document().entries().any(|entry| {
-            entry.kind() == EntryKind::Unknown
-                && entry.key().text() == "DNS"
-                && entry.value().primary().text() == "1.1.1.1"
-        }));
-    }
+    let network = QuadletDocument::parse(QuadletUnitType::Network, SourceId::new(131), "[Network]\nDNS=1.1.1.1\n")
+        .map_err(|error| error.to_string())?;
+    assert!(
+        network
+            .document()
+            .entries()
+            .any(|entry| entry.kind() == EntryKind::Network(NetworkKey::DNS))
+    );
+    let image = QuadletDocument::parse(
+        QuadletUnitType::Image,
+        SourceId::new(132),
+        "[Image]\nImage=example.invalid/app\nDNS=1.1.1.1\n",
+    )
+    .map_err(|error| error.to_string())?;
+    assert!(image.document().entries().any(|entry| {
+        entry.kind() == EntryKind::Unknown && entry.key().text() == "DNS" && entry.value().primary().text() == "1.1.1.1"
+    }));
     Ok(())
 }
 
@@ -2370,11 +2459,15 @@ fn dns_option_omission_reset_duplicates_order_quoting_specifiers_whitespace_and_
     );
 
     for (unit_type, source_id, source) in [
-        (QuadletUnitType::Pod, SourceId::new(136), "[Pod]\nDNSOption=rotate\n"),
         (
             QuadletUnitType::Network,
             SourceId::new(137),
             "[Network]\nDNSOption=rotate\n",
+        ),
+        (
+            QuadletUnitType::Image,
+            SourceId::new(138),
+            "[Image]\nImage=example.invalid/app\nDNSOption=rotate\n",
         ),
     ] {
         let result = QuadletDocument::parse(unit_type, source_id, source).map_err(|error| error.to_string())?;
@@ -2449,11 +2542,11 @@ fn dns_search_omission_reset_duplicates_order_quoting_specifiers_and_raw_values_
         "[Pod]\nDNSSearch=example.com\n",
     )
     .map_err(|error| error.to_string())?;
-    assert!(pod.document().entries().any(|entry| {
-        entry.kind() == EntryKind::Unknown
-            && entry.key().text() == "DNSSearch"
-            && entry.value().primary().text() == "example.com"
-    }));
+    assert!(
+        pod.document()
+            .entries()
+            .any(|entry| entry.kind() == EntryKind::Pod(PodKey::DNSSearch))
+    );
     assert_eq!(QuadletUnitType::from_extension("build"), Some(QuadletUnitType::Build));
     Ok(())
 }
@@ -3054,6 +3147,105 @@ fn lifecycle_recognition_preserves_one_line_values_without_semantic_validation()
 }
 
 #[test]
+fn network_and_image_completion_keys_are_typed_opaque_and_preserve_repeatability() -> Result<(), String> {
+    let network = QuadletDocument::parse(
+        QuadletUnitType::Network,
+        SourceId::new(906),
+        concat!(
+            "[Network]\nNetworkName=completion\nContainersConfModule=one.conf\n",
+            "ContainersConfModule=two.conf\nDNS=9.9.9.9\nDNS=2001:4860:4860::8888\n",
+            "GlobalArgs=--log-level=debug\nPodmanArgs=--internal\nPodmanArgs=--opt isolate=true\n",
+            "DisableDNS=true\nDisableDNS=false\nInterfaceName=quadlet0\n",
+            "NetworkDeleteOnStop=true\nServiceName=completion-network\n"
+        ),
+    )
+    .map_err(|error| error.to_string())?;
+    assert!(network.is_valid());
+    assert_eq!(
+        network
+            .document()
+            .entries()
+            .filter_map(|entry| match entry.kind() {
+                EntryKind::Network(key) => Some(key),
+                _ => None,
+            })
+            .collect::<Vec<_>>(),
+        [
+            NetworkKey::NetworkName,
+            NetworkKey::ContainersConfModule,
+            NetworkKey::ContainersConfModule,
+            NetworkKey::DNS,
+            NetworkKey::DNS,
+            NetworkKey::GlobalArgs,
+            NetworkKey::PodmanArgs,
+            NetworkKey::PodmanArgs,
+            NetworkKey::DisableDNS,
+            NetworkKey::DisableDNS,
+            NetworkKey::InterfaceName,
+            NetworkKey::NetworkDeleteOnStop,
+            NetworkKey::ServiceName,
+        ]
+    );
+    assert_eq!(
+        network
+            .model_diagnostics()
+            .iter()
+            .map(|diagnostic| diagnostic.code().as_str())
+            .collect::<Vec<_>>(),
+        ["QLM0004"]
+    );
+
+    let image = QuadletDocument::parse(
+        QuadletUnitType::Image,
+        SourceId::new(907),
+        concat!(
+            "[Image]\nImage=example.invalid/application:1\nPodmanArgs=--quiet\n",
+            "PodmanArgs=--all-tags\nPolicy=newer\nPolicy=missing\nRetry=4\n",
+            "RetryDelay=7s\nTLSVerify=false\nVariant=v8\n"
+        ),
+    )
+    .map_err(|error| error.to_string())?;
+    assert!(image.is_valid());
+    assert_eq!(
+        image
+            .document()
+            .entries()
+            .filter_map(|entry| match entry.kind() {
+                EntryKind::Image(key) => Some(key),
+                _ => None,
+            })
+            .collect::<Vec<_>>(),
+        [
+            ImageKey::Image,
+            ImageKey::PodmanArgs,
+            ImageKey::PodmanArgs,
+            ImageKey::Policy,
+            ImageKey::Policy,
+            ImageKey::Retry,
+            ImageKey::RetryDelay,
+            ImageKey::TLSVerify,
+            ImageKey::Variant,
+        ]
+    );
+    assert_eq!(
+        image
+            .model_diagnostics()
+            .iter()
+            .map(|diagnostic| diagnostic.code().as_str())
+            .collect::<Vec<_>>(),
+        ["QLM0004"]
+    );
+    assert!(
+        image
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() != EntryKind::Image(ImageKey::Image))
+            .all(|entry| entry.value_kind() == ValueKind::Opaque)
+    );
+    Ok(())
+}
+
+#[test]
 fn network_and_volume_models_retain_known_and_future_fields() -> Result<(), String> {
     let pod =
         QuadletDocument::parse(QuadletUnitType::Pod, SourceId::new(40), POD).map_err(|error| error.to_string())?;
@@ -3079,7 +3271,10 @@ fn network_and_volume_models_retain_known_and_future_fields() -> Result<(), Stri
             PodKey::Network,
             PodKey::Volume,
             PodKey::UserNS,
-            PodKey::ShmSize
+            PodKey::ShmSize,
+            PodKey::DNS,
+            PodKey::DNSOption,
+            PodKey::DNSSearch
         ]
     );
     assert!(pod.document().entries().any(|entry| {
@@ -3107,9 +3302,6 @@ fn network_and_volume_models_retain_known_and_future_fields() -> Result<(), Stri
             ("Ulimit", "core=0:0"),
             ("AddDevice", "/dev/null:/dev/null:r"),
             ("Memory", "16m"),
-            ("DNS", "1.1.1.1"),
-            ("DNSOption", "rotate"),
-            ("DNSSearch", "example.com"),
             ("ExposeHostPort", "8080"),
             ("AppArmor", "unconfined"),
             ("SeccompProfile", "unconfined"),
@@ -3433,7 +3625,7 @@ fn volume_containers_conf_module_preserves_every_opaque_physical_value_and_scope
         container
             .document()
             .entries()
-            .any(|entry| { entry.kind() == EntryKind::Unknown && entry.key().text() == "ContainersConfModule" })
+            .any(|entry| entry.kind() == EntryKind::Container(ContainerKey::ContainersConfModule))
     );
     Ok(())
 }
@@ -3498,7 +3690,7 @@ fn volume_global_args_preserves_every_opaque_physical_value_and_scope() -> Resul
         wrong_section
             .document()
             .entries()
-            .any(|entry| entry.kind() == EntryKind::Unknown && entry.key().text() == "GlobalArgs")
+            .any(|entry| entry.kind() == EntryKind::Container(ContainerKey::GlobalArgs))
     );
     Ok(())
 }
@@ -3551,18 +3743,6 @@ fn volume_podman_args_preserves_every_opaque_physical_value_and_scope() -> Resul
             .any(|entry| entry.kind() == EntryKind::Unknown && entry.key().text() == "podmanargs")
     );
 
-    let wrong_section = QuadletDocument::parse(
-        QuadletUnitType::Network,
-        SourceId::new(320),
-        "[Network]\nNetworkName=example\nPodmanArgs=--label=one\n",
-    )
-    .map_err(|error| error.to_string())?;
-    assert!(
-        wrong_section
-            .document()
-            .entries()
-            .any(|entry| entry.kind() == EntryKind::Unknown && entry.key().text() == "PodmanArgs")
-    );
     Ok(())
 }
 
@@ -5678,6 +5858,592 @@ fn read_only_tmpfs_relationship_diagnostic_recognizes_effective_boolean_forms() 
             result.model_diagnostics().is_empty(),
             "ReadOnlyTmpfs={spelling} must be recognized as false"
         );
+    }
+    Ok(())
+}
+
+#[test]
+fn remaining_container_keys_preserve_opaque_values_duplicates_resets_and_order() -> Result<(), String> {
+    let source = concat!(
+        "[Container]\nImage=example.invalid/app:1\n",
+        "ContainersConfModule=pre.conf\nContainersConfModule=\n",
+        "ContainersConfModule=post-one.conf\nContainersConfModule=post-two.conf\n",
+        "GlobalArgs=--log-level=info\nGlobalArgs=\nGlobalArgs=--log-level=debug\n",
+        "ImageVolume=/assets\nImageVolume=src.image:/opt/assets\n",
+        "HealthLogDestination=local\nHealthMaxLogCount=5\nHealthMaxLogSize=10m\n",
+        "HealthStartupCmd=CMD-SHELL echo ready\nHealthStartupInterval=2s\n",
+        "HealthStartupRetries=4\nHealthStartupSuccess=2\nHealthStartupTimeout=1s\n",
+        "ServiceName=chosen.service\n",
+    );
+    let result = QuadletDocument::parse(QuadletUnitType::Container, SourceId::new(1_080), source)
+        .map_err(|error| error.to_string())?;
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    for key in [
+        ContainerKey::ContainersConfModule,
+        ContainerKey::GlobalArgs,
+        ContainerKey::ImageVolume,
+        ContainerKey::HealthLogDestination,
+        ContainerKey::HealthMaxLogCount,
+        ContainerKey::HealthMaxLogSize,
+        ContainerKey::HealthStartupCmd,
+        ContainerKey::HealthStartupInterval,
+        ContainerKey::HealthStartupRetries,
+        ContainerKey::HealthStartupSuccess,
+        ContainerKey::HealthStartupTimeout,
+        ContainerKey::ServiceName,
+    ] {
+        assert!(
+            result
+                .document()
+                .entries()
+                .any(|entry| entry.kind() == EntryKind::Container(key))
+        );
+    }
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::ContainersConfModule))
+            .map(|entry| entry.value().primary().text())
+            .collect::<Vec<_>>(),
+        ["pre.conf", "", "post-one.conf", "post-two.conf"]
+    );
+    assert!(result.model_diagnostics().is_empty());
+    Ok(())
+}
+
+#[test]
+fn remaining_pod_keys_preserve_opaque_values_cardinality_and_mapping_diagnostics() -> Result<(), String> {
+    let source = concat!(
+        "[Pod]\nPodName=example\n",
+        "ContainersConfModule=pre.conf\nContainersConfModule=\nContainersConfModule=post.conf\n",
+        "DNS=9.9.9.9\nDNSOption=ndots:1\nDNSSearch=example.invalid\n",
+        "GIDMap=0:200000:1\nGlobalArgs=--log-level=debug\nHostName=pod-host\n",
+        "IP=10.88.0.2\nIP6=fd00::2\nLabel=org.example.pod=yes\n",
+        "NetworkAlias=api\nPodmanArgs=--replace\nUIDMap=0:100000:1\n",
+    );
+    let result = QuadletDocument::parse(QuadletUnitType::Pod, SourceId::new(1_090), source)
+        .map_err(|error| error.to_string())?;
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    for key in [
+        PodKey::ContainersConfModule,
+        PodKey::DNS,
+        PodKey::DNSOption,
+        PodKey::DNSSearch,
+        PodKey::GIDMap,
+        PodKey::GlobalArgs,
+        PodKey::HostName,
+        PodKey::IP,
+        PodKey::IP6,
+        PodKey::Label,
+        PodKey::NetworkAlias,
+        PodKey::PodmanArgs,
+        PodKey::UIDMap,
+    ] {
+        assert!(
+            result
+                .document()
+                .entries()
+                .any(|entry| entry.kind() == EntryKind::Pod(key))
+        );
+    }
+    assert!(result.model_diagnostics().is_empty());
+    let conflicts = QuadletDocument::parse(
+        QuadletUnitType::Pod,
+        SourceId::new(1_091),
+        "[Pod]\nUserNS=keep-id\nUIDMap=0:100000:1\nSubUIDMap=keep-id\nGIDMap=0:200000:1\nSubGIDMap=keep-id\n",
+    )
+    .map_err(|error| error.to_string())?;
+    assert_eq!(
+        conflicts
+            .model_diagnostics()
+            .iter()
+            .map(|diagnostic| diagnostic.code().as_str())
+            .collect::<Vec<_>>(),
+        ["QLM0013", "QLM0014", "QLM0015"]
+    );
+    for entries in [
+        "UserNS=keep-id\nUserNS=\nUIDMap=0:100000:1\n",
+        "UserNS=keep-id\nUIDMap=0:100000:1\nUIDMap=\n",
+        "UIDMap=0:100000:1\nUIDMap=\nSubUIDMap=keep-id\n",
+        "UIDMap=0:100000:1\nSubUIDMap=keep-id\nSubUIDMap=\n",
+        "GIDMap=0:200000:1\nGIDMap=\nSubGIDMap=keep-id\n",
+        "GIDMap=0:200000:1\nSubGIDMap=keep-id\nSubGIDMap=\n",
+    ] {
+        let result = QuadletDocument::parse(QuadletUnitType::Pod, SourceId::new(1_092), format!("[Pod]\n{entries}"))
+            .map_err(|error| error.to_string())?;
+        assert!(
+            result
+                .model_diagnostics()
+                .iter()
+                .all(|diagnostic| !matches!(diagnostic.code().as_str(), "QLM0013" | "QLM0014" | "QLM0015")),
+            "blank reset must clear the effective Pod mapping conflict for {entries:?}"
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn kube_keys_preserve_source_fidelity_required_yaml_and_network_references() -> Result<(), String> {
+    let source = concat!(
+        "[Kube]\nYaml=./first.yaml\nYaml=/opt/quadlet-lens/second.yaml\n",
+        "AutoUpdate=registry\nConfigMap=/run/quadlet-lens/config-one.yaml\n",
+        "ConfigMap=/run/quadlet-lens/config-two.yaml\nContainersConfModule=pre.conf\n",
+        "ContainersConfModule=\nContainersConfModule=post.conf\nExitCodePropagation=any\n",
+        "GlobalArgs=--log-level=debug\nGlobalArgs=\nGlobalArgs=--events-backend=file\n",
+        "KubeDownForce=true\nLogDriver=k8s-file\nNetwork=frontend.network\n",
+        "PodmanArgs=--replace\nPodmanArgs=\nPodmanArgs=--userns=keep-id\n",
+        "PublishPort=8080:80\nPublishPort=8443:443\nServiceName=quadlet-lens-kube.service\n",
+        "SetWorkingDirectory=unit\nUserNS=keep-id\nLogOpt=path=/run/quadlet-lens/kube.log\n",
+    );
+    let result = QuadletDocument::parse(QuadletUnitType::Kube, SourceId::new(1_100), source)
+        .map_err(|error| error.to_string())?;
+    assert!(result.is_valid(), "{:#?}", result.model_diagnostics());
+    assert_eq!(result.syntax().document().render_preserved(), source);
+    for key in [
+        KubeKey::AutoUpdate,
+        KubeKey::ConfigMap,
+        KubeKey::ContainersConfModule,
+        KubeKey::ExitCodePropagation,
+        KubeKey::GlobalArgs,
+        KubeKey::KubeDownForce,
+        KubeKey::LogDriver,
+        KubeKey::Network,
+        KubeKey::PodmanArgs,
+        KubeKey::PublishPort,
+        KubeKey::ServiceName,
+        KubeKey::SetWorkingDirectory,
+        KubeKey::UserNS,
+        KubeKey::Yaml,
+        KubeKey::LogOpt,
+    ] {
+        assert!(
+            result
+                .document()
+                .entries()
+                .any(|entry| entry.kind() == EntryKind::Kube(key))
+        );
+    }
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Kube(KubeKey::Yaml))
+            .map(|entry| entry.value().primary().text())
+            .collect::<Vec<_>>(),
+        ["./first.yaml", "/opt/quadlet-lens/second.yaml"]
+    );
+    assert!(result.document().entries().any(|entry| {
+        entry.kind() == EntryKind::Kube(KubeKey::Network)
+            && entry.value_kind() == ValueKind::UnitReference(UnitReferenceKind::Network)
+    }));
+    assert!(result.document().entries().any(|entry| {
+        entry.kind() == EntryKind::Kube(KubeKey::Yaml)
+            && entry.value_kind() == ValueKind::Path(PathForm::UnitRelativeLiteral)
+    }));
+
+    let missing = QuadletDocument::parse(QuadletUnitType::Kube, SourceId::new(1_101), "[Kube]\n")
+        .map_err(|error| error.to_string())?;
+    assert_eq!(
+        missing
+            .model_diagnostics()
+            .iter()
+            .map(|diagnostic| diagnostic.code().as_str())
+            .collect::<Vec<_>>(),
+        ["QLM0017"]
+    );
+    let empty = QuadletDocument::parse(QuadletUnitType::Kube, SourceId::new(1_102), "[Kube]\nYaml=\n")
+        .map_err(|error| error.to_string())?;
+    assert_eq!(
+        empty
+            .model_diagnostics()
+            .iter()
+            .map(|diagnostic| diagnostic.code().as_str())
+            .collect::<Vec<_>>(),
+        ["QLM0018"]
+    );
+    let duplicate = QuadletDocument::parse(
+        QuadletUnitType::Kube,
+        SourceId::new(1_103),
+        "[Kube]\nYaml=placeholder.yaml\nRemapUsers=true\nRemapUsers=false\n",
+    )
+    .map_err(|error| error.to_string())?;
+    assert_eq!(
+        duplicate
+            .model_diagnostics()
+            .iter()
+            .map(|diagnostic| diagnostic.code().as_str())
+            .collect::<Vec<_>>(),
+        ["QLM0004"]
+    );
+    assert_kube_yaml_reset_cases()?;
+    assert_kube_yaml_working_directory_cases()?;
+    assert_kube_remap_cases()?;
+    Ok(())
+}
+
+fn assert_kube_yaml_reset_cases() -> Result<(), String> {
+    let reset_followed_by_source = QuadletDocument::parse(
+        QuadletUnitType::Kube,
+        SourceId::new(11_021),
+        "[Kube]\nYaml=discarded.yaml\nYaml=\nYaml=effective.yaml\n",
+    )
+    .map_err(|error| error.to_string())?;
+    assert!(
+        reset_followed_by_source.is_valid(),
+        "{:#?}",
+        reset_followed_by_source.model_diagnostics()
+    );
+    for (source_id, source) in [
+        (11_022, "[Kube]\nYaml=discarded.yaml\nYaml=\n"),
+        (11_023, "[Kube]\nYaml=\nYaml=\n"),
+    ] {
+        let parsed = QuadletDocument::parse(QuadletUnitType::Kube, SourceId::new(source_id), source)
+            .map_err(|error| error.to_string())?;
+        assert_eq!(
+            parsed
+                .model_diagnostics()
+                .iter()
+                .map(|diagnostic| diagnostic.code().as_str())
+                .collect::<Vec<_>>(),
+            ["QLM0018"]
+        );
+    }
+    Ok(())
+}
+
+fn assert_kube_yaml_working_directory_cases() -> Result<(), String> {
+    for (source_id, entries, expected) in [
+        (
+            1_104,
+            "Yaml=one.yaml\nYaml=two.yaml\nSetWorkingDirectory=yaml\n",
+            vec!["QLM0019"],
+        ),
+        (1_105, "Yaml=one.yaml\nSetWorkingDirectory=yaml\n", vec![]),
+        (
+            1_106,
+            "Yaml=one.yaml\nYaml=two.yaml\nSetWorkingDirectory=unit\n",
+            vec![],
+        ),
+        (
+            1_107,
+            "Yaml=one.yaml\nYaml=two.yaml\nYaml=\nSetWorkingDirectory=yaml\n",
+            vec!["QLM0018"],
+        ),
+        (1_108, "Yaml=\"one source.yaml\"\nSetWorkingDirectory=yaml\n", vec![]),
+        (1_109, "Yaml=one\\ source.yaml\nSetWorkingDirectory=yaml\n", vec![]),
+        (
+            1_110,
+            "Yaml=one.yaml two.yaml\nSetWorkingDirectory=yaml\n",
+            vec!["QLM0019"],
+        ),
+    ] {
+        let parsed = QuadletDocument::parse(
+            QuadletUnitType::Kube,
+            SourceId::new(source_id),
+            format!("[Kube]\n{entries}"),
+        )
+        .map_err(|error| error.to_string())?;
+        assert_eq!(
+            parsed
+                .model_diagnostics()
+                .iter()
+                .map(|diagnostic| diagnostic.code().as_str())
+                .collect::<Vec<_>>(),
+            expected,
+            "{entries}"
+        );
+        if expected == ["QLM0019"] {
+            let diagnostic = parsed
+                .model_diagnostics()
+                .iter()
+                .find(|diagnostic| diagnostic.code().as_str() == "QLM0019")
+                .ok_or_else(|| "missing QLM0019".to_owned())?;
+            assert_eq!(diagnostic.labels()[0].span().source_id(), SourceId::new(source_id));
+            assert_eq!(
+                diagnostic.labels()[0].span().start(),
+                "[Kube]\n".len()
+                    + entries.find("SetWorkingDirectory=").unwrap_or_default()
+                    + "SetWorkingDirectory=".len(),
+            );
+        }
+    }
+    Ok(())
+}
+
+fn assert_kube_remap_cases() -> Result<(), String> {
+    let remaps = QuadletDocument::parse(
+        QuadletUnitType::Kube,
+        SourceId::new(1_111),
+        "[Kube]\nYaml=placeholder.yaml\nRemapGid=200000\nRemapGid=200001\nRemapUid=100000\nRemapUid=100001\nRemapUidSize=65536\nRemapUsers=auto\n",
+    )
+    .map_err(|error| error.to_string())?;
+    assert!(remaps.is_valid(), "{:#?}", remaps.model_diagnostics());
+    let conflict = QuadletDocument::parse(
+        QuadletUnitType::Kube,
+        SourceId::new(1_112),
+        "[Kube]\nYaml=placeholder.yaml\nUserNS=keep-id\nRemapUid=100000\n",
+    )
+    .map_err(|error| error.to_string())?;
+    assert_eq!(
+        conflict
+            .model_diagnostics()
+            .iter()
+            .map(|diagnostic| diagnostic.code().as_str())
+            .collect::<Vec<_>>(),
+        ["QLM0020"]
+    );
+    assert_eq!(conflict.model_diagnostics()[0].labels().len(), 2);
+    let size_only = QuadletDocument::parse(
+        QuadletUnitType::Kube,
+        SourceId::new(1_113),
+        "[Kube]\nYaml=placeholder.yaml\nUserNS=keep-id\nRemapUidSize=65536\n",
+    )
+    .map_err(|error| error.to_string())?;
+    assert!(
+        size_only
+            .model_diagnostics()
+            .iter()
+            .all(|diagnostic| diagnostic.code().as_str() != "QLM0020")
+    );
+    for (entries, conflicts) in [
+        ("UserNS=keep-id\nRemapUid=100000\nRemapUid=\n", false),
+        ("UserNS=keep-id\nRemapUid=100000\nRemapUid=\nRemapGid=200000\n", true),
+        ("UserNS=keep-id\nRemapUsers=auto\nRemapUid=100000\nRemapUid=\n", true),
+        ("UserNS=keep-id\nUserNS=\nRemapUid=100000\n", false),
+    ] {
+        let parsed = QuadletDocument::parse(
+            QuadletUnitType::Kube,
+            SourceId::new(1_113),
+            format!("[Kube]\nYaml=placeholder.yaml\n{entries}"),
+        )
+        .map_err(|error| error.to_string())?;
+        assert_eq!(
+            parsed
+                .model_diagnostics()
+                .iter()
+                .any(|diagnostic| diagnostic.code().as_str() == "QLM0020"),
+            conflicts,
+            "{entries}"
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn artifact_and_quadlet_keys_preserve_effective_source_boundaries_and_redact_seeded_values() -> Result<(), String> {
+    let source = "[Quadlet]\nDefaultDependencies=not-a-boolean\n[Artifact]\nArtifact=pre.invalid/a\nArtifact=\nArtifact=registry.invalid/final\nCreds=SEEDED_ARTIFACT_CREDS\nDecryptionKey=SEEDED_ARTIFACT_KEY\nContainersConfModule=pre.conf\nContainersConfModule=\nContainersConfModule=post.conf\nGlobalArgs=--pre\nGlobalArgs=\nGlobalArgs=--post\nPodmanArgs=--pre\nPodmanArgs=\nPodmanArgs=--post\n";
+    let parsed = QuadletDocument::parse(QuadletUnitType::Artifact, SourceId::new(9_001), source)
+        .map_err(|error| error.to_string())?;
+    assert!(parsed.is_valid(), "{:#?}", parsed.model_diagnostics());
+    assert!(
+        parsed
+            .document()
+            .entries()
+            .any(|entry| entry.kind() == EntryKind::Quadlet(QuadletKey::DefaultDependencies))
+    );
+    assert!(
+        parsed
+            .document()
+            .entries()
+            .any(|entry| entry.kind() == EntryKind::Artifact(ArtifactKey::Artifact))
+    );
+    let debug = format!("{:?}", parsed.document());
+    assert!(!debug.contains("SEEDED_ARTIFACT_CREDS") && !debug.contains("SEEDED_ARTIFACT_KEY"));
+    for (source, code) in [
+        ("[Artifact]\n", "QLM0021"),
+        ("[Artifact]\nArtifact=ok\nArtifact=\n", "QLM0022"),
+    ] {
+        let parsed = QuadletDocument::parse(QuadletUnitType::Artifact, SourceId::new(9_002), source)
+            .map_err(|error| error.to_string())?;
+        assert!(
+            parsed
+                .model_diagnostics()
+                .iter()
+                .any(|item| item.code().as_str() == code)
+        );
+    }
+    Ok(())
+}
+
+#[test]
+#[expect(
+    clippy::too_many_lines,
+    reason = "The table-driven parser case keeps the complete Artifact classification and provenance matrix auditable together."
+)]
+fn artifact_parser_classifies_every_key_preserves_cardinality_and_keeps_final_source_diagnostics() -> Result<(), String>
+{
+    const CREDS: &str = "quadlet-lens-artifact-parser-creds-canary";
+    const KEY: &str = "quadlet-lens-artifact-parser-key-canary";
+    let source = concat!(
+        "[Quadlet]\nDefaultDependencies=true\nDefaultDependencies=false\n",
+        "[Artifact]\nArtifact=registry.invalid/pre:1\nArtifact=registry.invalid/final:1\n",
+        "AuthFile=/run/quadlet-lens/auth.json\nCertDir=/run/quadlet-lens/certs\n",
+        "Creds=quadlet-lens-artifact-parser-creds-canary\n",
+        "DecryptionKey=quadlet-lens-artifact-parser-key-canary\n",
+        "Quiet=true\nRetry=4\nRetryDelay=7s\nServiceName=artifact-pull\nTLSVerify=false\n",
+        "ContainersConfModule=pre.conf\nContainersConfModule=\nContainersConfModule=post.conf\n",
+        "GlobalArgs=--pre\nGlobalArgs=\nGlobalArgs=--post\n",
+        "PodmanArgs=--pre\nPodmanArgs=\nPodmanArgs=--post\n",
+        "artifact=case-sensitive-unknown\n",
+    );
+    let parsed = QuadletDocument::parse(QuadletUnitType::Artifact, SourceId::new(9_010), source)
+        .map_err(|error| error.to_string())?;
+    assert_eq!(parsed.syntax().document().render_preserved(), source);
+    assert_eq!(
+        parsed
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() != EntryKind::Unknown)
+            .map(|entry| (
+                entry.kind(),
+                entry.value().primary().text(),
+                entry.value_kind(),
+                entry.is_sensitive()
+            ))
+            .collect::<Vec<_>>(),
+        [
+            (
+                EntryKind::Quadlet(QuadletKey::DefaultDependencies),
+                "true",
+                ValueKind::Opaque,
+                false
+            ),
+            (
+                EntryKind::Quadlet(QuadletKey::DefaultDependencies),
+                "false",
+                ValueKind::Opaque,
+                false
+            ),
+            (
+                EntryKind::Artifact(ArtifactKey::Artifact),
+                "registry.invalid/pre:1",
+                ValueKind::Opaque,
+                false
+            ),
+            (
+                EntryKind::Artifact(ArtifactKey::Artifact),
+                "registry.invalid/final:1",
+                ValueKind::Opaque,
+                false
+            ),
+            (
+                EntryKind::Artifact(ArtifactKey::AuthFile),
+                "/run/quadlet-lens/auth.json",
+                ValueKind::Opaque,
+                false
+            ),
+            (
+                EntryKind::Artifact(ArtifactKey::CertDir),
+                "/run/quadlet-lens/certs",
+                ValueKind::Opaque,
+                false
+            ),
+            (EntryKind::Artifact(ArtifactKey::Creds), CREDS, ValueKind::Opaque, true),
+            (
+                EntryKind::Artifact(ArtifactKey::DecryptionKey),
+                KEY,
+                ValueKind::Opaque,
+                true
+            ),
+            (
+                EntryKind::Artifact(ArtifactKey::Quiet),
+                "true",
+                ValueKind::Opaque,
+                false
+            ),
+            (EntryKind::Artifact(ArtifactKey::Retry), "4", ValueKind::Opaque, false),
+            (
+                EntryKind::Artifact(ArtifactKey::RetryDelay),
+                "7s",
+                ValueKind::Opaque,
+                false
+            ),
+            (
+                EntryKind::Artifact(ArtifactKey::ServiceName),
+                "artifact-pull",
+                ValueKind::Opaque,
+                false
+            ),
+            (
+                EntryKind::Artifact(ArtifactKey::TLSVerify),
+                "false",
+                ValueKind::Opaque,
+                false
+            ),
+            (
+                EntryKind::Artifact(ArtifactKey::ContainersConfModule),
+                "pre.conf",
+                ValueKind::Opaque,
+                false
+            ),
+            (
+                EntryKind::Artifact(ArtifactKey::ContainersConfModule),
+                "",
+                ValueKind::Opaque,
+                false
+            ),
+            (
+                EntryKind::Artifact(ArtifactKey::ContainersConfModule),
+                "post.conf",
+                ValueKind::Opaque,
+                false
+            ),
+            (
+                EntryKind::Artifact(ArtifactKey::GlobalArgs),
+                "--pre",
+                ValueKind::Opaque,
+                false
+            ),
+            (
+                EntryKind::Artifact(ArtifactKey::GlobalArgs),
+                "",
+                ValueKind::Opaque,
+                false
+            ),
+            (
+                EntryKind::Artifact(ArtifactKey::GlobalArgs),
+                "--post",
+                ValueKind::Opaque,
+                false
+            ),
+            (
+                EntryKind::Artifact(ArtifactKey::PodmanArgs),
+                "--pre",
+                ValueKind::Opaque,
+                false
+            ),
+            (
+                EntryKind::Artifact(ArtifactKey::PodmanArgs),
+                "",
+                ValueKind::Opaque,
+                false
+            ),
+            (
+                EntryKind::Artifact(ArtifactKey::PodmanArgs),
+                "--post",
+                ValueKind::Opaque,
+                false
+            ),
+        ]
+    );
+    let diagnostics: Vec<_> = parsed
+        .model_diagnostics()
+        .iter()
+        .map(|diagnostic| diagnostic.code().as_str())
+        .collect();
+    assert_eq!(diagnostics, ["QLM0004", "QLM0004"]);
+    let debug = format!("{:#?}", parsed.document());
+    assert!(!debug.contains(CREDS) && !debug.contains(KEY));
+
+    for (value, expected) in [("true", true), ("false", true), ("not-a-boolean", true), ("", true)] {
+        let parsed = QuadletDocument::parse(
+            QuadletUnitType::Artifact,
+            SourceId::new(9_011),
+            format!("[Quadlet]\nDefaultDependencies={value}\n[Artifact]\nArtifact=registry.invalid/final:1\n"),
+        )
+        .map_err(|error| error.to_string())?;
+        assert_eq!(parsed.is_valid(), expected, "{value:?}");
     }
     Ok(())
 }

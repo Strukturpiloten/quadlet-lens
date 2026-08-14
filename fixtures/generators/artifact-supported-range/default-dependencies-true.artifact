@@ -1,0 +1,5 @@
+[Quadlet]
+DefaultDependencies=true
+
+[Artifact]
+Artifact=registry.invalid/quadlet-lens/default-dependencies-true:latest

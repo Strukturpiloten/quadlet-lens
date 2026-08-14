@@ -11,7 +11,7 @@ Cross-repository delivery uses the stable task numbers in the [implementation pl
 
 ## Specification coverage ledger
 
-This ledger was audited on 2026-08-07 against the current official
+This ledger was audited on 2026-08-14 against the current official
 [Podman Quadlet manual](https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html).
 It records the latest documented surface, not the subset available at the Podman 5.4 minimum.
 Each promoted key still needs separate introduction/deprecation/removal evidence over the finite
@@ -23,29 +23,28 @@ that the syntax parser rejects it.
 
 | Section/unit                 | Current keys | Typed keys | Syntax-preserved only |
 | ---------------------------- | -----------: | ---------: | --------------------: |
-| `[Container]` / `.container` |           90 |         78 |                    12 |
-| `[Pod]` / `.pod`             |           25 |         10 |                    15 |
-| `[Network]` / `.network`     |           18 |         10 |                     8 |
+| `[Container]` / `.container` |           90 |         90 |                     0 |
+| `[Pod]` / `.pod`             |           25 |         25 |                     0 |
+| `[Network]` / `.network`     |           18 |         18 |                     0 |
 | `[Volume]` / `.volume`       |           16 |         16 |                     0 |
 | `[Build]` / `.build`         |           28 |         28 |                     0 |
-| `[Image]` / `.image`         |           18 |         12 |                     6 |
-| `[Kube]` / `.kube`           |           14 |          0 |                    14 |
-| `[Artifact]` / `.artifact`   |           13 |          0 |                    13 |
-| `[Quadlet]`                  |            1 |          0 |                     1 |
+| `[Image]` / `.image`         |           18 |         18 |                     0 |
+| `[Kube]` / `.kube`           |           19 |         19 |                     0 |
+| `[Artifact]` / `.artifact`   |           13 |         13 |                     0 |
+| `[Quadlet]`                  |            1 |          1 |                     0 |
+| reviewed `[Unit]` relations  |            9 |          9 |                     0 |
 
 The typed counts describe key recognition and programmatic construction. Capability and generator
 evidence are separate layers documented in [Native coverage](coverage.md).
 
-### Missing `[Container]` keys
+### Typed `[Container]` keys
 
-The following 12 current keys are syntax-preserved but not typed:
+All 90 current Container keys are typed. `ContainersConfModule`, `GlobalArgs`, and `ImageVolume`
+are repeatable physical entries; the remaining keys are singletons. The health-startup, health-log,
+and generated-service-name values remain opaque. `ImageVolume` is deliberately typed without a
+positive native capability claim until immutable range evidence is recorded.
 
-`ContainersConfModule`, `GlobalArgs`, `HealthLogDestination`,
-`HealthMaxLogCount`, `HealthMaxLogSize`, `HealthStartupCmd`,
-`HealthStartupInterval`, `HealthStartupRetries`, `HealthStartupSuccess`,
-`HealthStartupTimeout`, `ImageVolume`, and `ServiceName`.
-
-The 78 typed keys are `AddHost`, `ContainerName`, `Image`, `Rootfs`, `Entrypoint`, `RunInit`,
+The typed keys are `AddHost`, `ContainerName`, `Image`, `Rootfs`, `Entrypoint`, `RunInit`,
 `StopSignal`, `StopTimeout`, `Pull`, `PidsLimit`, `HostName`, `ShmSize`, `ReloadCmd`, `ReloadSignal`, `DropCapability`,
 `AddCapability`, `Tmpfs`, `Sysctl`, `Ulimit`, `AddDevice`, `Memory`, `LogDriver`, `LogOpt`, `IP`,
 `IP6`, `NetworkAlias`, `DNS`, `DNSOption`, `DNSSearch`, `ExposeHostPort`, `Annotation`, `AppArmor`,
@@ -56,33 +55,35 @@ The 78 typed keys are `AddHost`, `ContainerName`, `Image`, `Rootfs`, `Entrypoint
 `HealthCmd`, `Notify`, `HealthInterval`, `HealthRetries`, `HealthStartPeriod`, `HealthTimeout`,
 `PodmanArgs`, `AutoUpdate`, `CgroupsMode`, `EnvironmentHost`, repeatable `GIDMap`/`UIDMap`,
 `HttpProxy`, repeatable `Mount`, `ReadOnlyTmpfs`, `Retry`, `RetryDelay`, `StartWithPod`,
-`SubGIDMap`, `SubUIDMap`, `Timezone`, and `HealthOnFailure`.
+`SubGIDMap`, `SubUIDMap`, `Timezone`, `HealthOnFailure`, `ContainersConfModule`, `GlobalArgs`,
+`HealthLogDestination`, `HealthMaxLogCount`, `HealthMaxLogSize`, `HealthStartupCmd`,
+`HealthStartupInterval`, `HealthStartupRetries`, `HealthStartupSuccess`, `HealthStartupTimeout`,
+`ImageVolume`, and `ServiceName`.
 
-### Missing `[Pod]` keys
+### Typed `[Pod]` keys
 
-The following 15 current keys are syntax-preserved but not typed:
+All 25 current Pod keys are typed. `ContainersConfModule`, `DNS`, `DNSOption`, `DNSSearch`,
+`GIDMap`, `GlobalArgs`, `Label`, `NetworkAlias`, `PodmanArgs`, and `UIDMap` retain ordered opaque
+physical entries; the other Pod keys are opaque singletons. Pod mapping conflicts use the same
+effective-value, source-spanned `QLM0013`–`QLM0015` diagnostics as Container mappings.
 
-`ContainersConfModule`, `DNS`, `DNSOption`, `DNSSearch`, `GIDMap`, `GlobalArgs`,
-`HostName`, `IP`, `IP6`, `Label`, `NetworkAlias`, `PodmanArgs`,
-`SubGIDMap`, `SubUIDMap`, and `UIDMap`.
+The typed Pod keys are `AddHost`, `PodName`, `PublishPort`, `Network`, `Volume`, `UserNS`,
+`ShmSize`, `ExitPolicy`, `StopTimeout`, `ServiceName`, `ContainersConfModule`, `DNS`, `DNSOption`,
+`DNSSearch`, `GIDMap`, `GlobalArgs`, `HostName`, `IP`, `IP6`, `Label`, `NetworkAlias`,
+`PodmanArgs`, `SubGIDMap`, `SubUIDMap`, and `UIDMap`.
 
-The typed pod keys are `AddHost`, `PodName`, `PublishPort`, `Network`, `Volume`, `UserNS`,
-`ShmSize`, `ExitPolicy`, `StopTimeout`, and `ServiceName`.
+### `[Network]` key boundary
 
-### Missing `[Network]` keys
+All current Network keys are typed. `ContainersConfModule`, `DNS`, `GlobalArgs`, and `PodmanArgs`
+retain ordered opaque physical values; `DisableDNS`, `InterfaceName`, `NetworkDeleteOnStop`, and
+`ServiceName` are opaque singletons. The generator fixture records 5.5.0 cleanup and 5.6.0 interface
+boundaries; lifecycle cleanup is not conflated with actual network deletion.
 
-`NetworkName`, `Driver`, `Options`, `Label`, `Internal`, `IPv6`, `IPAMDriver`, `Subnet`, `Gateway`, and
-`IPRange` are typed. The following eight current keys are
-syntax-preserved but not typed:
-
-`ContainersConfModule`, `DisableDNS`, `DNS`, `GlobalArgs`, `InterfaceName`, `NetworkDeleteOnStop`,
-`PodmanArgs`, and `ServiceName`.
-
-### Missing `[Volume]` keys
+### Typed `[Volume]` keys
 
 `VolumeName`, `Driver`, `Options`, `Label`, `Device`, `Type`, `Copy`, `ContainersConfModule`, `GlobalArgs`, `PodmanArgs`, `User`, `Group`, `UID`, `GID`, `ServiceName`, and `Image` are typed. No current Volume keys remain syntax-preserved only.
 
-### Unit sections with remaining untyped keys
+### Other typed unit-key boundaries
 
 The syntax layer preserves these unit files, but their native unit type, section, keys, builders,
 relationships, capability records, and generator fixtures are open.
@@ -102,12 +103,11 @@ relationships, capability records, and generator fixtures are open.
   normalization; their separate fixture asserts one `--arch arm64` and one `--variant v8` without
   a relative-order claim. `Pull` preserves opaque raw singleton text without policy validation,
   default selection, normalization, effective-last access, Compose mapping, registry, image-pull, or runtime claims; its separate fixture asserts exactly one `--pull=always` form. `Retry` and `RetryDelay` are unsupported in 5.4.0–5.4.2, native in 5.5.0–6.0.2, and otherwise unknown; their opaque fixture asserts one separate `--retry 4` pair and one separate `--retry-delay 7s` pair before final `.` without a relative-order claim between pairs, and makes no parsing, defaults, effective-last, Compose `dockerfile_inline`, registry, retry/timing, build-success, runtime, or conversion claim. `TLSVerify` is opaque and native in 5.4.0–6.0.2, otherwise unknown; its two-unit fixture asserts one bare `--tls-verify` for true and one `--tls-verify=false` for false before final `.`, without TLS/certificate/registry/pull/build-success/security/provenance/runtime/conversion claims. `ForceRM` is opaque and native in 5.4.0–6.0.2, otherwise unknown; its two-unit fixture asserts one bare `--force-rm` for true and one `--force-rm=false` for false before final `.`, without parsing/default/effective-last, cleanup/failure/execution/default/configuration/cache-equivalence, runtime, or conversion claims. `GroupAdd` is repeatable and native in 5.4.0–6.0.2, otherwise unknown; its fixture asserts ordered separate `--group-add 1234` then `--group-add 5678` pairs before final `.`, without group lookup, keep-groups exclusivity, rootless/user-namespace, runtime, build-execution, Compose privilege-equivalence, or conversion claims. `DNS` is repeatable and native in 5.4.0–6.0.2, otherwise unknown; its fixture asserts ordered separate `--dns 9.9.9.9` then `--dns 2001:4860:4860::8888` pairs before final `.`, without resolver, none-compatibility, resolv.conf, host-DNS, build-execution, Compose endpoint-mapping, or conversion claims.
-- `[Image]`: `PodmanArgs`,
-  `Policy`, `Retry`,
-  `RetryDelay`, `TLSVerify`, `Variant`.
-- `[Kube]`: `AutoUpdate`, `ConfigMap`, `ContainersConfModule`, `ExitCodePropagation`,
-  `GlobalArgs`, `KubeDownForce`, `LogDriver`, `Network`, `PodmanArgs`, `PublishPort`,
-  `ServiceName`, `SetWorkingDirectory`, `UserNS`, `Yaml`.
+- `[Image]`: all current keys are typed. `PodmanArgs` remains repeatable; `Policy`, `Retry`,
+  `RetryDelay`, `TLSVerify`, and `Variant` are opaque singletons. Its fixture records the 5.5.0
+  Retry/RetryDelay and 5.6.0 Policy boundaries without claiming registry or pull behavior.
+- `[Kube]`: all current keys are typed. `Yaml` is required and repeatable; it and `ConfigMap`
+  are only lexical path values. QuadletLens never reads either file or parses Kubernetes YAML.
 - `[Artifact]` (experimental upstream): `Artifact`, `AuthFile`, `CertDir`,
   `ContainersConfModule`, `Creds`, `DecryptionKey`, `GlobalArgs`, `PodmanArgs`, `Quiet`, `Retry`,
   `RetryDelay`, `ServiceName`, `TLSVerify`.
@@ -117,13 +117,15 @@ relationships, capability records, and generator fixtures are open.
 
 `[Unit]`, `[Service]`, and `[Install]` remain deliberately open-ended because their complete key
 space belongs to systemd, not Quadlet. All directives are syntax-preserved. QuadletLens currently
-provides typed construction/evidence for `[Unit]` `Requires`, `Wants`, and `After`, plus
-`[Service]` `Restart`.
+provides typed construction, reset-aware unit-list graph semantics, and capability evidence for
+`[Unit]` `Requires`, `Wants`, `After`, `Requisite`, `BindsTo`, `PartOf`, `Upholds`, `Conflicts`,
+and `Before`, plus `[Service]` `Restart`.
 
-The current Quadlet manual additionally rewrites Quadlet-to-Quadlet references in `[Unit]`
-`Requisite`, `BindsTo`, `PartOf`, `Upholds`, `Conflicts`, and `Before`; those six relationship keys
-still need typed construction and graph semantics. Other systemd directives should be promoted
-only for a concrete consumer scenario and must retain their native ordering/repetition rules.
+Podman 5.4 preserves native Quadlet basenames in those relationship lists literally; Podman 5.5
+and newer rewrite them to generated service names. `Upholds` additionally requires systemd 249 or
+newer, which callers must check because the current target selector covers Podman versions only.
+Other systemd directives should be promoted only for a concrete consumer scenario and must retain
+their native ordering and repetition rules.
 
 ## Priority after 0.1.9
 
@@ -251,10 +253,10 @@ only for a concrete consumer scenario and must retain their native ordering/repe
 - [x] Type singleton container `HostName`, preserve omission/raw values without Compose
       validation, document private/default/pod-shared UTS behavior, and verify one isolated hostname
       argument from Podman 5.4.0 through 6.0.2 without claiming runtime behavior.
-- [ ] Type shared DNS, pod hostname, IP, network-alias, label, and module/global-argument concepts for
+- [x] Type shared DNS, pod hostname, IP, network-alias, label, and module/global-argument concepts for
       container and pod units where their value grammars actually agree.
-- [ ] Complete the `[Network]` key surface, beginning with DNS and delete-on-stop lifecycle.
-- [ ] Keep repeatability and cross-field constraints explicit; do not reduce them to raw maps.
+- [x] Complete the current `[Network]` key surface, including DNS and delete-on-stop lifecycle.
+- [x] Keep repeatability and cross-field constraints explicit; do not reduce them to raw maps.
 
 ### Next 3: security, resources, health, and storage
 
@@ -310,28 +312,32 @@ only for a concrete consumer scenario and must retain their native ordering/repe
 - [x] Type repeatable/resettable volume `Label`; preserve every physical source value and record
       reset, duplicate collapse, key sorting, quoted-whitespace presentation, and the bare-token
       boundary without importing generator semantics into the model or builder.
-- `[Image]`: `Image` is an opaque required singleton, while `ImageTag`, `ServiceName`, `AllTags`, `Arch`, `AuthFile`, `CertDir`, `Creds`, `DecryptionKey`, and `OS` are opaque
-  singletons and `ContainersConfModule`/`GlobalArgs` are repeatable with 5.4.0-through-6.0.2 generator evidence. `Creds` and `DecryptionKey` are redacted only from repository-owned debug output; all preserve raw source physical entries without target identity, boolean, platform, operating-system, path, certificate, credential, key, authentication, module, configuration, argument, or pull behavior. The remaining six current keys remain
-  syntax-preserved only.
+- `[Image]`: all current keys are typed. `Image` is required; credentials and decryption material
+  are redacted from repository-owned debug output; opaque values retain their exact physical text.
 - [x] Type and generator-verify container DNS, exposed-port, and annotation keys across the
       reviewed Podman range.
 - [x] Type and generator-verify AppArmor, no-new-privileges, seccomp, and SELinux-label keys.
 - [x] Type and generator-verify repeatable Mask and Unmask values with reset evidence.
-- [ ] Type remaining capability interactions, SELinux label controls, and UID/GID
-      maps.
-- [ ] Type image-volume and read-only-tmpfs behavior; extend `Tmpfs` only when a concrete
-      target-aware option or runtime contract is defined.
-- [ ] Type health logging, failure actions, and the separate startup-health family.
-- [ ] Type `Mount` independently from `Volume`; retain their different grammars and defaults.
+- [x] Complete typed Container construction for configuration/global arguments, health logging,
+      health-failure/startup controls, service naming, and UID/GID maps; preserve raw values and
+      record finite capability/generator evidence without runtime interpretation.
+- [x] Type `ImageVolume` and `ReadOnlyTmpfs` as separate opaque Container keys. `ImageVolume`
+      remains capability-unknown until immutable target evidence exists; extend `Tmpfs` only when a
+      concrete target-aware option or runtime contract is defined.
+- [x] Type health logging, failure actions, and the separate startup-health family without
+      inferring HealthCmd coupling or health execution semantics.
+- [x] Type `Mount` independently from `Volume`; retain their different grammars and defaults.
 
 ### Next 4: resource and image lifecycle units
 
 - [x] Complete `[Volume]` typing and capability evidence.
-- [ ] Add remaining `.image` keys beyond the opaque required `Image` source; extend the typed
-      `.build` surface only when its untyped future surface expands.
-- [ ] Add `.kube` only after its file-access and Kubernetes-YAML boundary is explicit.
-- [ ] Defer `.artifact` typed support until its experimental contract is stable enough to test
-      without presenting a moving target as supported.
+- [x] Type all current `.image` keys; extend `.build` or `.image` only when their documented surface
+      expands.
+- [x] Type all `.kube` keys with required opaque `Yaml` source diagnostics and exact `.network`
+      document-set references, without filesystem access, Kubernetes parsing, or kube execution claims.
+- [x] Type experimental `.artifact` with required-final-source diagnostics, privacy-redacted
+      credentials/key debug output, exact document-set references, and finite 5.7.0–6.0.2
+      generator evidence. It remains explicitly experimental and unsupported through 5.6.2.
 
 ### Next 5: version and conformance maintenance
 
@@ -366,8 +372,8 @@ only for a concrete consumer scenario and must retain their native ordering/repe
 - [x] Add conservative path and native unit-reference value forms for the first conversion.
 - [x] Model `.container` relationships with `.pod`, `.network`, and `.volume` resources.
 - [x] Model regular health-command and timing keys separately from startup/readiness behavior.
-- [x] Model generic systemd readiness/ordering dependencies for `Requires`, `Wants`, and `After`,
-      plus container `Notify=healthy` readiness.
+- [x] Model all nine reviewed generic systemd relationship/ordering directives with reset-aware
+      native-reference graphs, plus container `Notify=healthy` readiness.
 - [x] Build document sets and dependency graphs.
 - [x] Preserve generic systemd sections, repeated entries, and unknown Quadlet keys.
 
@@ -376,7 +382,8 @@ only for a concrete consumer scenario and must retain their native ordering/repe
 - [x] Establish the initial capability catalogue for Podman 5.4.
 - [x] Run the first-conversion fixture against every official image from Podman 5.4.0 through 5.8.2.
 - [x] Build and run exact generators for Podman 5.8.3 through current 6.0.2.
-- [ ] Validate the remaining native keys, value forms, fallbacks, and known limitations.
+- [x] Type the complete current documented native key inventory.
+- [ ] Validate remaining value forms, fallbacks, and known limitations.
 - [x] Cover path handling, pod membership, resource references, regular health commands/timings, restart behavior, and fallback arguments.
 - [ ] Run the real-generator fixture suite in rootless and rootful contexts where relevant.
 

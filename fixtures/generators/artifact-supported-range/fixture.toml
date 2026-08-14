@@ -1,0 +1,15 @@
+schema = 1
+id = "artifact-supported-range"
+suite = "generators"
+description = "Records the experimental Artifact-unit 5.7.0 boundary, required final source, opaque command construction, service naming, and shared DefaultDependencies behavior."
+secrets_reviewed = true
+files = ["artifact-completion.artifact", "artifact-default.artifact", "artifact-override.artifact", "artifact-template@.artifact", "default-dependencies-true.artifact", "default-dependencies-false.artifact", "default-dependencies-noncanonical.artifact", "default-dependencies-empty.artifact", "expected-fragments.txt"]
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+[environment]
+description = "Dry-run Quadlet generation only; placeholder credentials and key material are never read, authenticated, decrypted, or sent to a registry."
+[expectations]
+summary = "Podman 5.4.0 through 5.6.2 must reject or exclude Artifact generation. From 5.7.0 through 6.0.2, the target emits the required final source, reset-aware arguments, oneshot service defaults, service-name observations, and DefaultDependencies target behavior."

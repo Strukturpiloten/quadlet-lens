@@ -6,3 +6,5 @@ SourcePath=/fixtures/batch.container
 ---cgroups-no-conmon.service---
 ---cgroups-split.service---
 ---mount-reset.service---
+---completion-chosen.service---
+SourcePath=/fixtures/completion.container
