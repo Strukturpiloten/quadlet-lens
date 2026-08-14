@@ -14,9 +14,11 @@ defines what “good enough” means for testing and conformance.
 
 ## Specification coverage ledger
 
-This ledger was audited on 2026-08-14 against the current official
-[Podman Quadlet manual](https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html).
-It records the latest documented surface, not the subset available at the Podman 5.4 minimum.
+The bounded phase-1 ledger is completed and was audited on 2026-08-14 against the current official
+[Podman Quadlet manual](https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html). Its
+strict 222-row, versioned source of truth is
+[`quadlet-manual-current.toml`](../fixtures/specification-drift/quadlet-manual-current.toml). It
+records the latest documented key surface, not the subset available at the Podman 5.4 minimum.
 Each promoted key still needs separate introduction/deprecation/removal evidence over the finite
 supported Podman range.
 
@@ -26,26 +28,33 @@ that the syntax parser rejects it.
 
 | Section/unit                 | Current keys | Typed keys | Syntax-preserved only |
 | ---------------------------- | -----------: | ---------: | --------------------: |
-| `[Container]` / `.container` |           90 |         90 |                     0 |
+| `[Container]` / `.container` |           89 |         89 |                     0 |
 | `[Pod]` / `.pod`             |           25 |         25 |                     0 |
 | `[Network]` / `.network`     |           18 |         18 |                     0 |
 | `[Volume]` / `.volume`       |           16 |         16 |                     0 |
 | `[Build]` / `.build`         |           28 |         28 |                     0 |
 | `[Image]` / `.image`         |           18 |         18 |                     0 |
-| `[Kube]` / `.kube`           |           19 |         19 |                     0 |
+| `[Kube]` / `.kube`           |           14 |         14 |                     0 |
 | `[Artifact]` / `.artifact`   |           13 |         13 |                     0 |
 | `[Quadlet]`                  |            1 |          1 |                     0 |
 | reviewed `[Unit]` relations  |            9 |          9 |                     0 |
+
+The typed model additionally recognizes historical/non-current-manual `Container.ImageVolume` and
+Kube `LogOpt`, `RemapGid`, `RemapUid`, `RemapUidSize`, and `RemapUsers`. They remain preserved and
+typed parser surface, but are deliberately outside the 222-row current-manual drift inventory until
+the aggregate manual documents them again. `[Unit]`, `[Service]`, and `[Install]` are also excluded
+because systemd, not Quadlet, owns their open-ended directive vocabulary.
 
 The typed counts describe key recognition and programmatic construction. Capability and generator
 evidence are separate layers documented in [Native coverage](coverage.md).
 
 ### Typed `[Container]` keys
 
-All 90 current Container keys are typed. `ContainersConfModule`, `GlobalArgs`, and `ImageVolume`
-are repeatable physical entries; the remaining keys are singletons. The health-startup, health-log,
-and generated-service-name values remain opaque. `ImageVolume` is deliberately typed without a
-positive native capability claim until immutable range evidence is recorded.
+All 89 current aggregate-manual Container keys are typed. `ContainersConfModule` and `GlobalArgs`
+are repeatable physical entries; the remaining current-manual keys are singletons. The
+historical/non-current-manual `ImageVolume` key remains typed and repeatable without a positive
+native capability claim. Health-startup, health-log, and generated-service-name values remain
+opaque.
 
 The typed keys are `AddHost`, `ContainerName`, `Image`, `Rootfs`, `Entrypoint`, `RunInit`,
 `StopSignal`, `StopTimeout`, `Pull`, `PidsLimit`, `HostName`, `ShmSize`, `ReloadCmd`, `ReloadSignal`, `DropCapability`,
@@ -344,8 +353,8 @@ their native ordering and repetition rules.
 
 ### Next 5: version and conformance maintenance
 
-- [ ] Add a maintained manual-key manifest and a policy test that fails when the current closed
-      Quadlet key inventory changes without a roadmap classification.
+- [x] Add a maintained versioned manual-key inventory, offline policy tests, an extraction fixture,
+      and scheduled/manual-only upstream drift reporting for the current closed Quadlet key surface.
 - [ ] Record introduction, deprecation, removal, systemd requirements, and known patch bugs for
       every promoted key.
 - [ ] Run promoted keys through the exact Podman generator matrix and relevant rootless/rootful

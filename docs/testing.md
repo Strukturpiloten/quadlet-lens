@@ -24,6 +24,15 @@ Cover sections, ordered and repeated keys, comments, blank lines, continuations,
 
 Cover every supported unit type, section, key, short/long value form, reference type, unknown entry, and generic systemd section.
 
+### Manual-inventory policy tests
+
+Run fully offline in normal policy and MSRV lanes. They validate the strict versioned 222-key
+inventory's provenance, spelling, uniqueness, normalized order, sections, and classifications;
+parse every typed row through the public native model; and prove an untyped row remains losslessly
+preserved. The small extraction fixture exercises the shell extractor without a network request.
+Only the separate scheduled/manual workflow downloads the upstream aggregate manual and reports
+key additions or removals. This phase does not claim prose or value-grammar drift detection.
+
 ### Programmatic-generation tests
 
 Cover typed native-key placement, deterministic section order, repeated entries, singleton

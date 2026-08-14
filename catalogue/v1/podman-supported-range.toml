@@ -8574,7 +8574,7 @@ gap = "QuadletLens retains opaque source text and does not read process, proxy, 
 [[evidence]]
 id = "podman-6-0-2-container-batch-keys"
 verification = "documentation"
-url = "https://github.com/containers/podman/blob/v6.0.2/pkg/systemd/quadlet/quadlet.go"
+url = "https://github.com/podman-container-tools/podman/blob/v6.0.2/pkg/systemd/quadlet/quadlet.go"
 target = "6.0.2"
 claim = "Tagged Podman v6.0.2 generator source retains native lookup and command construction for every promoted Container key, including HttpProxy, Retry, and RetryDelay."
 test = "capabilities::supported_range_records_container_batch_keys"
@@ -8583,7 +8583,7 @@ gap = "Tagged source establishes generator text only; it does not establish host
 [[evidence]]
 id = "podman-5-4-through-current-container-batch-generators"
 verification = "generator"
-url = "https://github.com/containers/podman/releases"
+url = "https://github.com/podman-container-tools/podman/releases"
 versions = { minimum = "5.4.0", maximum = "6.0.2" }
 claim = "Every recorded Podman patch release from 5.4.0 through 6.0.2 emits the isolated AutoUpdate, CgroupsMode, EnvironmentHost, GIDMap, Mount, ReadOnlyTmpfs, SubGIDMap, SubUIDMap, Timezone, UIDMap, HealthOnFailure, StartWithPod, ContainersConfModule, GlobalArgs, health-log, health-startup, and ServiceName forms; Retry and RetryDelay are rejected through 5.4.2 then emitted from 5.5.0, while HttpProxy is rejected through 5.6.2 then emitted from 5.7.0."
 test = "generators::supported_generators_match_the_first_conversion_fixture"

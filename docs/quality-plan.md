@@ -33,9 +33,20 @@ is more valuable than extra coverage without a behavioral assertion.
 
 ### 1. Prevent manual drift
 
-Maintain a machine-readable inventory of closed Quadlet keys and fail policy checks when the
-current manual changes without a classification. New keys must be marked typed, preserved-only, or
-intentionally unsupported before coverage claims are updated.
+Completed for the bounded phase-1 key surface: the strict, versioned
+[`quadlet-manual-current.toml`](../fixtures/specification-drift/quadlet-manual-current.toml)
+inventory records the 222 closed keys in the pinned official aggregate manual, provenance, and a
+classification. Offline policy tests reject schema, spelling, ordering, duplicate, section, and
+classification drift; scheduled/manual-only automation compares it with upstream and only reports
+added or removed rows. It neither runs for pull requests nor writes files or issues.
+
+To update it, download and review the aggregate manual, run
+`scripts/check-specification-drift.sh PATH_TO_MANUAL`, then review each difference before
+updating the inventory's version, URL, retrieval date, digest, classification, and these coverage
+documents. Regenerate deterministic compressed evidence from the exact reviewed manual bytes, and
+refresh the corresponding upstream license and any upstream NOTICE material (none exists at the
+current pinned tag). A changed prose description or value grammar without a key change is
+intentionally not detected by this phase.
 
 ### 2. Complete value semantics and diagnostics
 

@@ -1,10 +1,11 @@
 # Native Quadlet coverage
 
 This document distinguishes loss-aware parsing from typed construction and version-evidenced
-generation. It was audited against the current official
-[Quadlet manual](https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html) and the
-supported Podman 5.4 floor on 2026-08-07. The exact current untyped-key inventory and promotion
-order live in the [roadmap](roadmap.md).
+generation. Its 222-key current-manual ledger is versioned, provenance-recorded, and guarded by
+offline parser policy tests; the scheduled/manual-only upstream comparison reports key drift without
+writing to the repository. It deliberately does not detect prose or value-grammar drift. See the
+[roadmap](roadmap.md#specification-coverage-ledger) for the inventory, its six typed
+historical/non-current-manual exclusions, and the update procedure.
 
 ## Coverage layers
 
