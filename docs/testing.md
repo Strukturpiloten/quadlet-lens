@@ -2,6 +2,18 @@
 
 QuadletLens requires both pure library tests and tests against real released generators. Documentation alone cannot establish parser and generated-command behavior across versions.
 
+## Investment boundary
+
+Pull-request checks must remain deterministic and reasonably fast. New behavior should normally
+have focused positive and negative coverage, including malformed input, reset/repetition behavior,
+public API use, or representative end-to-end behavior when relevant.
+
+The project does not require fuzzing or 100% code coverage. Coverage floors detect broad
+regressions; they do not replace meaningful assertions. Full generator matrices, privilege-specific
+runs, and other environment-dependent checks remain opt-in or scheduled unless they are the only
+practical way to protect a supported contract. See the [quality plan](quality-plan.md) for the
+prioritized work.
+
 ## Test layers
 
 ### Syntax tests

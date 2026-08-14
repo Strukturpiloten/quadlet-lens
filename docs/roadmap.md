@@ -4,6 +4,9 @@ The roadmap is ordered by dependencies rather than dates.
 
 Cross-repository delivery uses the stable task numbers in the [implementation plan](implementation-plan.md). This roadmap remains the detailed internal phase order for QuadletLens.
 
+The [quality plan](quality-plan.md) groups the remaining work into maintainable priorities and
+defines what “good enough” means for testing and conformance.
+
 ## Status key
 
 - [x] Completed and validated
