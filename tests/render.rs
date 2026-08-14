@@ -7,8 +7,8 @@ use quadlet_lens::{
     },
     render::{
         EntryValue, EnvironmentAssignment, EnvironmentAssignmentError, EnvironmentAssignments,
-        EnvironmentAssignmentsError, Memory, MemoryError, PidsLimit, PidsLimitError, QuadletDocumentBuilder,
-        RenderError, ShmSize, ShmSizeError, SystemdSection,
+        EnvironmentAssignmentsError, EnvironmentReset, Memory, MemoryError, PidsLimit, PidsLimitError,
+        QuadletDocumentBuilder, RenderError, ShmSize, ShmSizeError, SystemdSection,
     },
     source::SourceId,
 };
@@ -142,6 +142,55 @@ fn environment_assignment_groups_reject_empty_input_and_inherit_assignment_valid
         EnvironmentAssignment::new("VALID_NAME", "specifier%h"),
         Err(EnvironmentAssignmentError::Specifier)
     );
+}
+
+#[test]
+fn environment_reset_preserves_its_physical_position_and_parse_back_value() -> Result<(), Box<dyn std::error::Error>> {
+    let reset = EnvironmentReset::new();
+    assert_eq!(reset, EnvironmentReset::default());
+    assert_eq!(reset.as_str(), "");
+    let raw: EntryValue = reset.into();
+    assert_eq!(raw.as_str(), "");
+
+    let mut builder = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    builder.push_container(ContainerKey::Image, value("example.invalid/application")?)?;
+    builder.push_container_environment(EnvironmentAssignment::new("BEFORE", "one")?)?;
+    builder.push_container_environment_reset()?;
+    builder.push_container_environment_assignments(EnvironmentAssignments::new([
+        EnvironmentAssignment::new("AFTER_ONE", "one")?,
+        EnvironmentAssignment::new("AFTER_TWO", "two")?,
+    ])?)?;
+    let generated = builder.build(SourceId::new(9_203))?;
+
+    assert_eq!(
+        generated.text(),
+        concat!(
+            "[Container]\n",
+            "Image=example.invalid/application\n",
+            "Environment=\"BEFORE=one\"\n",
+            "Environment=\n",
+            "Environment=\"AFTER_ONE=one\" \"AFTER_TWO=two\"\n",
+        )
+    );
+    assert_eq!(
+        generated
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::Environment))
+            .map(|entry| entry.value().primary().text())
+            .collect::<Vec<_>>(),
+        [r#""BEFORE=one""#, "", r#""AFTER_ONE=one" "AFTER_TWO=two""#]
+    );
+
+    let mut pod = QuadletDocumentBuilder::new(QuadletUnitType::Pod);
+    assert_eq!(
+        pod.push_container_environment_reset(),
+        Err(RenderError::WrongUnitType {
+            document: QuadletUnitType::Pod,
+            entry: QuadletUnitType::Container,
+        })
+    );
+    Ok(())
 }
 
 #[test]

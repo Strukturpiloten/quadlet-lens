@@ -18,6 +18,46 @@ const BUILD_TARGET_DUPLICATES: &str = "[Build]\nTarget=builder\nTarget=final\n";
 const BUILD_PLATFORM_DUPLICATES: &str = "[Build]\nArch=\nArch=arm64\nVariant=\nVariant=v8\n";
 const BUILD_PODMAN_ARGS: &str =
     "[Build]\nPodmanArgs=--build-context extra=container-image://alpine:3.15\nPodmanArgs=--layers\n";
+const CONTAINER_ENVIRONMENT_RESETS: &str = concat!(
+    "[Container]\n",
+    "Image=example.invalid/environment-reset\n",
+    "Environment=PRE_ONE=one\n",
+    "Environment=PRE_TWO=two\n",
+    "Environment=\n",
+    "Environment=POST_ONE=one\n",
+    "Environment=POST_TWO=two\n",
+);
+
+#[test]
+fn container_environment_reset_remains_a_blank_ordered_source_entry() -> Result<(), String> {
+    let source_id = SourceId::new(9_204);
+    let result = QuadletDocument::parse(QuadletUnitType::Container, source_id, CONTAINER_ENVIRONMENT_RESETS)
+        .map_err(|error| error.to_string())?;
+    assert!(result.is_valid(), "{:#?}", result.model_diagnostics());
+    assert_eq!(
+        result.syntax().document().render_preserved(),
+        CONTAINER_ENVIRONMENT_RESETS
+    );
+    assert_eq!(
+        result
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::Environment))
+            .map(|entry| {
+                let primary = entry.value().primary();
+                (primary.text(), primary.span().source_id(), primary.span().len())
+            })
+            .collect::<Vec<_>>(),
+        [
+            ("PRE_ONE=one", source_id, "PRE_ONE=one".len()),
+            ("PRE_TWO=two", source_id, "PRE_TWO=two".len()),
+            ("", source_id, 0),
+            ("POST_ONE=one", source_id, "POST_ONE=one".len()),
+            ("POST_TWO=two", source_id, "POST_TWO=two".len()),
+        ]
+    );
+    Ok(())
+}
 
 #[test]
 fn systemd_unit_relationships_are_typed_repeatable_and_lossless() -> Result<(), String> {

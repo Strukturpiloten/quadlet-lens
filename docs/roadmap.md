@@ -147,9 +147,12 @@ their native ordering and repetition rules.
       encoders for ASCII-named literal container assignments, with exact whole-assignment quoting,
       explicit `EntryValue` conversions, physical-directive ordering, parse-back/public-API tests,
       and smoke/full dry-run evidence for two distinct `--env` arguments from one grouped line.
-- [ ] Evidence and model percent/specifier handling, authored-value parsing, reset construction,
-      duplicate-name selection, continuations/newlines, environment/runtime expansion, and systemd
-      command/argument parsing separately.
+- [x] Add the public zero-sized `EnvironmentReset` marker and ordered blank directive builder
+      method, with source-preserving model tests and 5.4.0–6.0.2 source/dry-run evidence that two
+      post-reset names become distinct `--env` arguments while two pre-reset names are absent.
+- [ ] Evidence and model percent/specifier handling, authored-value parsing, target reset
+      application, duplicate-name selection, continuations/newlines, environment/runtime expansion,
+      and systemd command/argument parsing separately.
 
 ### Next 1: lifecycle and process parity
 

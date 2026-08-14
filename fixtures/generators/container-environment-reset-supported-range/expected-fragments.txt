@@ -1,0 +1,2 @@
+---environment-reset.service---
+SourcePath=/fixtures/environment-reset.container

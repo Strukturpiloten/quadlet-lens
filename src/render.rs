@@ -175,6 +175,36 @@ impl From<EnvironmentAssignments> for EntryValue {
     }
 }
 
+/// An explicit empty container `Environment=` directive.
+///
+/// This zero-sized marker emits one blank physical native value. It does not decode authored
+/// values, apply the target's reset behavior, select effective variables, or inspect an
+/// environment.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct EnvironmentReset {
+    _private: (),
+}
+
+impl EnvironmentReset {
+    /// Creates an explicit blank `Environment=` directive.
+    #[must_use]
+    pub const fn new() -> Self {
+        Self { _private: () }
+    }
+
+    /// Returns the exact generated native value: an empty string.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        ""
+    }
+}
+
+impl From<EnvironmentReset> for EntryValue {
+    fn from(_: EnvironmentReset) -> Self {
+        Self(String::new())
+    }
+}
+
 /// Invalid construction of [`EnvironmentAssignments`].
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[non_exhaustive]
@@ -593,6 +623,18 @@ impl QuadletDocumentBuilder {
         assignments: EnvironmentAssignments,
     ) -> Result<(), RenderError> {
         self.push_container(ContainerKey::Environment, assignments.into())
+    }
+
+    /// Appends one explicit blank container `Environment=` directive.
+    ///
+    /// The directive stays at this call position. This method does not apply reset behavior or
+    /// inspect effective environment values.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RenderError::WrongUnitType`] for a non-container document.
+    pub fn push_container_environment_reset(&mut self) -> Result<(), RenderError> {
+        self.push_container(ContainerKey::Environment, EnvironmentReset::new().into())
     }
 
     /// Appends a typed `[Pod]` entry.

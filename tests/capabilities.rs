@@ -26,7 +26,7 @@ fn supported_range_has_the_reviewed_first_conversion_surface() -> Result<(), Str
     let expected: BTreeSet<_> = EXPECTED_CAPABILITIES.lines().filter(|line| !line.is_empty()).collect();
     assert_eq!(actual, expected);
     assert_eq!(catalogue.capabilities().len(), 257);
-    assert_eq!(catalogue.evidence().len(), 655);
+    assert_eq!(catalogue.evidence().len(), 658);
 
     let documentation: Vec<_> = catalogue
         .evidence()
@@ -34,7 +34,7 @@ fn supported_range_has_the_reviewed_first_conversion_surface() -> Result<(), Str
         .filter(|evidence| evidence.level() == VerificationLevel::Documentation)
         .collect();
     assert!(!documentation.is_empty());
-    assert_eq!(documentation.len(), 549);
+    assert_eq!(documentation.len(), 551);
     assert!(documentation.iter().all(|evidence| evidence.gap().is_some()));
     let generator = catalogue
         .evidence()
@@ -44,6 +44,56 @@ fn supported_range_has_the_reviewed_first_conversion_surface() -> Result<(), Str
     assert_eq!(generator.versions().minimum(), version(5, 4, 0));
     assert_eq!(generator.versions().maximum(), version(6, 0, 2));
     assert_eq!(generator.gap(), None);
+    Ok(())
+}
+
+#[test]
+fn supported_range_records_container_environment_reset() -> Result<(), String> {
+    let catalogue = CapabilityCatalogue::supported_range().map_err(|error| error.to_string())?;
+    let capability = catalogue
+        .capability("quadlet.container.environment")
+        .ok_or_else(|| "Container Environment capability must exist".to_owned())?;
+    assert_eq!(capability.unit_types(), ["container"]);
+    assert_eq!(capability.sections(), ["Container"]);
+    assert!(capability.is_repeatable());
+    assert_eq!(
+        capability.value_forms(),
+        [
+            "systemd-environment-assignment-list",
+            "literal-ascii-name-single-line-unicode-value",
+            "non-empty-grouped-literal-ascii-name-single-line-unicode-values",
+            "empty-reset-directive",
+        ]
+    );
+    assert_eq!(
+        capability.evidence(),
+        [
+            "podman-5-4-container",
+            "podman-5-4-through-current-first-conversion-generators",
+            "podman-5-4-container-environment-reset-source",
+            "podman-6-0-2-container-environment-reset-source",
+            "podman-5-4-through-current-container-environment-reset-generators",
+        ]
+    );
+    let native = capability
+        .native_range()
+        .ok_or_else(|| "Container Environment must have native coverage".to_owned())?;
+    assert_eq!(native.minimum(), version(5, 4, 0));
+    assert_eq!(native.maximum(), version(6, 0, 2));
+    for (target, expected) in [
+        (version(5, 3, 3), SupportClassification::Unknown),
+        (version(5, 4, 0), SupportClassification::Native),
+        (version(6, 0, 2), SupportClassification::Native),
+        (version(6, 0, 3), SupportClassification::Unknown),
+    ] {
+        let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
+        assert_eq!(
+            catalogue
+                .evaluate("quadlet.container.environment", target)
+                .classification(),
+            expected
+        );
+    }
     Ok(())
 }
 

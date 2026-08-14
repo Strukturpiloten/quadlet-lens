@@ -8,8 +8,8 @@ use quadlet_lens::model::{
 };
 use quadlet_lens::path::{PathForm, classify_path};
 use quadlet_lens::render::{
-    EntryValue, EnvironmentAssignment, EnvironmentAssignmentError, EnvironmentAssignments, Memory, MemoryError,
-    PidsLimit, PidsLimitError, QuadletDocumentBuilder, ShmSize, ShmSizeError,
+    EntryValue, EnvironmentAssignment, EnvironmentAssignmentError, EnvironmentAssignments, EnvironmentReset, Memory,
+    MemoryError, PidsLimit, PidsLimitError, QuadletDocumentBuilder, ShmSize, ShmSizeError,
 };
 use quadlet_lens::source::SourceId;
 
@@ -40,6 +40,10 @@ fn container_literal_environment_assignment_has_a_public_typed_construction_path
         ["GROUP_FIRST", "GROUP_SECOND"]
     );
     generated.push_container_environment_assignments(assignments)?;
+    let reset: EntryValue = EnvironmentReset::default().into();
+    assert_eq!(reset.as_str(), EnvironmentReset::new().as_str());
+    generated.push_container_environment_reset()?;
+    generated.push_container_environment(EnvironmentAssignment::new("AFTER_RESET", "final")?)?;
     let generated = generated.build(SourceId::new(9_201))?;
     assert_eq!(
         generated.text(),
@@ -48,6 +52,8 @@ fn container_literal_environment_assignment_has_a_public_typed_construction_path
             "Image=example.invalid/application:1\n",
             "Environment=\"APP_MESSAGE=hello world = \\\"quoted\\\" \\\\ $literal\"\n",
             "Environment=\"GROUP_FIRST=hello world\" \"GROUP_SECOND=left=right\"\n",
+            "Environment=\n",
+            "Environment=\"AFTER_RESET=final\"\n",
         )
     );
     assert_eq!(
@@ -60,6 +66,8 @@ fn container_literal_environment_assignment_has_a_public_typed_construction_path
         [
             r#""APP_MESSAGE=hello world = \"quoted\" \\ $literal""#,
             r#""GROUP_FIRST=hello world" "GROUP_SECOND=left=right""#,
+            "",
+            r#""AFTER_RESET=final""#,
         ]
     );
     Ok(())

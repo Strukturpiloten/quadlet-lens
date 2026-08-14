@@ -239,8 +239,12 @@ physical entry, retaining order and separating their whole quoted spellings with
 The smoke/full dry-run fixture records separate quoted assignments for empty, space, equals sign,
 quote, backslash, dollar, and printable-Unicode values plus two distinct `--env` arguments from
 one group through Podman 5.4.0–6.0.2; it records literal space on 5.4.x and `\x20` later. Percent
-specifiers, authored-value parsing, reset construction, duplicate-name selection, continuations,
-environment/runtime expansion, and command/argument semantics remain outside these encoders.
+specifiers, authored-value parsing, duplicate-name selection, continuations, environment/runtime
+expansion, and command/argument semantics remain outside these encoders. A separate
+`EnvironmentReset` marker emits one ordered blank directive. Tagged 5.4.0/6.0.2 source and all
+recorded generators prove only that it removes two isolated pre-reset names and leaves two distinct
+post-reset `--env` arguments; the model still preserves all physical values rather than applying
+that target behavior.
 
 The resource subset includes singleton `PidsLimit`. Omission, authored zero, and noncanonical
 one-line values remain distinct raw model and builder values. `PidsLimit::unlimited()` and

@@ -11,6 +11,8 @@ use quadlet_lens::capability::PodmanVersion;
 use serde::Deserialize;
 
 const MATRIX: &str = include_str!("../tools/generator-matrix.toml");
+const CONTAINER_ENVIRONMENT_RESET_FIXTURE: &str =
+    include_str!("../fixtures/generators/container-environment-reset-supported-range/environment-reset.container");
 const EXPECTED_IMAGE_VERSIONS: &[&str] = &[
     "5.4.0", "5.4.1", "5.4.2", "5.5.0", "5.5.1", "5.5.2", "5.6.0", "5.6.1", "5.6.2", "5.7.0", "5.7.1", "5.8.0",
     "5.8.1", "5.8.2",
@@ -850,6 +852,7 @@ struct GeneratorFixtures {
     container_retry: (PathBuf, Vec<String>),
     container_http_proxy: (PathBuf, Vec<String>),
     container_start_with_pod: (PathBuf, Vec<String>),
+    container_environment_reset: (PathBuf, Vec<String>),
     memory: (PathBuf, Vec<String>),
     build_retry: (PathBuf, Vec<String>),
     build_tls_verify: (PathBuf, Vec<String>),
@@ -933,6 +936,25 @@ struct VolumeDriverOptionsFixtures {
 fn volume_label_quote_expectations_use_unescaped_output_text() {
     assert_eq!(VOLUME_LABEL_QUOTED_LITERAL_SPACE, NETWORK_LABEL_QUOTED_LITERAL_SPACE);
     assert_eq!(VOLUME_LABEL_QUOTED_HEX_SPACE, NETWORK_LABEL_QUOTED_HEX_SPACE);
+}
+
+#[test]
+fn container_environment_reset_fixture_has_the_exact_authored_directive_sequence() {
+    let directives: Vec<_> = CONTAINER_ENVIRONMENT_RESET_FIXTURE
+        .lines()
+        .filter(|line| line.starts_with("Environment="))
+        .collect();
+
+    assert_eq!(
+        directives,
+        [
+            "Environment=QUADLET_LENS_ENV_RESET_PRE_ONE=one",
+            "Environment=QUADLET_LENS_ENV_RESET_PRE_TWO=two",
+            "Environment=",
+            "Environment=QUADLET_LENS_ENV_RESET_POST_ONE=one",
+            "Environment=QUADLET_LENS_ENV_RESET_POST_TWO=two",
+        ]
+    );
 }
 
 #[test]
@@ -2267,6 +2289,7 @@ fn load_generator_fixtures() -> Result<GeneratorFixtures, String> {
         container_retry: load_named_container_fixture("container-retry-supported-range")?,
         container_http_proxy: load_named_container_fixture("container-http-proxy-supported-range")?,
         container_start_with_pod: load_named_container_fixture("container-start-with-pod-supported-range")?,
+        container_environment_reset: load_named_container_fixture("container-environment-reset-supported-range")?,
         memory: load_memory_fixture()?,
         build_retry: load_build_retry_fixture()?,
         build_tls_verify: load_build_tls_verify_fixture()?,
@@ -2703,6 +2726,11 @@ fn verify_image_isolated_fixtures(
         &image.version,
         &fixtures.container_start_with_pod.1,
         &run_generator_raw(engine, image, &fixtures.container_start_with_pod.0)?,
+    )?;
+    verify_container_environment_reset_generator_output(
+        &image.version,
+        &fixtures.container_environment_reset.1,
+        &run_generator_raw(engine, image, &fixtures.container_environment_reset.0)?,
     )?;
     verify_image_memory(engine, image, &fixtures.memory)?;
     verify_image_build_retry(engine, image, &fixtures.build_retry)?;
@@ -3677,6 +3705,17 @@ fn verify_source_isolated_fixtures(
             source,
             generator,
             &fixtures.container_start_with_pod.0,
+        )?,
+    )?;
+    verify_container_environment_reset_generator_output(
+        &source.version,
+        &fixtures.container_environment_reset.1,
+        &run_source_generator_raw(
+            engine,
+            &matrix.builder_reference,
+            source,
+            generator,
+            &fixtures.container_environment_reset.0,
         )?,
     )?;
     verify_source_memory(engine, matrix, source, generator, &fixtures.memory)?;
@@ -4786,6 +4825,45 @@ fn verify_literal_environment_assignment(version: &str, generated: &str, output:
     }
     eprintln!(
         "Podman {version} Container Environment: literal assignments, including two assignments grouped in one physical Environment directive, become distinct --env arguments"
+    );
+    Ok(())
+}
+
+fn verify_container_environment_reset_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    ensure_success(version, "Container Environment reset generator", output)?;
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| error.to_string())?;
+    if expected.iter().any(|fragment| !generated.contains(fragment)) {
+        return Err(format!(
+            "Podman {version} Container Environment reset output is missing fixture fragments\n{generated}"
+        ));
+    }
+    let unit = generated_unit(version, &generated, "environment-reset.service", output)?;
+    let command = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| format!("Podman {version} Container Environment reset command is missing"))?;
+    let post_reset = [
+        "--env QUADLET_LENS_ENV_RESET_POST_ONE=one",
+        "--env QUADLET_LENS_ENV_RESET_POST_TWO=two",
+    ];
+    let pre_reset = [
+        "QUADLET_LENS_ENV_RESET_PRE_ONE=one",
+        "QUADLET_LENS_ENV_RESET_PRE_TWO=two",
+    ];
+    if post_reset.iter().any(|argument| command.matches(argument).count() != 1)
+        || command.matches("--env").count() != post_reset.len()
+        || pre_reset.iter().any(|name| command.contains(name))
+    {
+        return Err(format!(
+            "Podman {version} Container Environment reset must emit only the two distinct post-reset --env arguments, without either pre-reset assignment\n{command}"
+        ));
+    }
+    eprintln!(
+        "Podman {version} Container Environment reset: pre-reset assignments are absent and distinct post-reset assignments become separate --env arguments"
     );
     Ok(())
 }

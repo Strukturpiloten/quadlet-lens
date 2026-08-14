@@ -54,10 +54,11 @@ Validate the remaining value forms, fallbacks, quoting, newlines, argument bound
 cross-field constraints. Preserve raw source when Podman behavior varies. Diagnostics must remain
 source-aware and distinguish syntax acceptance, generator behavior, and runtime behavior.
 
-The completed phase-2 environment slice includes one literal-assignment encoder and a non-empty
-group that joins only prevalidated assignments into one physical directive. Percent/specifier
-behavior, authored-value parsing, reset construction, duplicate-name selection, continuations,
-environment/runtime expansion, and argument parsing remain separate validation work.
+The completed phase-2 environment slice includes one literal-assignment encoder, a non-empty group
+that joins only prevalidated assignments into one physical directive, and an explicit blank reset
+directive. Percent/specifier behavior, authored-value parsing, target reset application,
+duplicate-name selection, continuations, environment/runtime expansion, and argument parsing remain
+separate validation work.
 
 ### 3. Complete capability evidence
 

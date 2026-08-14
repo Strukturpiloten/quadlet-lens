@@ -2848,6 +2848,33 @@ test = "capabilities::supported_range_has_the_reviewed_first_conversion_surface"
 gap = "Referenced .image/.build units and the remaining container-only keys still need exact patch-matrix fixtures."
 
 [[evidence]]
+id = "podman-5-4-container-environment-reset-source"
+verification = "documentation"
+url = "https://github.com/podman-container-tools/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go"
+target = "5.4.0"
+claim = "Tagged Podman 5.4.0 Container conversion registers Environment as a key/value --env form and routes it through the reset-aware key/value lookup helper before command construction."
+test = "capabilities::supported_range_records_container_environment_reset"
+gap = "Tagged source establishes target command construction only. It does not make authored-value decoding, duplicate-name selection, percent/specifier handling, continuations, manager expansion, runtime environment state, or cross-format behavior part of QuadletLens."
+
+[[evidence]]
+id = "podman-6-0-2-container-environment-reset-source"
+verification = "documentation"
+url = "https://github.com/podman-container-tools/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L877-L882"
+target = "6.0.2"
+claim = "Tagged Podman 6.0.2 Container conversion registers Environment as a key/value --env form and routes it through the reset-aware key/value lookup helper before command construction."
+test = "capabilities::supported_range_records_container_environment_reset"
+gap = "Tagged source establishes target command construction only. It does not make authored-value decoding, duplicate-name selection, percent/specifier handling, continuations, manager expansion, runtime environment state, or cross-format behavior part of QuadletLens."
+
+[[evidence]]
+id = "podman-5-4-through-current-container-environment-reset-generators"
+verification = "generator"
+url = "https://github.com/podman-container-tools/podman/releases"
+versions = { minimum = "5.4.0", maximum = "6.0.2" }
+claim = "Every recorded Podman patch release from 5.4.0 through 6.0.2 removes two distinct pre-reset Container Environment assignments after one blank Environment directive and emits each distinct post-reset assignment as a separate --env argument."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "The isolated fixture invokes only the dry-run generator. It does not establish map order, duplicate-name selection, bare-token behavior, percent/specifier handling, manager expansion, environment inspection, workload execution, runtime environment state, or cross-format behavior."
+
+[[evidence]]
 id = "podman-5-4-container-paths"
 verification = "documentation"
 url = "https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#volume"
@@ -7236,19 +7263,23 @@ evidence = [
 
 [[capability]]
 id = "quadlet.container.environment"
-description = "Container environment assignments using systemd environment syntax, including focused ASCII-named literal encoders for one assignment or a non-empty prevalidated group rendered as whole double-quoted assignments separated by one ASCII space."
+description = "Container environment assignments using systemd environment syntax, including focused ASCII-named literal encoders for one assignment or a non-empty prevalidated group rendered as whole double-quoted assignments separated by one ASCII space, plus one explicit blank reset directive."
 unit_types = ["container"]
 sections = ["Container"]
 repeatable = true
 value_forms = [
   "systemd-environment-assignment-list",
   "literal-ascii-name-single-line-unicode-value",
-  "non-empty-grouped-literal-ascii-name-single-line-unicode-values"
+  "non-empty-grouped-literal-ascii-name-single-line-unicode-values",
+  "empty-reset-directive"
 ]
 native = { minimum = "5.4.0", maximum = "6.0.2" }
 evidence = [
   "podman-5-4-container",
-  "podman-5-4-through-current-first-conversion-generators"
+  "podman-5-4-through-current-first-conversion-generators",
+  "podman-5-4-container-environment-reset-source",
+  "podman-6-0-2-container-environment-reset-source",
+  "podman-5-4-through-current-container-environment-reset-generators"
 ]
 
 [[capability]]

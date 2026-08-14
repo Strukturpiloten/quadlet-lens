@@ -453,7 +453,7 @@ source identities, and filename/type matching.
 The generation suite constructs `.container`, `.network`, and `.volume` documents, verifies exact
 deterministic output, reparses every result, and resolves the generated cross-file graph. It also
 protects explicit container names, single and non-empty grouped validated environment assignments,
-repeated AddHost, label, secret, systemd, and exact
+ordered blank environment resets, repeated AddHost, label, secret, systemd, and exact
 capability-drop/add, tmpfs, sysctl, ulimit, and logging entries, including raw empty native resets,
 plus all document-builder
 rejection paths, including duplicate lifecycle, policy, and promoted security singletons,

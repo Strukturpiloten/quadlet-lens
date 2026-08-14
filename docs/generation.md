@@ -116,9 +116,16 @@ for one physical directive; `push_container_environment_assignments` emits that 
 revalidating or parsing the assignments. The all-version dry-run matrix verifies that two grouped
 assignments produce two distinct `--env` arguments, including Podman 5.4's literal-space versus
 later `\x20` presentation, rather than one flattened argument. Neither constructor decodes or
-normalizes authored entries, constructs resets, selects duplicate names, applies environment or
-runtime expansion, parses continuations or commands, or rewrites specifiers. The evidence is
-command text only, not runtime environment behavior.
+normalizes authored entries, selects duplicate names, applies environment or runtime expansion,
+parses continuations or commands, or rewrites specifiers.
+
+`EnvironmentReset` is an explicit zero-sized marker for one blank physical `Environment=`
+directive. `push_container_environment_reset` keeps that line at its call position; it does not
+apply the target reset or expose an effective environment map. Tagged 5.4.0 and 6.0.2 source plus
+the complete dry-run matrix establish only command text: two pre-reset names disappear and two
+post-reset names become separate `--env` arguments. Authored-value decoding, duplicate selection,
+percent/specifier handling, continuations, manager expansion, and runtime environment behavior
+remain outside this API.
 
 `ContainerKey::HostName` is a singleton carrying exact authored one-line text. Omission stays
 absent, and the shared `EntryValue` boundary rejects only NUL bytes and physical line endings; it

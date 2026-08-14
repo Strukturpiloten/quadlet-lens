@@ -37,6 +37,12 @@ from 5.5.0 onward. This is command-text evidence only; specifier expansion, auth
 resets, duplicate-name selection, continuations, and argument semantics remain outside the focused
 encoder.
 
+A separate Container Environment-reset fixture authors two distinct pre-reset assignments, one
+blank `Environment=` directive, and two distinct post-reset assignments. Across the complete
+5.4.0–6.0.2 matrix, the verifier requires both pre-reset names to be absent and each post-reset
+name to be one separate `--env` argument. It does not assert map order, duplicate-name selection,
+bare-token or percent behavior, manager expansion, or runtime state.
+
 ## Official versioned containers
 
 The public `quay.io/podman/stable` repository currently provides exact `-immutable` tags for every

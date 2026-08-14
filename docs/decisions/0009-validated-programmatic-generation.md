@@ -124,7 +124,9 @@ QuadletLens provides a programmatic document builder that:
   non-empty `EnvironmentAssignments` group built only from validated assignments that joins their
   whole quoted spellings with one ASCII space for one physical directive without authored-value
   parsing, reset construction, duplicate-name selection, continuations, specifier support, or
-  environment/runtime expansion; and
+  environment/runtime expansion, plus an explicit zero-sized `EnvironmentReset` marker that emits
+  one blank physical directive without applying target reset behavior or constructing an effective
+  environment map; and
 - reparses generated text and returns it only when syntax and native-model validation succeed.
 
 Values remain exact, already-semantic native values. The builder does not quote, split, expand, or
