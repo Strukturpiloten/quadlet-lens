@@ -103,6 +103,17 @@ the caller's value. The supported-window evidence does not establish a portable 
 current generator evidence covers positive `127` and unlimited `-1`, not zero or runtime cgroup
 enforcement.
 
+`EnvironmentAssignment::new(name, value)` is a focused additive path for one literal container
+`Environment=` assignment. Names match ASCII `[A-Za-z_][A-Za-z0-9_]*`; values may be empty and
+otherwise accept printable one-line Unicode, including spaces, `=`, quotes, backslashes, and `$`.
+It emits one whole double-quoted assignment and escapes only embedded quotes and backslashes.
+NUL, CR/LF, other controls, and `%` are rejected. The wrapper converts explicitly to `EntryValue`,
+and `push_container_environment` is the equivalent convenient builder method. It does not decode
+or normalize authored entries, split assignment lists, apply reset semantics, parse continuations
+or commands, or rewrite specifiers. The all-version dry-run matrix verifies separate generated
+arguments for empty, space, equals, quote, backslash, dollar, and printable-Unicode values across
+Podman 5.4.0–6.0.2; it does not establish runtime environment behavior.
+
 `ContainerKey::HostName` is a singleton carrying exact authored one-line text. Omission stays
 absent, and the shared `EntryValue` boundary rejects only NUL bytes and physical line endings; it
 does not apply Compose RFC-1123 validation or normalize native values. For an isolated container,

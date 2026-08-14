@@ -54,6 +54,10 @@ Validate the remaining value forms, fallbacks, quoting, newlines, argument bound
 cross-field constraints. Preserve raw source when Podman behavior varies. Diagnostics must remain
 source-aware and distinguish syntax acceptance, generator behavior, and runtime behavior.
 
+The completed phase-2 environment slice is intentionally limited to one literal assignment
+encoder. Percent/specifier behavior, multiple assignments, resets, continuations, and argument
+parsing remain separate validation work.
+
 ### 3. Complete capability evidence
 
 Record introduction, change, deprecation, removal, known patch bugs, and required systemd versions

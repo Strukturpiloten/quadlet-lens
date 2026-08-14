@@ -6,11 +6,73 @@ use quadlet_lens::{
         QuadletDocument, QuadletDocumentSet, QuadletKey, QuadletUnitType, SystemdUnitKey, ValueKind, VolumeKey,
     },
     render::{
-        EntryValue, Memory, MemoryError, PidsLimit, PidsLimitError, QuadletDocumentBuilder, RenderError, ShmSize,
-        ShmSizeError, SystemdSection,
+        EntryValue, EnvironmentAssignment, EnvironmentAssignmentError, Memory, MemoryError, PidsLimit, PidsLimitError,
+        QuadletDocumentBuilder, RenderError, ShmSize, ShmSizeError, SystemdSection,
     },
     source::SourceId,
 };
+
+#[test]
+fn environment_assignment_encodes_one_literal_assignment_and_preserves_it_after_parse_back()
+-> Result<(), Box<dyn std::error::Error>> {
+    let assignment = EnvironmentAssignment::new("LITERAL_VALUE", "unicode café = \"quoted\" \\ $dollar")?;
+    assert_eq!(assignment.name(), "LITERAL_VALUE");
+    assert_eq!(assignment.value(), "unicode café = \"quoted\" \\ $dollar");
+    assert_eq!(
+        assignment.as_str(),
+        r#""LITERAL_VALUE=unicode café = \"quoted\" \\ $dollar""#
+    );
+
+    let mut builder = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    builder.push_container(ContainerKey::Image, value("example.invalid/application")?)?;
+    builder.push_container_environment(assignment)?;
+    builder.push_container_environment(EnvironmentAssignment::new("EMPTY", "")?)?;
+    let generated = builder.build(SourceId::new(9_200))?;
+    assert_eq!(
+        generated.text(),
+        concat!(
+            "[Container]\n",
+            "Image=example.invalid/application\n",
+            "Environment=\"LITERAL_VALUE=unicode café = \\\"quoted\\\" \\\\ $dollar\"\n",
+            "Environment=\"EMPTY=\"\n",
+        )
+    );
+    assert_eq!(
+        generated
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::Environment))
+            .map(|entry| entry.value().primary().text())
+            .collect::<Vec<_>>(),
+        [r#""LITERAL_VALUE=unicode café = \"quoted\" \\ $dollar""#, r#""EMPTY=""#]
+    );
+    Ok(())
+}
+
+#[test]
+fn environment_assignment_rejects_the_bounded_name_and_value_categories() {
+    for name in ["", "1NAME", "NAME-DASH", "NÄME", "NAME SPACE"] {
+        assert_eq!(
+            EnvironmentAssignment::new(name, "value"),
+            Err(EnvironmentAssignmentError::InvalidName),
+            "{name:?}"
+        );
+    }
+    for (value, expected) in [
+        ("nul\0byte", EnvironmentAssignmentError::Nul),
+        ("carriage\rreturn", EnvironmentAssignmentError::CarriageReturn),
+        ("line\nfeed", EnvironmentAssignmentError::LineFeed),
+        ("tab\tvalue", EnvironmentAssignmentError::ControlCharacter),
+        ("delete\u{7f}value", EnvironmentAssignmentError::ControlCharacter),
+        ("specifier%h", EnvironmentAssignmentError::Specifier),
+    ] {
+        assert_eq!(
+            EnvironmentAssignment::new("VALID_NAME", value),
+            Err(expected),
+            "{value:?}"
+        );
+    }
+}
 
 #[test]
 fn builds_a_deterministic_first_conversion_document_set() -> Result<(), Box<dyn std::error::Error>> {

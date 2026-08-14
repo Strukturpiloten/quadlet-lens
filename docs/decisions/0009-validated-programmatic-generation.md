@@ -118,6 +118,9 @@ QuadletLens provides a programmatic document builder that:
 - provides a focused container-memory helper for a positive ASCII-decimal amount with an optional
   lowercase `b`, `k`, `m`, or `g`, preserving leading zeros and arbitrary precision without
   narrowing the raw `EntryValue` boundary; and
+- provides a focused `EnvironmentAssignment` helper for one literal ASCII-named container
+  assignment, whole-assignment double quoting, and quote/backslash escaping while rejecting
+  controls and unevidenced `%` specifiers without changing authored-value preservation; and
 - reparses generated text and returns it only when syntax and native-model validation succeed.
 
 Values remain exact, already-semantic native values. The builder does not quote, split, expand, or

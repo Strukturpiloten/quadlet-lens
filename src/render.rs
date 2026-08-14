@@ -46,6 +46,117 @@ impl EntryValue {
     }
 }
 
+/// One literal assignment for a container `Environment=` entry.
+///
+/// This focused construction boundary accepts one ASCII environment name and one literal
+/// single-line Unicode value. It writes the whole assignment in systemd double quotes and escapes
+/// only the quote and backslash characters required inside those quotes. It deliberately does not
+/// decode authored environment entries, expand specifiers, split assignment lists, apply resets,
+/// or interpret command arguments.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EnvironmentAssignment {
+    name: String,
+    value: String,
+    rendered: String,
+}
+
+impl EnvironmentAssignment {
+    /// Creates one literal `Environment=` assignment.
+    ///
+    /// The name must match ASCII `[A-Za-z_][A-Za-z0-9_]*`. The value may be empty, but rejects
+    /// NUL, physical line endings, other control characters, and `%` until specifier semantics
+    /// have focused evidence.
+    ///
+    /// # Errors
+    ///
+    /// Returns the category of invalid name or value in [`EnvironmentAssignmentError`].
+    pub fn new(name: impl Into<String>, value: impl Into<String>) -> Result<Self, EnvironmentAssignmentError> {
+        let name = name.into();
+        if !is_environment_name(&name) {
+            return Err(EnvironmentAssignmentError::InvalidName);
+        }
+
+        let value = value.into();
+        for character in value.chars() {
+            match character {
+                '\0' => return Err(EnvironmentAssignmentError::Nul),
+                '\r' => return Err(EnvironmentAssignmentError::CarriageReturn),
+                '\n' => return Err(EnvironmentAssignmentError::LineFeed),
+                '%' => return Err(EnvironmentAssignmentError::Specifier),
+                _ if character.is_control() => return Err(EnvironmentAssignmentError::ControlCharacter),
+                _ => {}
+            }
+        }
+
+        let escaped = value.replace('\\', "\\\\").replace('"', "\\\"");
+        let rendered = format!("\"{name}={escaped}\"");
+        Ok(Self { name, value, rendered })
+    }
+
+    /// Returns the validated assignment name.
+    #[must_use]
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Returns the exact literal value before systemd quoting.
+    #[must_use]
+    pub fn value(&self) -> &str {
+        &self.value
+    }
+
+    /// Returns the exact generated native `Environment=` value.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.rendered
+    }
+}
+
+impl From<EnvironmentAssignment> for EntryValue {
+    fn from(assignment: EnvironmentAssignment) -> Self {
+        Self(assignment.rendered)
+    }
+}
+
+/// Invalid input to [`EnvironmentAssignment::new`].
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[non_exhaustive]
+pub enum EnvironmentAssignmentError {
+    /// The assignment name does not match ASCII `[A-Za-z_][A-Za-z0-9_]*`.
+    InvalidName,
+    /// The literal value contains a NUL byte.
+    Nul,
+    /// The literal value contains a carriage return.
+    CarriageReturn,
+    /// The literal value contains a line feed.
+    LineFeed,
+    /// The literal value contains another Unicode control character.
+    ControlCharacter,
+    /// The literal value contains a systemd specifier introducer.
+    Specifier,
+}
+
+impl fmt::Display for EnvironmentAssignmentError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidName => formatter.write_str("environment names must match ASCII [A-Za-z_][A-Za-z0-9_]*"),
+            Self::Nul => formatter.write_str("environment values must not contain NUL bytes"),
+            Self::CarriageReturn => formatter.write_str("environment values must not contain carriage returns"),
+            Self::LineFeed => formatter.write_str("environment values must not contain line feeds"),
+            Self::ControlCharacter => formatter.write_str("environment values must not contain control characters"),
+            Self::Specifier => formatter.write_str("environment values must not contain systemd specifiers"),
+        }
+    }
+}
+
+impl Error for EnvironmentAssignmentError {}
+
+fn is_environment_name(name: &str) -> bool {
+    let mut bytes = name.bytes();
+    matches!(bytes.next(), Some(byte) if byte.is_ascii_alphabetic() || byte == b'_')
+        && bytes.all(|byte| byte.is_ascii_alphanumeric() || byte == b'_')
+}
+
 /// Safely constructible process-ID limit for a container.
 ///
 /// This helper covers only the documented unlimited spelling (`-1`) and positive finite values
@@ -379,6 +490,18 @@ impl QuadletDocumentBuilder {
             container_key_name(key),
             value,
         )
+    }
+
+    /// Appends one focused literal container `Environment=` assignment.
+    ///
+    /// This convenience method is equivalent to passing an [`EnvironmentAssignment`] converted
+    /// into [`EntryValue`] to [`Self::push_container`]. Repetition remains native and ordered.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RenderError::WrongUnitType`] for a non-container document.
+    pub fn push_container_environment(&mut self, assignment: EnvironmentAssignment) -> Result<(), RenderError> {
+        self.push_container(ContainerKey::Environment, assignment.into())
     }
 
     /// Appends a typed `[Pod]` entry.

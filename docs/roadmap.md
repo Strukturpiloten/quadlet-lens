@@ -141,6 +141,14 @@ their native ordering and repetition rules.
 
 ## Priority after 0.1.9
 
+### Completed phase-2 Environment encoder slice
+
+- [x] Add a public render-owned `EnvironmentAssignment` encoder for one ASCII-named literal
+      container assignment, with exact double-quoted output, explicit `EntryValue` conversion,
+      parse-back/public-API tests, and the smoke/full dry-run generator fixture.
+- [ ] Evidence and model percent/specifier handling, multiple assignments per `Environment=` line,
+      reset semantics, continuations/newlines, and systemd command/argument parsing separately.
+
 ### Next 1: lifecycle and process parity
 
 - [x] Type singleton container `Entrypoint` and verify JSON-array argument preservation from Podman

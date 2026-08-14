@@ -27,6 +27,13 @@ checked explicitly. This is dry-run generator evidence only; no unit is started 
 Podman command is executed. `Upholds` additionally requires systemd 249 or newer.
 Renovate watches the current release value so new Podman releases create visible maintenance work.
 
+The first-conversion fixture additionally records seven whole quoted literal container environment
+assignments: an empty value and values containing a space, equals sign, quote, backslash, dollar,
+or printable Unicode. Both smoke and full lanes require exactly one resulting `--env` argument for
+each vector, alongside the existing specifier-bearing raw assignment. This is command-text evidence only;
+specifier expansion, resets, multiple assignments, continuations, and argument semantics remain
+outside the focused encoder.
+
 ## Official versioned containers
 
 The public `quay.io/podman/stable` repository currently provides exact `-immutable` tags for every

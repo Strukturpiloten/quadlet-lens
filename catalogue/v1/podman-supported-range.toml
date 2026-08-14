@@ -7236,11 +7236,11 @@ evidence = [
 
 [[capability]]
 id = "quadlet.container.environment"
-description = "Container environment assignments using systemd environment syntax."
+description = "Container environment assignments using systemd environment syntax, including the focused ASCII-named literal encoder for empty and printable single-line Unicode values with spaces, quotes, backslashes, and dollars."
 unit_types = ["container"]
 sections = ["Container"]
 repeatable = true
-value_forms = ["systemd-environment-assignment-list"]
+value_forms = ["systemd-environment-assignment-list", "literal-ascii-name-single-line-unicode-value"]
 native = { minimum = "5.4.0", maximum = "6.0.2" }
 evidence = [
   "podman-5-4-container",

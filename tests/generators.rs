@@ -4726,6 +4726,7 @@ fn verify_generator_output(version: &str, expected: &[String], output: &Output) 
     verify_stop_lifecycle_arguments(version, &generated, output)?;
     verify_pull_arguments(version, &generated, output)?;
     verify_pids_limit_arguments(version, &generated, output)?;
+    verify_literal_environment_assignment(version, &generated, output)?;
     verify_hostname_argument(version, &generated, output)?;
     verify_build_core_arguments(version, &generated, output)?;
     verify_shm_size_arguments(version, &generated, output)?;
@@ -4742,6 +4743,46 @@ fn verify_generator_output(version: &str, expected: &[String], output: &Output) 
     verify_expose_arguments(version, &generated, output)?;
     verify_annotation_arguments(version, &generated, output)?;
     verify_quoted_label_encoding(version, &generated, output)?;
+    Ok(())
+}
+
+fn verify_literal_environment_assignment(version: &str, generated: &str, output: &Output) -> Result<(), String> {
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    let unit = generated_unit(version, generated, "app.service", output)?;
+    let command = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| {
+            format!("Podman {version} generator output for app.service is missing its Podman run command")
+        })?;
+    let encoded_space = if parsed.major() == 5 && parsed.minor() == 4 {
+        " "
+    } else {
+        r"\x20"
+    };
+    let expected = [
+        format!(r#"--env "QUADLET_LENS_SPACE=hello{encoded_space}world""#),
+        format!(r#"--env "QUADLET_LENS_QUOTE=hello{encoded_space}\"quoted\"""#),
+        r#"--env "QUADLET_LENS_BACKSLASH=path\\literal""#.to_owned(),
+        r"--env QUADLET_LENS_DOLLAR=$literal".to_owned(),
+        r"--env QUADLET_LENS_EQUALS=left=right".to_owned(),
+        r"--env QUADLET_LENS_UNICODE=café".to_owned(),
+        r"--env QUADLET_LENS_EMPTY=".to_owned(),
+    ];
+    let all_environment_count = command.matches("--env").count();
+    let missing_or_repeated: Vec<_> = expected
+        .iter()
+        .filter(|argument| command.matches(argument.as_str()).count() != 1)
+        .collect();
+    if !missing_or_repeated.is_empty() || all_environment_count != 8 {
+        return Err(format!(
+            "Podman {version} generator output for app.service must contain exactly one of each focused literal environment argument {expected:?} and only the eight authored --env arguments; missing or repeated={missing_or_repeated:?}, found --env={all_environment_count}\nstdout:\n{generated}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+    eprintln!(
+        "Podman {version} Container Environment: empty, space, equals, quote, backslash, dollar, and printable Unicode literal assignments each become one --env argument"
+    );
     Ok(())
 }
 

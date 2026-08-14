@@ -8,9 +8,40 @@ use quadlet_lens::model::{
 };
 use quadlet_lens::path::{PathForm, classify_path};
 use quadlet_lens::render::{
-    EntryValue, Memory, MemoryError, PidsLimit, PidsLimitError, QuadletDocumentBuilder, ShmSize, ShmSizeError,
+    EntryValue, EnvironmentAssignment, EnvironmentAssignmentError, Memory, MemoryError, PidsLimit, PidsLimitError,
+    QuadletDocumentBuilder, ShmSize, ShmSizeError,
 };
 use quadlet_lens::source::SourceId;
+
+#[test]
+fn container_literal_environment_assignment_has_a_public_typed_construction_path()
+-> Result<(), Box<dyn std::error::Error>> {
+    let assignment = EnvironmentAssignment::new("APP_MESSAGE", "hello world = \"quoted\" \\ $literal")?;
+    let raw: EntryValue = assignment.clone().into();
+    assert_eq!(raw.as_str(), r#""APP_MESSAGE=hello world = \"quoted\" \\ $literal""#);
+    assert_eq!(
+        EnvironmentAssignment::new("APP_MESSAGE", "%h"),
+        Err(EnvironmentAssignmentError::Specifier)
+    );
+
+    let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    generated.push_container(ContainerKey::Image, EntryValue::new("example.invalid/application:1")?)?;
+    generated.push_container_environment(assignment)?;
+    let generated = generated.build(SourceId::new(9_201))?;
+    assert_eq!(
+        generated.text(),
+        concat!(
+            "[Container]\n",
+            "Image=example.invalid/application:1\n",
+            "Environment=\"APP_MESSAGE=hello world = \\\"quoted\\\" \\\\ $literal\"\n",
+        )
+    );
+    assert!(generated.document().entries().any(|entry| {
+        entry.kind() == EntryKind::Container(ContainerKey::Environment)
+            && entry.value().primary().text() == r#""APP_MESSAGE=hello world = \"quoted\" \\ $literal""#
+    }));
+    Ok(())
+}
 
 const BUILD_CORE_RENDERED: &str = concat!(
     "[Build]\n",
