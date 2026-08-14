@@ -8,8 +8,8 @@ use quadlet_lens::model::{
 };
 use quadlet_lens::path::{PathForm, classify_path};
 use quadlet_lens::render::{
-    EntryValue, EnvironmentAssignment, EnvironmentAssignmentError, Memory, MemoryError, PidsLimit, PidsLimitError,
-    QuadletDocumentBuilder, ShmSize, ShmSizeError,
+    EntryValue, EnvironmentAssignment, EnvironmentAssignmentError, EnvironmentAssignments, Memory, MemoryError,
+    PidsLimit, PidsLimitError, QuadletDocumentBuilder, ShmSize, ShmSizeError,
 };
 use quadlet_lens::source::SourceId;
 
@@ -27,6 +27,19 @@ fn container_literal_environment_assignment_has_a_public_typed_construction_path
     let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Container);
     generated.push_container(ContainerKey::Image, EntryValue::new("example.invalid/application:1")?)?;
     generated.push_container_environment(assignment)?;
+    let assignments = EnvironmentAssignments::new([
+        EnvironmentAssignment::new("GROUP_FIRST", "hello world")?,
+        EnvironmentAssignment::new("GROUP_SECOND", "left=right")?,
+    ])?;
+    assert_eq!(
+        assignments
+            .assignments()
+            .iter()
+            .map(EnvironmentAssignment::name)
+            .collect::<Vec<_>>(),
+        ["GROUP_FIRST", "GROUP_SECOND"]
+    );
+    generated.push_container_environment_assignments(assignments)?;
     let generated = generated.build(SourceId::new(9_201))?;
     assert_eq!(
         generated.text(),
@@ -34,12 +47,21 @@ fn container_literal_environment_assignment_has_a_public_typed_construction_path
             "[Container]\n",
             "Image=example.invalid/application:1\n",
             "Environment=\"APP_MESSAGE=hello world = \\\"quoted\\\" \\\\ $literal\"\n",
+            "Environment=\"GROUP_FIRST=hello world\" \"GROUP_SECOND=left=right\"\n",
         )
     );
-    assert!(generated.document().entries().any(|entry| {
-        entry.kind() == EntryKind::Container(ContainerKey::Environment)
-            && entry.value().primary().text() == r#""APP_MESSAGE=hello world = \"quoted\" \\ $literal""#
-    }));
+    assert_eq!(
+        generated
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::Environment))
+            .map(|entry| entry.value().primary().text())
+            .collect::<Vec<_>>(),
+        [
+            r#""APP_MESSAGE=hello world = \"quoted\" \\ $literal""#,
+            r#""GROUP_FIRST=hello world" "GROUP_SECOND=left=right""#,
+        ]
+    );
     Ok(())
 }
 

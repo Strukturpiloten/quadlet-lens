@@ -232,12 +232,15 @@ and `newer` as matching `--pull` arguments, without contacting a registry or ins
 image storage.
 
 The container environment subset retains authored `Environment=` source entries as repeatable,
-opaque physical lines. A separate render-owned `EnvironmentAssignment` wrapper now safely emits
-one literal assignment with an ASCII name and a whole double-quoted value, escaping only quotes
-and backslashes. The smoke/full dry-run fixture records separate quoted assignments for empty,
-space, equals sign, quote, backslash, dollar, and printable-Unicode values through Podman
-5.4.0–6.0.2. Percent specifiers, multiple assignments per entry, resets, continuations, and
-command/argument semantics remain outside this encoder.
+opaque physical lines. A separate render-owned `EnvironmentAssignment` wrapper safely emits one
+literal assignment with an ASCII name and a whole double-quoted value, escaping only quotes and
+backslashes. `EnvironmentAssignments` combines only prevalidated wrappers into one non-empty
+physical entry, retaining order and separating their whole quoted spellings with one ASCII space.
+The smoke/full dry-run fixture records separate quoted assignments for empty, space, equals sign,
+quote, backslash, dollar, and printable-Unicode values plus two distinct `--env` arguments from
+one group through Podman 5.4.0–6.0.2; it records literal space on 5.4.x and `\x20` later. Percent
+specifiers, authored-value parsing, reset construction, duplicate-name selection, continuations,
+environment/runtime expansion, and command/argument semantics remain outside these encoders.
 
 The resource subset includes singleton `PidsLimit`. Omission, authored zero, and noncanonical
 one-line values remain distinct raw model and builder values. `PidsLimit::unlimited()` and

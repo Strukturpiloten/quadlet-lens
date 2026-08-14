@@ -120,7 +120,11 @@ QuadletLens provides a programmatic document builder that:
   narrowing the raw `EntryValue` boundary; and
 - provides a focused `EnvironmentAssignment` helper for one literal ASCII-named container
   assignment, whole-assignment double quoting, and quote/backslash escaping while rejecting
-  controls and unevidenced `%` specifiers without changing authored-value preservation; and
+  controls and unevidenced `%` specifiers without changing authored-value preservation, plus a
+  non-empty `EnvironmentAssignments` group built only from validated assignments that joins their
+  whole quoted spellings with one ASCII space for one physical directive without authored-value
+  parsing, reset construction, duplicate-name selection, continuations, specifier support, or
+  environment/runtime expansion; and
 - reparses generated text and returns it only when syntax and native-model validation succeed.
 
 Values remain exact, already-semantic native values. The builder does not quote, split, expand, or

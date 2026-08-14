@@ -118,6 +118,81 @@ impl From<EnvironmentAssignment> for EntryValue {
     }
 }
 
+/// One non-empty group of validated container `Environment=` assignments.
+///
+/// The group accepts only existing [`EnvironmentAssignment`] values, so it neither reparses nor
+/// revalidates names and literal values. It renders those already quoted whole assignments in
+/// insertion order, separated by one ASCII space, for one physical `Environment=` entry.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EnvironmentAssignments {
+    assignments: Vec<EnvironmentAssignment>,
+    rendered: String,
+}
+
+impl EnvironmentAssignments {
+    /// Creates one non-empty group from validated assignments.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`EnvironmentAssignmentsError::Empty`] when no assignment is supplied.
+    pub fn new(
+        assignments: impl IntoIterator<Item = EnvironmentAssignment>,
+    ) -> Result<Self, EnvironmentAssignmentsError> {
+        let assignments: Vec<_> = assignments.into_iter().collect();
+        if assignments.is_empty() {
+            return Err(EnvironmentAssignmentsError::Empty);
+        }
+        let rendered = assignments
+            .iter()
+            .map(EnvironmentAssignment::as_str)
+            .collect::<Vec<_>>()
+            .join(" ");
+        Ok(Self { assignments, rendered })
+    }
+
+    /// Returns the validated assignments in their rendered order.
+    #[must_use]
+    pub fn assignments(&self) -> &[EnvironmentAssignment] {
+        &self.assignments
+    }
+
+    /// Iterates over the validated assignments in their rendered order.
+    #[must_use]
+    pub fn iter(&self) -> impl ExactSizeIterator<Item = &EnvironmentAssignment> {
+        self.assignments.iter()
+    }
+
+    /// Returns the exact generated native `Environment=` value.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.rendered
+    }
+}
+
+impl From<EnvironmentAssignments> for EntryValue {
+    fn from(assignments: EnvironmentAssignments) -> Self {
+        Self(assignments.rendered)
+    }
+}
+
+/// Invalid construction of [`EnvironmentAssignments`].
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[non_exhaustive]
+pub enum EnvironmentAssignmentsError {
+    /// A grouped `Environment=` entry requires at least one assignment.
+    Empty,
+}
+
+impl fmt::Display for EnvironmentAssignmentsError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Empty => formatter.write_str("an environment assignment group must not be empty"),
+        }
+    }
+}
+
+impl Error for EnvironmentAssignmentsError {}
+
 /// Invalid input to [`EnvironmentAssignment::new`].
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[non_exhaustive]
@@ -502,6 +577,22 @@ impl QuadletDocumentBuilder {
     /// Returns [`RenderError::WrongUnitType`] for a non-container document.
     pub fn push_container_environment(&mut self, assignment: EnvironmentAssignment) -> Result<(), RenderError> {
         self.push_container(ContainerKey::Environment, assignment.into())
+    }
+
+    /// Appends one focused group of literal container `Environment=` assignments.
+    ///
+    /// One call emits one physical native entry. The group's validated assignments remain in
+    /// order inside that entry; repeated calls remain native and ordered relative to single
+    /// assignment calls and other container directives.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RenderError::WrongUnitType`] for a non-container document.
+    pub fn push_container_environment_assignments(
+        &mut self,
+        assignments: EnvironmentAssignments,
+    ) -> Result<(), RenderError> {
+        self.push_container(ContainerKey::Environment, assignments.into())
     }
 
     /// Appends a typed `[Pod]` entry.

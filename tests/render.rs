@@ -6,8 +6,9 @@ use quadlet_lens::{
         QuadletDocument, QuadletDocumentSet, QuadletKey, QuadletUnitType, SystemdUnitKey, ValueKind, VolumeKey,
     },
     render::{
-        EntryValue, EnvironmentAssignment, EnvironmentAssignmentError, Memory, MemoryError, PidsLimit, PidsLimitError,
-        QuadletDocumentBuilder, RenderError, ShmSize, ShmSizeError, SystemdSection,
+        EntryValue, EnvironmentAssignment, EnvironmentAssignmentError, EnvironmentAssignments,
+        EnvironmentAssignmentsError, Memory, MemoryError, PidsLimit, PidsLimitError, QuadletDocumentBuilder,
+        RenderError, ShmSize, ShmSizeError, SystemdSection,
     },
     source::SourceId,
 };
@@ -72,6 +73,75 @@ fn environment_assignment_rejects_the_bounded_name_and_value_categories() {
             "{value:?}"
         );
     }
+}
+
+#[test]
+fn environment_assignment_groups_render_one_physical_entry_and_preserve_group_order()
+-> Result<(), Box<dyn std::error::Error>> {
+    let first_group = EnvironmentAssignments::new([
+        EnvironmentAssignment::new("FIRST", "space = \"quote\" \\ $dollar café")?,
+        EnvironmentAssignment::new("SECOND", "")?,
+    ])?;
+    assert_eq!(first_group.assignments().len(), 2);
+    assert_eq!(
+        first_group.iter().map(EnvironmentAssignment::name).collect::<Vec<_>>(),
+        ["FIRST", "SECOND"]
+    );
+    assert_eq!(
+        first_group.as_str(),
+        r#""FIRST=space = \"quote\" \\ $dollar café" "SECOND=""#
+    );
+    let raw: EntryValue = first_group.clone().into();
+    assert_eq!(raw.as_str(), first_group.as_str());
+
+    let second_group = EnvironmentAssignments::new([EnvironmentAssignment::new("THIRD", "last")?])?;
+    let mut builder = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    builder.push_container(ContainerKey::Image, value("example.invalid/application")?)?;
+    builder.push_container_environment_assignments(first_group)?;
+    builder.push_container_environment(EnvironmentAssignment::new("BETWEEN", "single")?)?;
+    builder.push_container_environment_assignments(second_group)?;
+    let generated = builder.build(SourceId::new(9_202))?;
+
+    assert_eq!(
+        generated.text(),
+        concat!(
+            "[Container]\n",
+            "Image=example.invalid/application\n",
+            "Environment=\"FIRST=space = \\\"quote\\\" \\\\ $dollar café\" \"SECOND=\"\n",
+            "Environment=\"BETWEEN=single\"\n",
+            "Environment=\"THIRD=last\"\n",
+        )
+    );
+    assert_eq!(
+        generated
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::Environment))
+            .map(|entry| entry.value().primary().text())
+            .collect::<Vec<_>>(),
+        [
+            r#""FIRST=space = \"quote\" \\ $dollar café" "SECOND=""#,
+            r#""BETWEEN=single""#,
+            r#""THIRD=last""#,
+        ]
+    );
+    Ok(())
+}
+
+#[test]
+fn environment_assignment_groups_reject_empty_input_and_inherit_assignment_validation() {
+    assert_eq!(
+        EnvironmentAssignments::new(Vec::<EnvironmentAssignment>::new()),
+        Err(EnvironmentAssignmentsError::Empty)
+    );
+    assert_eq!(
+        EnvironmentAssignment::new("INVALID-NAME", "value"),
+        Err(EnvironmentAssignmentError::InvalidName)
+    );
+    assert_eq!(
+        EnvironmentAssignment::new("VALID_NAME", "specifier%h"),
+        Err(EnvironmentAssignmentError::Specifier)
+    );
 }
 
 #[test]

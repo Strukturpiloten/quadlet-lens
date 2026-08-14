@@ -143,11 +143,13 @@ their native ordering and repetition rules.
 
 ### Completed phase-2 Environment encoder slice
 
-- [x] Add a public render-owned `EnvironmentAssignment` encoder for one ASCII-named literal
-      container assignment, with exact double-quoted output, explicit `EntryValue` conversion,
-      parse-back/public-API tests, and the smoke/full dry-run generator fixture.
-- [ ] Evidence and model percent/specifier handling, multiple assignments per `Environment=` line,
-      reset semantics, continuations/newlines, and systemd command/argument parsing separately.
+- [x] Add public render-owned `EnvironmentAssignment` and non-empty `EnvironmentAssignments`
+      encoders for ASCII-named literal container assignments, with exact whole-assignment quoting,
+      explicit `EntryValue` conversions, physical-directive ordering, parse-back/public-API tests,
+      and smoke/full dry-run evidence for two distinct `--env` arguments from one grouped line.
+- [ ] Evidence and model percent/specifier handling, authored-value parsing, reset construction,
+      duplicate-name selection, continuations/newlines, environment/runtime expansion, and systemd
+      command/argument parsing separately.
 
 ### Next 1: lifecycle and process parity
 

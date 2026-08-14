@@ -17,6 +17,7 @@ Environment="QUADLET_LENS_DOLLAR=$literal"
 Environment="QUADLET_LENS_EQUALS=left=right"
 Environment="QUADLET_LENS_UNICODE=café"
 Environment="QUADLET_LENS_EMPTY="
+Environment="QUADLET_LENS_GROUP_SPACE=hello world" "QUADLET_LENS_GROUP_EQUALS=left=right"
 Label=io.github.strukturpiloten.quadlet-lens.fixture=app
 Label=io.github.strukturpiloten.quadlet-lens.repeat=second
 Label=io.github.strukturpiloten.quadlet-lens.empty=

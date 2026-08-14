@@ -108,11 +108,17 @@ enforcement.
 otherwise accept printable one-line Unicode, including spaces, `=`, quotes, backslashes, and `$`.
 It emits one whole double-quoted assignment and escapes only embedded quotes and backslashes.
 NUL, CR/LF, other controls, and `%` are rejected. The wrapper converts explicitly to `EntryValue`,
-and `push_container_environment` is the equivalent convenient builder method. It does not decode
-or normalize authored entries, split assignment lists, apply reset semantics, parse continuations
-or commands, or rewrite specifiers. The all-version dry-run matrix verifies separate generated
-arguments for empty, space, equals, quote, backslash, dollar, and printable-Unicode values across
-Podman 5.4.0–6.0.2; it does not establish runtime environment behavior.
+and `push_container_environment` is the equivalent convenient builder method.
+
+`EnvironmentAssignments::new` accepts only non-empty collections of those already validated
+assignments. It retains their order and joins their complete quoted spellings with one ASCII space
+for one physical directive; `push_container_environment_assignments` emits that directive without
+revalidating or parsing the assignments. The all-version dry-run matrix verifies that two grouped
+assignments produce two distinct `--env` arguments, including Podman 5.4's literal-space versus
+later `\x20` presentation, rather than one flattened argument. Neither constructor decodes or
+normalizes authored entries, constructs resets, selects duplicate names, applies environment or
+runtime expansion, parses continuations or commands, or rewrites specifiers. The evidence is
+command text only, not runtime environment behavior.
 
 `ContainerKey::HostName` is a singleton carrying exact authored one-line text. Omission stays
 absent, and the shared `EntryValue` boundary rejects only NUL bytes and physical line endings; it

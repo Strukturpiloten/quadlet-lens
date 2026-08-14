@@ -29,10 +29,13 @@ Renovate watches the current release value so new Podman releases create visible
 
 The first-conversion fixture additionally records seven whole quoted literal container environment
 assignments: an empty value and values containing a space, equals sign, quote, backslash, dollar,
-or printable Unicode. Both smoke and full lanes require exactly one resulting `--env` argument for
-each vector, alongside the existing specifier-bearing raw assignment. This is command-text evidence only;
-specifier expansion, resets, multiple assignments, continuations, and argument semantics remain
-outside the focused encoder.
+or printable Unicode. It also contains one physical `Environment=` directive holding two distinct
+validated-style assignments. Both smoke and full lanes require exactly one resulting `--env`
+argument for every single-assignment vector and two distinct `--env` arguments for the group—not
+one flattened combined argument. The grouped space is literal on 5.4.x and rendered as `\x20`
+from 5.5.0 onward. This is command-text evidence only; specifier expansion, authored-value parsing,
+resets, duplicate-name selection, continuations, and argument semantics remain outside the focused
+encoder.
 
 ## Official versioned containers
 

@@ -4768,20 +4768,24 @@ fn verify_literal_environment_assignment(version: &str, generated: &str, output:
         r"--env QUADLET_LENS_EQUALS=left=right".to_owned(),
         r"--env QUADLET_LENS_UNICODE=café".to_owned(),
         r"--env QUADLET_LENS_EMPTY=".to_owned(),
+        format!(r#"--env "QUADLET_LENS_GROUP_SPACE=hello{encoded_space}world""#),
+        r"--env QUADLET_LENS_GROUP_EQUALS=left=right".to_owned(),
     ];
+    let flattened_group =
+        format!(r#"--env "QUADLET_LENS_GROUP_SPACE=hello{encoded_space}world QUADLET_LENS_GROUP_EQUALS=left=right""#);
     let all_environment_count = command.matches("--env").count();
     let missing_or_repeated: Vec<_> = expected
         .iter()
         .filter(|argument| command.matches(argument.as_str()).count() != 1)
         .collect();
-    if !missing_or_repeated.is_empty() || all_environment_count != 8 {
+    if !missing_or_repeated.is_empty() || all_environment_count != 10 || command.contains(&flattened_group) {
         return Err(format!(
-            "Podman {version} generator output for app.service must contain exactly one of each focused literal environment argument {expected:?} and only the eight authored --env arguments; missing or repeated={missing_or_repeated:?}, found --env={all_environment_count}\nstdout:\n{generated}\nstderr:\n{}",
+            "Podman {version} generator output for app.service must contain exactly one of each focused literal environment argument {expected:?}, retain the two grouped assignments as distinct --env arguments rather than {flattened_group:?}, and contain only the ten authored --env arguments; missing or repeated={missing_or_repeated:?}, found --env={all_environment_count}\nstdout:\n{generated}\nstderr:\n{}",
             String::from_utf8_lossy(&output.stderr)
         ));
     }
     eprintln!(
-        "Podman {version} Container Environment: empty, space, equals, quote, backslash, dollar, and printable Unicode literal assignments each become one --env argument"
+        "Podman {version} Container Environment: literal assignments, including two assignments grouped in one physical Environment directive, become distinct --env arguments"
     );
     Ok(())
 }
