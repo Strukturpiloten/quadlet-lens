@@ -7,13 +7,11 @@
 
 use std::{error::Error, fmt};
 
-pub use crate::model::SystemdUnitKey;
-
 use crate::{
     diagnostic::Diagnostic,
     model::{
         ArtifactKey, BuildKey, ContainerKey, EntryKind, ImageKey, KubeKey, NetworkKey, PodKey, QuadletDocument,
-        QuadletKey, QuadletParseResult, QuadletUnitType, SectionKind, TypedModelError, VolumeKey,
+        QuadletKey, QuadletParseResult, QuadletUnitType, SectionKind, SystemdUnitKey, TypedModelError, VolumeKey,
     },
     source::SourceId,
 };

@@ -12,12 +12,12 @@ defines its representation boundary.
 | ------------ | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `.container` | `[Container]`    | Container keys listed below                                                                                                                                                                                                                                                                                                                         |
 | `.pod`       | `[Pod]`          | Pod keys listed below                                                                                                                                                                                                                                                                                                                               |
-| `.network`   | `[Network]`      | `NetworkName`, `Driver`, `Options`, `Label`, `Internal`, `IPv6`, `IPAMDriver`, `Subnet`, `Gateway`, `IPRange`, `ContainersConfModule`, `DisableDNS`, `DNS`, `GlobalArgs`, `InterfaceName`, `NetworkDeleteOnStop`, `PodmanArgs`, `ServiceName`                                                                                                          |
+| `.network`   | `[Network]`      | `NetworkName`, `Driver`, `Options`, `Label`, `Internal`, `IPv6`, `IPAMDriver`, `Subnet`, `Gateway`, `IPRange`, `ContainersConfModule`, `DisableDNS`, `DNS`, `GlobalArgs`, `InterfaceName`, `NetworkDeleteOnStop`, `PodmanArgs`, `ServiceName`                                                                                                       |
 | `.volume`    | `[Volume]`       | `VolumeName`, `Driver`, `Options`, `Label`, `Device`, `Type`, `Copy`, `ContainersConfModule`, `GlobalArgs`, `PodmanArgs`, `User`, `Group`, `UID`, `GID`, `ServiceName`, `Image`                                                                                                                                                                     |
 | `.build`     | `[Build]`        | repeatable `ImageTag`/`Network`/`Label`/`File`/`BuildArg`/`Secret`/`GroupAdd`/`DNS`/`DNSOption`/`DNSSearch`/`Annotation`/`Environment`/`ContainersConfModule`/`GlobalArgs`/`Volume`/`PodmanArgs`, singleton `SetWorkingDirectory`/`Target`/`Arch`/`Variant`/`Pull`/`Retry`/`RetryDelay`/`TLSVerify`/`ForceRM`/`AuthFile`/`IgnoreFile`/`ServiceName` |
-| `.image`     | `[Image]`        | singleton `Image`, `ImageTag`, `ServiceName`, `AllTags`, `Arch`, `AuthFile`, `CertDir`, `Creds`, `DecryptionKey`, `OS`, `Policy`, `Retry`, `RetryDelay`, `TLSVerify`, `Variant`; repeatable `ContainersConfModule`, `GlobalArgs`, `PodmanArgs`                                                                                                        |
-| `.kube`      | `[Kube]`         | required repeatable `Yaml`; repeatable `AutoUpdate`, `ConfigMap`, `ContainersConfModule`, `GlobalArgs`, `LogOpt`, `Network`, `PodmanArgs`, `PublishPort`, `RemapGid`, `RemapUid`; singleton `ExitCodePropagation`, `KubeDownForce`, `LogDriver`, `RemapUidSize`, `RemapUsers`, `ServiceName`, `SetWorkingDirectory`, `UserNS` |
-| `.artifact`  | `[Artifact]`     | required singleton `Artifact`; repeatable `ContainersConfModule`, `GlobalArgs`, `PodmanArgs`; singleton `AuthFile`, `CertDir`, `Creds`, `DecryptionKey`, `Quiet`, `Retry`, `RetryDelay`, `ServiceName`, `TLSVerify`; shared `[Quadlet] DefaultDependencies` |
+| `.image`     | `[Image]`        | singleton `Image`, `ImageTag`, `ServiceName`, `AllTags`, `Arch`, `AuthFile`, `CertDir`, `Creds`, `DecryptionKey`, `OS`, `Policy`, `Retry`, `RetryDelay`, `TLSVerify`, `Variant`; repeatable `ContainersConfModule`, `GlobalArgs`, `PodmanArgs`                                                                                                      |
+| `.kube`      | `[Kube]`         | required repeatable `Yaml`; repeatable `AutoUpdate`, `ConfigMap`, `ContainersConfModule`, `GlobalArgs`, `LogOpt`, `Network`, `PodmanArgs`, `PublishPort`, `RemapGid`, `RemapUid`; singleton `ExitCodePropagation`, `KubeDownForce`, `LogDriver`, `RemapUidSize`, `RemapUsers`, `ServiceName`, `SetWorkingDirectory`, `UserNS`                       |
+| `.artifact`  | `[Artifact]`     | required singleton `Artifact`; repeatable `ContainersConfModule`, `GlobalArgs`, `PodmanArgs`; singleton `AuthFile`, `CertDir`, `Creds`, `DecryptionKey`, `Quiet`, `Retry`, `RetryDelay`, `ServiceName`, `TLSVerify`; shared `[Quadlet] DefaultDependencies`                                                                                         |
 
 The typed boundary currently contains 90 container keys, twenty-five pod keys, eighteen network keys, sixteen
 volume keys, twenty-eight build keys, eighteen image keys, nineteen Kube keys, thirteen experimental Artifact keys,
@@ -399,25 +399,25 @@ one-line text rather than being normalized by an incomplete systemd or Podman va
 
 Initial stable codes are:
 
-| Code      | Severity | Meaning                                                  |
-| --------- | -------- | -------------------------------------------------------- |
-| `QLM0001` | error    | Required native section is missing                       |
-| `QLM0002` | error    | A container has neither `Image=` nor `Rootfs=`           |
-| `QLM0003` | warning  | A native section does not match the selected unit suffix |
-| `QLM0004` | warning  | A first-conversion singleton key is repeated             |
-| `QLM0005` | error    | An `Image=` entry is empty                               |
-| `QLM0006` | error    | `Image=` and `Rootfs=` are both present                  |
-| `QLM0007` | error    | A `Rootfs=` entry is empty                               |
-| `QLM0008` | error    | An Image unit is missing `Image=`                        |
-| `QLM0009` | error    | An Image-unit `Image=` entry is blank                    |
-| `QLM0010` | error    | `ReloadCmd=` and `ReloadSignal=` are both present        |
-| `QLM0017` | error    | A Kube unit is missing required `Yaml=`                  |
-| `QLM0018` | error    | A Kube unit has no effective `Yaml=` source after reset processing |
-| `QLM0019` | error    | Multiple effective `Yaml=` sources use `SetWorkingDirectory=yaml` |
+| Code      | Severity | Meaning                                                                                                                                                            |
+| --------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `QLM0001` | error    | Required native section is missing                                                                                                                                 |
+| `QLM0002` | error    | A container has neither `Image=` nor `Rootfs=`                                                                                                                     |
+| `QLM0003` | warning  | A native section does not match the selected unit suffix                                                                                                           |
+| `QLM0004` | warning  | A first-conversion singleton key is repeated                                                                                                                       |
+| `QLM0005` | error    | An `Image=` entry is empty                                                                                                                                         |
+| `QLM0006` | error    | `Image=` and `Rootfs=` are both present                                                                                                                            |
+| `QLM0007` | error    | A `Rootfs=` entry is empty                                                                                                                                         |
+| `QLM0008` | error    | An Image unit is missing `Image=`                                                                                                                                  |
+| `QLM0009` | error    | An Image-unit `Image=` entry is blank                                                                                                                              |
+| `QLM0010` | error    | `ReloadCmd=` and `ReloadSignal=` are both present                                                                                                                  |
+| `QLM0017` | error    | A Kube unit is missing required `Yaml=`                                                                                                                            |
+| `QLM0018` | error    | A Kube unit has no effective `Yaml=` source after reset processing                                                                                                 |
+| `QLM0019` | error    | Multiple effective `Yaml=` sources use `SetWorkingDirectory=yaml`                                                                                                  |
 | `QLM0020` | error    | Effective `UserNS=` conflicts with effective `RemapUid=`, `RemapGid=`, or `RemapUsers=`; both values are source-labelled. `RemapUidSize=` alone does not conflict. |
-| `QLG0001` | error    | A native unit reference has no matching document         |
-| `QLG0002` | error    | A native unit reference matches duplicate basenames      |
-| `QLG0003` | error    | The document set contains a duplicate basename           |
+| `QLG0001` | error    | A native unit reference has no matching document                                                                                                                   |
+| `QLG0002` | error    | A native unit reference matches duplicate basenames                                                                                                                |
+| `QLG0003` | error    | The document set contains a duplicate basename                                                                                                                     |
 
 Diagnostics are recoverable and source-labelled. A warning does not make the combined result
 invalid; an error does.

@@ -1,15 +1,14 @@
-//! Consumer-facing compile and behavior contract for the supported 0.1.x API.
+//! Consumer-facing compile and behavior contract for the supported 0.2.x API.
 
 use quadlet_lens::capability::{CapabilityCatalogue, PodmanTarget, PodmanVersion, SupportClassification};
 use quadlet_lens::model::{
     ArtifactKey, BuildKey, ContainerKey, EntryKind, ImageKey, KubeKey, NamedQuadletDocument, NetworkKey, PodKey,
-    QuadletDocument, QuadletDocumentSet, QuadletKey, QuadletUnitType, SectionKind,
-    SystemdUnitKey as ModelSystemdUnitKey, TypedEntry, UnitReferenceKind, ValueKind, VolumeKey,
+    QuadletDocument, QuadletDocumentSet, QuadletKey, QuadletUnitType, SectionKind, SystemdUnitKey, TypedEntry,
+    UnitReferenceKind, ValueKind, VolumeKey,
 };
 use quadlet_lens::path::{PathForm, classify_path};
 use quadlet_lens::render::{
     EntryValue, Memory, MemoryError, PidsLimit, PidsLimitError, QuadletDocumentBuilder, ShmSize, ShmSizeError,
-    SystemdUnitKey,
 };
 use quadlet_lens::source::SourceId;
 
@@ -260,7 +259,7 @@ fn container_batch_keys_are_public_opaque_builder_values() -> Result<(), Box<dyn
 }
 
 #[test]
-fn public_section_and_entry_kind_order_preserves_legacy_unknown_variants() {
+fn public_section_and_entry_kind_order_preserves_published_unknown_discriminants() {
     assert_eq!(SectionKind::Unknown as isize, 7);
     assert!(SectionKind::Unknown < SectionKind::Build);
     assert!(SectionKind::Build < SectionKind::Image);
@@ -273,7 +272,7 @@ fn public_section_and_entry_kind_order_preserves_legacy_unknown_variants() {
 }
 
 #[test]
-fn systemd_relationship_and_reference_enums_preserve_published_discriminants_and_reexports() {
+fn systemd_relationship_and_reference_enums_preserve_published_discriminants() {
     assert_eq!(
         [
             SystemdUnitKey::Requires as isize,
@@ -302,9 +301,8 @@ fn systemd_relationship_and_reference_enums_preserve_published_discriminants_and
         [0, 1, 2, 3, 4, 5, 6, 7]
     );
 
-    let model_path: ModelSystemdUnitKey = SystemdUnitKey::Before;
-    let render_path: SystemdUnitKey = model_path;
-    assert_eq!(render_path, SystemdUnitKey::Before);
+    let model_key = SystemdUnitKey::Before;
+    assert_eq!(model_key, SystemdUnitKey::Before);
 }
 
 #[test]

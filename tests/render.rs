@@ -3,11 +3,11 @@
 use quadlet_lens::{
     model::{
         ArtifactKey, BuildKey, ContainerKey, EntryKind, ImageKey, KubeKey, NamedQuadletDocument, NetworkKey, PodKey,
-        QuadletDocument, QuadletDocumentSet, QuadletKey, QuadletUnitType, ValueKind, VolumeKey,
+        QuadletDocument, QuadletDocumentSet, QuadletKey, QuadletUnitType, SystemdUnitKey, ValueKind, VolumeKey,
     },
     render::{
         EntryValue, Memory, MemoryError, PidsLimit, PidsLimitError, QuadletDocumentBuilder, RenderError, ShmSize,
-        ShmSizeError, SystemdSection, SystemdUnitKey,
+        ShmSizeError, SystemdSection,
     },
     source::SourceId,
 };

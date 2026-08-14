@@ -27,6 +27,13 @@ Versioning for its documented pre-1.0 public API.
 - Types all nine reviewed systemd Unit relationships with reset-aware native-reference graphs,
   relationship identity, the Podman 5.5 rewrite boundary, and systemd 249 `Upholds` guidance.
 
+### Changed
+
+- Starts the 0.2.x API line with `SystemdUnitKey` owned only by `model`; removes the
+  compatibility-only `render` re-export.
+- SemVer validation derives the release type from Cargo package versions instead of forcing every
+  candidate to be a patch.
+
 ## [0.1.13] - 2026-08-13
 
 ### Added

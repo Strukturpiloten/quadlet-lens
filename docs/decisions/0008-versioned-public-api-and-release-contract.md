@@ -1,6 +1,6 @@
 # ADR 0008: Versioned public API and release contract
 
-- Status: accepted
+- Status: superseded by [ADR 0010](0010-consolidated-0.2-public-api.md)
 - Date: 2026-08-02
 
 ## Context

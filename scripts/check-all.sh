@@ -131,6 +131,6 @@ run_step "Check local documentation links" lychee --config lychee.toml --root-di
   "${markdown_files[@]}"
 run_step "Check published API compatibility" env CARGO_HOME="${semver_cargo_home}" \
   cargo semver-checks check-release \
-  --package quadlet-lens --release-type patch
+  --package quadlet-lens
 
 printf '\nQuadletLens local validation passed all %d steps.\n' "${total_steps}"
