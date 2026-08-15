@@ -150,9 +150,13 @@ their native ordering and repetition rules.
 - [x] Add the public zero-sized `EnvironmentReset` marker and ordered blank directive builder
       method, with source-preserving model tests and 5.4.0–6.0.2 source/dry-run evidence that two
       post-reset names become distinct `--env` arguments while two pre-reset names are absent.
-- [ ] Evidence and model percent/specifier handling, authored-value parsing, target reset
-      application, duplicate-name selection, continuations/newlines, environment/runtime expansion,
-      and systemd command/argument parsing separately.
+- [x] Add a builder-owned `ContainerEnvironmentPlan` that preserves assignment/group/reset
+      directive order, exposes explicit per-name later-wins/reset-clears literal lookup plus opaque
+      membership/cardinality, retains empty values, emits original directives unchanged, and
+      redacts debug output.
+- [ ] Evidence and model percent/specifier handling, authored-value parsing,
+      continuations/newlines, environment-file and secret inputs, manager/environment/runtime
+      expansion, and systemd command/argument parsing separately.
 
 ### Next 1: lifecycle and process parity
 

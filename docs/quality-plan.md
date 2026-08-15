@@ -55,10 +55,13 @@ cross-field constraints. Preserve raw source when Podman behavior varies. Diagno
 source-aware and distinguish syntax acceptance, generator behavior, and runtime behavior.
 
 The completed phase-2 environment slice includes one literal-assignment encoder, a non-empty group
-that joins only prevalidated assignments into one physical directive, and an explicit blank reset
-directive. Percent/specifier behavior, authored-value parsing, target reset application,
-duplicate-name selection, continuations, environment/runtime expansion, and argument parsing remain
-separate validation work.
+that joins only prevalidated assignments into one physical directive, an explicit blank reset
+directive, and a builder-owned ordered plan with per-name effective literal lookup. The plan covers
+group order, later-wins duplicates, reset clearing, empty values, opaque effective membership and
+cardinality, exact directive emission, and debug redaction. Percent/specifier behavior,
+authored-value parsing, continuations,
+environment-file or secret loading, manager/environment/runtime expansion, and argument parsing
+remain separate validation work.
 
 ### 3. Complete capability evidence
 

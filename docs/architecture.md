@@ -204,7 +204,10 @@ Validation combines documents, a target profile, and catalogue data. It reports 
 The implemented programmatic renderer accepts typed native keys, exact one-line native values, and
 open-ended generic systemd directives. It produces deterministic section order and reparses every
 generated document before returning it. It deliberately does not invent quoting or normalization
-rules for opaque systemd and Podman value grammars. [ADR 0009](decisions/0009-validated-programmatic-generation.md)
+rules for opaque systemd and Podman value grammars. Focused container-environment construction also
+offers an ordered plan over validated literal assignments, groups, and resets. The plan preserves
+physical directives for rendering and exposes only explicit per-name effective literal lookup;
+authored parsing and manager/runtime expansion remain separate. [ADR 0009](decisions/0009-validated-programmatic-generation.md)
 defines this boundary.
 
 The broader renderer direction supports:

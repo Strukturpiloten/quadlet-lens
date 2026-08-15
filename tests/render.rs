@@ -6,9 +6,10 @@ use quadlet_lens::{
         QuadletDocument, QuadletDocumentSet, QuadletKey, QuadletUnitType, SystemdUnitKey, ValueKind, VolumeKey,
     },
     render::{
-        EntryValue, EnvironmentAssignment, EnvironmentAssignmentError, EnvironmentAssignments,
-        EnvironmentAssignmentsError, EnvironmentReset, Memory, MemoryError, PidsLimit, PidsLimitError,
-        QuadletDocumentBuilder, RenderError, ShmSize, ShmSizeError, SystemdSection,
+        ContainerEnvironmentDirective, ContainerEnvironmentPlan, EntryValue, EnvironmentAssignment,
+        EnvironmentAssignmentError, EnvironmentAssignments, EnvironmentAssignmentsError, EnvironmentReset, Memory,
+        MemoryError, PidsLimit, PidsLimitError, QuadletDocumentBuilder, RenderError, ShmSize, ShmSizeError,
+        SystemdSection,
     },
     source::SourceId,
 };
@@ -185,6 +186,88 @@ fn environment_reset_preserves_its_physical_position_and_parse_back_value() -> R
     let mut pod = QuadletDocumentBuilder::new(QuadletUnitType::Pod);
     assert_eq!(
         pod.push_container_environment_reset(),
+        Err(RenderError::WrongUnitType {
+            document: QuadletUnitType::Pod,
+            entry: QuadletUnitType::Container,
+        })
+    );
+    Ok(())
+}
+
+#[test]
+fn container_environment_plan_preserves_directives_and_projects_effective_literal_values()
+-> Result<(), Box<dyn std::error::Error>> {
+    let first = EnvironmentAssignment::new("DUPLICATE", "before reset")?;
+    let mut plan = ContainerEnvironmentPlan::new();
+    assert!(plan.is_empty());
+    assert_eq!(plan.len(), 0);
+    plan.push_assignment(first.clone());
+    plan.push_assignments(EnvironmentAssignments::new([
+        EnvironmentAssignment::new("EMPTY", "")?,
+        EnvironmentAssignment::new("DUPLICATE", "later in group")?,
+    ])?);
+    assert_eq!(plan.get("DUPLICATE"), Some("later in group"));
+    assert_eq!(plan.get("EMPTY"), Some(""));
+    assert!(plan.contains("EMPTY"));
+    assert!(!plan.contains("ABSENT"));
+    assert_eq!(plan.len(), 2);
+    assert!(!plan.is_empty());
+
+    plan.push_reset();
+    assert_eq!(plan.get("DUPLICATE"), None);
+    assert_eq!(plan.get("EMPTY"), None);
+    assert!(plan.is_empty());
+    assert_eq!(plan.len(), 0);
+    plan.push_assignments(EnvironmentAssignments::new([
+        EnvironmentAssignment::new("FINAL", "first after reset")?,
+        EnvironmentAssignment::new("FINAL", "last after reset")?,
+        EnvironmentAssignment::new("EMPTY_AFTER_RESET", "")?,
+    ])?);
+    assert_eq!(plan.get("FINAL"), Some("last after reset"));
+    assert_eq!(plan.get("EMPTY_AFTER_RESET"), Some(""));
+    assert!(plan.contains("EMPTY_AFTER_RESET"));
+    assert_eq!(plan.len(), 2);
+    assert!(!plan.is_empty());
+    assert_eq!(plan.directives().len(), 4);
+    assert!(matches!(
+        plan.directives(),
+        [
+            ContainerEnvironmentDirective::Assignment(_),
+            ContainerEnvironmentDirective::Assignments(_),
+            ContainerEnvironmentDirective::Reset(_),
+            ContainerEnvironmentDirective::Assignments(_),
+        ]
+    ));
+
+    let debug = format!("{plan:?} {first:?}");
+    for secret in [
+        "before reset",
+        "later in group",
+        "first after reset",
+        "last after reset",
+    ] {
+        assert!(!debug.contains(secret));
+    }
+
+    let mut builder = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    builder.push_container(ContainerKey::Image, value("example.invalid/application")?)?;
+    builder.push_container_environment_plan(&plan)?;
+    let generated = builder.build(SourceId::new(9_204))?;
+    assert_eq!(
+        generated.text(),
+        concat!(
+            "[Container]\n",
+            "Image=example.invalid/application\n",
+            "Environment=\"DUPLICATE=before reset\"\n",
+            "Environment=\"EMPTY=\" \"DUPLICATE=later in group\"\n",
+            "Environment=\n",
+            "Environment=\"FINAL=first after reset\" \"FINAL=last after reset\" \"EMPTY_AFTER_RESET=\"\n",
+        )
+    );
+
+    let mut pod = QuadletDocumentBuilder::new(QuadletUnitType::Pod);
+    assert_eq!(
+        pod.push_container_environment_plan(&plan),
         Err(RenderError::WrongUnitType {
             document: QuadletUnitType::Pod,
             entry: QuadletUnitType::Container,

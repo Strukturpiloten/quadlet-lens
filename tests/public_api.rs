@@ -8,8 +8,9 @@ use quadlet_lens::model::{
 };
 use quadlet_lens::path::{PathForm, classify_path};
 use quadlet_lens::render::{
-    EntryValue, EnvironmentAssignment, EnvironmentAssignmentError, EnvironmentAssignments, EnvironmentReset, Memory,
-    MemoryError, PidsLimit, PidsLimitError, QuadletDocumentBuilder, ShmSize, ShmSizeError,
+    ContainerEnvironmentDirective, ContainerEnvironmentPlan, EntryValue, EnvironmentAssignment,
+    EnvironmentAssignmentError, EnvironmentAssignments, EnvironmentReset, Memory, MemoryError, PidsLimit,
+    PidsLimitError, QuadletDocumentBuilder, ShmSize, ShmSizeError,
 };
 use quadlet_lens::source::SourceId;
 
@@ -69,6 +70,49 @@ fn container_literal_environment_assignment_has_a_public_typed_construction_path
             "",
             r#""AFTER_RESET=final""#,
         ]
+    );
+    Ok(())
+}
+
+#[test]
+fn container_environment_plan_has_a_public_ordered_and_effective_construction_path()
+-> Result<(), Box<dyn std::error::Error>> {
+    let mut plan = ContainerEnvironmentPlan::new();
+    plan.push_assignment(EnvironmentAssignment::new("FIRST", "one")?);
+    plan.push_reset();
+    plan.push_assignments(EnvironmentAssignments::new([
+        EnvironmentAssignment::new("FINAL", "earlier")?,
+        EnvironmentAssignment::new("FINAL", "later")?,
+        EnvironmentAssignment::new("EMPTY", "")?,
+    ])?);
+    assert!(matches!(
+        plan.directives(),
+        [
+            ContainerEnvironmentDirective::Assignment(_),
+            ContainerEnvironmentDirective::Reset(_),
+            ContainerEnvironmentDirective::Assignments(_),
+        ]
+    ));
+    assert_eq!(plan.get("FIRST"), None);
+    assert_eq!(plan.get("FINAL"), Some("later"));
+    assert_eq!(plan.get("EMPTY"), Some(""));
+    assert!(!plan.contains("FIRST"));
+    assert!(plan.contains("EMPTY"));
+    assert_eq!(plan.len(), 2);
+    assert!(!plan.is_empty());
+
+    let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    generated.push_container(ContainerKey::Image, EntryValue::new("example.invalid/application:1")?)?;
+    generated.push_container_environment_plan(&plan)?;
+    assert_eq!(
+        generated.build(SourceId::new(9_205))?.text(),
+        concat!(
+            "[Container]\n",
+            "Image=example.invalid/application:1\n",
+            "Environment=\"FIRST=one\"\n",
+            "Environment=\n",
+            "Environment=\"FINAL=earlier\" \"FINAL=later\" \"EMPTY=\"\n",
+        )
     );
     Ok(())
 }

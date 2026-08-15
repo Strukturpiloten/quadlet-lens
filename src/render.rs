@@ -5,7 +5,7 @@
 //! values: callers are responsible for key-specific semantic validity, while future focused value
 //! encoders can provide stronger construction APIs without changing the document builder.
 
-use std::{error::Error, fmt};
+use std::{collections::BTreeSet, error::Error, fmt};
 
 use crate::{
     diagnostic::Diagnostic,
@@ -53,11 +53,22 @@ impl EntryValue {
 /// only the quote and backslash characters required inside those quotes. It deliberately does not
 /// decode authored environment entries, expand specifiers, split assignment lists, apply resets,
 /// or interpret command arguments.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct EnvironmentAssignment {
     name: String,
     value: String,
     rendered: String,
+}
+
+impl fmt::Debug for EnvironmentAssignment {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("EnvironmentAssignment")
+            .field("name", &self.name)
+            .field("value", &"<redacted environment value>")
+            .field("rendered", &"<redacted environment assignment>")
+            .finish()
+    }
 }
 
 impl EnvironmentAssignment {
@@ -123,10 +134,20 @@ impl From<EnvironmentAssignment> for EntryValue {
 /// The group accepts only existing [`EnvironmentAssignment`] values, so it neither reparses nor
 /// revalidates names and literal values. It renders those already quoted whole assignments in
 /// insertion order, separated by one ASCII space, for one physical `Environment=` entry.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct EnvironmentAssignments {
     assignments: Vec<EnvironmentAssignment>,
     rendered: String,
+}
+
+impl fmt::Debug for EnvironmentAssignments {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("EnvironmentAssignments")
+            .field("assignment_count", &self.assignments.len())
+            .field("rendered", &"<redacted environment assignments>")
+            .finish()
+    }
 }
 
 impl EnvironmentAssignments {
@@ -202,6 +223,146 @@ impl EnvironmentReset {
 impl From<EnvironmentReset> for EntryValue {
     fn from(_: EnvironmentReset) -> Self {
         Self(String::new())
+    }
+}
+
+/// One validated physical container `Environment=` directive in a generation plan.
+#[derive(Clone, Eq, PartialEq)]
+#[non_exhaustive]
+pub enum ContainerEnvironmentDirective {
+    /// One independently emitted literal assignment.
+    Assignment(EnvironmentAssignment),
+    /// One physical directive containing a non-empty ordered assignment group.
+    Assignments(EnvironmentAssignments),
+    /// One blank directive that resets the effective literal projection.
+    Reset(EnvironmentReset),
+}
+
+impl fmt::Debug for ContainerEnvironmentDirective {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Assignment(_) => formatter.write_str("Assignment(<redacted environment assignment>)"),
+            Self::Assignments(assignments) => formatter
+                .debug_struct("Assignments")
+                .field("assignment_count", &assignments.assignments.len())
+                .field("values", &"<redacted environment assignments>")
+                .finish(),
+            Self::Reset(_) => formatter.write_str("Reset"),
+        }
+    }
+}
+
+/// Ordered, builder-owned container environment directives and their effective literal lookup.
+///
+/// The plan preserves every physical directive in insertion order. Its effective projection is
+/// intentionally available only through explicit name lookup and opaque membership/count helpers:
+/// groups apply left-to-right,
+/// later names win, a reset clears earlier names, and an empty value remains `Some("")`.
+/// Authored parsing, systemd specifier/continuation handling, manager expansion, environment-file
+/// loading, secret lookup, and runtime behavior remain outside this construction API.
+#[derive(Clone, Default, Eq, PartialEq)]
+pub struct ContainerEnvironmentPlan {
+    directives: Vec<ContainerEnvironmentDirective>,
+}
+
+impl ContainerEnvironmentPlan {
+    /// Creates an empty environment plan.
+    #[must_use]
+    pub const fn new() -> Self {
+        Self { directives: Vec::new() }
+    }
+
+    /// Appends one independently emitted literal assignment.
+    pub fn push_assignment(&mut self, assignment: EnvironmentAssignment) {
+        self.directives
+            .push(ContainerEnvironmentDirective::Assignment(assignment));
+    }
+
+    /// Appends one physical directive containing a non-empty ordered assignment group.
+    pub fn push_assignments(&mut self, assignments: EnvironmentAssignments) {
+        self.directives
+            .push(ContainerEnvironmentDirective::Assignments(assignments));
+    }
+
+    /// Appends one blank reset directive.
+    pub fn push_reset(&mut self) {
+        self.directives
+            .push(ContainerEnvironmentDirective::Reset(EnvironmentReset::new()));
+    }
+
+    /// Returns the original physical directives in insertion order.
+    #[must_use]
+    pub fn directives(&self) -> &[ContainerEnvironmentDirective] {
+        &self.directives
+    }
+
+    /// Returns the effective literal value for one explicitly requested name.
+    ///
+    /// This projection does not expose map iteration order. It applies only the validated literal
+    /// assignments owned by this plan and does not inspect authored directives or the environment.
+    #[must_use]
+    pub fn get(&self, name: &str) -> Option<&str> {
+        let mut effective = None;
+        for directive in &self.directives {
+            match directive {
+                ContainerEnvironmentDirective::Assignment(assignment) => {
+                    if assignment.name() == name {
+                        effective = Some(assignment.value());
+                    }
+                }
+                ContainerEnvironmentDirective::Assignments(assignments) => {
+                    for assignment in assignments.iter() {
+                        if assignment.name() == name {
+                            effective = Some(assignment.value());
+                        }
+                    }
+                }
+                ContainerEnvironmentDirective::Reset(_) => effective = None,
+            }
+        }
+        effective
+    }
+
+    /// Reports whether one explicitly requested name is present in the effective projection.
+    #[must_use]
+    pub fn contains(&self, name: &str) -> bool {
+        self.get(name).is_some()
+    }
+
+    /// Returns the number of distinct names in the effective literal projection.
+    ///
+    /// This count exposes no name or iteration-order API. Use [`Self::directives`] when the number
+    /// of physical directives is required.
+    #[must_use]
+    pub fn len(&self) -> usize {
+        let mut names = BTreeSet::new();
+        for directive in &self.directives {
+            match directive {
+                ContainerEnvironmentDirective::Assignment(assignment) => {
+                    names.insert(assignment.name());
+                }
+                ContainerEnvironmentDirective::Assignments(assignments) => {
+                    names.extend(assignments.iter().map(EnvironmentAssignment::name));
+                }
+                ContainerEnvironmentDirective::Reset(_) => names.clear(),
+            }
+        }
+        names.len()
+    }
+
+    /// Reports whether the effective literal projection contains no names.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+}
+
+impl fmt::Debug for ContainerEnvironmentPlan {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("ContainerEnvironmentPlan")
+            .field("directives", &self.directives)
+            .finish()
     }
 }
 
@@ -635,6 +796,36 @@ impl QuadletDocumentBuilder {
     /// Returns [`RenderError::WrongUnitType`] for a non-container document.
     pub fn push_container_environment_reset(&mut self) -> Result<(), RenderError> {
         self.push_container(ContainerKey::Environment, EnvironmentReset::new().into())
+    }
+
+    /// Appends every physical directive from a validated container environment plan.
+    ///
+    /// Assignment, group, and reset directives retain their original order and grouping. The
+    /// builder does not emit the plan's effective projection or otherwise combine directives.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RenderError::WrongUnitType`] for a non-container document. In that case no plan
+    /// directive is appended.
+    pub fn push_container_environment_plan(&mut self, plan: &ContainerEnvironmentPlan) -> Result<(), RenderError> {
+        if self.unit_type != QuadletUnitType::Container {
+            return Err(RenderError::WrongUnitType {
+                document: self.unit_type,
+                entry: QuadletUnitType::Container,
+            });
+        }
+        for directive in plan.directives() {
+            match directive {
+                ContainerEnvironmentDirective::Assignment(assignment) => {
+                    self.push_container_environment(assignment.clone())?;
+                }
+                ContainerEnvironmentDirective::Assignments(assignments) => {
+                    self.push_container_environment_assignments(assignments.clone())?;
+                }
+                ContainerEnvironmentDirective::Reset(_) => self.push_container_environment_reset()?,
+            }
+        }
+        Ok(())
     }
 
     /// Appends a typed `[Pod]` entry.

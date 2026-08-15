@@ -244,7 +244,11 @@ expansion, and command/argument semantics remain outside these encoders. A separ
 `EnvironmentReset` marker emits one ordered blank directive. Tagged 5.4.0/6.0.2 source and all
 recorded generators prove only that it removes two isolated pre-reset names and leaves two distinct
 post-reset `--env` arguments; the model still preserves all physical values rather than applying
-that target behavior.
+that target behavior. `ContainerEnvironmentPlan` composes only these builder-owned validated
+directives. It preserves physical order and grouping while offering explicit per-name effective
+literal lookup plus opaque membership and cardinality with later-wins and reset-clears behavior.
+Empty values stay distinguishable from absence, debug output is redacted, and no authored-parser,
+environment-file, manager-expansion, secret, or runtime claim is added.
 
 The resource subset includes singleton `PidsLimit`. Omission, authored zero, and noncanonical
 one-line values remain distinct raw model and builder values. `PidsLimit::unlimited()` and

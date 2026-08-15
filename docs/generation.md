@@ -127,6 +127,15 @@ post-reset names become separate `--env` arguments. Authored-value decoding, dup
 percent/specifier handling, continuations, manager expansion, and runtime environment behavior
 remain outside this API.
 
+`ContainerEnvironmentPlan` owns an ordered sequence of those validated single assignments,
+non-empty groups, and reset markers. `get(name)` is an explicit literal-only lookup: groups apply
+left-to-right, later names win, reset clears earlier values, and an empty value remains present.
+`contains`, `len`, and `is_empty` expose only membership and cardinality, not an effective-map
+iterator or ordering claim. Passing a plan to `push_container_environment_plan` emits its original
+physical directives without flattening or reordering them, and debug output redacts assignment
+values. Authored parsing, environment files, specifier or continuation decoding, manager
+expansion, secrets, and runtime effects remain out of scope.
+
 `ContainerKey::HostName` is a singleton carrying exact authored one-line text. Omission stays
 absent, and the shared `EntryValue` boundary rejects only NUL bytes and physical line endings; it
 does not apply Compose RFC-1123 validation or normalize native values. For an isolated container,
