@@ -10,7 +10,10 @@ defines what “good enough” means for testing and conformance.
 ## Status key
 
 - [x] Completed and validated
-- [ ] Open
+- **Recurring maintenance** — performed when an upstream release, supported target, or concrete
+  regression supplies evidence; it is not a backlog checkbox.
+- **Deferred boundary** — intentionally outside the current contract until a concrete consumer,
+  use case, and evidence define it; it is not a backlog checkbox.
 
 ## Specification coverage ledger
 
@@ -135,7 +138,8 @@ and `Before`, plus `[Service]` `Restart`.
 
 Podman 5.4 preserves native Quadlet basenames in those relationship lists literally; Podman 5.5
 and newer rewrite them to generated service names. `Upholds` additionally requires systemd 249 or
-newer, which callers must check because the current target selector covers Podman versions only.
+newer; the optional caller-supplied systemd target context now checks that boundary without host
+probing.
 Other systemd directives should be promoted only for a concrete consumer scenario and must retain
 their native ordering and repetition rules.
 
@@ -154,9 +158,11 @@ their native ordering and repetition rules.
       directive order, exposes explicit per-name later-wins/reset-clears literal lookup plus opaque
       membership/cardinality, retains empty values, emits original directives unchanged, and
       redacts debug output.
-- [ ] Evidence and model percent/specifier handling, authored-value parsing,
-      continuations/newlines, environment-file and secret inputs, manager/environment/runtime
-      expansion, and systemd command/argument parsing separately.
+- [x] Add the bounded authored `Environment=` semantic view: physical order, literal assignments,
+      bare names, reset, quote/escape handling, continuations, deferred `%` specifiers,
+      recoverable `QLM0023`/`QLM0024` diagnostics, and redacted debug output. **Deferred
+      boundary:** environment-file/secret loading, manager/process/runtime expansion, command
+      parsing, and a general systemd token grammar require a concrete use case and evidence.
 
 ### Next 1: lifecycle and process parity
 
@@ -368,14 +374,14 @@ their native ordering and repetition rules.
       credentials/key debug output, exact document-set references, and finite 5.7.0–6.0.2
       generator evidence. It remains explicitly experimental and unsupported through 5.6.2.
 
-### Next 5: version and conformance maintenance
+### Recurring version and conformance maintenance
 
 - [x] Add a maintained versioned manual-key inventory, offline policy tests, an extraction fixture,
       and scheduled/manual-only upstream drift reporting for the current closed Quadlet key surface.
-- [ ] Record introduction, deprecation, removal, systemd requirements, and known patch bugs for
-      every promoted key.
-- [ ] Run promoted keys through the exact Podman generator matrix and relevant rootless/rootful
-      runtime fixtures before BoxFerry consumes them.
+- **Recurring maintenance:** record introduction, deprecation, removal, systemd requirements, and
+  known patch bugs whenever a new promoted key or upstream release changes the evidence boundary.
+- **Deferred boundary:** run rootless/rootful runtime fixtures only when a concrete supported claim
+  cannot be established by generator evidence; installed environments are not assumed equivalent.
 
 ## Phase 0: foundation — completed
 
@@ -385,17 +391,19 @@ their native ordering and repetition rules.
 - [x] Establish the initial capability schema.
 - [x] Define source spans and structured diagnostics.
 
-## Phase 1: syntax and rendering — in progress
+## Phase 1: syntax and rendering — completed current scope
 
 - [x] Parse ordered physical sections and entries with source locations.
 - [x] Preserve repeated keys, comments, continuation context, line endings, and unknown lines.
-- [ ] Preserve quote, newline, and command-argument semantics through real-generator fixtures.
+- [x] Preserve current quote and newline source syntax, continuation context, and bounded
+      environment/unit-list token handling. **Deferred boundary:** generic command and argument
+      semantics remain demand-driven rather than a global parser commitment.
 - [x] Distinguish literal paths, relative paths, and native systemd specifiers such as `%h`.
 - [x] Implement deterministic canonical rendering.
 - [x] Provide validated programmatic construction for the supported native document types.
 - [x] Establish malformed-input, round-trip, and property tests.
 
-## Phase 2: typed Quadlet documents — in progress
+## Phase 2: typed Quadlet documents — completed current scope
 
 - [x] Implement the first shared and `.container`, `.pod`, `.network`, and `.volume` unit-specific sections.
 - [x] Add conservative path and native unit-reference value forms for the first conversion.
@@ -406,30 +414,37 @@ their native ordering and repetition rules.
 - [x] Build document sets and dependency graphs.
 - [x] Preserve generic systemd sections, repeated entries, and unknown Quadlet keys.
 
-## Phase 3: Podman 5.4 minimum through rolling current — in progress
+## Phase 3: Podman 5.4 minimum through rolling current — completed current range
 
 - [x] Establish the initial capability catalogue for Podman 5.4.
 - [x] Run the first-conversion fixture against every official image from Podman 5.4.0 through 5.8.2.
 - [x] Build and run exact generators for Podman 5.8.3 through current 6.0.2.
 - [x] Type the complete current documented native key inventory.
-- [ ] Validate remaining value forms, fallbacks, and known limitations.
+- **Demand-driven admission rule:** add value-form validation, fallbacks, or new limitations only
+  when a concrete consumer and immutable evidence define an exact contract; otherwise retain the
+  raw source-preserving boundary.
 - [x] Cover path handling, pod membership, resource references, regular health commands/timings, restart behavior, and fallback arguments.
-- [ ] Run the real-generator fixture suite in rootless and rootful contexts where relevant.
+- **Deferred boundary:** rootless/rootful runtime validation is added only for an explicit runtime
+  claim that generator output cannot prove.
 
-## Phase 4: version expansion — open
+## Phase 4: version expansion — recurring maintenance
 
-- [ ] Complete capability evidence for each later Podman minor version in order.
-- [ ] Track introductions, changes, deprecations, removals, and known patch bugs.
-- [ ] Add systemd capability checks required by supported Quadlet behavior.
-- [ ] Support explicit distribution capability overrides.
+- **Recurring maintenance:** extend the finite Podman evidence range in release order, tracking
+  introductions, changes, deprecations, removals, and known patch bugs.
+- **Recurring maintenance:** add a systemd target check only when a reviewed Quadlet capability has
+  a direct systemd-version boundary; `Upholds` 249 is complete.
+- **Deferred boundary:** distribution capability overrides require a concrete supported backport
+  use case and must not be inferred from the installed system.
 
-## Phase 5: ecosystem hardening — in progress
+## Phase 5: ecosystem hardening — recurring maintenance
 
 - [x] Establish the first licensed, immutable real-world corpus across official and community evidence classes.
-- [ ] Expand the corpus as new unit types and typed keys are promoted.
+- **Recurring maintenance:** expand the immutable licensed corpus only when a new promoted surface
+  or regression needs a representative fixture.
 - [x] Establish the supported 0.1.x public API and versioned catalogue schema.
 - [x] Prepare and validate compatibility documentation and the QuadletLens 0.1.0 release candidate.
-- [ ] Provide optional verification tooling for installed Podman generators.
+- **Deferred boundary:** optional installed-generator tooling requires a concrete maintainer use
+  case and must stay separate from deterministic pull-request validation.
 
 ## Maintainer-controlled 0.1.0 release operation — completed
 

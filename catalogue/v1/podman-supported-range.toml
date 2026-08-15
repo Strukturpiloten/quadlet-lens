@@ -6365,14 +6365,13 @@ claim = "The Podman 6.0.2 Quadlet manual documents native Quadlet basename rewri
 test = "capabilities::supported_range_records_systemd_unit_relationships_and_rewrite_boundary"
 gap = "Documentation and dry-run generation establish generated unit text only; they do not start systemd units or establish transaction, ordering, failure, restart, or runtime behavior."
 
-[[evidence]]
+[[systemd_evidence]]
 id = "systemd-249-upholds"
-verification = "documentation"
-url = "https://www.freedesktop.org/software/systemd/man/latest/systemd.unit.html#Upholds="
-target = "6.0.2"
+url = "https://www.freedesktop.org/software/systemd/man/249/systemd.unit.html#Upholds="
+target = "249"
 claim = "The systemd Unit manual records Upholds= as added in systemd version 249."
 test = "capabilities::supported_range_records_systemd_unit_relationships_and_rewrite_boundary"
-gap = "The Podman-target capability schema does not select or inspect a host systemd version, so callers must enforce the systemd 249 minimum separately."
+gap = "This establishes only the upstream 249 introduction; QuadletLens does not probe hosts, model distribution backports, or catalogue generic systemd behavior."
 
 [[evidence]]
 id = "podman-5-4-through-current-systemd-unit-relationship-generators"
@@ -6481,9 +6480,12 @@ value_forms = ["systemd-unit-list"]
 native = { minimum = "5.4.0", maximum = "6.0.2" }
 evidence = [
   "podman-6-0-2-systemd-unit-reference-rewrite",
-  "systemd-249-upholds",
   "podman-5-4-through-current-systemd-unit-relationship-generators"
 ]
+
+[capability.systemd]
+minimum = "249"
+evidence = ["systemd-249-upholds"]
 
 [[capability]]
 id = "systemd.unit.conflicts"

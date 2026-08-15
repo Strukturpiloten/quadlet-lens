@@ -26,7 +26,8 @@ fn supported_range_has_the_reviewed_first_conversion_surface() -> Result<(), Str
     let expected: BTreeSet<_> = EXPECTED_CAPABILITIES.lines().filter(|line| !line.is_empty()).collect();
     assert_eq!(actual, expected);
     assert_eq!(catalogue.capabilities().len(), 257);
-    assert_eq!(catalogue.evidence().len(), 658);
+    assert_eq!(catalogue.evidence().len(), 657);
+    assert_eq!(catalogue.systemd_evidence().len(), 1);
 
     let documentation: Vec<_> = catalogue
         .evidence()
@@ -34,7 +35,7 @@ fn supported_range_has_the_reviewed_first_conversion_surface() -> Result<(), Str
         .filter(|evidence| evidence.level() == VerificationLevel::Documentation)
         .collect();
     assert!(!documentation.is_empty());
-    assert_eq!(documentation.len(), 551);
+    assert_eq!(documentation.len(), 550);
     assert!(documentation.iter().all(|evidence| evidence.gap().is_some()));
     let generator = catalogue
         .evidence()
@@ -2837,12 +2838,14 @@ fn supported_range_records_systemd_unit_relationships_and_rewrite_boundary() -> 
     let upholds = catalogue
         .capability("systemd.unit.upholds")
         .ok_or_else(|| "Upholds capability must exist".to_owned())?;
-    assert!(
-        upholds
-            .evidence()
-            .iter()
-            .any(|evidence| evidence == "systemd-249-upholds")
-    );
+    assert_eq!(upholds.systemd_evidence(), ["systemd-249-upholds"]);
+    let systemd_evidence = catalogue
+        .systemd_evidence()
+        .iter()
+        .find(|evidence| evidence.id() == "systemd-249-upholds")
+        .ok_or_else(|| "Upholds systemd evidence must exist".to_owned())?;
+    assert_eq!(systemd_evidence.versions().minimum().release(), 249);
+    assert!(systemd_evidence.url().contains("/249/"));
 
     let rewrite = catalogue
         .capability("systemd.unit.quadlet-reference-rewrite")

@@ -31,6 +31,15 @@ not restricted by a closed enum. `SystemdUnitKey` types `Requires`, `Wants`, `Af
 generic and source-preserved. Other native sections and keys remain explicit `Unknown` entries.
 Unsupported suffixes fail closed rather than implying complete typed support.
 
+`QuadletDocument::container_environment()` is a separate authored semantic view for container
+`Environment=` directives. It does not change `AuthoredValue` or source preservation. The view
+keeps directive order, recognizes literal assignments, empty resets, and bare names after bounded
+systemd word/quote/escape processing, and reports `%` values as deferred. Malformed names, quotes,
+and escapes remain recoverable diagnostics. No environment-file, secret, manager, process, or
+runtime expansion is attempted. Recognized Container and Build `Environment=` values are treated
+as sensitive by repository-owned `TypedEntry` and document debug output, while explicit raw access
+and preservation rendering remain available to callers that handle secrets safely.
+
 ## Parse result
 
 `QuadletDocument::parse` returns a `QuadletParseResult` containing:
@@ -399,25 +408,27 @@ one-line text rather than being normalized by an incomplete systemd or Podman va
 
 Initial stable codes are:
 
-| Code      | Severity | Meaning                                                                                                                                                            |
-| --------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `QLM0001` | error    | Required native section is missing                                                                                                                                 |
-| `QLM0002` | error    | A container has neither `Image=` nor `Rootfs=`                                                                                                                     |
-| `QLM0003` | warning  | A native section does not match the selected unit suffix                                                                                                           |
-| `QLM0004` | warning  | A first-conversion singleton key is repeated                                                                                                                       |
-| `QLM0005` | error    | An `Image=` entry is empty                                                                                                                                         |
-| `QLM0006` | error    | `Image=` and `Rootfs=` are both present                                                                                                                            |
-| `QLM0007` | error    | A `Rootfs=` entry is empty                                                                                                                                         |
-| `QLM0008` | error    | An Image unit is missing `Image=`                                                                                                                                  |
-| `QLM0009` | error    | An Image-unit `Image=` entry is blank                                                                                                                              |
-| `QLM0010` | error    | `ReloadCmd=` and `ReloadSignal=` are both present                                                                                                                  |
-| `QLM0017` | error    | A Kube unit is missing required `Yaml=`                                                                                                                            |
-| `QLM0018` | error    | A Kube unit has no effective `Yaml=` source after reset processing                                                                                                 |
-| `QLM0019` | error    | Multiple effective `Yaml=` sources use `SetWorkingDirectory=yaml`                                                                                                  |
-| `QLM0020` | error    | Effective `UserNS=` conflicts with effective `RemapUid=`, `RemapGid=`, or `RemapUsers=`; both values are source-labelled. `RemapUidSize=` alone does not conflict. |
-| `QLG0001` | error    | A native unit reference has no matching document                                                                                                                   |
-| `QLG0002` | error    | A native unit reference matches duplicate basenames                                                                                                                |
-| `QLG0003` | error    | The document set contains a duplicate basename                                                                                                                     |
+| Code      | Severity | Meaning                                                                                                                                                                                                                                    |
+| --------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `QLM0001` | error    | Required native section is missing                                                                                                                                                                                                         |
+| `QLM0002` | error    | A container has neither `Image=` nor `Rootfs=`                                                                                                                                                                                             |
+| `QLM0003` | warning  | A native section does not match the selected unit suffix                                                                                                                                                                                   |
+| `QLM0004` | warning  | A first-conversion singleton key is repeated                                                                                                                                                                                               |
+| `QLM0005` | error    | An `Image=` entry is empty                                                                                                                                                                                                                 |
+| `QLM0006` | error    | `Image=` and `Rootfs=` are both present                                                                                                                                                                                                    |
+| `QLM0007` | error    | A `Rootfs=` entry is empty                                                                                                                                                                                                                 |
+| `QLM0008` | error    | An Image unit is missing `Image=`                                                                                                                                                                                                          |
+| `QLM0009` | error    | An Image-unit `Image=` entry is blank                                                                                                                                                                                                      |
+| `QLM0010` | error    | `ReloadCmd=` and `ReloadSignal=` are both present                                                                                                                                                                                          |
+| `QLM0017` | error    | A Kube unit is missing required `Yaml=`                                                                                                                                                                                                    |
+| `QLM0018` | error    | A Kube unit has no effective `Yaml=` source after reset processing                                                                                                                                                                         |
+| `QLM0019` | error    | Multiple effective `Yaml=` sources use `SetWorkingDirectory=yaml`                                                                                                                                                                          |
+| `QLM0020` | error    | Effective `UserNS=` conflicts with effective `RemapUid=`, `RemapGid=`, or `RemapUsers=`; both values are source-labelled. `RemapUidSize=` alone does not conflict.                                                                         |
+| `QLM0023` | warning  | A container `Environment=` directive has incomplete continuation, malformed systemd quoting/escaping, or an unsupported variable name; the source remains preserved and the authored semantic view records recoverable unmodeled evidence. |
+| `QLM0024` | warning  | A container `Environment=` assignment contains `%` specifier syntax; the authored semantic view classifies it as deferred and never expands it.                                                                                            |
+| `QLG0001` | error    | A native unit reference has no matching document                                                                                                                                                                                           |
+| `QLG0002` | error    | A native unit reference matches duplicate basenames                                                                                                                                                                                        |
+| `QLG0003` | error    | The document set contains a duplicate basename                                                                                                                                                                                             |
 
 Diagnostics are recoverable and source-labelled. A warning does not make the combined result
 invalid; an error does.

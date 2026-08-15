@@ -36,6 +36,8 @@ const MULTIPLE_KUBE_YAML_WITH_YAML_WORKING_DIRECTORY: DiagnosticCode = Diagnosti
 const KUBE_USERNS_WITH_REMAP: DiagnosticCode = DiagnosticCode::new("QLM0020");
 const MISSING_ARTIFACT: DiagnosticCode = DiagnosticCode::new("QLM0021");
 const EMPTY_ARTIFACT: DiagnosticCode = DiagnosticCode::new("QLM0022");
+const MALFORMED_CONTAINER_ENVIRONMENT: DiagnosticCode = DiagnosticCode::new("QLM0023");
+const DEFERRED_CONTAINER_ENVIRONMENT: DiagnosticCode = DiagnosticCode::new("QLM0024");
 
 /// Native Quadlet unit types supported by the typed model.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -744,12 +746,16 @@ pub enum EntryKind {
 impl EntryKind {
     /// Returns whether this entry's authored value must be redacted by repository-owned debug output.
     ///
-    /// This is crate-private metadata rather than a value-classification API.
+    /// This is crate-private metadata rather than a value-classification API. It covers known
+    /// credential/decryption fields and authored container/build environment values, which can
+    /// contain secrets even though parsing and explicit raw access remain source-preserving.
     pub(crate) const fn has_sensitive_value(self) -> bool {
         matches!(
             self,
             Self::Image(ImageKey::Creds | ImageKey::DecryptionKey)
                 | Self::Artifact(ArtifactKey::Creds | ArtifactKey::DecryptionKey)
+                | Self::Container(ContainerKey::Environment)
+                | Self::Build(BuildKey::Environment)
         )
     }
 
@@ -958,6 +964,264 @@ pub struct AuthoredValue {
     has_continuation_marker: bool,
 }
 
+/// One recoverable authored `Container` `Environment=` interpretation.
+///
+/// The source-owned [`AuthoredValue`] remains the authoritative spelling. This is a separate
+/// semantic view for callers that need the bounded literal assignment subset. Its debug output
+/// never exposes environment values.
+#[derive(Clone, Eq, PartialEq)]
+#[non_exhaustive]
+pub enum AuthoredContainerEnvironmentDirective {
+    /// One literal `NAME=VALUE` assignment after systemd word and escape processing.
+    Assignment {
+        /// ASCII environment name.
+        name: String,
+        /// Decoded literal value. It may be empty.
+        value: String,
+        /// Span of the physical `Environment=` value.
+        span: SourceSpan,
+    },
+    /// One bare environment name whose value requires manager or process context.
+    BareName {
+        /// ASCII environment name.
+        name: String,
+        /// Span of the physical `Environment=` value.
+        span: SourceSpan,
+    },
+    /// One blank directive that clears preceding effective assignments.
+    Reset {
+        /// Span of the physical `Environment=` value.
+        span: SourceSpan,
+    },
+    /// A syntactically recognizable name whose value contains an unexpanded systemd specifier.
+    Deferred {
+        /// ASCII environment name.
+        name: String,
+        /// Span of the physical `Environment=` value.
+        span: SourceSpan,
+    },
+    /// A malformed or deliberately unmodeled token retained only as recoverable evidence.
+    Unmodeled {
+        /// Span of the physical `Environment=` value.
+        span: SourceSpan,
+    },
+}
+
+impl AuthoredContainerEnvironmentDirective {
+    /// Returns the selected source span.
+    #[must_use]
+    pub const fn span(&self) -> SourceSpan {
+        match self {
+            Self::Assignment { span, .. }
+            | Self::BareName { span, .. }
+            | Self::Reset { span }
+            | Self::Deferred { span, .. }
+            | Self::Unmodeled { span } => *span,
+        }
+    }
+
+    /// Returns the explicit name when the token had one.
+    #[must_use]
+    pub fn name(&self) -> Option<&str> {
+        match self {
+            Self::Assignment { name, .. } | Self::BareName { name, .. } | Self::Deferred { name, .. } => Some(name),
+            Self::Reset { .. } | Self::Unmodeled { .. } => None,
+        }
+    }
+
+    /// Returns the literal value only for a fully modeled assignment.
+    #[must_use]
+    pub fn literal_value(&self) -> Option<&str> {
+        match self {
+            Self::Assignment { value, .. } => Some(value),
+            Self::BareName { .. } | Self::Reset { .. } | Self::Deferred { .. } | Self::Unmodeled { .. } => None,
+        }
+    }
+}
+
+impl fmt::Debug for AuthoredContainerEnvironmentDirective {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Assignment { name, span, .. } => formatter
+                .debug_struct("Assignment")
+                .field("name", name)
+                .field("value", &"<redacted environment value>")
+                .field("span", span)
+                .finish(),
+            Self::BareName { name, span } => formatter
+                .debug_struct("BareName")
+                .field("name", name)
+                .field("span", span)
+                .finish(),
+            Self::Reset { span } => formatter.debug_struct("Reset").field("span", span).finish(),
+            Self::Deferred { name, span } => formatter
+                .debug_struct("Deferred")
+                .field("name", name)
+                .field("value", &"<redacted deferred environment value>")
+                .field("span", span)
+                .finish(),
+            Self::Unmodeled { span } => formatter.debug_struct("Unmodeled").field("span", span).finish(),
+        }
+    }
+}
+
+/// Result of explicitly looking up one name in an authored container environment view.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[non_exhaustive]
+pub enum AuthoredContainerEnvironmentValue<'a> {
+    /// The name has no effective authored directive in the bounded view.
+    Absent,
+    /// The final known assignment is literal.
+    Literal(&'a str),
+    /// The final known directive needs systemd manager or process environment context.
+    Deferred,
+}
+
+/// Ordered, recoverable authored semantic view of `[Container]` `Environment=` directives.
+///
+/// It applies only systemd-style word/quote parsing and documented escapes necessary to identify
+/// literal assignments and bare names. It does not expand `%` specifiers, load environment files
+/// or secrets, access a host, evaluate manager/process values, or parse commands.
+#[derive(Clone, Eq, PartialEq)]
+pub struct AuthoredContainerEnvironment {
+    directives: Vec<AuthoredContainerEnvironmentDirective>,
+    diagnostics: Vec<Diagnostic>,
+}
+
+impl AuthoredContainerEnvironment {
+    fn from_document(document: &QuadletDocument) -> Self {
+        let mut directives = Vec::new();
+        let mut diagnostics = Vec::new();
+        for entry in document
+            .entries()
+            .filter(|entry| entry.kind == EntryKind::Container(ContainerKey::Environment))
+        {
+            let span = entry.value.primary.span();
+            let Some(value) = logical_authored_value(entry) else {
+                diagnostics.push(environment_diagnostic(
+                    MALFORMED_CONTAINER_ENVIRONMENT,
+                    span,
+                    "container Environment directive has an incomplete continuation",
+                    "complete the physical continuation before interpreting Environment=",
+                ));
+                directives.push(AuthoredContainerEnvironmentDirective::Unmodeled { span });
+                continue;
+            };
+            if value.trim().is_empty() {
+                directives.push(AuthoredContainerEnvironmentDirective::Reset { span });
+                continue;
+            }
+            let Some(tokens) = systemd_environment_tokens(&value) else {
+                diagnostics.push(environment_diagnostic(
+                    MALFORMED_CONTAINER_ENVIRONMENT,
+                    span,
+                    "container Environment directive has malformed systemd quoting or escaping",
+                    "use complete quotes and documented systemd escape sequences",
+                ));
+                directives.push(AuthoredContainerEnvironmentDirective::Unmodeled { span });
+                continue;
+            };
+            for token in tokens {
+                let (name, value) = token
+                    .split_once('=')
+                    .map_or((token.as_str(), None), |(name, value)| (name, Some(value)));
+                if !is_authored_environment_name(name) {
+                    diagnostics.push(environment_diagnostic(
+                        MALFORMED_CONTAINER_ENVIRONMENT,
+                        span,
+                        "container Environment directive has an unsupported variable name",
+                        "use an ASCII name matching [A-Za-z_][A-Za-z0-9_]*",
+                    ));
+                    directives.push(AuthoredContainerEnvironmentDirective::Unmodeled { span });
+                } else if value.is_some_and(|value| value.contains('%')) {
+                    diagnostics.push(environment_diagnostic(
+                        DEFERRED_CONTAINER_ENVIRONMENT,
+                        span,
+                        "container Environment assignment contains an unexpanded systemd specifier",
+                        "resolve the specifier in the target manager context before relying on a literal value",
+                    ));
+                    directives.push(AuthoredContainerEnvironmentDirective::Deferred {
+                        name: name.to_owned(),
+                        span,
+                    });
+                } else if let Some(value) = value {
+                    directives.push(AuthoredContainerEnvironmentDirective::Assignment {
+                        name: name.to_owned(),
+                        value: value.to_owned(),
+                        span,
+                    });
+                } else {
+                    directives.push(AuthoredContainerEnvironmentDirective::BareName {
+                        name: name.to_owned(),
+                        span,
+                    });
+                }
+            }
+        }
+        Self {
+            directives,
+            diagnostics,
+        }
+    }
+
+    /// Returns directives in physical source order.
+    #[must_use]
+    pub fn directives(&self) -> &[AuthoredContainerEnvironmentDirective] {
+        &self.directives
+    }
+
+    /// Returns recoverable semantic-view diagnostics in source order.
+    #[must_use]
+    pub fn diagnostics(&self) -> &[Diagnostic] {
+        &self.diagnostics
+    }
+
+    /// Looks up one name without exposing an effective-map iteration order.
+    #[must_use]
+    pub fn get(&self, name: &str) -> AuthoredContainerEnvironmentValue<'_> {
+        let mut result = AuthoredContainerEnvironmentValue::Absent;
+        for directive in &self.directives {
+            match directive {
+                AuthoredContainerEnvironmentDirective::Assignment {
+                    name: directive_name,
+                    value,
+                    ..
+                } if directive_name == name => result = AuthoredContainerEnvironmentValue::Literal(value),
+                AuthoredContainerEnvironmentDirective::BareName {
+                    name: directive_name, ..
+                }
+                | AuthoredContainerEnvironmentDirective::Deferred {
+                    name: directive_name, ..
+                } if directive_name == name => result = AuthoredContainerEnvironmentValue::Deferred,
+                AuthoredContainerEnvironmentDirective::Reset { .. } => {
+                    result = AuthoredContainerEnvironmentValue::Absent;
+                }
+                AuthoredContainerEnvironmentDirective::Assignment { .. }
+                | AuthoredContainerEnvironmentDirective::BareName { .. }
+                | AuthoredContainerEnvironmentDirective::Deferred { .. }
+                | AuthoredContainerEnvironmentDirective::Unmodeled { .. } => {}
+            }
+        }
+        result
+    }
+
+    /// Returns whether the bounded interpretation has no recoverable semantic diagnostics.
+    #[must_use]
+    pub fn is_complete(&self) -> bool {
+        self.diagnostics.is_empty()
+    }
+}
+
+impl fmt::Debug for AuthoredContainerEnvironment {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("AuthoredContainerEnvironment")
+            .field("directives", &self.directives)
+            .field("diagnostics", &self.diagnostics)
+            .finish()
+    }
+}
+
 impl AuthoredValue {
     /// Returns the value on the entry's first physical line.
     #[must_use]
@@ -1009,8 +1273,8 @@ impl TypedEntry {
 
     /// Returns whether explicit raw-value access needs sensitive-data handling.
     ///
-    /// This is currently true only for recognized `[Image]` and `[Artifact]` `Creds=` and
-    /// `DecryptionKey=` entries.
+    /// This is currently true for recognized `[Image]`/`[Artifact]` `Creds=` and
+    /// `DecryptionKey=` entries plus `[Container]` and `[Build]` `Environment=` entries.
     /// Rendering and [`Self::value`] retain the exact authored text, so callers must avoid
     /// exposing that text.
     #[must_use]
@@ -1231,6 +1495,16 @@ impl QuadletDocument {
     /// Iterates all typed entries in authored order.
     pub fn entries(&self) -> impl Iterator<Item = &TypedEntry> {
         self.sections.iter().flat_map(|section| section.entries.iter())
+    }
+
+    /// Returns a separate recoverable semantic view of authored container `Environment=` directives.
+    ///
+    /// The original [`AuthoredValue`] objects remain unchanged and source-preserving. This view
+    /// handles only literal assignments, bare names, resets, documented systemd quoting/escapes,
+    /// and deferred `%` specifiers; it performs no environment, secret, manager, or runtime lookup.
+    #[must_use]
+    pub fn container_environment(&self) -> AuthoredContainerEnvironment {
+        AuthoredContainerEnvironment::from_document(self)
     }
 
     fn validate_shape(&self, source: &SourceText) -> Vec<Diagnostic> {
@@ -1585,6 +1859,113 @@ fn collect_continuations(
         }
     }
     Ok(values)
+}
+
+fn logical_authored_value(entry: &TypedEntry) -> Option<String> {
+    let mut logical = String::new();
+    let segments = std::iter::once(entry.value.primary())
+        .chain(entry.value.continuations())
+        .collect::<Vec<_>>();
+    if entry.value.is_continued() && segments.last().is_none_or(|segment| segment.text().ends_with('\\')) {
+        return None;
+    }
+    for (index, segment) in segments.iter().enumerate() {
+        if !logical.is_empty() {
+            logical.push(' ');
+        }
+        let value = segment.text().trim_end();
+        let value = if index + 1 < segments.len() {
+            value.strip_suffix('\\').unwrap_or(value)
+        } else {
+            value
+        };
+        logical.push_str(value);
+    }
+    Some(logical)
+}
+
+fn environment_diagnostic(
+    code: DiagnosticCode,
+    span: SourceSpan,
+    summary: &'static str,
+    label: &'static str,
+) -> Diagnostic {
+    Diagnostic::new(code, Severity::Warning, summary, Label::new(span, label))
+}
+
+/// Decodes the documented systemd word subset used by the authored environment view.
+///
+/// This keeps values entirely in memory and deliberately returns no partial token on malformed
+/// quoting or escaping. Supported C-style escapes are `\\`, quote, whitespace, `\\s`, `\\t`,
+/// `\\n`, `\\r`, `\\xHH`, `\\uHHHH`, and `\\UHHHHHHHH`.
+fn systemd_environment_tokens(value: &str) -> Option<Vec<String>> {
+    let mut tokens = Vec::new();
+    let mut token = String::new();
+    let mut quote = None;
+    let mut started = false;
+    let mut characters = value.chars().peekable();
+
+    while let Some(character) = characters.next() {
+        match character {
+            '\\' => {
+                token.push(decode_systemd_escape(&mut characters)?);
+                started = true;
+            }
+            '"' | '\'' if quote == Some(character) => quote = None,
+            '"' | '\'' if quote.is_none() => {
+                quote = Some(character);
+                started = true;
+            }
+            character if character.is_whitespace() && quote.is_none() => {
+                if started {
+                    tokens.push(std::mem::take(&mut token));
+                    started = false;
+                }
+            }
+            character => {
+                token.push(character);
+                started = true;
+            }
+        }
+    }
+
+    if quote.is_some() {
+        return None;
+    }
+    if started {
+        tokens.push(token);
+    }
+    Some(tokens)
+}
+
+fn decode_systemd_escape(characters: &mut std::iter::Peekable<std::str::Chars<'_>>) -> Option<char> {
+    match characters.next()? {
+        '\\' => Some('\\'),
+        '"' => Some('"'),
+        '\'' => Some('\''),
+        ' ' | 's' => Some(' '),
+        't' => Some('\t'),
+        'n' => Some('\n'),
+        'r' => Some('\r'),
+        'x' => char::from_u32(read_escape_digits(characters, 2)?),
+        'u' => char::from_u32(read_escape_digits(characters, 4)?),
+        'U' => char::from_u32(read_escape_digits(characters, 8)?),
+        _ => None,
+    }
+}
+
+fn read_escape_digits(characters: &mut std::iter::Peekable<std::str::Chars<'_>>, count: usize) -> Option<u32> {
+    let mut result = 0_u32;
+    for _ in 0..count {
+        result = result.checked_mul(16)? + characters.next()?.to_digit(16)?;
+    }
+    Some(result)
+}
+
+fn is_authored_environment_name(name: &str) -> bool {
+    let mut bytes = name.bytes();
+    matches!(bytes.next(), Some(byte) if byte.is_ascii_alphabetic() || byte == b'_')
+        && bytes.all(|byte| byte.is_ascii_alphanumeric() || byte == b'_')
 }
 
 fn container_entries_with_key<'a>(entries: &[&'a TypedEntry], key: ContainerKey) -> Vec<&'a TypedEntry> {

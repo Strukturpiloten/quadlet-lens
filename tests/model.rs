@@ -2,8 +2,9 @@
 
 use quadlet_lens::diagnostic::Severity;
 use quadlet_lens::model::{
-    ArtifactKey, BuildKey, ContainerKey, EntryKind, ImageKey, KubeKey, NetworkKey, PodKey, QuadletDocument, QuadletKey,
-    QuadletUnitType, SectionKind, SystemdUnitKey, TypedEntry, UnitReferenceKind, ValueKind, VolumeKey,
+    ArtifactKey, AuthoredContainerEnvironmentDirective, AuthoredContainerEnvironmentValue, BuildKey, ContainerKey,
+    EntryKind, ImageKey, KubeKey, NetworkKey, PodKey, QuadletDocument, QuadletKey, QuadletUnitType, SectionKind,
+    SystemdUnitKey, TypedEntry, UnitReferenceKind, ValueKind, VolumeKey,
 };
 use quadlet_lens::path::PathForm;
 use quadlet_lens::source::SourceId;
@@ -27,6 +28,139 @@ const CONTAINER_ENVIRONMENT_RESETS: &str = concat!(
     "Environment=POST_ONE=one\n",
     "Environment=POST_TWO=two\n",
 );
+
+#[test]
+fn authored_container_environment_view_preserves_order_resets_empty_values_and_continuations() -> Result<(), String> {
+    let parsed = QuadletDocument::parse(
+        QuadletUnitType::Container,
+        SourceId::new(9_500),
+        concat!(
+            "[Container]\n",
+            "Image=example.invalid/application\n",
+            "Environment=FIRST=one \"SPACED=two words\" ESCAPED=three\\x20words EMPTY=\n",
+            "Environment=FIRST=later \\\n",
+            "  \"CONTINUED=joined value\"\n",
+            "Environment=\n",
+            "Environment=AFTER=final BARE\n",
+        ),
+    )
+    .map_err(|error| error.to_string())?;
+    let environment = parsed.document().container_environment();
+    assert!(environment.is_complete());
+    assert!(environment.diagnostics().is_empty());
+    assert_eq!(environment.directives().len(), 9);
+    assert!(matches!(
+        environment.directives(),
+        [
+            AuthoredContainerEnvironmentDirective::Assignment { name, value, .. },
+            AuthoredContainerEnvironmentDirective::Assignment { .. },
+            AuthoredContainerEnvironmentDirective::Assignment { .. },
+            AuthoredContainerEnvironmentDirective::Assignment { .. },
+            AuthoredContainerEnvironmentDirective::Assignment { .. },
+            AuthoredContainerEnvironmentDirective::Assignment { .. },
+            AuthoredContainerEnvironmentDirective::Reset { .. },
+            AuthoredContainerEnvironmentDirective::Assignment { .. },
+            AuthoredContainerEnvironmentDirective::BareName { .. },
+        ] if name == "FIRST" && value == "one"
+    ));
+    assert_eq!(environment.get("FIRST"), AuthoredContainerEnvironmentValue::Absent);
+    assert_eq!(environment.get("SPACED"), AuthoredContainerEnvironmentValue::Absent);
+    assert_eq!(environment.get("EMPTY"), AuthoredContainerEnvironmentValue::Absent);
+    assert_eq!(environment.get("CONTINUED"), AuthoredContainerEnvironmentValue::Absent);
+    assert_eq!(
+        environment.get("AFTER"),
+        AuthoredContainerEnvironmentValue::Literal("final")
+    );
+    assert_eq!(environment.get("BARE"), AuthoredContainerEnvironmentValue::Deferred);
+    assert_eq!(environment.directives()[1].literal_value(), Some("two words"));
+    assert_eq!(environment.directives()[2].literal_value(), Some("three words"));
+    assert_eq!(environment.directives()[3].literal_value(), Some(""));
+    Ok(())
+}
+
+#[test]
+fn authored_container_environment_view_keeps_specifiers_and_malformed_tokens_recoverable_and_redacted()
+-> Result<(), String> {
+    let parsed = QuadletDocument::parse(
+        QuadletUnitType::Container,
+        SourceId::new(9_501),
+        concat!(
+            "[Container]\n",
+            "Image=example.invalid/application\n",
+            "Environment=DEFERRED=%h BAD-NAME=leak-me\n",
+            "Environment=\"BROKEN=leak-me\n",
+            "Environment=ESCAPE=leak\\q\n",
+        ),
+    )
+    .map_err(|error| error.to_string())?;
+    let environment = parsed.document().container_environment();
+    assert!(!environment.is_complete());
+    assert_eq!(environment.get("DEFERRED"), AuthoredContainerEnvironmentValue::Deferred);
+    assert!(matches!(
+        environment.directives()[0],
+        AuthoredContainerEnvironmentDirective::Deferred { ref name, .. } if name == "DEFERRED"
+    ));
+    assert_eq!(
+        environment
+            .diagnostics()
+            .iter()
+            .map(|diagnostic| diagnostic.code().as_str())
+            .collect::<Vec<_>>(),
+        ["QLM0024", "QLM0023", "QLM0023", "QLM0023"]
+    );
+    let debug = format!("{environment:?}");
+    for secret in ["%h", "leak-me", "BROKEN", "leak\\q"] {
+        assert!(!debug.contains(secret), "debug leaked {secret:?}");
+    }
+    Ok(())
+}
+
+#[test]
+fn authored_container_environment_view_is_empty_and_complete_for_non_container_documents() -> Result<(), String> {
+    let parsed = QuadletDocument::parse(
+        QuadletUnitType::Build,
+        SourceId::new(9_502),
+        "[Build]\nEnvironment=BUILD_SECRET=must-not-be-interpreted-here\n",
+    )
+    .map_err(|error| error.to_string())?;
+    let environment = parsed.document().container_environment();
+    assert!(environment.directives().is_empty());
+    assert!(environment.diagnostics().is_empty());
+    assert!(environment.is_complete());
+    Ok(())
+}
+
+#[test]
+fn recognized_environment_values_preserve_explicit_access_and_rendering_but_redact_debug() -> Result<(), String> {
+    for (unit_type, source, kind, secret) in [
+        (
+            QuadletUnitType::Container,
+            "[Container]\nImage=example.invalid/application\nEnvironment=CONTAINER_SECRET=seeded-container-secret\n",
+            EntryKind::Container(ContainerKey::Environment),
+            "seeded-container-secret",
+        ),
+        (
+            QuadletUnitType::Build,
+            "[Build]\nEnvironment=BUILD_SECRET=seeded-build-secret\n",
+            EntryKind::Build(BuildKey::Environment),
+            "seeded-build-secret",
+        ),
+    ] {
+        let parsed =
+            QuadletDocument::parse(unit_type, SourceId::new(9_503), source).map_err(|error| error.to_string())?;
+        let entry = parsed
+            .document()
+            .entries()
+            .find(|entry| entry.kind() == kind)
+            .ok_or("missing recognized environment entry")?;
+        assert!(entry.is_sensitive());
+        assert!(entry.value().primary().text().contains(secret));
+        assert_eq!(parsed.syntax().document().render_preserved(), source);
+        assert!(!format!("{:#?}", parsed.document()).contains(secret));
+        assert!(!format!("{parsed:?}").contains(secret));
+    }
+    Ok(())
+}
 
 #[test]
 fn container_environment_reset_remains_a_blank_ordered_source_entry() -> Result<(), String> {

@@ -136,6 +136,15 @@ physical directives without flattening or reordering them, and debug output reda
 values. Authored parsing, environment files, specifier or continuation decoding, manager
 expansion, secrets, and runtime effects remain out of scope.
 
+Parsed documents expose a separate `QuadletDocument::container_environment()` authored semantic
+view. It preserves physical directive order and leaves each source-owned `AuthoredValue` unchanged.
+The view recognizes blank reset directives, systemd-word/quote/C-escape processing sufficient for
+literal `NAME=VALUE` assignments, and bare names. Later directives win for explicit lookup, while
+a reset clears preceding results and an empty literal value remains distinct from absence. A bare
+name and an assignment containing `%` are reported as deferred rather than expanded. Malformed
+quotes, escapes, or names become recoverable, value-free diagnostics. It does not load
+`EnvironmentFile`, secrets, manager or process variables, parse commands, or access the host.
+
 `ContainerKey::HostName` is a singleton carrying exact authored one-line text. Omission stays
 absent, and the shared `EntryValue` boundary rejects only NUL bytes and physical line endings; it
 does not apply Compose RFC-1123 validation or normalize native values. For an isolated container,

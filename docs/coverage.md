@@ -480,7 +480,9 @@ The dependency graph applies per-key empty resets and systemd-style whitespace/q
 records the relationship key on each reference and edge, and ignores ordinary `.service` and
 `.target` names. Podman 5.4 literal behavior, the 5.5 rewrite boundary, current suffix mappings,
 and missing-source failure are dry-run generator evidence. `Upholds=` requires systemd 249 or
-newer; the catalogue records that limitation but cannot evaluate the host systemd version.
+newer. Callers may provide that release as optional target context; absent context is unknown and
+QuadletLens neither probes hosts nor claims distribution-backport behavior. The 249 minimum cites
+separate typed, versioned systemd evidence rather than a Podman-version evidence record.
 
 The parser still retains every generic systemd directive without forcing it into a closed enum.
 Typed systemd keys are a programmatic-generation aid, not a complete systemd semantic model.

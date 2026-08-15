@@ -1,10 +1,12 @@
 //! Consumer-facing compile and behavior contract for the supported 0.2.x API.
 
-use quadlet_lens::capability::{CapabilityCatalogue, PodmanTarget, PodmanVersion, SupportClassification};
+use quadlet_lens::capability::{
+    CapabilityCatalogue, PodmanTarget, PodmanVersion, SupportClassification, SystemdVersion, SystemdVersionRange,
+};
 use quadlet_lens::model::{
-    ArtifactKey, BuildKey, ContainerKey, EntryKind, ImageKey, KubeKey, NamedQuadletDocument, NetworkKey, PodKey,
-    QuadletDocument, QuadletDocumentSet, QuadletKey, QuadletUnitType, SectionKind, SystemdUnitKey, TypedEntry,
-    UnitReferenceKind, ValueKind, VolumeKey,
+    ArtifactKey, AuthoredContainerEnvironmentDirective, AuthoredContainerEnvironmentValue, BuildKey, ContainerKey,
+    EntryKind, ImageKey, KubeKey, NamedQuadletDocument, NetworkKey, PodKey, QuadletDocument, QuadletDocumentSet,
+    QuadletKey, QuadletUnitType, SectionKind, SystemdUnitKey, TypedEntry, UnitReferenceKind, ValueKind, VolumeKey,
 };
 use quadlet_lens::path::{PathForm, classify_path};
 use quadlet_lens::render::{
@@ -114,6 +116,52 @@ fn container_environment_plan_has_a_public_ordered_and_effective_construction_pa
             "Environment=\"FINAL=earlier\" \"FINAL=later\" \"EMPTY=\"\n",
         )
     );
+    Ok(())
+}
+
+#[test]
+fn authored_environment_and_optional_systemd_target_context_are_public() -> Result<(), Box<dyn std::error::Error>> {
+    let parsed = QuadletDocument::parse(
+        QuadletUnitType::Container,
+        SourceId::new(9_206),
+        "[Container]\nImage=example.invalid/application\nEnvironment=APP=literal BARE APP=%h\n",
+    )?;
+    let environment = parsed.document().container_environment();
+    assert!(matches!(
+        environment.directives()[0],
+        AuthoredContainerEnvironmentDirective::Assignment { ref name, .. } if name == "APP"
+    ));
+    assert_eq!(environment.get("APP"), AuthoredContainerEnvironmentValue::Deferred);
+    assert_eq!(environment.get("BARE"), AuthoredContainerEnvironmentValue::Deferred);
+
+    let target = PodmanTarget::new(PodmanVersion::new(6, 0, 2), Some(PodmanVersion::new(6, 0, 2)))?
+        .with_systemd_version(SystemdVersion::new(249));
+    assert_eq!(target.systemd_version(), Some(SystemdVersion::new(249)));
+    let evaluation = CapabilityCatalogue::supported_range()?.evaluate("systemd.unit.upholds", target);
+    assert_eq!(evaluation.classification(), SupportClassification::Native);
+    assert_eq!(
+        evaluation.evidence(),
+        [
+            "podman-6-0-2-systemd-unit-reference-rewrite",
+            "podman-5-4-through-current-systemd-unit-relationship-generators",
+        ]
+    );
+    assert_eq!(evaluation.systemd_evidence(), ["systemd-249-upholds"]);
+    let catalogue = CapabilityCatalogue::supported_range()?;
+    let upholds = catalogue
+        .capability("systemd.unit.upholds")
+        .ok_or("missing Upholds capability")?;
+    assert_eq!(upholds.systemd_evidence(), ["systemd-249-upholds"]);
+    let evidence = catalogue
+        .systemd_evidence()
+        .iter()
+        .find(|evidence| evidence.id() == "systemd-249-upholds")
+        .ok_or("missing Upholds systemd evidence")?;
+    assert_eq!(
+        evidence.versions(),
+        SystemdVersionRange::new(SystemdVersion::new(249), SystemdVersion::new(249), "public API")?
+    );
+    assert!(evidence.url().contains("/249/"));
     Ok(())
 }
 

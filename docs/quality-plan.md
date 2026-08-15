@@ -48,33 +48,41 @@ refresh the corresponding upstream license and any upstream NOTICE material (non
 current pinned tag). A changed prose description or value grammar without a key change is
 intentionally not detected by this phase.
 
-### 2. Complete value semantics and diagnostics
+### 2. Demand-driven value semantics and diagnostics
 
-Validate the remaining value forms, fallbacks, quoting, newlines, argument boundaries, resets, and
-cross-field constraints. Preserve raw source when Podman behavior varies. Diagnostics must remain
-source-aware and distinguish syntax acceptance, generator behavior, and runtime behavior.
+Admit a value-form parser, fallback, or cross-field constraint only when a concrete consumer and
+immutable evidence define its exact boundary. Preserve raw source when Podman behavior varies.
+Diagnostics remain source-aware and distinguish syntax acceptance, generator behavior, and runtime
+behavior; this is a maintenance rule, not a standing backlog item.
 
 The completed phase-2 environment slice includes one literal-assignment encoder, a non-empty group
 that joins only prevalidated assignments into one physical directive, an explicit blank reset
 directive, and a builder-owned ordered plan with per-name effective literal lookup. The plan covers
 group order, later-wins duplicates, reset clearing, empty values, opaque effective membership and
-cardinality, exact directive emission, and debug redaction. Percent/specifier behavior,
-authored-value parsing, continuations,
-environment-file or secret loading, manager/environment/runtime expansion, and argument parsing
-remain separate validation work.
+cardinality, exact directive emission, and debug redaction. The authored Container view additionally
+handles physical order, resets, literal assignments, bare names, documented quote/escape handling,
+continuations, and deferred `%` specifiers with recoverable `QLM0023`/`QLM0024` diagnostics.
+Recognized Container and Build environment values are redacted from repository-owned debug output,
+while explicit raw access and preservation rendering remain available. Environment-file/secret
+loading, manager/process/runtime expansion, generic command parsing, and a complete systemd token
+grammar remain explicitly deferred until a concrete use case supplies evidence.
 
 ### 3. Complete capability evidence
 
 Record introduction, change, deprecation, removal, known patch bugs, and required systemd versions
-for supported claims. Prioritize keys consumed by BoxFerry and observed compatibility boundaries;
-do not research every theoretical combination before it has a consumer or regression case.
+when new evidence or a consumer changes a supported claim. The optional systemd target context is
+complete for the sole reviewed `Upholds=` minimum (249); it is not a generic systemd catalogue,
+host probe, or distribution-backport mechanism. Its versioned systemd evidence remains separate
+from Podman generator and manual evidence.
 
 ### 4. Keep generator conformance focused
 
 Pull requests should run pure tests and a small pinned generator smoke lane covering the minimum,
 an important boundary, and the current supported release. The complete recorded generator matrix,
 selected rootless/rootful checks, and installed-generator verification remain scheduled or manual.
-Runtime tests are added only when dry-run generator output cannot establish the claimed behavior.
+Runtime tests are added only when dry-run generator output cannot establish the claimed behavior;
+installed-generator tooling and distribution overrides remain deferred until a concrete maintainer
+use case defines their contract.
 
 ### 5. Grow the real-world corpus selectively
 
