@@ -5,13 +5,13 @@
 //! values: callers are responsible for key-specific semantic validity, while future focused value
 //! encoders can provide stronger construction APIs without changing the document builder.
 
-use std::{error::Error, fmt};
+use std::{collections::BTreeSet, error::Error, fmt};
 
 use crate::{
     diagnostic::Diagnostic,
     model::{
-        BuildKey, ContainerKey, EntryKind, ImageKey, NetworkKey, PodKey, QuadletDocument, QuadletParseResult,
-        QuadletUnitType, SectionKind, TypedModelError, VolumeKey,
+        ArtifactKey, BuildKey, ContainerKey, EntryKind, ImageKey, KubeKey, NetworkKey, PodKey, QuadletDocument,
+        QuadletKey, QuadletParseResult, QuadletUnitType, SectionKind, SystemdUnitKey, TypedModelError, VolumeKey,
     },
     source::SourceId,
 };
@@ -44,6 +44,383 @@ impl EntryValue {
     pub fn as_str(&self) -> &str {
         &self.0
     }
+}
+
+/// One literal assignment for a container `Environment=` entry.
+///
+/// This focused construction boundary accepts one ASCII environment name and one literal
+/// single-line Unicode value. It writes the whole assignment in systemd double quotes and escapes
+/// only the quote and backslash characters required inside those quotes. It deliberately does not
+/// decode authored environment entries, expand specifiers, split assignment lists, apply resets,
+/// or interpret command arguments.
+#[derive(Clone, Eq, PartialEq)]
+pub struct EnvironmentAssignment {
+    name: String,
+    value: String,
+    rendered: String,
+}
+
+impl fmt::Debug for EnvironmentAssignment {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("EnvironmentAssignment")
+            .field("name", &self.name)
+            .field("value", &"<redacted environment value>")
+            .field("rendered", &"<redacted environment assignment>")
+            .finish()
+    }
+}
+
+impl EnvironmentAssignment {
+    /// Creates one literal `Environment=` assignment.
+    ///
+    /// The name must match ASCII `[A-Za-z_][A-Za-z0-9_]*`. The value may be empty, but rejects
+    /// NUL, physical line endings, other control characters, and `%` until specifier semantics
+    /// have focused evidence.
+    ///
+    /// # Errors
+    ///
+    /// Returns the category of invalid name or value in [`EnvironmentAssignmentError`].
+    pub fn new(name: impl Into<String>, value: impl Into<String>) -> Result<Self, EnvironmentAssignmentError> {
+        let name = name.into();
+        if !is_environment_name(&name) {
+            return Err(EnvironmentAssignmentError::InvalidName);
+        }
+
+        let value = value.into();
+        for character in value.chars() {
+            match character {
+                '\0' => return Err(EnvironmentAssignmentError::Nul),
+                '\r' => return Err(EnvironmentAssignmentError::CarriageReturn),
+                '\n' => return Err(EnvironmentAssignmentError::LineFeed),
+                '%' => return Err(EnvironmentAssignmentError::Specifier),
+                _ if character.is_control() => return Err(EnvironmentAssignmentError::ControlCharacter),
+                _ => {}
+            }
+        }
+
+        let escaped = value.replace('\\', "\\\\").replace('"', "\\\"");
+        let rendered = format!("\"{name}={escaped}\"");
+        Ok(Self { name, value, rendered })
+    }
+
+    /// Returns the validated assignment name.
+    #[must_use]
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Returns the exact literal value before systemd quoting.
+    #[must_use]
+    pub fn value(&self) -> &str {
+        &self.value
+    }
+
+    /// Returns the exact generated native `Environment=` value.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.rendered
+    }
+}
+
+impl From<EnvironmentAssignment> for EntryValue {
+    fn from(assignment: EnvironmentAssignment) -> Self {
+        Self(assignment.rendered)
+    }
+}
+
+/// One non-empty group of validated container `Environment=` assignments.
+///
+/// The group accepts only existing [`EnvironmentAssignment`] values, so it neither reparses nor
+/// revalidates names and literal values. It renders those already quoted whole assignments in
+/// insertion order, separated by one ASCII space, for one physical `Environment=` entry.
+#[derive(Clone, Eq, PartialEq)]
+pub struct EnvironmentAssignments {
+    assignments: Vec<EnvironmentAssignment>,
+    rendered: String,
+}
+
+impl fmt::Debug for EnvironmentAssignments {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("EnvironmentAssignments")
+            .field("assignment_count", &self.assignments.len())
+            .field("rendered", &"<redacted environment assignments>")
+            .finish()
+    }
+}
+
+impl EnvironmentAssignments {
+    /// Creates one non-empty group from validated assignments.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`EnvironmentAssignmentsError::Empty`] when no assignment is supplied.
+    pub fn new(
+        assignments: impl IntoIterator<Item = EnvironmentAssignment>,
+    ) -> Result<Self, EnvironmentAssignmentsError> {
+        let assignments: Vec<_> = assignments.into_iter().collect();
+        if assignments.is_empty() {
+            return Err(EnvironmentAssignmentsError::Empty);
+        }
+        let rendered = assignments
+            .iter()
+            .map(EnvironmentAssignment::as_str)
+            .collect::<Vec<_>>()
+            .join(" ");
+        Ok(Self { assignments, rendered })
+    }
+
+    /// Returns the validated assignments in their rendered order.
+    #[must_use]
+    pub fn assignments(&self) -> &[EnvironmentAssignment] {
+        &self.assignments
+    }
+
+    /// Iterates over the validated assignments in their rendered order.
+    #[must_use]
+    pub fn iter(&self) -> impl ExactSizeIterator<Item = &EnvironmentAssignment> {
+        self.assignments.iter()
+    }
+
+    /// Returns the exact generated native `Environment=` value.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.rendered
+    }
+}
+
+impl From<EnvironmentAssignments> for EntryValue {
+    fn from(assignments: EnvironmentAssignments) -> Self {
+        Self(assignments.rendered)
+    }
+}
+
+/// An explicit empty container `Environment=` directive.
+///
+/// This zero-sized marker emits one blank physical native value. It does not decode authored
+/// values, apply the target's reset behavior, select effective variables, or inspect an
+/// environment.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct EnvironmentReset {
+    _private: (),
+}
+
+impl EnvironmentReset {
+    /// Creates an explicit blank `Environment=` directive.
+    #[must_use]
+    pub const fn new() -> Self {
+        Self { _private: () }
+    }
+
+    /// Returns the exact generated native value: an empty string.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        ""
+    }
+}
+
+impl From<EnvironmentReset> for EntryValue {
+    fn from(_: EnvironmentReset) -> Self {
+        Self(String::new())
+    }
+}
+
+/// One validated physical container `Environment=` directive in a generation plan.
+#[derive(Clone, Eq, PartialEq)]
+#[non_exhaustive]
+pub enum ContainerEnvironmentDirective {
+    /// One independently emitted literal assignment.
+    Assignment(EnvironmentAssignment),
+    /// One physical directive containing a non-empty ordered assignment group.
+    Assignments(EnvironmentAssignments),
+    /// One blank directive that resets the effective literal projection.
+    Reset(EnvironmentReset),
+}
+
+impl fmt::Debug for ContainerEnvironmentDirective {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Assignment(_) => formatter.write_str("Assignment(<redacted environment assignment>)"),
+            Self::Assignments(assignments) => formatter
+                .debug_struct("Assignments")
+                .field("assignment_count", &assignments.assignments.len())
+                .field("values", &"<redacted environment assignments>")
+                .finish(),
+            Self::Reset(_) => formatter.write_str("Reset"),
+        }
+    }
+}
+
+/// Ordered, builder-owned container environment directives and their effective literal lookup.
+///
+/// The plan preserves every physical directive in insertion order. Its effective projection is
+/// intentionally available only through explicit name lookup and opaque membership/count helpers:
+/// groups apply left-to-right,
+/// later names win, a reset clears earlier names, and an empty value remains `Some("")`.
+/// Authored parsing, systemd specifier/continuation handling, manager expansion, environment-file
+/// loading, secret lookup, and runtime behavior remain outside this construction API.
+#[derive(Clone, Default, Eq, PartialEq)]
+pub struct ContainerEnvironmentPlan {
+    directives: Vec<ContainerEnvironmentDirective>,
+}
+
+impl ContainerEnvironmentPlan {
+    /// Creates an empty environment plan.
+    #[must_use]
+    pub const fn new() -> Self {
+        Self { directives: Vec::new() }
+    }
+
+    /// Appends one independently emitted literal assignment.
+    pub fn push_assignment(&mut self, assignment: EnvironmentAssignment) {
+        self.directives
+            .push(ContainerEnvironmentDirective::Assignment(assignment));
+    }
+
+    /// Appends one physical directive containing a non-empty ordered assignment group.
+    pub fn push_assignments(&mut self, assignments: EnvironmentAssignments) {
+        self.directives
+            .push(ContainerEnvironmentDirective::Assignments(assignments));
+    }
+
+    /// Appends one blank reset directive.
+    pub fn push_reset(&mut self) {
+        self.directives
+            .push(ContainerEnvironmentDirective::Reset(EnvironmentReset::new()));
+    }
+
+    /// Returns the original physical directives in insertion order.
+    #[must_use]
+    pub fn directives(&self) -> &[ContainerEnvironmentDirective] {
+        &self.directives
+    }
+
+    /// Returns the effective literal value for one explicitly requested name.
+    ///
+    /// This projection does not expose map iteration order. It applies only the validated literal
+    /// assignments owned by this plan and does not inspect authored directives or the environment.
+    #[must_use]
+    pub fn get(&self, name: &str) -> Option<&str> {
+        let mut effective = None;
+        for directive in &self.directives {
+            match directive {
+                ContainerEnvironmentDirective::Assignment(assignment) => {
+                    if assignment.name() == name {
+                        effective = Some(assignment.value());
+                    }
+                }
+                ContainerEnvironmentDirective::Assignments(assignments) => {
+                    for assignment in assignments.iter() {
+                        if assignment.name() == name {
+                            effective = Some(assignment.value());
+                        }
+                    }
+                }
+                ContainerEnvironmentDirective::Reset(_) => effective = None,
+            }
+        }
+        effective
+    }
+
+    /// Reports whether one explicitly requested name is present in the effective projection.
+    #[must_use]
+    pub fn contains(&self, name: &str) -> bool {
+        self.get(name).is_some()
+    }
+
+    /// Returns the number of distinct names in the effective literal projection.
+    ///
+    /// This count exposes no name or iteration-order API. Use [`Self::directives`] when the number
+    /// of physical directives is required.
+    #[must_use]
+    pub fn len(&self) -> usize {
+        let mut names = BTreeSet::new();
+        for directive in &self.directives {
+            match directive {
+                ContainerEnvironmentDirective::Assignment(assignment) => {
+                    names.insert(assignment.name());
+                }
+                ContainerEnvironmentDirective::Assignments(assignments) => {
+                    names.extend(assignments.iter().map(EnvironmentAssignment::name));
+                }
+                ContainerEnvironmentDirective::Reset(_) => names.clear(),
+            }
+        }
+        names.len()
+    }
+
+    /// Reports whether the effective literal projection contains no names.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+}
+
+impl fmt::Debug for ContainerEnvironmentPlan {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("ContainerEnvironmentPlan")
+            .field("directives", &self.directives)
+            .finish()
+    }
+}
+
+/// Invalid construction of [`EnvironmentAssignments`].
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[non_exhaustive]
+pub enum EnvironmentAssignmentsError {
+    /// A grouped `Environment=` entry requires at least one assignment.
+    Empty,
+}
+
+impl fmt::Display for EnvironmentAssignmentsError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Empty => formatter.write_str("an environment assignment group must not be empty"),
+        }
+    }
+}
+
+impl Error for EnvironmentAssignmentsError {}
+
+/// Invalid input to [`EnvironmentAssignment::new`].
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[non_exhaustive]
+pub enum EnvironmentAssignmentError {
+    /// The assignment name does not match ASCII `[A-Za-z_][A-Za-z0-9_]*`.
+    InvalidName,
+    /// The literal value contains a NUL byte.
+    Nul,
+    /// The literal value contains a carriage return.
+    CarriageReturn,
+    /// The literal value contains a line feed.
+    LineFeed,
+    /// The literal value contains another Unicode control character.
+    ControlCharacter,
+    /// The literal value contains a systemd specifier introducer.
+    Specifier,
+}
+
+impl fmt::Display for EnvironmentAssignmentError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidName => formatter.write_str("environment names must match ASCII [A-Za-z_][A-Za-z0-9_]*"),
+            Self::Nul => formatter.write_str("environment values must not contain NUL bytes"),
+            Self::CarriageReturn => formatter.write_str("environment values must not contain carriage returns"),
+            Self::LineFeed => formatter.write_str("environment values must not contain line feeds"),
+            Self::ControlCharacter => formatter.write_str("environment values must not contain control characters"),
+            Self::Specifier => formatter.write_str("environment values must not contain systemd specifiers"),
+        }
+    }
+}
+
+impl Error for EnvironmentAssignmentError {}
+
+fn is_environment_name(name: &str) -> bool {
+    let mut bytes = name.bytes();
+    matches!(bytes.next(), Some(byte) if byte.is_ascii_alphabetic() || byte == b'_')
+        && bytes.all(|byte| byte.is_ascii_alphanumeric() || byte == b'_')
 }
 
 /// Safely constructible process-ID limit for a container.
@@ -288,28 +665,6 @@ pub enum SystemdSection {
     Install,
 }
 
-/// Evidence-backed dependency and ordering directives in a generic systemd `[Unit]` section.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[non_exhaustive]
-pub enum SystemdUnitKey {
-    /// Strong requirement that also pulls the referenced unit into the transaction.
-    Requires,
-    /// Weak requirement that does not fail this unit when the referenced unit fails.
-    Wants,
-    /// Orders this unit after the referenced unit without pulling it into the transaction.
-    After,
-}
-
-impl SystemdUnitKey {
-    const fn name(self) -> &'static str {
-        match self {
-            Self::Requires => "Requires",
-            Self::Wants => "Wants",
-            Self::After => "After",
-        }
-    }
-}
-
 impl SystemdSection {
     const fn kind(self) -> SectionKind {
         match self {
@@ -403,6 +758,76 @@ impl QuadletDocumentBuilder {
         )
     }
 
+    /// Appends one focused literal container `Environment=` assignment.
+    ///
+    /// This convenience method is equivalent to passing an [`EnvironmentAssignment`] converted
+    /// into [`EntryValue`] to [`Self::push_container`]. Repetition remains native and ordered.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RenderError::WrongUnitType`] for a non-container document.
+    pub fn push_container_environment(&mut self, assignment: EnvironmentAssignment) -> Result<(), RenderError> {
+        self.push_container(ContainerKey::Environment, assignment.into())
+    }
+
+    /// Appends one focused group of literal container `Environment=` assignments.
+    ///
+    /// One call emits one physical native entry. The group's validated assignments remain in
+    /// order inside that entry; repeated calls remain native and ordered relative to single
+    /// assignment calls and other container directives.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RenderError::WrongUnitType`] for a non-container document.
+    pub fn push_container_environment_assignments(
+        &mut self,
+        assignments: EnvironmentAssignments,
+    ) -> Result<(), RenderError> {
+        self.push_container(ContainerKey::Environment, assignments.into())
+    }
+
+    /// Appends one explicit blank container `Environment=` directive.
+    ///
+    /// The directive stays at this call position. This method does not apply reset behavior or
+    /// inspect effective environment values.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RenderError::WrongUnitType`] for a non-container document.
+    pub fn push_container_environment_reset(&mut self) -> Result<(), RenderError> {
+        self.push_container(ContainerKey::Environment, EnvironmentReset::new().into())
+    }
+
+    /// Appends every physical directive from a validated container environment plan.
+    ///
+    /// Assignment, group, and reset directives retain their original order and grouping. The
+    /// builder does not emit the plan's effective projection or otherwise combine directives.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RenderError::WrongUnitType`] for a non-container document. In that case no plan
+    /// directive is appended.
+    pub fn push_container_environment_plan(&mut self, plan: &ContainerEnvironmentPlan) -> Result<(), RenderError> {
+        if self.unit_type != QuadletUnitType::Container {
+            return Err(RenderError::WrongUnitType {
+                document: self.unit_type,
+                entry: QuadletUnitType::Container,
+            });
+        }
+        for directive in plan.directives() {
+            match directive {
+                ContainerEnvironmentDirective::Assignment(assignment) => {
+                    self.push_container_environment(assignment.clone())?;
+                }
+                ContainerEnvironmentDirective::Assignments(assignments) => {
+                    self.push_container_environment_assignments(assignments.clone())?;
+                }
+                ContainerEnvironmentDirective::Reset(_) => self.push_container_environment_reset()?,
+            }
+        }
+        Ok(())
+    }
+
     /// Appends a typed `[Pod]` entry.
     ///
     /// # Errors
@@ -474,7 +899,7 @@ impl QuadletDocumentBuilder {
 
     /// Appends a typed `[Image]` entry.
     ///
-    /// `ContainersConfModule` and `GlobalArgs` entries remain repeatable and ordered. All other Image keys, including `OS`, are
+    /// `ContainersConfModule`, `GlobalArgs`, and `PodmanArgs` entries remain repeatable and ordered. All other Image keys, including `OS`, are
     /// singletons. `Creds` and `DecryptionKey` are debug-redacted after key assignment, while
     /// explicit rendering and raw-value access remain exact. Values are exact physical-line-safe
     /// native text and are not interpreted by the builder; it does not read paths or modules, parse configuration,
@@ -490,6 +915,68 @@ impl QuadletDocumentBuilder {
             SectionKind::Image,
             EntryKind::Image(key),
             image_key_name(key),
+            value,
+        )
+    }
+
+    /// Appends a typed `[Kube]` entry.
+    ///
+    /// `AutoUpdate`, `ConfigMap`, `ContainersConfModule`, `GlobalArgs`, `LogOpt`, `RemapGid`,
+    /// `RemapUid`, `Network`,
+    /// `PodmanArgs`, `PublishPort`, and required `Yaml` entries remain repeatable and ordered. All other Kube keys are
+    /// singletons. Values are exact physical-line-safe native text; this builder neither reads
+    /// files nor parses Kubernetes YAML, Podman arguments, ports, paths, or runtime behavior.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RenderError::WrongUnitType`] for a non-Kube document,
+    /// [`RenderError::DuplicateSingleton`] for a repeated singleton Kube key, or
+    /// [`RenderError::InvalidDocument`] when no nonblank required `Yaml=` source is present.
+    pub fn push_kube(&mut self, key: KubeKey, value: EntryValue) -> Result<(), RenderError> {
+        self.push_native(
+            QuadletUnitType::Kube,
+            SectionKind::Kube,
+            EntryKind::Kube(key),
+            kube_key_name(key),
+            value,
+        )
+    }
+
+    /// Appends a typed experimental `[Artifact]` entry.
+    ///
+    /// `ContainersConfModule`, `GlobalArgs`, and `PodmanArgs` entries remain repeatable and
+    /// ordered. The required `Artifact` source and every other Artifact key are singletons.
+    /// `Creds` and `DecryptionKey` are redacted only from repository-owned debug output;
+    /// rendering and explicit raw-value access remain exact. Values remain physical-line-safe
+    /// opaque native text: this builder does not access a registry or filesystem, parse
+    /// credentials, select retry defaults, or perform an artifact pull.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RenderError::WrongUnitType`] for a non-artifact document,
+    /// [`RenderError::DuplicateSingleton`] for a repeated singleton key, or
+    /// [`RenderError::InvalidDocument`] when the required final `Artifact=` source is absent or
+    /// blank at build time.
+    pub fn push_artifact(&mut self, key: ArtifactKey, value: EntryValue) -> Result<(), RenderError> {
+        self.push_native(
+            QuadletUnitType::Artifact,
+            SectionKind::Artifact,
+            EntryKind::Artifact(key),
+            artifact_key_name(key),
+            value,
+        )
+    }
+
+    /// Appends a shared `[Quadlet]` entry to any Quadlet unit type.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RenderError::DuplicateSingleton`] when `DefaultDependencies=` is repeated.
+    pub fn push_quadlet(&mut self, key: QuadletKey, value: EntryValue) -> Result<(), RenderError> {
+        self.push_generated(
+            SectionKind::Quadlet,
+            EntryKind::Quadlet(key),
+            quadlet_key_name(key),
             value,
         )
     }
@@ -532,7 +1019,7 @@ impl QuadletDocumentBuilder {
     ///
     /// Returns the same errors as [`Self::push_systemd`].
     pub fn push_systemd_unit(&mut self, key: SystemdUnitKey, value: EntryValue) -> Result<(), RenderError> {
-        self.push_systemd(SystemdSection::Unit, key.name(), value)
+        self.push_generated(SectionKind::Unit, EntryKind::SystemdUnit(key), key.name(), value)
     }
 
     /// Renders, reparses, and validates the complete generated document.
@@ -566,6 +1053,16 @@ impl QuadletDocumentBuilder {
                 entry: required,
             });
         }
+        self.push_generated(section, kind, key, value)
+    }
+
+    fn push_generated(
+        &mut self,
+        section: SectionKind,
+        kind: EntryKind,
+        key: &str,
+        value: EntryValue,
+    ) -> Result<(), RenderError> {
         if !kind.is_repeatable() && self.entries.iter().any(|entry| entry.kind == kind) {
             return Err(RenderError::DuplicateSingleton(key.to_owned()));
         }
@@ -580,7 +1077,13 @@ impl QuadletDocumentBuilder {
 
     fn render_text(&self) -> String {
         let native = self.unit_type.native_section();
-        let sections = [SectionKind::Unit, native, SectionKind::Service, SectionKind::Install];
+        let sections = [
+            SectionKind::Unit,
+            SectionKind::Quadlet,
+            native,
+            SectionKind::Service,
+            SectionKind::Install,
+        ];
         let mut output = String::new();
         let mut wrote_section = false;
 
@@ -781,6 +1284,33 @@ const fn container_key_name(key: ContainerKey) -> &'static str {
         ContainerKey::NetworkAlias => "NetworkAlias",
         ContainerKey::ReloadCmd => "ReloadCmd",
         ContainerKey::ReloadSignal => "ReloadSignal",
+        ContainerKey::AutoUpdate => "AutoUpdate",
+        ContainerKey::CgroupsMode => "CgroupsMode",
+        ContainerKey::EnvironmentHost => "EnvironmentHost",
+        ContainerKey::GIDMap => "GIDMap",
+        ContainerKey::HttpProxy => "HttpProxy",
+        ContainerKey::Mount => "Mount",
+        ContainerKey::ReadOnlyTmpfs => "ReadOnlyTmpfs",
+        ContainerKey::Retry => "Retry",
+        ContainerKey::RetryDelay => "RetryDelay",
+        ContainerKey::StartWithPod => "StartWithPod",
+        ContainerKey::SubGIDMap => "SubGIDMap",
+        ContainerKey::SubUIDMap => "SubUIDMap",
+        ContainerKey::Timezone => "Timezone",
+        ContainerKey::UIDMap => "UIDMap",
+        ContainerKey::HealthOnFailure => "HealthOnFailure",
+        ContainerKey::ContainersConfModule => "ContainersConfModule",
+        ContainerKey::GlobalArgs => "GlobalArgs",
+        ContainerKey::HealthLogDestination => "HealthLogDestination",
+        ContainerKey::HealthMaxLogCount => "HealthMaxLogCount",
+        ContainerKey::HealthMaxLogSize => "HealthMaxLogSize",
+        ContainerKey::HealthStartupCmd => "HealthStartupCmd",
+        ContainerKey::HealthStartupInterval => "HealthStartupInterval",
+        ContainerKey::HealthStartupRetries => "HealthStartupRetries",
+        ContainerKey::HealthStartupSuccess => "HealthStartupSuccess",
+        ContainerKey::HealthStartupTimeout => "HealthStartupTimeout",
+        ContainerKey::ImageVolume => "ImageVolume",
+        ContainerKey::ServiceName => "ServiceName",
     }
 }
 
@@ -831,6 +1361,60 @@ const fn image_key_name(key: ImageKey) -> &'static str {
         ImageKey::DecryptionKey => "DecryptionKey",
         ImageKey::GlobalArgs => "GlobalArgs",
         ImageKey::OS => "OS",
+        ImageKey::PodmanArgs => "PodmanArgs",
+        ImageKey::Policy => "Policy",
+        ImageKey::Retry => "Retry",
+        ImageKey::RetryDelay => "RetryDelay",
+        ImageKey::TLSVerify => "TLSVerify",
+        ImageKey::Variant => "Variant",
+    }
+}
+
+const fn kube_key_name(key: KubeKey) -> &'static str {
+    match key {
+        KubeKey::AutoUpdate => "AutoUpdate",
+        KubeKey::ConfigMap => "ConfigMap",
+        KubeKey::ContainersConfModule => "ContainersConfModule",
+        KubeKey::ExitCodePropagation => "ExitCodePropagation",
+        KubeKey::GlobalArgs => "GlobalArgs",
+        KubeKey::KubeDownForce => "KubeDownForce",
+        KubeKey::LogDriver => "LogDriver",
+        KubeKey::Network => "Network",
+        KubeKey::PodmanArgs => "PodmanArgs",
+        KubeKey::PublishPort => "PublishPort",
+        KubeKey::ServiceName => "ServiceName",
+        KubeKey::SetWorkingDirectory => "SetWorkingDirectory",
+        KubeKey::UserNS => "UserNS",
+        KubeKey::Yaml => "Yaml",
+        KubeKey::LogOpt => "LogOpt",
+        KubeKey::RemapGid => "RemapGid",
+        KubeKey::RemapUid => "RemapUid",
+        KubeKey::RemapUidSize => "RemapUidSize",
+        KubeKey::RemapUsers => "RemapUsers",
+    }
+}
+
+const fn artifact_key_name(key: ArtifactKey) -> &'static str {
+    match key {
+        ArtifactKey::Artifact => "Artifact",
+        ArtifactKey::AuthFile => "AuthFile",
+        ArtifactKey::CertDir => "CertDir",
+        ArtifactKey::Creds => "Creds",
+        ArtifactKey::DecryptionKey => "DecryptionKey",
+        ArtifactKey::Quiet => "Quiet",
+        ArtifactKey::Retry => "Retry",
+        ArtifactKey::RetryDelay => "RetryDelay",
+        ArtifactKey::ServiceName => "ServiceName",
+        ArtifactKey::TLSVerify => "TLSVerify",
+        ArtifactKey::ContainersConfModule => "ContainersConfModule",
+        ArtifactKey::GlobalArgs => "GlobalArgs",
+        ArtifactKey::PodmanArgs => "PodmanArgs",
+    }
+}
+
+const fn quadlet_key_name(key: QuadletKey) -> &'static str {
+    match key {
+        QuadletKey::DefaultDependencies => "DefaultDependencies",
     }
 }
 
@@ -846,6 +1430,21 @@ const fn pod_key_name(key: PodKey) -> &'static str {
         PodKey::ExitPolicy => "ExitPolicy",
         PodKey::StopTimeout => "StopTimeout",
         PodKey::ServiceName => "ServiceName",
+        PodKey::ContainersConfModule => "ContainersConfModule",
+        PodKey::DNS => "DNS",
+        PodKey::DNSOption => "DNSOption",
+        PodKey::DNSSearch => "DNSSearch",
+        PodKey::GIDMap => "GIDMap",
+        PodKey::GlobalArgs => "GlobalArgs",
+        PodKey::HostName => "HostName",
+        PodKey::IP => "IP",
+        PodKey::IP6 => "IP6",
+        PodKey::Label => "Label",
+        PodKey::NetworkAlias => "NetworkAlias",
+        PodKey::PodmanArgs => "PodmanArgs",
+        PodKey::SubGIDMap => "SubGIDMap",
+        PodKey::SubUIDMap => "SubUIDMap",
+        PodKey::UIDMap => "UIDMap",
     }
 }
 
@@ -861,6 +1460,14 @@ const fn network_key_name(key: NetworkKey) -> &'static str {
         NetworkKey::Gateway => "Gateway",
         NetworkKey::IPRange => "IPRange",
         NetworkKey::Label => "Label",
+        NetworkKey::ContainersConfModule => "ContainersConfModule",
+        NetworkKey::DisableDNS => "DisableDNS",
+        NetworkKey::DNS => "DNS",
+        NetworkKey::GlobalArgs => "GlobalArgs",
+        NetworkKey::InterfaceName => "InterfaceName",
+        NetworkKey::NetworkDeleteOnStop => "NetworkDeleteOnStop",
+        NetworkKey::PodmanArgs => "PodmanArgs",
+        NetworkKey::ServiceName => "ServiceName",
     }
 }
 
@@ -894,6 +1501,9 @@ const fn section_name(section: SectionKind) -> &'static str {
         SectionKind::Volume => "Volume",
         SectionKind::Build => "Build",
         SectionKind::Image => "Image",
+        SectionKind::Kube => "Kube",
+        SectionKind::Artifact => "Artifact",
+        SectionKind::Quadlet => "Quadlet",
         SectionKind::Service => "Service",
         SectionKind::Install => "Install",
         SectionKind::Unknown => "Unknown",

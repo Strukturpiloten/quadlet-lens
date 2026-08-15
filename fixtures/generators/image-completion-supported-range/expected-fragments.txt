@@ -1,0 +1,10 @@
+---image-completion-image.service---
+ExecStart=/usr/bin/podman image pull
+--policy newer
+--retry 4
+--retry-delay 7s
+--tls-verify=false
+--variant v8
+--all-tags
+--format oci
+example.invalid/quadlet-lens-image-completion:latest

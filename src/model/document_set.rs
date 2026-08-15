@@ -6,7 +6,10 @@ use std::{error::Error, fmt};
 use crate::diagnostic::{Diagnostic, DiagnosticCode, Label, Severity};
 use crate::source::{SourceId, SourceSpan};
 
-use super::{QuadletDocument, QuadletUnitType, UnitReferenceKind, ValueKind};
+use super::{
+    EntryKind, QuadletDocument, QuadletUnitType, SystemdUnitKey, TypedEntry, UnitReferenceKind, ValueKind,
+    reference_by_suffix,
+};
 
 const MISSING_REFERENCE: DiagnosticCode = DiagnosticCode::new("QLG0001");
 const AMBIGUOUS_REFERENCE: DiagnosticCode = DiagnosticCode::new("QLG0002");
@@ -131,6 +134,7 @@ pub struct UnitReference {
     source_document: usize,
     target_name: String,
     kind: UnitReferenceKind,
+    systemd_unit_key: Option<SystemdUnitKey>,
     span: SourceSpan,
     resolution: ReferenceResolution,
 }
@@ -154,6 +158,15 @@ impl UnitReference {
         self.kind
     }
 
+    /// Returns the `[Unit]` relationship that authored this reference.
+    ///
+    /// Native-section references return `None` because their relationship is implied by their
+    /// native Quadlet key rather than a generic systemd directive.
+    #[must_use]
+    pub const fn systemd_unit_key(&self) -> Option<SystemdUnitKey> {
+        self.systemd_unit_key
+    }
+
     /// Returns the authored value span containing the reference.
     #[must_use]
     pub const fn span(&self) -> SourceSpan {
@@ -173,6 +186,7 @@ pub struct DependencyEdge {
     source_document: usize,
     target_document: usize,
     kind: UnitReferenceKind,
+    systemd_unit_key: Option<SystemdUnitKey>,
     span: SourceSpan,
 }
 
@@ -193,6 +207,12 @@ impl DependencyEdge {
     #[must_use]
     pub const fn kind(self) -> UnitReferenceKind {
         self.kind
+    }
+
+    /// Returns the `[Unit]` relationship that authored this edge.
+    #[must_use]
+    pub const fn systemd_unit_key(self) -> Option<SystemdUnitKey> {
+        self.systemd_unit_key
     }
 
     /// Returns the source span that created this edge.
@@ -271,53 +291,31 @@ impl QuadletDocumentSet {
                 let Some(target_name) = entry.unit_reference_name() else {
                     continue;
                 };
-                let candidates = by_name.get(target_name).map_or(&[][..], Vec::as_slice);
-                let resolution = match candidates {
-                    [] => {
-                        diagnostics.push(Diagnostic::new(
-                            MISSING_REFERENCE,
-                            Severity::Error,
-                            "Quadlet unit reference has no matching document",
-                            Label::new(
-                                entry.value().primary().span(),
-                                "add the referenced unit file to this document set",
-                            ),
-                        ));
-                        ReferenceResolution::Missing
-                    }
-                    [target_document] => {
-                        edges.push(DependencyEdge {
-                            source_document,
-                            target_document: *target_document,
-                            kind,
-                            span: entry.value().primary().span(),
-                        });
-                        ReferenceResolution::Resolved {
-                            document_index: *target_document,
-                        }
-                    }
-                    multiple => {
-                        diagnostics.push(Diagnostic::new(
-                            AMBIGUOUS_REFERENCE,
-                            Severity::Error,
-                            "Quadlet unit reference matches multiple documents",
-                            Label::new(
-                                entry.value().primary().span(),
-                                "make unit-file basenames unique in this document set",
-                            ),
-                        ));
-                        ReferenceResolution::Ambiguous {
-                            candidates: multiple.len(),
-                        }
-                    }
-                };
-                references.push(UnitReference {
+                resolve_reference(
                     source_document,
-                    target_name: target_name.to_owned(),
+                    target_name.to_owned(),
                     kind,
-                    span: entry.value().primary().span(),
-                    resolution,
-                });
+                    None,
+                    entry.value().primary().span(),
+                    &by_name,
+                    &mut diagnostics,
+                    &mut references,
+                    &mut edges,
+                );
+            }
+
+            for reference in effective_systemd_unit_references(named_document.document()) {
+                resolve_reference(
+                    source_document,
+                    reference.target_name,
+                    reference.kind,
+                    Some(reference.key),
+                    reference.span,
+                    &by_name,
+                    &mut diagnostics,
+                    &mut references,
+                    &mut edges,
+                );
             }
         }
 
@@ -366,6 +364,171 @@ impl QuadletDocumentSet {
         let first = matching.next()?;
         matching.next().is_none().then_some(first)
     }
+}
+
+#[derive(Debug)]
+struct SystemdRelationshipReference {
+    target_name: String,
+    kind: UnitReferenceKind,
+    key: SystemdUnitKey,
+    span: SourceSpan,
+}
+
+fn effective_systemd_unit_references(document: &QuadletDocument) -> Vec<SystemdRelationshipReference> {
+    let mut references: Vec<SystemdRelationshipReference> = Vec::new();
+    for entry in document.entries() {
+        let EntryKind::SystemdUnit(key) = entry.kind() else {
+            continue;
+        };
+        let Some(value) = logical_entry_value(entry) else {
+            continue;
+        };
+        if value.trim().is_empty() {
+            references.retain(|reference| reference.key != key);
+            continue;
+        }
+        let Some(tokens) = systemd_unit_tokens(&value) else {
+            continue;
+        };
+        references.extend(tokens.into_iter().filter_map(|target_name| {
+            let kind = reference_by_suffix(&target_name)?;
+            Some(SystemdRelationshipReference {
+                target_name,
+                kind,
+                key,
+                span: entry.value().primary().span(),
+            })
+        }));
+    }
+    references
+}
+
+fn logical_entry_value(entry: &TypedEntry) -> Option<String> {
+    let mut logical = String::new();
+    let segments = std::iter::once(entry.value().primary())
+        .chain(entry.value().continuations())
+        .collect::<Vec<_>>();
+    if entry.value().is_continued() && segments.last().is_none_or(|segment| segment.text().ends_with('\\')) {
+        return None;
+    }
+    for (index, segment) in segments.iter().enumerate() {
+        if !logical.is_empty() {
+            logical.push(' ');
+        }
+        let value = segment.text().trim_end();
+        let value = if index + 1 < segments.len() {
+            value.strip_suffix('\\').unwrap_or(value)
+        } else {
+            value
+        };
+        logical.push_str(value);
+    }
+    Some(logical)
+}
+
+/// Splits the systemd unit-list subset used by relationship directives.
+///
+/// Quotes and backslash escapes group whitespace without changing the authored document. A
+/// malformed unterminated quote or escape produces no graph claims for that physical entry.
+fn systemd_unit_tokens(value: &str) -> Option<Vec<String>> {
+    let mut tokens = Vec::new();
+    let mut token = String::new();
+    let mut quote = None;
+    let mut escaped = false;
+    let mut started = false;
+
+    for character in value.chars() {
+        if escaped {
+            token.push(character);
+            escaped = false;
+            started = true;
+        } else if character == '\\' {
+            escaped = true;
+            started = true;
+        } else if matches!(character, '\'' | '"') {
+            if quote == Some(character) {
+                quote = None;
+            } else if quote.is_none() {
+                quote = Some(character);
+            } else {
+                token.push(character);
+            }
+            started = true;
+        } else if character.is_whitespace() && quote.is_none() {
+            if started {
+                tokens.push(std::mem::take(&mut token));
+                started = false;
+            }
+        } else {
+            token.push(character);
+            started = true;
+        }
+    }
+
+    if escaped || quote.is_some() {
+        return None;
+    }
+    if started {
+        tokens.push(token);
+    }
+    Some(tokens)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn resolve_reference(
+    source_document: usize,
+    target_name: String,
+    kind: UnitReferenceKind,
+    systemd_unit_key: Option<SystemdUnitKey>,
+    span: SourceSpan,
+    by_name: &BTreeMap<String, Vec<usize>>,
+    diagnostics: &mut Vec<Diagnostic>,
+    references: &mut Vec<UnitReference>,
+    edges: &mut Vec<DependencyEdge>,
+) {
+    let candidates = by_name.get(&target_name).map_or(&[][..], Vec::as_slice);
+    let resolution = match candidates {
+        [] => {
+            diagnostics.push(Diagnostic::new(
+                MISSING_REFERENCE,
+                Severity::Error,
+                "Quadlet unit reference has no matching document",
+                Label::new(span, "add the referenced unit file to this document set"),
+            ));
+            ReferenceResolution::Missing
+        }
+        [target_document] => {
+            edges.push(DependencyEdge {
+                source_document,
+                target_document: *target_document,
+                kind,
+                systemd_unit_key,
+                span,
+            });
+            ReferenceResolution::Resolved {
+                document_index: *target_document,
+            }
+        }
+        multiple => {
+            diagnostics.push(Diagnostic::new(
+                AMBIGUOUS_REFERENCE,
+                Severity::Error,
+                "Quadlet unit reference matches multiple documents",
+                Label::new(span, "make unit-file basenames unique in this document set"),
+            ));
+            ReferenceResolution::Ambiguous {
+                candidates: multiple.len(),
+            }
+        }
+    };
+    references.push(UnitReference {
+        source_document,
+        target_name,
+        kind,
+        systemd_unit_key,
+        span,
+        resolution,
+    });
 }
 
 /// Invalid filename/document metadata that prevents safe document-set construction.

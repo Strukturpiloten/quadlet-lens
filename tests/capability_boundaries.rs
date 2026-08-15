@@ -1,8 +1,8 @@
 //! Positive and negative public capability-schema boundary tests.
 
 use quadlet_lens::capability::{
-    CapabilityCatalogue, CatalogueError, PodmanTarget, PodmanVersion, SupportClassification, VerificationLevel,
-    VersionRange,
+    CapabilityCatalogue, CatalogueError, PodmanTarget, PodmanVersion, SupportClassification, SystemdVersion,
+    SystemdVersionRange, VerificationLevel, VersionRange,
 };
 
 #[test]
@@ -73,6 +73,120 @@ fn podman_versions_ranges_and_targets_reject_ambiguous_or_inverted_input() {
         PodmanTarget::new(PodmanVersion::new(6, 0, 2), Some(PodmanVersion::new(5, 4, 0))),
         Err(CatalogueError::InvalidRange(field)) if field == "target"
     ));
+}
+
+#[test]
+fn systemd_target_context_is_opt_in_and_only_gates_evidence_backed_upholds() -> Result<(), String> {
+    let catalogue = CapabilityCatalogue::supported_range().map_err(|error| error.to_string())?;
+    let podman = PodmanTarget::new(PodmanVersion::new(6, 0, 2), Some(PodmanVersion::new(6, 0, 2)))
+        .map_err(|error| error.to_string())?;
+    assert_eq!(podman.systemd_version(), None);
+    let without_systemd = catalogue.evaluate("systemd.unit.upholds", podman);
+    assert_eq!(without_systemd.classification(), SupportClassification::Unknown);
+    assert_eq!(
+        without_systemd.evidence(),
+        [
+            "podman-6-0-2-systemd-unit-reference-rewrite",
+            "podman-5-4-through-current-systemd-unit-relationship-generators",
+        ]
+    );
+    assert_eq!(without_systemd.systemd_evidence(), ["systemd-249-upholds"]);
+    let older = podman.with_systemd_version(SystemdVersion::new(248));
+    assert_eq!(older.systemd_version(), Some(SystemdVersion::new(248)));
+    let too_old = catalogue.evaluate("systemd.unit.upholds", older);
+    assert_eq!(too_old.classification(), SupportClassification::Unsupported);
+    assert_eq!(
+        too_old.evidence(),
+        [
+            "podman-6-0-2-systemd-unit-reference-rewrite",
+            "podman-5-4-through-current-systemd-unit-relationship-generators",
+        ]
+    );
+    assert_eq!(too_old.systemd_evidence(), ["systemd-249-upholds"]);
+    let supported = podman.with_systemd_version(
+        "249"
+            .parse()
+            .map_err(|error: quadlet_lens::capability::SystemdVersionParseError| error.to_string())?,
+    );
+    let sufficient = catalogue.evaluate("systemd.unit.upholds", supported);
+    assert_eq!(sufficient.classification(), SupportClassification::Native);
+    assert_eq!(
+        sufficient.evidence(),
+        [
+            "podman-6-0-2-systemd-unit-reference-rewrite",
+            "podman-5-4-through-current-systemd-unit-relationship-generators",
+        ]
+    );
+    assert_eq!(sufficient.systemd_evidence(), ["systemd-249-upholds"]);
+    let requires = catalogue.evaluate("systemd.unit.requires", podman);
+    assert_eq!(requires.classification(), SupportClassification::Native);
+    assert!(requires.systemd_evidence().is_empty());
+    let out_of_coverage = catalogue.evaluate(
+        "systemd.unit.upholds",
+        PodmanTarget::new(PodmanVersion::new(6, 0, 3), Some(PodmanVersion::new(6, 0, 3)))
+            .map_err(|error| error.to_string())?
+            .with_systemd_version(SystemdVersion::new(249)),
+    );
+    assert_eq!(out_of_coverage.classification(), SupportClassification::Unknown);
+    assert!(out_of_coverage.systemd_evidence().is_empty());
+    let unknown = catalogue.evaluate("systemd.unit.not-a-capability", podman);
+    assert_eq!(unknown.classification(), SupportClassification::Unknown);
+    assert!(unknown.systemd_evidence().is_empty());
+    for spelling in ["", "0249", "249.1", "v249", "18446744073709551616"] {
+        assert_eq!(
+            spelling
+                .parse::<SystemdVersion>()
+                .err()
+                .as_ref()
+                .map(quadlet_lens::capability::SystemdVersionParseError::value),
+            Some(spelling)
+        );
+    }
+    let record = catalogue
+        .capability("systemd.unit.upholds")
+        .ok_or_else(|| "Upholds capability missing".to_owned())?;
+    assert_eq!(record.systemd_minimum(), Some(SystemdVersion::new(249)));
+    assert_eq!(record.systemd_evidence(), ["systemd-249-upholds"]);
+    Ok(())
+}
+
+#[test]
+fn systemd_evidence_is_separate_typed_and_required_for_systemd_minima() -> Result<(), String> {
+    let catalogue = CapabilityCatalogue::parse(CATALOGUE).map_err(|error| error.to_string())?;
+    let evidence = catalogue
+        .systemd_evidence()
+        .first()
+        .ok_or_else(|| "synthetic systemd evidence missing".to_owned())?;
+    assert_eq!(evidence.id(), "systemd-249");
+    assert_eq!(
+        evidence.versions(),
+        SystemdVersionRange::new(SystemdVersion::new(249), SystemdVersion::new(249), "test")
+            .map_err(|error| error.to_string())?
+    );
+    assert_eq!(
+        evidence.url(),
+        "https://example.invalid/systemd/249/systemd.unit.html#Upholds="
+    );
+    assert_eq!(evidence.claim(), "Documents Upholds introduction.");
+    assert_eq!(evidence.test(), "capability_boundaries::systemd_evidence");
+    assert_eq!(evidence.gap(), "No host or distribution claim.");
+
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 2), Some(PodmanVersion::new(5, 4, 2)))
+        .map_err(|error| error.to_string())?;
+    assert_eq!(
+        catalogue.evaluate("systemd.example.key", target).classification(),
+        SupportClassification::Unknown
+    );
+    assert_eq!(
+        catalogue
+            .evaluate(
+                "systemd.example.key",
+                target.with_systemd_version(SystemdVersion::new(249)),
+            )
+            .classification(),
+        SupportClassification::Native
+    );
+    Ok(())
 }
 
 #[test]
@@ -165,6 +279,34 @@ fn catalogue_rejects_decode_schema_identifier_version_field_and_evidence_errors(
         Err(CatalogueError::InvalidVersion { field, value }) if field == "coverage.minimum" && value == "05.4.0"
     ));
     assert!(matches!(
+        CapabilityCatalogue::parse(&CATALOGUE.replacen("target = \"249\"", "target = \"0249\"", 1)),
+        Err(CatalogueError::InvalidSystemdVersion { field, value })
+            if field == "systemd_evidence.systemd-249.target" && value == "0249"
+    ));
+    assert!(matches!(
+        CapabilityCatalogue::parse(&CATALOGUE.replacen(
+            "target = \"249\"",
+            "versions = { minimum = \"250\", maximum = \"249\" }",
+            1,
+        )),
+        Err(CatalogueError::InvalidRange(field)) if field == "systemd_evidence.systemd-249.versions"
+    ));
+    assert!(matches!(
+        CapabilityCatalogue::parse(&CATALOGUE.replace(
+            "evidence = [\"systemd-249\"]",
+            "evidence = [\"missing-systemd-evidence\"]"
+        )),
+        Err(CatalogueError::MissingEvidence { owner, evidence })
+            if owner == "systemd.example.key.systemd" && evidence == "missing-systemd-evidence"
+    ));
+    assert!(matches!(
+        CapabilityCatalogue::parse(&CATALOGUE.replace(
+            "minimum = \"249\"\nevidence = [\"systemd-249\"]",
+            "minimum = \"250\"\nevidence = [\"systemd-249\"]"
+        )),
+        Err(CatalogueError::InvalidField(field)) if field == "systemd.example.key.systemd.minimum"
+    ));
+    assert!(matches!(
         CapabilityCatalogue::parse(&CATALOGUE.replacen("url = \"https://example.invalid/documentation\"", "url = \"http://example.invalid/documentation\"", 1)),
         Err(CatalogueError::InvalidField(field)) if field == "evidence.documentation"
     ));
@@ -212,6 +354,14 @@ target = "5.4.1"
 claim = "Checks the middle patch."
 test = "capability_boundaries::catalogue_contract"
 
+[[systemd_evidence]]
+id = "systemd-249"
+url = "https://example.invalid/systemd/249/systemd.unit.html#Upholds="
+target = "249"
+claim = "Documents Upholds introduction."
+test = "capability_boundaries::systemd_evidence"
+gap = "No host or distribution claim."
+
 [[capability]]
 id = "quadlet.example.key"
 description = "A capability with bounded outcomes."
@@ -238,4 +388,17 @@ evidence = ["generator"]
 versions = { minimum = "5.4.0", maximum = "5.4.0" }
 summary = "The first patch has no representation."
 evidence = ["generator"]
+
+[[capability]]
+id = "systemd.example.key"
+description = "A capability with a separately evidenced systemd minimum."
+unit_types = ["container"]
+sections = ["Unit"]
+value_forms = ["systemd-unit-list"]
+native = { minimum = "5.4.0", maximum = "5.4.2" }
+evidence = ["documentation"]
+
+[capability.systemd]
+minimum = "249"
+evidence = ["systemd-249"]
 "#;

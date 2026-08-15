@@ -43,7 +43,7 @@ quadlet-lens/
 │   ├── generators.rs       # matrix contract plus ignored container execution harness
 │   ├── model.rs            # native typed subset, preservation, and diagnostics
 │   ├── document_sets.rs    # exact cross-file resolution and dependency edges
-│   ├── public_api.rs       # supported external 0.1.x consumer path
+│   ├── public_api.rs       # supported external 0.2.x consumer path
 │   ├── render.rs           # programmatic construction and parse-back validation
 │   ├── syntax.rs           # preservation, recovery, canonical, property corpus
 │   ├── repository_policy.rs # fixture and workflow-pin enforcement

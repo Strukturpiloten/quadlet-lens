@@ -1,0 +1,10 @@
+[Container]
+Image=registry.example.invalid/container-batch:1
+AutoUpdate=registry
+CgroupsMode=split
+EnvironmentHost=false
+Mount=type=tmpfs,destination=/scratch,tmpfs-size=65536
+ReadOnly=true
+ReadOnlyTmpfs=true
+Timezone=UTC
+HealthOnFailure=kill

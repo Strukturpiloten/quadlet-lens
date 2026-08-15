@@ -1,0 +1,2 @@
+---relationships.service---
+a-artifact.service

@@ -1,0 +1,5 @@
+[Unit]
+Requires=absent.container
+
+[Container]
+Image=example.invalid/missing:1

@@ -619,6 +619,18 @@ generator-compatible. The full matrix verifies ordered post-reset command constr
 
 Exact runtime detection can narrow validation to one version, but generated project files should normally declare their intended portable range.
 
+`PodmanTarget` optionally carries a caller-supplied `SystemdVersion`; QuadletLens never probes the
+host. The catalogue currently uses that context only for `systemd.unit.upholds`: no systemd target
+is `Unknown`, releases below 249 are `Unsupported`, and 249 or newer retain the normal Podman
+evaluation. Systemd requirements cite a separate typed `systemd_evidence` collection with
+versioned source URLs and finite systemd release ranges; they do not reuse Podman evidence ranges.
+Each declared minimum must reference evidence that covers that release. This is not a generic
+systemd feature catalogue and does not account for distribution backports or overrides.
+An in-coverage evaluation exposes the applicable systemd record identifiers through
+`CapabilityEvaluation::systemd_evidence()`, including when missing or insufficient systemd context
+changes the result. `CapabilityEvaluation::evidence()` remains Podman-only. Unknown,
+out-of-coverage, and non-systemd evaluations expose no systemd evidence.
+
 The security and metadata capabilities use the following reviewed ranges:
 
 | Keys                                                  | Native range | Evidence summary                                                                 |
@@ -635,7 +647,9 @@ SELinux policy, paths, host state, runtime effects, or cross-format semantics.
 
 Feature introduction is usually tracked by Podman minor version, while known bugs may require patch-level ranges. Distribution packages may backport fixes or features without changing the upstream minor version.
 
-Target profiles therefore support explicit enable/disable overrides. Overrides are visible in validation reports and never silently modify the catalogue.
+QuadletLens does not currently apply distribution overrides. A future override contract requires a
+concrete supported backport case, explicit caller selection, visible evaluation evidence, and a
+separate architectural decision; it must never be inferred from the installed system.
 
 ## Evidence workflow
 

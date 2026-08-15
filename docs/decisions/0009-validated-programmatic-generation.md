@@ -118,6 +118,20 @@ QuadletLens provides a programmatic document builder that:
 - provides a focused container-memory helper for a positive ASCII-decimal amount with an optional
   lowercase `b`, `k`, `m`, or `g`, preserving leading zeros and arbitrary precision without
   narrowing the raw `EntryValue` boundary; and
+- provides a focused `EnvironmentAssignment` helper for one literal ASCII-named container
+  assignment, whole-assignment double quoting, and quote/backslash escaping while rejecting
+  controls and unevidenced `%` specifiers without changing authored-value preservation, plus a
+  non-empty `EnvironmentAssignments` group built only from validated assignments that joins their
+  whole quoted spellings with one ASCII space for one physical directive without authored-value
+  parsing, reset construction, duplicate-name selection, continuations, specifier support, or
+  environment/runtime expansion, plus an explicit zero-sized `EnvironmentReset` marker that emits
+  one blank physical directive, and a builder-owned `ContainerEnvironmentPlan` that retains
+  assignment/group/reset directive order while providing explicit per-name literal projection
+  where groups apply left-to-right, later names win, resets clear earlier values, and empty values
+  remain present. Opaque membership and cardinality are available without an effective-map
+  iterator or ordering claim. The builder emits the original plan directives unchanged, debug
+  output redacts values, and the plan exposes no authored parsing, environment-file or secret
+  loading, specifier/continuation handling, manager expansion, or runtime behavior; and
 - reparses generated text and returns it only when syntax and native-model validation succeed.
 
 Values remain exact, already-semantic native values. The builder does not quote, split, expand, or

@@ -1,0 +1,3 @@
+[Container]
+Image=registry.example.invalid/container-cgroups-no-conmon:1
+CgroupsMode=no-conmon

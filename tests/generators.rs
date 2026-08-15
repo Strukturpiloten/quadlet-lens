@@ -11,6 +11,8 @@ use quadlet_lens::capability::PodmanVersion;
 use serde::Deserialize;
 
 const MATRIX: &str = include_str!("../tools/generator-matrix.toml");
+const CONTAINER_ENVIRONMENT_RESET_FIXTURE: &str =
+    include_str!("../fixtures/generators/container-environment-reset-supported-range/environment-reset.container");
 const EXPECTED_IMAGE_VERSIONS: &[&str] = &[
     "5.4.0", "5.4.1", "5.4.2", "5.5.0", "5.5.1", "5.5.2", "5.6.0", "5.6.1", "5.6.2", "5.7.0", "5.7.1", "5.8.0",
     "5.8.1", "5.8.2",
@@ -841,6 +843,16 @@ struct SecurityLabelFixtures {
 }
 
 struct GeneratorFixtures {
+    systemd_unit_references: (PathBuf, Vec<String>),
+    systemd_unit_artifact_reference: (PathBuf, Vec<String>),
+    systemd_unit_missing_reference: (PathBuf, Vec<String>),
+    container_batch: (PathBuf, Vec<String>),
+    container_direct_maps: (PathBuf, Vec<String>),
+    container_sub_maps: (PathBuf, Vec<String>),
+    container_retry: (PathBuf, Vec<String>),
+    container_http_proxy: (PathBuf, Vec<String>),
+    container_start_with_pod: (PathBuf, Vec<String>),
+    container_environment_reset: (PathBuf, Vec<String>),
     memory: (PathBuf, Vec<String>),
     build_retry: (PathBuf, Vec<String>),
     build_tls_verify: (PathBuf, Vec<String>),
@@ -902,6 +914,13 @@ struct GeneratorFixtures {
     image_containers_conf_module: (PathBuf, Vec<String>),
     network_booleans: (PathBuf, Vec<String>),
     network_ipam: (PathBuf, Vec<String>),
+    network_completion: (PathBuf, Vec<String>),
+    image_completion: (PathBuf, Vec<String>),
+    network_delete_on_stop: (PathBuf, Vec<String>),
+    image_retry: (PathBuf, Vec<String>),
+    artifact: (PathBuf, Vec<String>),
+    kube: (PathBuf, Vec<String>),
+    kube_remap: (PathBuf, Vec<String>),
     volume_driver_options: VolumeDriverOptionsFixtures,
     volume_copy: (PathBuf, Vec<String>),
 }
@@ -917,6 +936,25 @@ struct VolumeDriverOptionsFixtures {
 fn volume_label_quote_expectations_use_unescaped_output_text() {
     assert_eq!(VOLUME_LABEL_QUOTED_LITERAL_SPACE, NETWORK_LABEL_QUOTED_LITERAL_SPACE);
     assert_eq!(VOLUME_LABEL_QUOTED_HEX_SPACE, NETWORK_LABEL_QUOTED_HEX_SPACE);
+}
+
+#[test]
+fn container_environment_reset_fixture_has_the_exact_authored_directive_sequence() {
+    let directives: Vec<_> = CONTAINER_ENVIRONMENT_RESET_FIXTURE
+        .lines()
+        .filter(|line| line.starts_with("Environment="))
+        .collect();
+
+    assert_eq!(
+        directives,
+        [
+            "Environment=QUADLET_LENS_ENV_RESET_PRE_ONE=one",
+            "Environment=QUADLET_LENS_ENV_RESET_PRE_TWO=two",
+            "Environment=",
+            "Environment=QUADLET_LENS_ENV_RESET_POST_ONE=one",
+            "Environment=QUADLET_LENS_ENV_RESET_POST_TWO=two",
+        ]
+    );
 }
 
 #[test]
@@ -993,6 +1031,266 @@ fn generator_matrix_is_exact_complete_and_digest_pinned() -> Result<(), String> 
         .filter(|version| PodmanVersion::from_str(version).is_ok_and(|version| version >= PodmanVersion::new(5, 5, 0)))
         .count();
     assert_eq!(memory_versions, 17);
+    Ok(())
+}
+
+const SYSTEMD_UNIT_RELATIONSHIP_KEYS: &[&str] = &[
+    "Requires",
+    "Wants",
+    "After",
+    "Requisite",
+    "BindsTo",
+    "PartOf",
+    "Upholds",
+    "Conflicts",
+    "Before",
+];
+
+const RAW_QUADLET_RELATIONSHIP_REFERENCES: &[&str] = &[
+    "c.container",
+    "p.pod",
+    "n.network",
+    "v.volume",
+    "b.build",
+    "i.image",
+    "k.kube",
+];
+
+#[test]
+fn systemd_unit_reference_verifier_enforces_the_5_5_rewrite_boundary() -> Result<(), String> {
+    let literal = concat!(
+        "Requires=discarded.container\n",
+        "Requires=\n",
+        "Requires=c.container p.pod n.network v.volume b.build i.image k.kube ordinary.service ordinary.target\n",
+        "Wants=c.container p.pod n.network v.volume b.build i.image k.kube ordinary.service ordinary.target\n",
+        "After=c.container p.pod n.network v.volume b.build i.image k.kube ordinary.service ordinary.target\n",
+        "Requisite=c.container c.container p.pod n.network v.volume b.build i.image k.kube ordinary.service ordinary.target\n",
+        "BindsTo=c.container p.pod n.network v.volume b.build i.image k.kube ordinary.service ordinary.target\n",
+        "PartOf=c.container p.pod n.network v.volume b.build i.image k.kube ordinary.service ordinary.target\n",
+        "Upholds=c.container p.pod n.network v.volume b.build i.image k.kube ordinary.service ordinary.target\n",
+        "Conflicts=c.container p.pod n.network v.volume b.build i.image k.kube ordinary.service ordinary.target\n",
+        "Before=c.container p.pod n.network v.volume b.build i.image k.kube ordinary.service ordinary.target\n",
+    );
+    let rewritten = concat!(
+        "Requires=c.service p-pod.service n-network.service v-volume.service b-build.service i-image.service k.service ordinary.service ordinary.target\n",
+        "Wants=c.service p-pod.service n-network.service v-volume.service b-build.service i-image.service k.service ordinary.service ordinary.target\n",
+        "After=c.service p-pod.service n-network.service v-volume.service b-build.service i-image.service k.service ordinary.service ordinary.target\n",
+        "Requisite=c.service c.service p-pod.service n-network.service v-volume.service b-build.service i-image.service k.service ordinary.service ordinary.target\n",
+        "BindsTo=c.service p-pod.service n-network.service v-volume.service b-build.service i-image.service k.service ordinary.service ordinary.target\n",
+        "PartOf=c.service p-pod.service n-network.service v-volume.service b-build.service i-image.service k.service ordinary.service ordinary.target\n",
+        "Upholds=c.service p-pod.service n-network.service v-volume.service b-build.service i-image.service k.service ordinary.service ordinary.target\n",
+        "Conflicts=c.service p-pod.service n-network.service v-volume.service b-build.service i-image.service k.service ordinary.service ordinary.target\n",
+        "Before=c.service p-pod.service n-network.service v-volume.service b-build.service i-image.service k.service ordinary.service ordinary.target\n",
+    );
+
+    verify_systemd_unit_reference_text("5.4.2", literal)?;
+    verify_systemd_unit_reference_text("5.5.0", rewritten)?;
+    let shared_raw_references = [
+        ("container", "c.container"),
+        ("pod", "p.pod"),
+        ("network", "n.network"),
+        ("volume", "v.volume"),
+        ("build", "b.build"),
+        ("image", "i.image"),
+        ("kube", "k.kube"),
+    ];
+    assert_eq!(
+        RAW_QUADLET_RELATIONSHIP_REFERENCES,
+        shared_raw_references.map(|(_, reference)| reference)
+    );
+    assert!(verify_systemd_unit_reference_text("5.4.2", rewritten).is_err());
+    assert!(verify_systemd_unit_reference_text("5.5.0", literal).is_err());
+    for (unit_type, raw_reference) in shared_raw_references {
+        let retained_raw = format!("{rewritten}Requires={raw_reference}\n");
+        assert!(
+            verify_systemd_unit_reference_text("5.5.0", &retained_raw).is_err(),
+            "retained raw {unit_type} reference must fail verification"
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn systemd_unit_artifact_reference_verifier_rejects_raw_post_rewrite_relationships() -> Result<(), String> {
+    let mut translated = String::new();
+    for key in SYSTEMD_UNIT_RELATIONSHIP_KEYS {
+        translated.push_str(key);
+        translated.push_str("=a-artifact.service\n");
+    }
+    verify_systemd_unit_artifact_reference_text("5.7.0", &translated)?;
+    let retained_raw = format!("{translated}Requires=a.artifact\n");
+    assert!(verify_systemd_unit_artifact_reference_text("5.7.0", &retained_raw).is_err());
+    Ok(())
+}
+
+fn supports_artifact(version: &str) -> Result<bool, String> {
+    Ok(PodmanVersion::from_str(version).map_err(|error| error.to_string())? >= PodmanVersion::new(5, 7, 0))
+}
+
+fn rewrites_systemd_unit_references(version: &str) -> Result<bool, String> {
+    Ok(PodmanVersion::from_str(version).map_err(|error| error.to_string())? >= PodmanVersion::new(5, 5, 0))
+}
+
+fn verify_systemd_unit_reference_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    ensure_success(version, "systemd Unit relationship generator", output)?;
+    let generated = String::from_utf8_lossy(&output.stdout);
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} systemd Unit relationship output is missing {fragment:?}\n{generated}"
+            ));
+        }
+    }
+    verify_systemd_unit_reference_text(version, &generated)
+}
+
+fn verify_systemd_unit_reference_text(version: &str, generated: &str) -> Result<(), String> {
+    let literal = [
+        "c.container",
+        "p.pod",
+        "n.network",
+        "v.volume",
+        "b.build",
+        "i.image",
+        "k.kube",
+        "ordinary.service",
+        "ordinary.target",
+    ];
+    let rewritten = [
+        "c.service",
+        "p-pod.service",
+        "n-network.service",
+        "v-volume.service",
+        "b-build.service",
+        "i-image.service",
+        "k.service",
+        "ordinary.service",
+        "ordinary.target",
+    ];
+    let targets = if rewrites_systemd_unit_references(version)? {
+        &rewritten
+    } else {
+        &literal
+    };
+    let ordinary_list = targets.join(" ");
+    for key in SYSTEMD_UNIT_RELATIONSHIP_KEYS {
+        let list = if *key == "Requisite" {
+            format!("{} {ordinary_list}", targets[0])
+        } else {
+            ordinary_list.clone()
+        };
+        let expected = format!("{key}={list}");
+        if generated.lines().filter(|line| *line == expected).count() != 1 {
+            return Err(format!(
+                "Podman {version} must emit exactly one relationship line {expected:?}\n{generated}"
+            ));
+        }
+    }
+    let discarded = "Requires=discarded.container";
+    if rewrites_systemd_unit_references(version)? {
+        if generated.contains(discarded) {
+            return Err(format!(
+                "Podman {version} retained a relationship discarded by an empty reset\n{generated}"
+            ));
+        }
+        verify_no_retained_raw_quadlet_relationship_references(
+            version,
+            generated,
+            RAW_QUADLET_RELATIONSHIP_REFERENCES,
+        )?;
+    } else if generated.lines().filter(|line| *line == discarded).count() != 1 {
+        return Err(format!(
+            "Podman {version} must preserve the literal pre-5.5 relationship preceding an empty reset\n{generated}"
+        ));
+    }
+    Ok(())
+}
+
+fn verify_no_retained_raw_quadlet_relationship_references(
+    version: &str,
+    generated: &str,
+    raw_references: &[&str],
+) -> Result<(), String> {
+    if !rewrites_systemd_unit_references(version)? {
+        return Ok(());
+    }
+    for line in generated.lines() {
+        let Some((key, values)) = line.split_once('=') else {
+            continue;
+        };
+        if !SYSTEMD_UNIT_RELATIONSHIP_KEYS.contains(&key) {
+            continue;
+        }
+        if let Some(reference) = values
+            .split_ascii_whitespace()
+            .map(|value| value.trim_matches('"'))
+            .find(|value| raw_references.contains(value))
+        {
+            return Err(format!(
+                "Podman {version} retained raw Quadlet relationship reference `{reference}` after the 5.5 rewrite boundary\n{generated}"
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn verify_systemd_unit_artifact_reference_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    ensure_success(version, "systemd Unit Artifact relationship generator", output)?;
+    let generated = String::from_utf8_lossy(&output.stdout);
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} systemd Unit Artifact output is missing {fragment:?}\n{generated}"
+            ));
+        }
+    }
+    verify_systemd_unit_artifact_reference_text(version, &generated)
+}
+
+fn verify_systemd_unit_artifact_reference_text(version: &str, generated: &str) -> Result<(), String> {
+    for key in SYSTEMD_UNIT_RELATIONSHIP_KEYS {
+        let expected = format!("{key}=a-artifact.service");
+        if generated.lines().filter(|line| *line == expected).count() != 1 {
+            return Err(format!(
+                "Podman {version} must emit exactly one Artifact relationship line {expected:?}\n{generated}"
+            ));
+        }
+    }
+    verify_no_retained_raw_quadlet_relationship_references(version, generated, &["a.artifact"])
+}
+
+fn verify_systemd_unit_missing_reference_generator_output(version: &str, output: &Output) -> Result<(), String> {
+    let generated = String::from_utf8_lossy(&output.stdout);
+    let diagnostics = String::from_utf8_lossy(&output.stderr);
+    if rewrites_systemd_unit_references(version)? {
+        if output.status.success()
+            || generated.contains("---missing.service---")
+            || !diagnostics.contains("unable to translate dependency for absent.container")
+        {
+            return Err(format!(
+                "Podman {version} must fail closed for a missing Quadlet relationship target\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            ));
+        }
+    } else {
+        ensure_success(
+            version,
+            "literal pre-rewrite systemd Unit relationship generator",
+            output,
+        )?;
+        if !generated.lines().any(|line| line == "Requires=absent.container") {
+            return Err(format!(
+                "Podman {version} must preserve the pre-5.5 literal missing basename\n{generated}"
+            ));
+        }
+    }
     Ok(())
 }
 
@@ -1980,6 +2278,18 @@ fn load_build_podman_args_sbom_fixture() -> Result<(PathBuf, Vec<String>), Strin
 
 fn load_generator_fixtures() -> Result<GeneratorFixtures, String> {
     Ok(GeneratorFixtures {
+        systemd_unit_references: load_named_container_fixture("systemd-unit-references-supported-range")?,
+        systemd_unit_artifact_reference: load_named_container_fixture(
+            "systemd-unit-artifact-reference-supported-range",
+        )?,
+        systemd_unit_missing_reference: load_named_container_fixture("systemd-unit-missing-reference-supported-range")?,
+        container_batch: load_container_batch_fixture()?,
+        container_direct_maps: load_named_container_fixture("container-direct-maps-supported-range")?,
+        container_sub_maps: load_named_container_fixture("container-sub-maps-supported-range")?,
+        container_retry: load_named_container_fixture("container-retry-supported-range")?,
+        container_http_proxy: load_named_container_fixture("container-http-proxy-supported-range")?,
+        container_start_with_pod: load_named_container_fixture("container-start-with-pod-supported-range")?,
+        container_environment_reset: load_named_container_fixture("container-environment-reset-supported-range")?,
         memory: load_memory_fixture()?,
         build_retry: load_build_retry_fixture()?,
         build_tls_verify: load_build_tls_verify_fixture()?,
@@ -2041,6 +2351,13 @@ fn load_generator_fixtures() -> Result<GeneratorFixtures, String> {
         volume_labels: load_volume_labels_fixture()?,
         network_booleans: load_network_booleans_fixture()?,
         network_ipam: load_network_ipam_fixture()?,
+        network_completion: load_named_container_fixture("network-completion-supported-range")?,
+        image_completion: load_named_container_fixture("image-completion-supported-range")?,
+        network_delete_on_stop: load_named_container_fixture("network-delete-on-stop-supported-range")?,
+        image_retry: load_named_container_fixture("image-retry-supported-range")?,
+        artifact: load_named_container_fixture("artifact-supported-range")?,
+        kube: load_named_container_fixture("kube-supported-range")?,
+        kube_remap: load_named_container_fixture("kube-remap-supported-range")?,
         volume_driver_options: load_volume_driver_options_fixtures()?,
         volume_copy: load_volume_copy_fixture()?,
     })
@@ -2050,6 +2367,20 @@ fn load_logging_fixture() -> Result<(PathBuf, Vec<String>), String> {
     let fixture = logging_fixture_directory()?;
     let expected = expected_fragments(&fixture)?;
     Ok((fixture, expected))
+}
+
+fn load_container_batch_fixture() -> Result<(PathBuf, Vec<String>), String> {
+    load_named_container_fixture("container-batch-supported-range")
+}
+
+fn load_named_container_fixture(name: &str) -> Result<(PathBuf, Vec<String>), String> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("fixtures/generators")
+        .join(name);
+    let fixture = path
+        .canonicalize()
+        .map_err(|error| format!("cannot resolve generator fixture {}: {error}", path.display()))?;
+    Ok((fixture.clone(), expected_fragments(&fixture)?))
 }
 
 fn load_network_identity_fixture() -> Result<(PathBuf, Vec<String>), String> {
@@ -2350,6 +2681,57 @@ fn verify_image_isolated_fixtures(
     image: &GeneratorImage,
     fixtures: &GeneratorFixtures,
 ) -> Result<(), String> {
+    verify_systemd_unit_reference_generator_output(
+        &image.version,
+        &fixtures.systemd_unit_references.1,
+        &run_generator_raw(engine, image, &fixtures.systemd_unit_references.0)?,
+    )?;
+    if supports_artifact(&image.version)? {
+        verify_systemd_unit_artifact_reference_generator_output(
+            &image.version,
+            &fixtures.systemd_unit_artifact_reference.1,
+            &run_generator_raw(engine, image, &fixtures.systemd_unit_artifact_reference.0)?,
+        )?;
+    }
+    verify_systemd_unit_missing_reference_generator_output(
+        &image.version,
+        &run_generator_raw(engine, image, &fixtures.systemd_unit_missing_reference.0)?,
+    )?;
+    verify_container_batch_generator_output(
+        &image.version,
+        &fixtures.container_batch.1,
+        &run_generator_raw(engine, image, &fixtures.container_batch.0)?,
+    )?;
+    verify_container_direct_maps_generator_output(
+        &image.version,
+        &fixtures.container_direct_maps.1,
+        &run_generator_raw(engine, image, &fixtures.container_direct_maps.0)?,
+    )?;
+    verify_container_sub_maps_generator_output(
+        &image.version,
+        &fixtures.container_sub_maps.1,
+        &run_generator_raw(engine, image, &fixtures.container_sub_maps.0)?,
+    )?;
+    verify_container_retry_generator_output(
+        &image.version,
+        &fixtures.container_retry.1,
+        &run_generator_raw(engine, image, &fixtures.container_retry.0)?,
+    )?;
+    verify_container_http_proxy_generator_output(
+        &image.version,
+        &fixtures.container_http_proxy.1,
+        &run_generator_raw(engine, image, &fixtures.container_http_proxy.0)?,
+    )?;
+    verify_container_start_with_pod_generator_output(
+        &image.version,
+        &fixtures.container_start_with_pod.1,
+        &run_generator_raw(engine, image, &fixtures.container_start_with_pod.0)?,
+    )?;
+    verify_container_environment_reset_generator_output(
+        &image.version,
+        &fixtures.container_environment_reset.1,
+        &run_generator_raw(engine, image, &fixtures.container_environment_reset.0)?,
+    )?;
     verify_image_memory(engine, image, &fixtures.memory)?;
     verify_image_build_retry(engine, image, &fixtures.build_retry)?;
     verify_image_build_tls_verify(engine, image, &fixtures.build_tls_verify)?;
@@ -2519,6 +2901,41 @@ fn verify_image_isolated_fixtures(
     verify_image_volume_labels(engine, image, &fixtures.volume_labels)?;
     verify_image_network_booleans(engine, image, &fixtures.network_booleans)?;
     verify_image_network_ipam(engine, image, &fixtures.network_ipam)?;
+    verify_network_completion_generator_output(
+        &image.version,
+        &fixtures.network_completion.1,
+        &run_generator_raw(engine, image, &fixtures.network_completion.0)?,
+    )?;
+    verify_image_completion_generator_output(
+        &image.version,
+        &fixtures.image_completion.1,
+        &run_generator_raw(engine, image, &fixtures.image_completion.0)?,
+    )?;
+    verify_network_delete_on_stop_generator_output(
+        &image.version,
+        &fixtures.network_delete_on_stop.1,
+        &run_generator_raw(engine, image, &fixtures.network_delete_on_stop.0)?,
+    )?;
+    verify_image_retry_generator_output(
+        &image.version,
+        &fixtures.image_retry.1,
+        &run_generator_raw(engine, image, &fixtures.image_retry.0)?,
+    )?;
+    verify_artifact_generator_output(
+        &image.version,
+        &fixtures.artifact.1,
+        &run_generator_raw(engine, image, &fixtures.artifact.0)?,
+    )?;
+    verify_kube_generator_output(
+        &image.version,
+        &fixtures.kube.1,
+        &run_generator_raw(engine, image, &fixtures.kube.0)?,
+    )?;
+    verify_kube_remap_generator_output(
+        &image.version,
+        &fixtures.kube_remap.1,
+        &run_generator_raw(engine, image, &fixtures.kube_remap.0)?,
+    )?;
     verify_image_volume_driver_options(engine, image, &fixtures.volume_driver_options)?;
     verify_image_volume_copy(engine, image, &fixtures.volume_copy)
 }
@@ -3192,6 +3609,115 @@ fn verify_source_isolated_fixtures(
     generator: &Path,
     fixtures: &GeneratorFixtures,
 ) -> Result<(), String> {
+    verify_systemd_unit_reference_generator_output(
+        &source.version,
+        &fixtures.systemd_unit_references.1,
+        &run_source_generator_raw(
+            engine,
+            &matrix.builder_reference,
+            source,
+            generator,
+            &fixtures.systemd_unit_references.0,
+        )?,
+    )?;
+    verify_systemd_unit_artifact_reference_generator_output(
+        &source.version,
+        &fixtures.systemd_unit_artifact_reference.1,
+        &run_source_generator_raw(
+            engine,
+            &matrix.builder_reference,
+            source,
+            generator,
+            &fixtures.systemd_unit_artifact_reference.0,
+        )?,
+    )?;
+    verify_systemd_unit_missing_reference_generator_output(
+        &source.version,
+        &run_source_generator_raw(
+            engine,
+            &matrix.builder_reference,
+            source,
+            generator,
+            &fixtures.systemd_unit_missing_reference.0,
+        )?,
+    )?;
+    verify_container_batch_generator_output(
+        &source.version,
+        &fixtures.container_batch.1,
+        &run_source_generator_raw(
+            engine,
+            &matrix.builder_reference,
+            source,
+            generator,
+            &fixtures.container_batch.0,
+        )?,
+    )?;
+    verify_container_direct_maps_generator_output(
+        &source.version,
+        &fixtures.container_direct_maps.1,
+        &run_source_generator_raw(
+            engine,
+            &matrix.builder_reference,
+            source,
+            generator,
+            &fixtures.container_direct_maps.0,
+        )?,
+    )?;
+    verify_container_sub_maps_generator_output(
+        &source.version,
+        &fixtures.container_sub_maps.1,
+        &run_source_generator_raw(
+            engine,
+            &matrix.builder_reference,
+            source,
+            generator,
+            &fixtures.container_sub_maps.0,
+        )?,
+    )?;
+    verify_container_retry_generator_output(
+        &source.version,
+        &fixtures.container_retry.1,
+        &run_source_generator_raw(
+            engine,
+            &matrix.builder_reference,
+            source,
+            generator,
+            &fixtures.container_retry.0,
+        )?,
+    )?;
+    verify_container_http_proxy_generator_output(
+        &source.version,
+        &fixtures.container_http_proxy.1,
+        &run_source_generator_raw(
+            engine,
+            &matrix.builder_reference,
+            source,
+            generator,
+            &fixtures.container_http_proxy.0,
+        )?,
+    )?;
+    verify_container_start_with_pod_generator_output(
+        &source.version,
+        &fixtures.container_start_with_pod.1,
+        &run_source_generator_raw(
+            engine,
+            &matrix.builder_reference,
+            source,
+            generator,
+            &fixtures.container_start_with_pod.0,
+        )?,
+    )?;
+    verify_container_environment_reset_generator_output(
+        &source.version,
+        &fixtures.container_environment_reset.1,
+        &run_source_generator_raw(
+            engine,
+            &matrix.builder_reference,
+            source,
+            generator,
+            &fixtures.container_environment_reset.0,
+        )?,
+    )?;
     verify_source_memory(engine, matrix, source, generator, &fixtures.memory)?;
     verify_source_build_retry(engine, matrix, source, generator, &fixtures.build_retry)?;
     verify_source_build_tls_verify(engine, matrix, source, generator, &fixtures.build_tls_verify)?;
@@ -3256,6 +3782,77 @@ fn verify_source_isolated_fixtures(
         source,
         generator,
         &fixtures.image_containers_conf_module,
+    )?;
+    verify_network_completion_generator_output(
+        &source.version,
+        &fixtures.network_completion.1,
+        &run_source_generator_raw(
+            engine,
+            &matrix.builder_reference,
+            source,
+            generator,
+            &fixtures.network_completion.0,
+        )?,
+    )?;
+    verify_image_completion_generator_output(
+        &source.version,
+        &fixtures.image_completion.1,
+        &run_source_generator_raw(
+            engine,
+            &matrix.builder_reference,
+            source,
+            generator,
+            &fixtures.image_completion.0,
+        )?,
+    )?;
+    verify_network_delete_on_stop_generator_output(
+        &source.version,
+        &fixtures.network_delete_on_stop.1,
+        &run_source_generator_raw(
+            engine,
+            &matrix.builder_reference,
+            source,
+            generator,
+            &fixtures.network_delete_on_stop.0,
+        )?,
+    )?;
+    verify_image_retry_generator_output(
+        &source.version,
+        &fixtures.image_retry.1,
+        &run_source_generator_raw(
+            engine,
+            &matrix.builder_reference,
+            source,
+            generator,
+            &fixtures.image_retry.0,
+        )?,
+    )?;
+    verify_artifact_generator_output(
+        &source.version,
+        &fixtures.artifact.1,
+        &run_source_generator_raw(
+            engine,
+            &matrix.builder_reference,
+            source,
+            generator,
+            &fixtures.artifact.0,
+        )?,
+    )?;
+    verify_kube_generator_output(
+        &source.version,
+        &fixtures.kube.1,
+        &run_source_generator_raw(engine, &matrix.builder_reference, source, generator, &fixtures.kube.0)?,
+    )?;
+    verify_kube_remap_generator_output(
+        &source.version,
+        &fixtures.kube_remap.1,
+        &run_source_generator_raw(
+            engine,
+            &matrix.builder_reference,
+            source,
+            generator,
+            &fixtures.kube_remap.0,
+        )?,
     )?;
     verify_source_build_arg(engine, matrix, source, generator, &fixtures.build_arg)?;
     verify_source_build_secret(engine, matrix, source, generator, &fixtures.build_secret)?;
@@ -4168,6 +4765,7 @@ fn verify_generator_output(version: &str, expected: &[String], output: &Output) 
     verify_stop_lifecycle_arguments(version, &generated, output)?;
     verify_pull_arguments(version, &generated, output)?;
     verify_pids_limit_arguments(version, &generated, output)?;
+    verify_literal_environment_assignment(version, &generated, output)?;
     verify_hostname_argument(version, &generated, output)?;
     verify_build_core_arguments(version, &generated, output)?;
     verify_shm_size_arguments(version, &generated, output)?;
@@ -4184,6 +4782,89 @@ fn verify_generator_output(version: &str, expected: &[String], output: &Output) 
     verify_expose_arguments(version, &generated, output)?;
     verify_annotation_arguments(version, &generated, output)?;
     verify_quoted_label_encoding(version, &generated, output)?;
+    Ok(())
+}
+
+fn verify_literal_environment_assignment(version: &str, generated: &str, output: &Output) -> Result<(), String> {
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    let unit = generated_unit(version, generated, "app.service", output)?;
+    let command = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| {
+            format!("Podman {version} generator output for app.service is missing its Podman run command")
+        })?;
+    let encoded_space = if parsed.major() == 5 && parsed.minor() == 4 {
+        " "
+    } else {
+        r"\x20"
+    };
+    let expected = [
+        format!(r#"--env "QUADLET_LENS_SPACE=hello{encoded_space}world""#),
+        format!(r#"--env "QUADLET_LENS_QUOTE=hello{encoded_space}\"quoted\"""#),
+        r#"--env "QUADLET_LENS_BACKSLASH=path\\literal""#.to_owned(),
+        r"--env QUADLET_LENS_DOLLAR=$literal".to_owned(),
+        r"--env QUADLET_LENS_EQUALS=left=right".to_owned(),
+        r"--env QUADLET_LENS_UNICODE=café".to_owned(),
+        r"--env QUADLET_LENS_EMPTY=".to_owned(),
+        format!(r#"--env "QUADLET_LENS_GROUP_SPACE=hello{encoded_space}world""#),
+        r"--env QUADLET_LENS_GROUP_EQUALS=left=right".to_owned(),
+    ];
+    let flattened_group =
+        format!(r#"--env "QUADLET_LENS_GROUP_SPACE=hello{encoded_space}world QUADLET_LENS_GROUP_EQUALS=left=right""#);
+    let all_environment_count = command.matches("--env").count();
+    let missing_or_repeated: Vec<_> = expected
+        .iter()
+        .filter(|argument| command.matches(argument.as_str()).count() != 1)
+        .collect();
+    if !missing_or_repeated.is_empty() || all_environment_count != 10 || command.contains(&flattened_group) {
+        return Err(format!(
+            "Podman {version} generator output for app.service must contain exactly one of each focused literal environment argument {expected:?}, retain the two grouped assignments as distinct --env arguments rather than {flattened_group:?}, and contain only the ten authored --env arguments; missing or repeated={missing_or_repeated:?}, found --env={all_environment_count}\nstdout:\n{generated}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+    eprintln!(
+        "Podman {version} Container Environment: literal assignments, including two assignments grouped in one physical Environment directive, become distinct --env arguments"
+    );
+    Ok(())
+}
+
+fn verify_container_environment_reset_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    ensure_success(version, "Container Environment reset generator", output)?;
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| error.to_string())?;
+    if expected.iter().any(|fragment| !generated.contains(fragment)) {
+        return Err(format!(
+            "Podman {version} Container Environment reset output is missing fixture fragments\n{generated}"
+        ));
+    }
+    let unit = generated_unit(version, &generated, "environment-reset.service", output)?;
+    let command = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| format!("Podman {version} Container Environment reset command is missing"))?;
+    let post_reset = [
+        "--env QUADLET_LENS_ENV_RESET_POST_ONE=one",
+        "--env QUADLET_LENS_ENV_RESET_POST_TWO=two",
+    ];
+    let pre_reset = [
+        "QUADLET_LENS_ENV_RESET_PRE_ONE=one",
+        "QUADLET_LENS_ENV_RESET_PRE_TWO=two",
+    ];
+    if post_reset.iter().any(|argument| command.matches(argument).count() != 1)
+        || command.matches("--env").count() != post_reset.len()
+        || pre_reset.iter().any(|name| command.contains(name))
+    {
+        return Err(format!(
+            "Podman {version} Container Environment reset must emit only the two distinct post-reset --env arguments, without either pre-reset assignment\n{command}"
+        ));
+    }
+    eprintln!(
+        "Podman {version} Container Environment reset: pre-reset assignments are absent and distinct post-reset assignments become separate --env arguments"
+    );
     Ok(())
 }
 
@@ -4549,9 +5230,693 @@ fn verify_pod_service_name_generator_output(version: &str, expected: &[String], 
             "Podman {version} Pod ServiceName must select the last physical value, append .service, retain the recorded ordinary/template and unmatched-quote boundaries, and retain final-blank and extension-bearing presentations\n{generated}"
         ));
     }
+    verify_pod_completion_generator_output(version, &generated, output)?;
     eprintln!(
         "Podman {version} Pod ServiceName: default, duplicate-last, .service, template, unmatched-quote, final-blank, and extension-bearing naming observations"
     );
+    Ok(())
+}
+
+fn verify_pod_completion_generator_output(version: &str, generated: &str, output: &Output) -> Result<(), String> {
+    let unit = generated_unit(version, generated, "chosen-override.service", output)?;
+    let command = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman "))
+        .ok_or_else(|| format!("Podman {version} Pod completion output has no podman command"))?;
+    let arguments = exec_arguments(command);
+    let pod_create_position = arguments
+        .windows(2)
+        .position(|pair| pair == ["pod", "create"])
+        .ok_or_else(|| format!("Podman {version} Pod completion output has no pod create subcommand"))?;
+
+    verify_pod_completion_modules_and_global_args(version, &arguments, pod_create_position)?;
+    verify_pod_completion_native_arguments(version, &arguments)?;
+    verify_pod_completion_maps(version, generated, output)
+}
+
+fn verify_pod_completion_modules_and_global_args(
+    version: &str,
+    arguments: &[&str],
+    pod_create_position: usize,
+) -> Result<(), String> {
+    let mut module_positions = Vec::new();
+    for module in ["post-one.conf", "post-two.conf"] {
+        let expected = format!("--module={module}");
+        let positions: Vec<_> = arguments
+            .iter()
+            .enumerate()
+            .filter_map(|(position, argument)| (*argument == expected).then_some(position))
+            .collect();
+        if positions.len() != 1 {
+            return Err(format!(
+                "Podman {version} must emit exactly one --module={module} argument, found {positions:?}"
+            ));
+        }
+        module_positions.push(positions[0]);
+    }
+    let global_position = arguments
+        .iter()
+        .position(|argument| *argument == "--log-level=debug")
+        .ok_or_else(|| format!("Podman {version} must emit post-reset Pod GlobalArgs token"))?;
+    if module_positions[0] >= module_positions[1]
+        || module_positions.iter().any(|position| *position >= pod_create_position)
+        || global_position >= pod_create_position
+        || arguments.iter().filter(|argument| **argument == "--module").count() != 2
+        || arguments
+            .iter()
+            .filter(|argument| **argument == "--log-level=debug")
+            .count()
+            != 1
+        || arguments.contains(&"--log-level=info")
+        || arguments
+            .iter()
+            .any(|argument| argument.contains("pre-one") || argument.contains("pre-two"))
+    {
+        return Err(format!(
+            "Podman {version} must retain only ordered post-reset Pod module and global arguments before pod create"
+        ));
+    }
+
+    Ok(())
+}
+
+fn verify_pod_completion_native_arguments(version: &str, arguments: &[&str]) -> Result<(), String> {
+    for pair in [
+        ["--dns", "192.0.2.53"],
+        ["--dns-option", "attempts:3"],
+        ["--dns-search", "example.invalid"],
+        ["--hostname", "pod.example.invalid"],
+        ["--ip", "192.0.2.42"],
+        ["--ip6", "2001:db8::42"],
+        ["--label", "example.invalid/one=first"],
+        ["--label", "example.invalid/two=second"],
+        ["--network-alias", "post-one"],
+        ["--network-alias", "post-two"],
+    ] {
+        if count_argument_pair(arguments, pair[0], pair[1]) != 1 {
+            return Err(format!(
+                "Podman {version} must emit exactly one post-reset Pod completion argument pair {pair:?}"
+            ));
+        }
+    }
+    let final_alias_position = arguments
+        .windows(2)
+        .enumerate()
+        .find_map(|(position, pair)| (pair == ["--network-alias", "post-two"]).then_some(position))
+        .ok_or_else(|| format!("Podman {version} must retain the final Pod network alias"))?;
+    let replace_positions: Vec<_> = arguments
+        .iter()
+        .enumerate()
+        .filter_map(|(position, argument)| (*argument == "--replace").then_some(position))
+        .collect();
+    if arguments.iter().filter(|argument| **argument == "--dns").count() != 1
+        || arguments.iter().filter(|argument| **argument == "--dns-option").count() != 1
+        || arguments.iter().filter(|argument| **argument == "--dns-search").count() != 1
+        || arguments.iter().filter(|argument| **argument == "--label").count() != 2
+        || arguments
+            .iter()
+            .filter(|argument| **argument == "--network-alias")
+            .count()
+            != 2
+        || arguments.iter().any(|argument| {
+            [
+                "192.0.2.10",
+                "192.0.2.11",
+                "ndots:2",
+                "rotate",
+                "pre.example.invalid",
+                "pre-alias",
+                "pre=value",
+            ]
+            .contains(argument)
+        })
+        || arguments.contains(&"--infra=false")
+        || replace_positions.len() != 1
+        || replace_positions[0] <= final_alias_position
+    {
+        return Err(format!(
+            "Podman {version} must retain only final reset-aware Pod DNS, label, alias, and PodmanArgs forms, placing the final PodmanArgs token after native pod arguments"
+        ));
+    }
+
+    Ok(())
+}
+
+fn verify_pod_completion_maps(version: &str, generated: &str, output: &Output) -> Result<(), String> {
+    for (unit_name, direct, subordinate) in [
+        ("pod-direct-maps-pod.service", true, false),
+        ("pod-sub-maps-pod.service", false, true),
+    ] {
+        let unit = generated_unit(version, generated, unit_name, output)?;
+        let command = unit
+            .lines()
+            .find(|line| line.starts_with("ExecStart=/usr/bin/podman pod create "))
+            .ok_or_else(|| format!("Podman {version} {unit_name} has no pod create command"))?;
+        let arguments = exec_arguments(command);
+        let uid_positions: Vec<_> = arguments
+            .windows(2)
+            .enumerate()
+            .filter_map(|(position, pair)| {
+                (pair[0] == "--uidmap" && ["0:200000:65536", "1:300000:1"].contains(&pair[1])).then_some(position)
+            })
+            .collect();
+        let gid_positions: Vec<_> = arguments
+            .windows(2)
+            .enumerate()
+            .filter_map(|(position, pair)| {
+                (pair[0] == "--gidmap" && ["0:200000:65536", "1:300000:1"].contains(&pair[1])).then_some(position)
+            })
+            .collect();
+        if direct
+            && (count_argument_pair(&arguments, "--uidmap", "0:200000:65536") != 1
+                || count_argument_pair(&arguments, "--uidmap", "1:300000:1") != 1
+                || count_argument_pair(&arguments, "--gidmap", "0:200000:65536") != 1
+                || count_argument_pair(&arguments, "--gidmap", "1:300000:1") != 1
+                || arguments.contains(&"0:100000:65536")
+                || uid_positions.len() != 2
+                || gid_positions.len() != 2
+                || uid_positions[0] >= uid_positions[1]
+                || gid_positions[0] >= gid_positions[1]
+                || arguments.iter().filter(|argument| **argument == "--uidmap").count() != 2
+                || arguments.iter().filter(|argument| **argument == "--gidmap").count() != 2
+                || arguments
+                    .iter()
+                    .any(|argument| *argument == "--subuidname" || *argument == "--subgidname"))
+        {
+            return Err(format!(
+                "Podman {version} must emit ordered post-reset direct Pod maps without subordinate mappings"
+            ));
+        }
+        if subordinate
+            && (count_argument_pair(&arguments, "--subuidname", "keep-id") != 1
+                || count_argument_pair(&arguments, "--subgidname", "keep-id") != 1
+                || arguments
+                    .iter()
+                    .any(|argument| *argument == "--uidmap" || *argument == "--gidmap"))
+        {
+            return Err(format!(
+                "Podman {version} must emit independent subordinate Pod map pairs without direct mappings"
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn verify_network_completion_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| error.to_string())?;
+    let diagnostics = String::from_utf8_lossy(&output.stderr);
+    if parsed < PodmanVersion::new(5, 5, 0) {
+        if output.status.success()
+            && generated.contains("---quadlet-lens-network-completion.service---")
+            && (generated.contains("--interface-name") || generated.contains("ExecStopPost=/usr/bin/podman network rm"))
+        {
+            return Err(format!(
+                "Podman {version} predates NetworkDeleteOnStop and InterfaceName and must reject or exclude their generated effects\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            ));
+        }
+        return Ok(());
+    }
+    if parsed < PodmanVersion::new(5, 6, 0) {
+        if output.status.success()
+            && generated.contains("---quadlet-lens-network-completion.service---")
+            && generated.contains("--interface-name")
+        {
+            return Err(format!(
+                "Podman {version} predates Network InterfaceName and must reject or exclude --interface-name\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            ));
+        }
+        return Ok(());
+    }
+    ensure_success(version, "Network completion generator", output)?;
+    if expected.iter().any(|fragment| !generated.contains(fragment)) {
+        return Err(format!(
+            "Podman {version} Network completion output is missing an expected fragment\n{generated}"
+        ));
+    }
+    let unit = generated_unit(version, &generated, "quadlet-lens-network-completion.service", output)?;
+    let command = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman ") && line.contains(" network create "))
+        .ok_or_else(|| {
+            format!("Podman {version} Network completion is missing its network create ExecStart\n{unit}")
+        })?;
+    let arguments = exec_arguments(command);
+    verify_network_completion_create_arguments(version, command, &arguments)?;
+    if unit
+        .matches("ExecStopPost=/usr/bin/podman --module=post-one.conf --module=post-two.conf --events-backend=file network rm quadlet-lens-network-completion")
+        .count()
+        != 1
+    {
+        return Err(format!(
+            "Podman {version} Network completion must apply post-reset base arguments to one cleanup command\n{unit}"
+        ));
+    }
+    Ok(())
+}
+
+fn verify_network_completion_create_arguments(version: &str, command: &str, arguments: &[&str]) -> Result<(), String> {
+    verify_network_global_argument_position(version, command, arguments)?;
+    let ordered = [
+        "--module=post-one.conf",
+        "--module=post-two.conf",
+        "--dns",
+        "9.9.9.9",
+        "--dns",
+        "2001:4860:4860::8888",
+        "--label=post-one",
+        "--label=post-two",
+    ];
+    let mut cursor = 0;
+    for expected_argument in ordered {
+        let position = arguments[cursor..]
+            .iter()
+            .position(|argument| *argument == expected_argument)
+            .map(|position| cursor + position)
+            .ok_or_else(|| {
+                format!("Podman {version} Network completion misses ordered `{expected_argument}`\n{command}")
+            })?;
+        cursor = position + 1;
+    }
+    if arguments.last() != Some(&"quadlet-lens-network-completion")
+        || ["pre.conf", "1.1.1.1", "--label=pre=true", "--log-level=debug"]
+            .iter()
+            .any(|old| arguments.contains(old))
+    {
+        return Err(format!(
+            "Podman {version} Network completion must omit reset values and retain the terminal network name\n{command}"
+        ));
+    }
+    for expected_argument in [
+        "--module=post-one.conf",
+        "--module=post-two.conf",
+        "--events-backend=file",
+        "--disable-dns",
+        "--label=post-one",
+        "--label=post-two",
+    ] {
+        if arguments
+            .iter()
+            .filter(|argument| **argument == expected_argument)
+            .count()
+            != 1
+        {
+            return Err(format!(
+                "Podman {version} Network completion must emit exactly one create argument `{expected_argument}`\n{command}"
+            ));
+        }
+    }
+    for pair in [
+        ["--dns", "9.9.9.9"],
+        ["--dns", "2001:4860:4860::8888"],
+        ["--interface-name", "quadlet0"],
+    ] {
+        if count_argument_pair(arguments, pair[0], pair[1]) != 1 {
+            return Err(format!(
+                "Podman {version} Network completion must emit exactly one create argument pair {pair:?}\n{command}"
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn verify_network_global_argument_position(version: &str, command: &str, arguments: &[&str]) -> Result<(), String> {
+    let network_create_position = arguments
+        .windows(2)
+        .position(|pair| pair == ["network", "create"])
+        .ok_or_else(|| format!("Podman {version} Network completion has no network create subcommand\n{command}"))?;
+    let global_argument_positions: Vec<_> = arguments
+        .iter()
+        .enumerate()
+        .filter_map(|(position, argument)| (*argument == "--events-backend=file").then_some(position))
+        .collect();
+    if global_argument_positions.len() != 1 || global_argument_positions[0] >= network_create_position {
+        return Err(format!(
+            "Podman {version} Network completion must retain one post-reset global argument before network create\n{command}"
+        ));
+    }
+    Ok(())
+}
+
+fn verify_network_delete_on_stop_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| error.to_string())?;
+    if parsed < PodmanVersion::new(5, 5, 0) {
+        if output.status.success() && generated.contains("ExecStopPost=/usr/bin/podman network rm") {
+            return Err(format!(
+                "Podman {version} emitted NetworkDeleteOnStop before 5.5.0\n{generated}"
+            ));
+        }
+        return Ok(());
+    }
+    ensure_success(version, "NetworkDeleteOnStop generator", output)?;
+    if expected.iter().any(|fragment| !generated.contains(fragment)) {
+        return Err(format!(
+            "Podman {version} NetworkDeleteOnStop output is incomplete\n{generated}"
+        ));
+    }
+    let unit = generated_unit(version, &generated, "network-delete-network.service", output)?;
+    if unit
+        .matches("ExecStopPost=/usr/bin/podman network rm quadlet-lens-delete-boundary")
+        .count()
+        != 1
+    {
+        return Err(format!(
+            "Podman {version} must emit exactly one network cleanup command\n{unit}"
+        ));
+    }
+    Ok(())
+}
+
+fn verify_image_completion_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| error.to_string())?;
+    let diagnostics = String::from_utf8_lossy(&output.stderr);
+    if parsed < PodmanVersion::new(5, 5, 0) {
+        if output.status.success()
+            && generated.contains("---image-completion-image.service---")
+            && (generated.contains("--retry") || generated.contains("--retry-delay"))
+        {
+            return Err(format!(
+                "Podman {version} predates Image Retry and RetryDelay and must reject or exclude their generated effects\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            ));
+        }
+        return Ok(());
+    }
+    if parsed < PodmanVersion::new(5, 6, 0) {
+        if output.status.success()
+            && generated.contains("---image-completion-image.service---")
+            && generated.contains("--policy")
+        {
+            return Err(format!(
+                "Podman {version} predates Image Policy and must reject or exclude --policy\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            ));
+        }
+        return Ok(());
+    }
+    ensure_success(version, "Image completion generator", output)?;
+    if expected.iter().any(|fragment| !generated.contains(fragment)) {
+        return Err(format!(
+            "Podman {version} Image completion output is missing an expected fragment\n{generated}"
+        ));
+    }
+    let unit = generated_unit(version, &generated, "image-completion-image.service", output)?;
+    let command = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman image pull "))
+        .ok_or_else(|| format!("Podman {version} Image completion is missing its image pull ExecStart\n{unit}"))?;
+    let arguments = exec_arguments(command);
+    for pair in [
+        ["--policy", "newer"],
+        ["--retry", "4"],
+        ["--retry-delay", "7s"],
+        ["--variant", "v8"],
+        ["--format", "oci"],
+    ] {
+        if count_argument_pair(&arguments, pair[0], pair[1]) != 1 {
+            return Err(format!(
+                "Podman {version} Image completion must emit exactly one argument pair {pair:?}\n{command}"
+            ));
+        }
+    }
+    for expected_argument in ["--tls-verify=false", "--all-tags"] {
+        if arguments
+            .iter()
+            .filter(|argument| **argument == expected_argument)
+            .count()
+            != 1
+        {
+            return Err(format!(
+                "Podman {version} Image completion must emit exactly one `{expected_argument}` argument\n{command}"
+            ));
+        }
+    }
+    if arguments.last() != Some(&"example.invalid/quadlet-lens-image-completion:latest")
+        || arguments.contains(&"--quiet")
+    {
+        return Err(format!(
+            "Podman {version} Image completion must omit reset values and retain the terminal image source\n{command}"
+        ));
+    }
+    if arguments.contains(&"--quiet")
+        || arguments.iter().any(|argument| argument.starts_with("--retry="))
+        || arguments.iter().any(|argument| argument.starts_with("--retry-delay="))
+    {
+        return Err(format!(
+            "Podman {version} Image completion retained a reset value or alternate retry form\n{command}"
+        ));
+    }
+    Ok(())
+}
+
+fn verify_image_retry_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| error.to_string())?;
+    if parsed < PodmanVersion::new(5, 5, 0) {
+        if output.status.success() && (generated.contains("--retry ") || generated.contains("--retry-delay ")) {
+            return Err(format!(
+                "Podman {version} emitted Image Retry before 5.5.0\n{generated}"
+            ));
+        }
+        return Ok(());
+    }
+    ensure_success(version, "Image Retry generator", output)?;
+    if expected.iter().any(|fragment| !generated.contains(fragment)) {
+        return Err(format!(
+            "Podman {version} Image Retry output is incomplete\n{generated}"
+        ));
+    }
+    let unit = generated_unit(version, &generated, "image-retry-image.service", output)?;
+    let command = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman image pull "))
+        .ok_or_else(|| format!("Podman {version} Image Retry output has no image pull ExecStart\n{unit}"))?;
+    let arguments = exec_arguments(command);
+    if count_argument_pair(&arguments, "--retry", "4") != 1
+        || count_argument_pair(&arguments, "--retry-delay", "7s") != 1
+        || arguments.last() != Some(&"example.invalid/quadlet-lens-image-retry:latest")
+        || arguments.iter().any(|argument| argument.starts_with("--retry="))
+        || arguments.iter().any(|argument| argument.starts_with("--retry-delay="))
+    {
+        return Err(format!(
+            "Podman {version} must emit one separate Image Retry and RetryDelay pair before the terminal source without asserting their relative order\n{command}"
+        ));
+    }
+    Ok(())
+}
+
+fn verify_artifact_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| error.to_string())?;
+    if parsed < PodmanVersion::new(5, 7, 0) {
+        if output.status.success() && generated.contains("-artifact.service---") {
+            return Err(format!(
+                "Podman {version} predates experimental Artifact units and must reject or exclude Artifact output\n{generated}"
+            ));
+        }
+        return Ok(());
+    }
+    ensure_success(version, "Artifact generator", output)?;
+    if expected.iter().any(|fragment| !generated.contains(fragment)) {
+        return Err(format!("Podman {version} Artifact output is incomplete\n{generated}"));
+    }
+    let completion = generated_unit(version, &generated, "quadlet-lens-artifact-completion.service", output)?;
+    let command = completion
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman "))
+        .ok_or_else(|| format!("Podman {version} Artifact output has no pull ExecStart\n{completion}"))?;
+    let arguments = exec_arguments(command);
+    let artifact_pull = arguments
+        .windows(2)
+        .position(|pair| pair == ["artifact", "pull"])
+        .ok_or_else(|| format!("Podman {version} Artifact output has no artifact pull subcommand\n{command}"))?;
+    let source = "registry.invalid/quadlet-lens/artifact-completion:latest";
+    if arguments.last() != Some(&source)
+        || arguments.contains(&"registry.invalid/quadlet-lens/artifact-preceding:latest")
+        || [
+            "--module=post-one.conf",
+            "--module=post-two.conf",
+            "--events-backend=file",
+        ]
+        .iter()
+        .any(|argument| !arguments[..artifact_pull].contains(argument))
+        || [
+            "--authfile",
+            "/run/quadlet-lens/artifact-auth-placeholder.json",
+            "--cert-dir",
+            "/run/quadlet-lens/artifact-certs-placeholder",
+            "--creds",
+            "quadlet-lens-artifact-placeholder-user:quadlet-lens-artifact-placeholder-password",
+            "--decryption-key",
+            "quadlet-lens-artifact-decryption-key-placeholder",
+            "--retry",
+            "4",
+            "--retry-delay",
+            "7s",
+            "--quiet",
+            "--tls-verify=false",
+            "--format",
+            "oci",
+        ]
+        .iter()
+        .any(|argument| arguments.iter().filter(|actual| *actual == argument).count() != 1)
+        || arguments
+            .iter()
+            .any(|argument| matches!(*argument, "pre.conf" | "--pre" | "--log-level=debug"))
+    {
+        return Err(format!(
+            "Podman {version} Artifact output must retain only post-reset module/global/terminal arguments and exactly one final Artifact source without asserting map-derived singleton argument order\n{command}"
+        ));
+    }
+    if completion.matches("Type=oneshot").count() != 1 || completion.matches("RemainAfterExit=yes").count() != 1 {
+        return Err(format!(
+            "Podman {version} Artifact output must use the generated oneshot service defaults\n{completion}"
+        ));
+    }
+    for (name, dependency) in [
+        ("default-dependencies-true-artifact.service", true),
+        ("default-dependencies-false-artifact.service", false),
+        ("default-dependencies-noncanonical-artifact.service", false),
+        ("default-dependencies-empty-artifact.service", false),
+    ] {
+        let unit = generated_unit(version, &generated, name, output)?;
+        let target_present =
+            unit.contains("Wants=network-online.target") && unit.contains("After=network-online.target");
+        if target_present != dependency {
+            return Err(format!(
+                "Podman {version} {name} DefaultDependencies target observation differs from the recorded true/false/noncanonical/empty behavior\n{unit}"
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn verify_kube_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    ensure_success(version, "Kube generator", output)?;
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| error.to_string())?;
+    if expected.iter().any(|fragment| !generated.contains(fragment)) {
+        return Err(format!("Podman {version} Kube output is incomplete\n{generated}"));
+    }
+    let unit = generated_unit(version, &generated, "quadlet-lens-kube.service", output)?;
+    let command = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman ") && line.contains(" kube play "))
+        .ok_or_else(|| format!("Podman {version} Kube output has no kube play ExecStart\n{unit}"))?;
+    let arguments = exec_arguments(command);
+    let kube_play = arguments
+        .windows(2)
+        .position(|pair| pair == ["kube", "play"])
+        .ok_or_else(|| format!("Podman {version} Kube output has no kube play subcommand\n{command}"))?;
+    let global_positions: Vec<_> = arguments
+        .iter()
+        .enumerate()
+        .filter_map(|(position, argument)| (*argument == "--events-backend=file").then_some(position))
+        .collect();
+    if global_positions.len() != 1
+        || global_positions[0] >= kube_play
+        || arguments.contains(&"--log-level=debug")
+        || arguments.last() != Some(&"/fixtures/quadlet-lens-placeholder.yaml")
+    {
+        return Err(format!(
+            "Podman {version} Kube output must retain only the post-reset global argument before kube play and preserve the terminal YAML source\n{command}"
+        ));
+    }
+    for pair in [
+        ["--module=post.conf", ""],
+        ["--configmap", "/run/quadlet-lens/configmap-placeholder.yaml"],
+        ["--network", "frontend"],
+        ["--publish", "8080:80"],
+        ["--log-driver", "k8s-file"],
+        ["--log-opt", "path=/run/quadlet-lens/kube.log"],
+        ["--log-opt", "max-size=1m"],
+        ["--userns", "keep-id"],
+    ] {
+        if pair[1].is_empty() {
+            if arguments.iter().filter(|argument| **argument == pair[0]).count() != 1 {
+                return Err(format!(
+                    "Podman {version} Kube output must emit one `{}`\n{command}",
+                    pair[0]
+                ));
+            }
+        } else if count_argument_pair(&arguments, pair[0], pair[1]) != 1 {
+            return Err(format!(
+                "Podman {version} Kube output must emit one `{} {}`\n{command}",
+                pair[0], pair[1]
+            ));
+        }
+    }
+    for annotation in ["io.containers.autoupdate=registry", "io.containers.autoupdate=local"] {
+        if unit.matches(annotation).count() != 1 {
+            return Err(format!(
+                "Podman {version} Kube output must emit one `{annotation}` annotation\n{unit}"
+            ));
+        }
+    }
+    for dependency in ["Requires=frontend-network.service", "After=frontend-network.service"] {
+        if unit.matches(dependency).count() != 1 {
+            return Err(format!(
+                "Podman {version} Kube Network=frontend.network must emit one `{dependency}` dependency\\n{unit}"
+            ));
+        }
+    }
+    let cleanup = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStopPost=/usr/bin/podman ") && line.contains(" kube down "))
+        .ok_or_else(|| format!("Podman {version} Kube output has no kube down cleanup command\n{unit}"))?;
+    let cleanup_arguments = exec_arguments(cleanup);
+    let kube_down = cleanup_arguments.windows(2).position(|pair| pair == ["kube", "down"]);
+    if kube_down.is_none()
+        || cleanup_arguments
+            .windows(2)
+            .filter(|pair| *pair == ["kube", "down"])
+            .count()
+            != 1
+        || count_argument_pair(&cleanup_arguments, "--force", "/fixtures/quadlet-lens-placeholder.yaml") != 1
+        || cleanup_arguments.last() != Some(&"/fixtures/quadlet-lens-placeholder.yaml")
+        || cleanup_arguments[..kube_down.unwrap_or_default()]
+            .iter()
+            .filter(|argument| **argument == "--events-backend=file")
+            .count()
+            != 1
+    {
+        return Err(format!(
+            "Podman {version} KubeDownForce must produce one force cleanup command\n{unit}"
+        ));
+    }
+    Ok(())
+}
+
+fn verify_kube_remap_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    ensure_success(version, "Kube remap generator", output)?;
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| error.to_string())?;
+    if expected.iter().any(|fragment| !generated.contains(fragment)) {
+        return Err(format!("Podman {version} Kube remap output is incomplete\n{generated}"));
+    }
+    let unit = generated_unit(version, &generated, "remap.service", output)?;
+    let command = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman ") && line.contains(" kube play "))
+        .ok_or_else(|| format!("Podman {version} Kube remap output has no kube play ExecStart\\n{unit}"))?;
+    let arguments = exec_arguments(command);
+    let expected = "auto:uidmapping=100001,gidmapping=200001,size=65536";
+    if count_argument_pair(&arguments, "--userns", expected) != 1
+        || arguments
+            .iter()
+            .any(|argument| matches!(*argument, "100000" | "200000"))
+        || arguments.last() != Some(&"/fixtures/quadlet-lens-remap-placeholder.yaml")
+    {
+        return Err(format!(
+            "Podman {version} Kube remap output must retain only post-reset mappings in one auto user namespace argument\n{command}"
+        ));
+    }
     Ok(())
 }
 
@@ -7335,6 +8700,389 @@ fn verify_privileged_unit(
     {
         return Err(format!(
             "Podman {version} generator output for {unit_name} must place exactly one separate `{expected_argument}` immediately before `{image}` with no --privileged=true, positional false, short, quoted, bundled, alternate, duplicate, or conflicting form; found expected-pair={expected_count}, all-privileged={all_privileged_count}, short-or-bundled={short_or_bundled_forms:?}, alternate={alternate_forms:?}\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+        ));
+    }
+    Ok(())
+}
+
+fn verify_container_batch_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let generated = String::from_utf8(output.stdout.clone())
+        .map_err(|error| format!("{version} container batch generator emitted non-UTF-8 output: {error}"))?;
+    ensure_success(version, "container batch generator", output)?;
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} container batch generator output is missing fragment `{fragment}`\nstdout:\n{generated}\nstderr:\n{}",
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
+    }
+    let unit = generated_unit(version, &generated, "batch.service", output)?;
+    let run = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| format!("Podman {version} container batch output has no podman run command"))?;
+    let arguments = exec_arguments(run);
+    for pair in [
+        ["--cgroups", "split"],
+        ["--tz", "UTC"],
+        ["--env-host=false", ""],
+        ["--read-only-tmpfs", ""],
+        ["--read-only", ""],
+        ["--label", "io.containers.autoupdate=registry"],
+        ["--mount", "type=tmpfs,destination=/scratch,tmpfs-size=65536"],
+        ["--health-on-failure", "kill"],
+    ] {
+        if count_argument_pair(&arguments, pair[0], pair[1]) != 1 {
+            return Err(format!(
+                "Podman {version} container batch output must contain exact argument pair {pair:?} once"
+            ));
+        }
+    }
+    verify_container_batch_variants(version, &generated, output)?;
+    verify_container_completion_generator_output(version, &generated, output)?;
+    eprintln!(
+        "Podman {version} container batch: stable cgroup, timezone, environment, mapping, mount, read-only tmpfs, auto-update, and health-failure command construction"
+    );
+    Ok(())
+}
+
+fn verify_container_completion_generator_output(version: &str, generated: &str, output: &Output) -> Result<(), String> {
+    let unit = generated_unit(version, generated, "completion-chosen.service", output)?;
+    let run = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman "))
+        .ok_or_else(|| format!("Podman {version} Container completion output has no podman command"))?;
+    let arguments = exec_arguments(run);
+    let run_position = arguments
+        .iter()
+        .position(|argument| *argument == "run")
+        .ok_or_else(|| format!("Podman {version} Container completion output has no run subcommand"))?;
+    let modules = ["post-one.conf", "post-two.conf"];
+    let mut module_positions = Vec::new();
+    for module in modules {
+        let expected = format!("--module={module}");
+        let positions: Vec<_> = arguments
+            .iter()
+            .enumerate()
+            .filter_map(|(position, argument)| (*argument == expected).then_some(position))
+            .collect();
+        if positions.len() != 1 {
+            return Err(format!(
+                "Podman {version} must emit exactly one --module={module} argument, found {positions:?}"
+            ));
+        }
+        module_positions.push(positions[0]);
+    }
+    if module_positions[0] >= module_positions[1]
+        || module_positions.iter().any(|position| *position >= run_position)
+        || arguments
+            .iter()
+            .filter(|argument| argument.starts_with("--module="))
+            .count()
+            != modules.len()
+        || arguments
+            .iter()
+            .any(|argument| argument.contains("pre-one") || argument.contains("pre-two"))
+    {
+        return Err(format!(
+            "Podman {version} must retain only ordered post-reset ContainersConfModule arguments before run"
+        ));
+    }
+    let global_position = arguments
+        .iter()
+        .position(|argument| *argument == "--log-level=debug")
+        .ok_or_else(|| format!("Podman {version} must emit post-reset GlobalArgs token"))?;
+    if global_position >= run_position
+        || arguments
+            .iter()
+            .filter(|argument| **argument == "--log-level=debug")
+            .count()
+            != 1
+        || arguments.contains(&"--log-level=info")
+        || generated.contains("---ignored-first.service---")
+    {
+        return Err(format!(
+            "Podman {version} must retain one post-reset GlobalArgs token before run and omit ignored ServiceName output"
+        ));
+    }
+    for pair in [
+        ["--health-log-destination", "local"],
+        ["--health-max-log-count", "5"],
+        ["--health-max-log-size", "10m"],
+        ["--health-startup-cmd", "echo"],
+        ["--health-startup-interval", "2s"],
+        ["--health-startup-retries", "4"],
+        ["--health-startup-success", "2"],
+        ["--health-startup-timeout", "1s"],
+    ] {
+        if count_argument_pair(&arguments, pair[0], pair[1]) != 1 {
+            return Err(format!(
+                "Podman {version} must emit exactly one separate Container completion argument pair {pair:?}"
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn exec_arguments(command: &str) -> Vec<&str> {
+    // These fixtures use opaque CLI values without whitespace or C escapes, so token splitting
+    // verifies exact argument pairs without claiming a general systemd ExecStart parser.
+    command.split_whitespace().collect()
+}
+
+fn count_argument_pair(arguments: &[&str], flag: &str, value: &str) -> usize {
+    if value.is_empty() {
+        return arguments.iter().filter(|argument| **argument == flag).count();
+    }
+    arguments
+        .windows(2)
+        .filter(|pair| pair[0] == flag && pair[1] == value)
+        .count()
+}
+
+fn verify_container_batch_variants(version: &str, generated: &str, output: &Output) -> Result<(), String> {
+    let expected_modes = ["enabled", "disabled", "no-conmon", "split"];
+    for mode in expected_modes {
+        let unit = generated_unit(version, generated, &format!("cgroups-{mode}.service"), output)?;
+        let run = unit
+            .lines()
+            .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+            .ok_or_else(|| format!("Podman {version} cgroups {mode} output has no run command"))?;
+        if count_argument_pair(&exec_arguments(run), "--cgroups", mode) != 1 {
+            return Err(format!("Podman {version} must emit one exact --cgroups {mode} pair"));
+        }
+    }
+    for (unit_name, value) in [("batch.service", "registry"), ("auto-local.service", "local")] {
+        let unit = generated_unit(version, generated, unit_name, output)?;
+        let run = unit
+            .lines()
+            .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+            .ok_or_else(|| format!("Podman {version} {unit_name} output has no run command"))?;
+        if count_argument_pair(
+            &exec_arguments(run),
+            "--label",
+            &format!("io.containers.autoupdate={value}"),
+        ) != 1
+        {
+            return Err(format!(
+                "Podman {version} must emit AutoUpdate={value} as one exact label pair"
+            ));
+        }
+    }
+    let unit = generated_unit(version, generated, "mount-reset.service", output)?;
+    let run = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| format!("Podman {version} mount reset output has no run command"))?;
+    let arguments = exec_arguments(run);
+    let final_one = ["--mount", "type=tmpfs,destination=/final-one"];
+    let final_two = ["--mount", "type=tmpfs,destination=/final-two"];
+    if count_argument_pair(&arguments, final_one[0], final_one[1]) != 1
+        || count_argument_pair(&arguments, final_two[0], final_two[1]) != 1
+        || arguments
+            .windows(2)
+            .position(|pair| pair == final_one)
+            .unwrap_or(usize::MAX)
+            >= arguments.windows(2).position(|pair| pair == final_two).unwrap_or(0)
+        || arguments.iter().any(|argument| argument.contains("/pre-"))
+    {
+        return Err(format!(
+            "Podman {version} must retain only ordered post-reset Mount arguments"
+        ));
+    }
+    Ok(())
+}
+
+fn verify_container_retry_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    if parsed < PodmanVersion::new(5, 5, 0) {
+        if output.status.success() || String::from_utf8_lossy(&output.stdout).contains("--retry") {
+            return Err(format!(
+                "Podman {version} must reject Container Retry and RetryDelay without emitting retry arguments"
+            ));
+        }
+        return Ok(());
+    }
+    ensure_success(version, "container retry generator", output)?;
+    let generated = String::from_utf8_lossy(&output.stdout);
+    if !expected.iter().all(|fragment| generated.contains(fragment)) {
+        return Err(format!(
+            "Podman {version} container retry output misses an expected fixture fragment"
+        ));
+    }
+    let unit = generated_unit(version, &generated, "retry.service", output)?;
+    let run = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| format!("Podman {version} retry output has no podman run command"))?;
+    let arguments = exec_arguments(run);
+    if count_argument_pair(&arguments, "--retry", "4") != 1
+        || count_argument_pair(&arguments, "--retry-delay", "7s") != 1
+        || arguments.iter().filter(|argument| **argument == "--retry").count() != 1
+        || arguments
+            .iter()
+            .filter(|argument| **argument == "--retry-delay")
+            .count()
+            != 1
+    {
+        return Err(format!(
+            "Podman {version} must emit exactly one separate --retry 4 and --retry-delay 7s argument"
+        ));
+    }
+    Ok(())
+}
+
+fn verify_container_http_proxy_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    if parsed < PodmanVersion::new(5, 7, 0) {
+        if output.status.success() || String::from_utf8_lossy(&output.stdout).contains("--http-proxy") {
+            return Err(format!(
+                "Podman {version} must reject Container HttpProxy without emitting proxy arguments"
+            ));
+        }
+        return Ok(());
+    }
+    ensure_success(version, "container HttpProxy generator", output)?;
+    let generated = String::from_utf8_lossy(&output.stdout);
+    if !expected.iter().all(|fragment| generated.contains(fragment)) {
+        return Err(format!(
+            "Podman {version} container HttpProxy output misses an expected fixture fragment"
+        ));
+    }
+    let unit = generated_unit(version, &generated, "http-proxy.service", output)?;
+    let run = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| format!("Podman {version} HttpProxy output has no podman run command"))?;
+    let arguments = exec_arguments(run);
+    if arguments
+        .iter()
+        .filter(|argument| **argument == "--http-proxy=false")
+        .count()
+        != 1
+        || arguments
+            .iter()
+            .filter(|argument| argument.starts_with("--http-proxy"))
+            .count()
+            != 1
+    {
+        return Err(format!(
+            "Podman {version} must emit exactly one --http-proxy=false argument"
+        ));
+    }
+    Ok(())
+}
+
+fn verify_container_start_with_pod_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    ensure_success(version, "container StartWithPod generator", output)?;
+    let generated = String::from_utf8_lossy(&output.stdout);
+    if !expected.iter().all(|fragment| generated.contains(fragment)) {
+        return Err(format!(
+            "Podman {version} container StartWithPod output misses an expected relationship fragment"
+        ));
+    }
+    let unit = generated_unit(version, &generated, "batch.service", output)?;
+    let run = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| format!("Podman {version} StartWithPod output has no podman run command"))?;
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    let expected_argument = if parsed < PodmanVersion::new(5, 7, 0) {
+        "--pod-id-file %t/batch-pod.pod-id"
+    } else {
+        "--pod systemd-batch"
+    };
+    let arguments = exec_arguments(run);
+    let expected_count = if expected_argument.starts_with("--pod-id-file") {
+        count_argument_pair(&arguments, "--pod-id-file", "%t/batch-pod.pod-id")
+    } else {
+        count_argument_pair(&arguments, "--pod", "systemd-batch")
+    };
+    if expected_count != 1 {
+        return Err(format!(
+            "Podman {version} StartWithPod output must contain exactly one `{expected_argument}` argument"
+        ));
+    }
+    Ok(())
+}
+
+fn verify_container_direct_maps_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    ensure_success(version, "container direct maps generator", output)?;
+    let generated = String::from_utf8_lossy(&output.stdout);
+    if !expected.iter().all(|fragment| generated.contains(fragment)) {
+        return Err(format!(
+            "Podman {version} direct maps output misses an expected fixture fragment"
+        ));
+    }
+    let unit = generated_unit(version, &generated, "maps.service", output)?;
+    let run = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| format!("Podman {version} direct maps output has no run command"))?;
+    let arguments = exec_arguments(run);
+    for (flag, first, second, pre) in [
+        ("--uidmap", "0:200000:65536", "1:300000:1", "0:100000:65536"),
+        ("--gidmap", "0:200000:65536", "1:300000:1", "0:100000:65536"),
+    ] {
+        let first_position = arguments
+            .windows(2)
+            .position(|pair| pair[0] == flag && pair[1] == first);
+        let second_position = arguments
+            .windows(2)
+            .position(|pair| pair[0] == flag && pair[1] == second);
+        if first_position.is_none()
+            || second_position.is_none()
+            || first_position >= second_position
+            || arguments.contains(&pre)
+            || arguments.iter().filter(|argument| **argument == flag).count() != 2
+        {
+            return Err(format!(
+                "Podman {version} must emit two ordered post-reset {flag} pairs without pre-reset values"
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn verify_container_sub_maps_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    ensure_success(version, "container subordinate maps generator", output)?;
+    let generated = String::from_utf8_lossy(&output.stdout);
+    if !expected.iter().all(|fragment| generated.contains(fragment)) {
+        return Err(format!(
+            "Podman {version} subordinate maps output misses an expected fixture fragment"
+        ));
+    }
+    let unit = generated_unit(version, &generated, "sub-maps.service", output)?;
+    let run = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| format!("Podman {version} subordinate maps output has no run command"))?;
+    let arguments = exec_arguments(run);
+    if count_argument_pair(&arguments, "--subuidname", "keep-id") != 1
+        || count_argument_pair(&arguments, "--subgidname", "keep-id") != 1
+        || arguments
+            .iter()
+            .any(|argument| *argument == "--uidmap" || *argument == "--gidmap")
+    {
+        return Err(format!(
+            "Podman {version} must emit independent subordinate mapping pairs without direct maps"
         ));
     }
     Ok(())

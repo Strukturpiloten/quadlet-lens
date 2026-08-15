@@ -1,13 +1,13 @@
 # API stability policy
 
-QuadletLens is pre-1.0, but version 0.1 establishes a supported integration line for BoxFerry and
-independent tools that need native Quadlet parsing, modeling, document-set resolution, and
-evidence-backed Podman capability queries. This policy is recorded by
-[ADR 0008](decisions/0008-versioned-public-api-and-release-contract.md).
+QuadletLens is pre-1.0, but version 0.2 establishes the current supported integration line for
+BoxFerry and independent tools that need native Quadlet parsing, modeling, document-set resolution,
+and evidence-backed Podman capability queries. This policy is recorded by
+[ADR 0010](decisions/0010-consolidated-0.2-public-api.md).
 
-## The 0.1.x contract
+## The 0.2.x contract
 
-Within the 0.1.x line:
+Within the 0.2.x line:
 
 - patch releases preserve source compatibility for the supported public entry points;
 - public APIs use QuadletLens-owned types;
@@ -54,11 +54,11 @@ variants are therefore appended; existing variants are never reordered. The publ
 test records the published key-enum values, and normal CI compares the candidate API with the
 latest published crate before changes can reach the release workflow.
 
-## Not promised by 0.1
+## Not promised by 0.2
 
-The 0.1 contract does not claim:
+The 0.2 contract does not claim:
 
-- complete coverage of every Quadlet unit type, key, or systemd value grammar;
+- typed coverage of every open-ended generic systemd directive or complete systemd value grammar;
 - key-specific quoting, value parsing, and target-aware value rendering;
 - runtime, rootless/rootful, SELinux, cgroup, network, or systemd activation behavior;
 - support evidence beyond the finite catalogue range or its capability-specific evidence; or

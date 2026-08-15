@@ -5,6 +5,35 @@ Versioning for its documented pre-1.0 public API.
 
 ## [Unreleased]
 
+### Added
+
+- Typed opaque Container support for automatic updates, cgroup and environment/proxy controls,
+  user mappings, native mounts, retry/start/timezone/health-failure controls, with repeatability
+  and relationship diagnostics preserved without host inspection or runtime claims.
+- Completes current Container-key recognition with opaque configuration/global arguments,
+  health logging and startup controls, image volumes, and generated service names.
+- Completes current Pod-key recognition with opaque networking, labels, configuration/global
+  arguments, mappings, and source-spanned mapping-conflict diagnostics.
+- Completes current Network and Image-key recognition with opaque native values, ordered
+  repeatable entries, and duplicate-singleton diagnostics; target-specific generator evidence is
+  recorded only where separately verified.
+- Completes current Kube-key recognition with a required opaque `Yaml` source, source-spanned
+  missing/empty diagnostics, ordered native inputs, and exact `.network` document-set references.
+- Extends Kube coverage through the audited 6.0.2 `LogOpt` and user-remapping keys, including
+  reset-aware `Yaml` working-directory diagnostics and ordered `AutoUpdate` values.
+- Adds experimental `.artifact` and shared `[Quadlet] DefaultDependencies` typing, redacted
+  Artifact credentials/key debug output, exact document-set references, and finite 5.7.0–6.0.2
+  generator evidence; pre-5.7 Artifact output remains unsupported.
+- Types all nine reviewed systemd Unit relationships with reset-aware native-reference graphs,
+  relationship identity, the Podman 5.5 rewrite boundary, and systemd 249 `Upholds` guidance.
+
+### Changed
+
+- Starts the 0.2.x API line with `SystemdUnitKey` owned only by `model`; removes the
+  compatibility-only `render` re-export.
+- SemVer validation derives the release type from Cargo package versions instead of forcing every
+  candidate to be a patch.
+
 ## [0.1.13] - 2026-08-13
 
 ### Added

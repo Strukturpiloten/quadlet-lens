@@ -1,0 +1,2 @@
+---sub-maps.service---
+SourcePath=/fixtures/sub-maps.container

@@ -2,7 +2,7 @@
 
 use quadlet_lens::model::{
     DocumentSetError, NamedQuadletDocument, QuadletDocument, QuadletDocumentSet, QuadletUnitType, ReferenceResolution,
-    UnitFileName, UnitReferenceKind,
+    SystemdUnitKey, UnitFileName, UnitReferenceKind,
 };
 use quadlet_lens::source::SourceId;
 
@@ -11,6 +11,162 @@ const PROXY: &str = include_str!("../fixtures/typed-model/document-set-resolutio
 const POD: &str = include_str!("../fixtures/typed-model/document-set-resolution/application.pod");
 const NETWORK: &str = include_str!("../fixtures/typed-model/document-set-resolution/frontend.network");
 const VOLUME: &str = include_str!("../fixtures/typed-model/document-set-resolution/cache.volume");
+
+#[test]
+#[allow(clippy::too_many_lines)] // One table keeps all relationship keys and native suffixes auditable together.
+fn document_set_resolves_effective_systemd_relationship_lists_with_key_identity() -> Result<(), String> {
+    let source = concat!(
+        "[Unit]\n",
+        "Requisite=child.container pod.pod\n",
+        "BindsTo=network.network\n",
+        "PartOf=volume.volume\n",
+        "Upholds=build.build\n",
+        "Conflicts=image.image\n",
+        "Before=kube.kube artifact.artifact ordinary.service ordinary.target\n",
+        "Requires=discarded.container\n",
+        "Requires=\n",
+        "Requires=child.container\n",
+        "Wants=\"pod.pod\" \\\n",
+        "  network.network\n",
+        "After='volume.volume'\n",
+        "Before=\"malformed.container\n",
+        "[Container]\n",
+        "Image=example.invalid/application\n",
+    );
+    let set = QuadletDocumentSet::new([
+        named("root.container", QuadletUnitType::Container, 9_200, source)?,
+        named(
+            "child.container",
+            QuadletUnitType::Container,
+            9_201,
+            "[Container]\nImage=example.invalid/child\n",
+        )?,
+        named("pod.pod", QuadletUnitType::Pod, 9_202, "[Pod]\n")?,
+        named("network.network", QuadletUnitType::Network, 9_203, "[Network]\n")?,
+        named("volume.volume", QuadletUnitType::Volume, 9_204, "[Volume]\n")?,
+        named(
+            "build.build",
+            QuadletUnitType::Build,
+            9_205,
+            "[Build]\nImageTag=example.invalid/build\n",
+        )?,
+        named(
+            "image.image",
+            QuadletUnitType::Image,
+            9_206,
+            "[Image]\nImage=example.invalid/image\n",
+        )?,
+        named(
+            "kube.kube",
+            QuadletUnitType::Kube,
+            9_207,
+            "[Kube]\nYaml=placeholder.yaml\n",
+        )?,
+        named(
+            "artifact.artifact",
+            QuadletUnitType::Artifact,
+            9_208,
+            "[Artifact]\nArtifact=example.invalid/artifact\n",
+        )?,
+    ])
+    .map_err(|error| error.to_string())?;
+    assert!(set.is_valid(), "{:#?}", set.diagnostics());
+
+    let relationships = set
+        .graph()
+        .references()
+        .iter()
+        .map(|reference| (reference.target_name(), reference.kind(), reference.systemd_unit_key()))
+        .collect::<Vec<_>>();
+    assert_eq!(
+        relationships,
+        [
+            (
+                "child.container",
+                UnitReferenceKind::Container,
+                Some(SystemdUnitKey::Requisite)
+            ),
+            ("pod.pod", UnitReferenceKind::Pod, Some(SystemdUnitKey::Requisite)),
+            (
+                "network.network",
+                UnitReferenceKind::Network,
+                Some(SystemdUnitKey::BindsTo)
+            ),
+            ("volume.volume", UnitReferenceKind::Volume, Some(SystemdUnitKey::PartOf)),
+            ("build.build", UnitReferenceKind::Build, Some(SystemdUnitKey::Upholds)),
+            ("image.image", UnitReferenceKind::Image, Some(SystemdUnitKey::Conflicts)),
+            ("kube.kube", UnitReferenceKind::Kube, Some(SystemdUnitKey::Before)),
+            (
+                "artifact.artifact",
+                UnitReferenceKind::Artifact,
+                Some(SystemdUnitKey::Before)
+            ),
+            (
+                "child.container",
+                UnitReferenceKind::Container,
+                Some(SystemdUnitKey::Requires)
+            ),
+            ("pod.pod", UnitReferenceKind::Pod, Some(SystemdUnitKey::Wants)),
+            (
+                "network.network",
+                UnitReferenceKind::Network,
+                Some(SystemdUnitKey::Wants)
+            ),
+            ("volume.volume", UnitReferenceKind::Volume, Some(SystemdUnitKey::After)),
+        ]
+    );
+    assert!(!relationships.iter().any(|(name, _, _)| *name == "discarded.container"));
+    assert_eq!(set.graph().edges().len(), relationships.len());
+    assert!(
+        set.graph()
+            .edges()
+            .iter()
+            .zip(set.graph().references())
+            .all(|(edge, reference)| edge.systemd_unit_key() == reference.systemd_unit_key())
+    );
+    Ok(())
+}
+
+#[test]
+fn systemd_relationship_graph_reports_missing_and_ambiguous_native_targets_only() -> Result<(), String> {
+    let set = QuadletDocumentSet::new([
+        named(
+            "root.container",
+            QuadletUnitType::Container,
+            9_210,
+            "[Unit]\nBefore=missing.container duplicate.network ordinary.service ordinary.target\n[Container]\nImage=x\n",
+        )?,
+        named("duplicate.network", QuadletUnitType::Network, 9_211, "[Network]\n")?,
+        named("duplicate.network", QuadletUnitType::Network, 9_212, "[Network]\n")?,
+    ])
+    .map_err(|error| error.to_string())?;
+    assert!(!set.is_valid());
+    assert_eq!(
+        set.graph()
+            .references()
+            .iter()
+            .map(|reference| (
+                reference.target_name(),
+                reference.resolution(),
+                reference.systemd_unit_key()
+            ))
+            .collect::<Vec<_>>(),
+        [
+            (
+                "missing.container",
+                ReferenceResolution::Missing,
+                Some(SystemdUnitKey::Before)
+            ),
+            (
+                "duplicate.network",
+                ReferenceResolution::Ambiguous { candidates: 2 },
+                Some(SystemdUnitKey::Before),
+            ),
+        ]
+    );
+    assert_eq!(diagnostic_codes(&set), ["QLG0003", "QLG0001", "QLG0002"]);
+    Ok(())
+}
 
 #[test]
 fn document_set_resolves_container_pod_network_and_volume_dependencies() -> Result<(), String> {
@@ -208,6 +364,142 @@ fn document_set_resolves_build_volume_source_prefix_without_mutating_identities(
 }
 
 #[test]
+#[expect(
+    clippy::too_many_lines,
+    reason = "The table-driven integration case keeps all accepted Artifact reference spellings and outcomes auditable together."
+)]
+fn document_set_resolves_artifact_volume_and_mount_references_without_guessing_suffixes() -> Result<(), String> {
+    let set = QuadletDocumentSet::new([
+        named(
+            "application.container",
+            QuadletUnitType::Container,
+            2_101,
+            concat!(
+                "[Container]\nImage=example.invalid/application:1\n",
+                "Volume=shared.artifact:/volume:ro\n",
+                "Mount=type=artifact,readonly,source=source.artifact,destination=/source\n",
+                "Mount=type=artifact,readonly,src=src.artifact,destination=/src\n",
+            ),
+        )?,
+        named(
+            "application.pod",
+            QuadletUnitType::Pod,
+            2_102,
+            "[Pod]\nVolume=shared.artifact:/volume:ro\n",
+        )?,
+        named(
+            "application.build",
+            QuadletUnitType::Build,
+            2_103,
+            "[Build]\nImageTag=localhost/application:latest\nVolume=shared.artifact:/volume:ro\n",
+        )?,
+        named(
+            "shared.artifact",
+            QuadletUnitType::Artifact,
+            2_104,
+            "[Artifact]\nArtifact=registry.invalid/shared:1\n",
+        )?,
+        named(
+            "source.artifact",
+            QuadletUnitType::Artifact,
+            2_105,
+            "[Artifact]\nArtifact=registry.invalid/source:1\n",
+        )?,
+        named(
+            "src.artifact",
+            QuadletUnitType::Artifact,
+            2_106,
+            "[Artifact]\nArtifact=registry.invalid/src:1\n",
+        )?,
+    ])
+    .map_err(|error| error.to_string())?;
+    assert!(set.is_valid(), "{:#?}", set.diagnostics());
+    assert_eq!(set.graph().references().len(), 5);
+    assert_eq!(set.graph().edges().len(), 5);
+    assert!(set.graph().references().iter().all(|reference| {
+        reference.kind() == UnitReferenceKind::Artifact
+            && matches!(reference.resolution(), ReferenceResolution::Resolved { .. })
+    }));
+    assert_eq!(
+        set.graph()
+            .references()
+            .iter()
+            .map(quadlet_lens::model::UnitReference::target_name)
+            .collect::<Vec<_>>(),
+        [
+            "shared.artifact",
+            "source.artifact",
+            "src.artifact",
+            "shared.artifact",
+            "shared.artifact"
+        ]
+    );
+
+    let missing = QuadletDocumentSet::new([named(
+        "missing.container",
+        QuadletUnitType::Container,
+        2_107,
+        "[Container]\nImage=example.invalid/application:1\nMount=type=artifact,readonly,source=missing.artifact,destination=/missing\n",
+    )?])
+    .map_err(|error| error.to_string())?;
+    assert!(!missing.is_valid());
+    assert_eq!(diagnostic_codes(&missing), ["QLG0001"]);
+    assert_eq!(
+        missing.graph().references()[0].resolution(),
+        ReferenceResolution::Missing
+    );
+
+    let ambiguous = QuadletDocumentSet::new([
+        named(
+            "ambiguous.container",
+            QuadletUnitType::Container,
+            2_108,
+            "[Container]\nImage=example.invalid/application:1\nMount=type=artifact,readonly,src=ambiguous.artifact,destination=/ambiguous\n",
+        )?,
+        named(
+            "ambiguous.artifact",
+            QuadletUnitType::Artifact,
+            2_109,
+            "[Artifact]\nArtifact=registry.invalid/one:1\n",
+        )?,
+        named(
+            "ambiguous.artifact",
+            QuadletUnitType::Artifact,
+            2_110,
+            "[Artifact]\nArtifact=registry.invalid/two:1\n",
+        )?,
+    ])
+    .map_err(|error| error.to_string())?;
+    assert!(!ambiguous.is_valid());
+    assert_eq!(diagnostic_codes(&ambiguous), ["QLG0003", "QLG0002"]);
+    assert_eq!(
+        ambiguous.graph().references()[0].resolution(),
+        ReferenceResolution::Ambiguous { candidates: 2 }
+    );
+
+    let wrong_suffix = QuadletDocumentSet::new([
+        named(
+            "wrong-suffix.container",
+            QuadletUnitType::Container,
+            2_111,
+            "[Container]\nImage=example.invalid/application:1\nMount=type=artifact,source=not-an-artifact.volume,destination=/wrong\n",
+        )?,
+        named("not-an-artifact.volume", QuadletUnitType::Volume, 2_112, "[Volume]\n")?,
+    ])
+    .map_err(|error| error.to_string())?;
+    assert!(wrong_suffix.is_valid(), "{:#?}", wrong_suffix.diagnostics());
+    assert!(wrong_suffix.graph().references().is_empty());
+    let mount = wrong_suffix.documents()[0]
+        .document()
+        .entries()
+        .find(|entry| entry.key().text() == "Mount")
+        .ok_or("missing Mount entry")?;
+    assert_eq!(mount.value_kind(), quadlet_lens::model::ValueKind::Opaque);
+    assert_eq!(mount.unit_reference_name(), None);
+    Ok(())
+}
+
+#[test]
 fn document_set_resolves_an_exact_build_network_reference() -> Result<(), String> {
     let set = QuadletDocumentSet::new([
         named(
@@ -229,6 +521,26 @@ fn document_set_resolves_an_exact_build_network_reference() -> Result<(), String
         ReferenceResolution::Resolved { document_index: 1 }
     );
     assert_eq!(set.graph().edges()[0].target_document(), 1);
+    Ok(())
+}
+
+#[test]
+fn document_set_resolves_an_exact_kube_network_reference_without_loading_yaml() -> Result<(), String> {
+    let set = QuadletDocumentSet::new([
+        named(
+            "application.kube",
+            QuadletUnitType::Kube,
+            1_100,
+            "[Kube]\nYaml=./placeholder.yaml\nNetwork=frontend.network\n",
+        )?,
+        named("frontend.network", QuadletUnitType::Network, 1_101, "[Network]\n")?,
+    ])
+    .map_err(|error| error.to_string())?;
+    assert!(set.is_valid(), "{:#?}", set.diagnostics());
+    assert_eq!(set.graph().references().len(), 1);
+    assert_eq!(set.graph().edges().len(), 1);
+    assert_eq!(set.graph().references()[0].kind(), UnitReferenceKind::Network);
+    assert_eq!(set.graph().references()[0].target_name(), "frontend.network");
     Ok(())
 }
 

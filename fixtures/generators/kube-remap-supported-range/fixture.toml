@@ -1,0 +1,15 @@
+schema = 1
+id = "kube-remap-supported-range"
+suite = "generators"
+description = "Isolates deprecated Kube remap keys from explicit UserNS."
+secrets_reviewed = true
+files = ["remap.kube", "expected-fragments.txt"]
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+[environment]
+description = "Dry-run generator only; no Kubernetes YAML or runtime is executed."
+[expectations]
+summary = "Ordered RemapGid and RemapUid values are generated without explicit UserNS."

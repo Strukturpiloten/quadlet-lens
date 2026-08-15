@@ -169,10 +169,13 @@ remain explicit entries rather than validation losses.
 
 Value interpretation is deliberately conservative. Environment-file and mount sources receive
 lexical path classifications, and `.image`, `.build`, `.pod`, `.network`, and `.volume` references
-receive explicit reference kinds. Systemd command lines, environment assignments, ports, health
-commands, and raw Podman arguments remain opaque until their behavior is protected by focused
-parsers and exact generator evidence. [ADR 0005](decisions/0005-source-aware-native-typed-model.md)
-defines this boundary.
+receive explicit reference kinds. Systemd command lines, ports, health commands, and raw Podman
+arguments remain opaque until their behavior is protected by focused parsers and exact generator
+evidence. Authored container `Environment=` entries remain source-preserved and also expose the
+bounded semantic view defined by
+[ADR 0011](decisions/0011-authored-environment-and-systemd-target-boundaries.md).
+[ADR 0005](decisions/0005-source-aware-native-typed-model.md) defines the general opaque-value
+boundary.
 
 ### Document set and dependency graph
 
@@ -204,7 +207,10 @@ Validation combines documents, a target profile, and catalogue data. It reports 
 The implemented programmatic renderer accepts typed native keys, exact one-line native values, and
 open-ended generic systemd directives. It produces deterministic section order and reparses every
 generated document before returning it. It deliberately does not invent quoting or normalization
-rules for opaque systemd and Podman value grammars. [ADR 0009](decisions/0009-validated-programmatic-generation.md)
+rules for opaque systemd and Podman value grammars. Focused container-environment construction also
+offers an ordered plan over validated literal assignments, groups, and resets. The plan preserves
+physical directives for rendering and exposes only explicit per-name effective literal lookup;
+authored parsing and manager/runtime expansion remain separate. [ADR 0009](decisions/0009-validated-programmatic-generation.md)
 defines this boundary.
 
 The broader renderer direction supports:
@@ -215,16 +221,19 @@ The broader renderer direction supports:
 
 Rendering never installs or executes the result.
 
-## Target profile
+## Target profile direction
 
-A target profile may include:
+The implemented `PodmanTarget` includes a Podman minimum, an optional maximum, and optional
+caller-supplied systemd release context. It does not probe the host. Broader target-policy work may
+eventually include:
 
-- Podman minimum and optional maximum version
 - exact detected Podman version
-- systemd minimum or detected version
 - rootless or rootful mode
 - allowed fallback policy
 - explicit capability overrides for distribution backports
+
+Those additions are not current API claims. Distribution overrides in particular remain deferred
+until a concrete supported backport case defines an explicit, auditable contract.
 
 Output claimed compatible with a range must validate across the entire range.
 

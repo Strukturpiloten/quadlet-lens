@@ -1,0 +1,3 @@
+[Container]
+Image=registry.example.invalid/container-auto-local:1
+AutoUpdate=local

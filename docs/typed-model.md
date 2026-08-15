@@ -12,20 +12,33 @@ defines its representation boundary.
 | ------------ | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `.container` | `[Container]`    | Container keys listed below                                                                                                                                                                                                                                                                                                                         |
 | `.pod`       | `[Pod]`          | Pod keys listed below                                                                                                                                                                                                                                                                                                                               |
-| `.network`   | `[Network]`      | `NetworkName`, `Driver`, `Options`, `Label`, `Internal`, `IPv6`, `IPAMDriver`, `Subnet`, `Gateway`, `IPRange`                                                                                                                                                                                                                                       |
+| `.network`   | `[Network]`      | `NetworkName`, `Driver`, `Options`, `Label`, `Internal`, `IPv6`, `IPAMDriver`, `Subnet`, `Gateway`, `IPRange`, `ContainersConfModule`, `DisableDNS`, `DNS`, `GlobalArgs`, `InterfaceName`, `NetworkDeleteOnStop`, `PodmanArgs`, `ServiceName`                                                                                                       |
 | `.volume`    | `[Volume]`       | `VolumeName`, `Driver`, `Options`, `Label`, `Device`, `Type`, `Copy`, `ContainersConfModule`, `GlobalArgs`, `PodmanArgs`, `User`, `Group`, `UID`, `GID`, `ServiceName`, `Image`                                                                                                                                                                     |
 | `.build`     | `[Build]`        | repeatable `ImageTag`/`Network`/`Label`/`File`/`BuildArg`/`Secret`/`GroupAdd`/`DNS`/`DNSOption`/`DNSSearch`/`Annotation`/`Environment`/`ContainersConfModule`/`GlobalArgs`/`Volume`/`PodmanArgs`, singleton `SetWorkingDirectory`/`Target`/`Arch`/`Variant`/`Pull`/`Retry`/`RetryDelay`/`TLSVerify`/`ForceRM`/`AuthFile`/`IgnoreFile`/`ServiceName` |
-| `.image`     | `[Image]`        | singleton `Image`, `ImageTag`, `ServiceName`, `AllTags`, `Arch`, `AuthFile`, `CertDir`, `Creds`, `DecryptionKey`, `OS`; repeatable `ContainersConfModule`, `GlobalArgs`                                                                                                                                                                             |
+| `.image`     | `[Image]`        | singleton `Image`, `ImageTag`, `ServiceName`, `AllTags`, `Arch`, `AuthFile`, `CertDir`, `Creds`, `DecryptionKey`, `OS`, `Policy`, `Retry`, `RetryDelay`, `TLSVerify`, `Variant`; repeatable `ContainersConfModule`, `GlobalArgs`, `PodmanArgs`                                                                                                      |
+| `.kube`      | `[Kube]`         | required repeatable `Yaml`; repeatable `AutoUpdate`, `ConfigMap`, `ContainersConfModule`, `GlobalArgs`, `LogOpt`, `Network`, `PodmanArgs`, `PublishPort`, `RemapGid`, `RemapUid`; singleton `ExitCodePropagation`, `KubeDownForce`, `LogDriver`, `RemapUidSize`, `RemapUsers`, `ServiceName`, `SetWorkingDirectory`, `UserNS`                       |
+| `.artifact`  | `[Artifact]`     | required singleton `Artifact`; repeatable `ContainersConfModule`, `GlobalArgs`, `PodmanArgs`; singleton `AuthFile`, `CertDir`, `Creds`, `DecryptionKey`, `Quiet`, `Retry`, `RetryDelay`, `ServiceName`, `TLSVerify`; shared `[Quadlet] DefaultDependencies`                                                                                         |
 
-The typed boundary currently contains 63 container keys, ten pod keys, ten network keys, sixteen
-volume keys, twenty-eight build keys, and twelve image keys. The exact key lists live in the
+The typed boundary currently contains 90 container keys, twenty-five pod keys, eighteen network keys, sixteen
+volume keys, twenty-eight build keys, eighteen image keys, nineteen Kube keys, thirteen experimental Artifact keys,
+one shared Quadlet key, and nine reviewed systemd Unit relationship keys. Newly promoted Network, Image, Kube, Artifact, and Quadlet values are opaque;
+their fixtures assert target command text, reset/order behavior, and documented version boundaries only. The exact key lists live in the
 [specification coverage ledger](roadmap.md#specification-coverage-ledger).
 
 `[Unit]`, `[Service]`, and `[Install]` are recognized as generic systemd sections. Parsed keys are
-not restricted by a closed enum. Programmatic generation additionally offers typed `Requires`,
-`Wants`, and `After` `[Unit]` directives for the evidence-backed dependency subset. Other sections
-and keys remain explicit `Unknown` entries.
+not restricted by a closed enum. `SystemdUnitKey` types `Requires`, `Wants`, `After`, `Requisite`,
+`BindsTo`, `PartOf`, `Upholds`, `Conflicts`, and `Before`; every other systemd directive remains
+generic and source-preserved. Other native sections and keys remain explicit `Unknown` entries.
 Unsupported suffixes fail closed rather than implying complete typed support.
+
+`QuadletDocument::container_environment()` is a separate authored semantic view for container
+`Environment=` directives. It does not change `AuthoredValue` or source preservation. The view
+keeps directive order, recognizes literal assignments, empty resets, and bare names after bounded
+systemd word/quote/escape processing, and reports `%` values as deferred. Malformed names, quotes,
+and escapes remain recoverable diagnostics. No environment-file, secret, manager, process, or
+runtime expansion is attempted. Recognized Container and Build `Environment=` values are treated
+as sensitive by repository-owned `TypedEntry` and document debug output, while explicit raw access
+and preservation rendering remain available to callers that handle secrets safely.
 
 ## Parse result
 
@@ -49,7 +62,7 @@ document; the typed view does not duplicate them.
 `ValueKind` makes only conservative lexical claims:
 
 - `Path` distinguishes absolute, unit-relative, other relative, and systemd-specifier spellings;
-- `UnitReference` identifies exact lowercase `.image`, `.build`, `.pod`, `.network`, and `.volume`
+- `UnitReference` identifies exact lowercase `.image`, `.build`, `.pod`, `.network`, `.volume`, and `.artifact`
   references where the recognized key permits them;
 - `Opaque` retains everything else without decoding it.
 
@@ -60,6 +73,49 @@ command arguments.
 Exactly one of `Image` or `Rootfs` supplies a container workload. Both are singleton keys and they
 conflict with each other. `Rootfs` is conservatively classified as a path, but QuadletLens does not
 parse Podman's overlay-rootfs grammar or check the host directory and SELinux label.
+
+`ContainersConfModule`, `GlobalArgs`, and `ImageVolume` are repeatable opaque Container keys. Their
+physical values, empty reset lines, duplicate spellings, quoted text, continuations, and order stay
+source-visible; the programmatic builder preserves their input order. `HealthLogDestination`,
+`HealthMaxLogCount`, `HealthMaxLogSize`, `HealthStartupCmd`, `HealthStartupInterval`,
+`HealthStartupRetries`, `HealthStartupSuccess`, `HealthStartupTimeout`, and `ServiceName` are opaque
+Container singletons. QuadletLens does not parse health commands, numbers, sizes, durations, image
+volume grammar, service identity, or health execution semantics. Duplicate singleton authored lines
+receive `QLM0004`; generated construction rejects a second value. `ImageVolume` has no positive
+native support range until versioned generator evidence is recorded.
+
+Pod `ContainersConfModule`, `DNS`, `DNSOption`, `DNSSearch`, `GIDMap`, `GlobalArgs`, `Label`,
+`NetworkAlias`, `PodmanArgs`, and `UIDMap` retain exact ordered physical values, including empty
+reset lines and duplicates. `HostName`, `IP`, `IP6`, `SubGIDMap`, and `SubUIDMap` are opaque
+singletons. Parsed duplicate singleton lines receive `QLM0004`; generated construction rejects a
+second value. Pod `UserNS` combined with any direct or subordinate ID map is rejected with
+`QLM0013`; direct and corresponding subordinate UID/GID maps are rejected with `QLM0014` and
+`QLM0015`. These diagnostics use effective reset-aware values and source spans. The model neither
+parses nor resolves DNS, labels, network aliases, addresses, ID maps, modules, or raw arguments.
+
+Kube `Yaml` is required and repeatable. Missing `Yaml=` reports `QLM0017`; a blank `Yaml=`
+resets the effective source list. `QLM0018` reports only when that reset-aware list has no source,
+at the final effective-reset value span. Multiple effective `Yaml=` values combined with
+`SetWorkingDirectory=yaml` report `QLM0019` because one YAML-relative directory cannot be selected;
+an empty reset clears the effective list. `AutoUpdate`, `ConfigMap`, `ContainersConfModule`,
+`GlobalArgs`, `LogOpt`, `Network`, `PodmanArgs`, and `PublishPort` retain ordered physical values,
+including blank reset entries and duplicates. The remaining Kube keys are opaque singletons and use `QLM0004` when repeated. `Yaml`
+and `ConfigMap` receive only lexical path classification; neither is read, normalized, or parsed.
+An exact Kube `Network=NAME.network` establishes a document-set reference; all other network text
+remains opaque. QuadletLens does not parse Kubernetes YAML, load ConfigMaps, execute `kube play` or
+`kube down`, or make runtime claims.
+
+Experimental Artifact `Artifact` is required. A missing Artifact section entry reports `QLM0021`;
+the final authored `Artifact=` value being blank reports `QLM0022`. Earlier duplicate source text
+remains preserved with the normal `QLM0004` singleton warning. `ContainersConfModule`, `GlobalArgs`,
+and `PodmanArgs` remain ordered raw physical entries, including resets and duplicates; every other
+Artifact value is an opaque singleton. `Creds` and `DecryptionKey` retain exact text for rendering
+and explicit caller access but are redacted from repository-owned debug output. Artifact units are
+capability-supported only from Podman 5.7.0 through 6.0.2. Container, Pod, and Build `Volume=`
+source prefixes ending in `.artifact`, plus Container `Mount=type=artifact,source=` or `src=` exact
+suffixes, resolve in document sets without parsing mount grammar; other suffixes remain opaque.
+Shared `[Quadlet] DefaultDependencies` is an opaque singleton available for every typed unit type:
+QuadletLens does not parse it as a boolean or infer systemd dependencies.
 
 `ImageTag`, `Network`, `Label`, `File`, `BuildArg`, `Secret`, `GroupAdd`, `DNS`, `DNSOption`, `DNSSearch`, `Annotation`, `Environment`, `ContainersConfModule`, `GlobalArgs`, and `PodmanArgs` are typed repeatable Build keys: every authored physical value
 stays ordered and opaque. `ImageTag` retains the first tag that Podman uses as a referenced build
@@ -333,6 +389,13 @@ exactly resolved reference becomes a `DependencyEdge`. This distinction lets Box
 incomplete application without silently discarding the authored relationship. Duplicate source
 identities are construction errors because source-labelled diagnostics would otherwise be unsafe.
 
+Reviewed `[Unit]` relationship values are decoded as systemd-style whitespace lists for graphing
+only. Repetition and source order are retained, an empty assignment resets earlier values of the
+same key, quotes and continuations group tokens, and malformed quoting creates no speculative edge.
+Only exact `.container`, `.pod`, `.network`, `.volume`, `.build`, `.image`, `.kube`, and
+`.artifact` basenames enter the native graph; ordinary `.service` and `.target` names stay opaque.
+Each reference and edge exposes its originating `SystemdUnitKey`.
+
 ## Programmatic generation
 
 The `render` module can construct the supported native document types with typed native keys,
@@ -345,21 +408,27 @@ one-line text rather than being normalized by an incomplete systemd or Podman va
 
 Initial stable codes are:
 
-| Code      | Severity | Meaning                                                  |
-| --------- | -------- | -------------------------------------------------------- |
-| `QLM0001` | error    | Required native section is missing                       |
-| `QLM0002` | error    | A container has neither `Image=` nor `Rootfs=`           |
-| `QLM0003` | warning  | A native section does not match the selected unit suffix |
-| `QLM0004` | warning  | A first-conversion singleton key is repeated             |
-| `QLM0005` | error    | An `Image=` entry is empty                               |
-| `QLM0006` | error    | `Image=` and `Rootfs=` are both present                  |
-| `QLM0007` | error    | A `Rootfs=` entry is empty                               |
-| `QLM0008` | error    | An Image unit is missing `Image=`                        |
-| `QLM0009` | error    | An Image-unit `Image=` entry is blank                    |
-| `QLM0010` | error    | `ReloadCmd=` and `ReloadSignal=` are both present        |
-| `QLG0001` | error    | A native unit reference has no matching document         |
-| `QLG0002` | error    | A native unit reference matches duplicate basenames      |
-| `QLG0003` | error    | The document set contains a duplicate basename           |
+| Code      | Severity | Meaning                                                                                                                                                                                                                                    |
+| --------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `QLM0001` | error    | Required native section is missing                                                                                                                                                                                                         |
+| `QLM0002` | error    | A container has neither `Image=` nor `Rootfs=`                                                                                                                                                                                             |
+| `QLM0003` | warning  | A native section does not match the selected unit suffix                                                                                                                                                                                   |
+| `QLM0004` | warning  | A first-conversion singleton key is repeated                                                                                                                                                                                               |
+| `QLM0005` | error    | An `Image=` entry is empty                                                                                                                                                                                                                 |
+| `QLM0006` | error    | `Image=` and `Rootfs=` are both present                                                                                                                                                                                                    |
+| `QLM0007` | error    | A `Rootfs=` entry is empty                                                                                                                                                                                                                 |
+| `QLM0008` | error    | An Image unit is missing `Image=`                                                                                                                                                                                                          |
+| `QLM0009` | error    | An Image-unit `Image=` entry is blank                                                                                                                                                                                                      |
+| `QLM0010` | error    | `ReloadCmd=` and `ReloadSignal=` are both present                                                                                                                                                                                          |
+| `QLM0017` | error    | A Kube unit is missing required `Yaml=`                                                                                                                                                                                                    |
+| `QLM0018` | error    | A Kube unit has no effective `Yaml=` source after reset processing                                                                                                                                                                         |
+| `QLM0019` | error    | Multiple effective `Yaml=` sources use `SetWorkingDirectory=yaml`                                                                                                                                                                          |
+| `QLM0020` | error    | Effective `UserNS=` conflicts with effective `RemapUid=`, `RemapGid=`, or `RemapUsers=`; both values are source-labelled. `RemapUidSize=` alone does not conflict.                                                                         |
+| `QLM0023` | warning  | A container `Environment=` directive has incomplete continuation, malformed systemd quoting/escaping, or an unsupported variable name; the source remains preserved and the authored semantic view records recoverable unmodeled evidence. |
+| `QLM0024` | warning  | A container `Environment=` assignment contains `%` specifier syntax; the authored semantic view classifies it as deferred and never expands it.                                                                                            |
+| `QLG0001` | error    | A native unit reference has no matching document                                                                                                                                                                                           |
+| `QLG0002` | error    | A native unit reference matches duplicate basenames                                                                                                                                                                                        |
+| `QLG0003` | error    | The document set contains a duplicate basename                                                                                                                                                                                             |
 
 Diagnostics are recoverable and source-labelled. A warning does not make the combined result
 invalid; an error does.

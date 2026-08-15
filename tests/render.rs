@@ -2,15 +2,279 @@
 
 use quadlet_lens::{
     model::{
-        BuildKey, ContainerKey, EntryKind, ImageKey, NamedQuadletDocument, NetworkKey, PodKey, QuadletDocument,
-        QuadletDocumentSet, QuadletUnitType, ValueKind, VolumeKey,
+        ArtifactKey, BuildKey, ContainerKey, EntryKind, ImageKey, KubeKey, NamedQuadletDocument, NetworkKey, PodKey,
+        QuadletDocument, QuadletDocumentSet, QuadletKey, QuadletUnitType, SystemdUnitKey, ValueKind, VolumeKey,
     },
     render::{
-        EntryValue, Memory, MemoryError, PidsLimit, PidsLimitError, QuadletDocumentBuilder, RenderError, ShmSize,
-        ShmSizeError, SystemdSection, SystemdUnitKey,
+        ContainerEnvironmentDirective, ContainerEnvironmentPlan, EntryValue, EnvironmentAssignment,
+        EnvironmentAssignmentError, EnvironmentAssignments, EnvironmentAssignmentsError, EnvironmentReset, Memory,
+        MemoryError, PidsLimit, PidsLimitError, QuadletDocumentBuilder, RenderError, ShmSize, ShmSizeError,
+        SystemdSection,
     },
     source::SourceId,
 };
+
+#[test]
+fn environment_assignment_encodes_one_literal_assignment_and_preserves_it_after_parse_back()
+-> Result<(), Box<dyn std::error::Error>> {
+    let assignment = EnvironmentAssignment::new("LITERAL_VALUE", "unicode café = \"quoted\" \\ $dollar")?;
+    assert_eq!(assignment.name(), "LITERAL_VALUE");
+    assert_eq!(assignment.value(), "unicode café = \"quoted\" \\ $dollar");
+    assert_eq!(
+        assignment.as_str(),
+        r#""LITERAL_VALUE=unicode café = \"quoted\" \\ $dollar""#
+    );
+
+    let mut builder = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    builder.push_container(ContainerKey::Image, value("example.invalid/application")?)?;
+    builder.push_container_environment(assignment)?;
+    builder.push_container_environment(EnvironmentAssignment::new("EMPTY", "")?)?;
+    let generated = builder.build(SourceId::new(9_200))?;
+    assert_eq!(
+        generated.text(),
+        concat!(
+            "[Container]\n",
+            "Image=example.invalid/application\n",
+            "Environment=\"LITERAL_VALUE=unicode café = \\\"quoted\\\" \\\\ $dollar\"\n",
+            "Environment=\"EMPTY=\"\n",
+        )
+    );
+    assert_eq!(
+        generated
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::Environment))
+            .map(|entry| entry.value().primary().text())
+            .collect::<Vec<_>>(),
+        [r#""LITERAL_VALUE=unicode café = \"quoted\" \\ $dollar""#, r#""EMPTY=""#]
+    );
+    Ok(())
+}
+
+#[test]
+fn environment_assignment_rejects_the_bounded_name_and_value_categories() {
+    for name in ["", "1NAME", "NAME-DASH", "NÄME", "NAME SPACE"] {
+        assert_eq!(
+            EnvironmentAssignment::new(name, "value"),
+            Err(EnvironmentAssignmentError::InvalidName),
+            "{name:?}"
+        );
+    }
+    for (value, expected) in [
+        ("nul\0byte", EnvironmentAssignmentError::Nul),
+        ("carriage\rreturn", EnvironmentAssignmentError::CarriageReturn),
+        ("line\nfeed", EnvironmentAssignmentError::LineFeed),
+        ("tab\tvalue", EnvironmentAssignmentError::ControlCharacter),
+        ("delete\u{7f}value", EnvironmentAssignmentError::ControlCharacter),
+        ("specifier%h", EnvironmentAssignmentError::Specifier),
+    ] {
+        assert_eq!(
+            EnvironmentAssignment::new("VALID_NAME", value),
+            Err(expected),
+            "{value:?}"
+        );
+    }
+}
+
+#[test]
+fn environment_assignment_groups_render_one_physical_entry_and_preserve_group_order()
+-> Result<(), Box<dyn std::error::Error>> {
+    let first_group = EnvironmentAssignments::new([
+        EnvironmentAssignment::new("FIRST", "space = \"quote\" \\ $dollar café")?,
+        EnvironmentAssignment::new("SECOND", "")?,
+    ])?;
+    assert_eq!(first_group.assignments().len(), 2);
+    assert_eq!(
+        first_group.iter().map(EnvironmentAssignment::name).collect::<Vec<_>>(),
+        ["FIRST", "SECOND"]
+    );
+    assert_eq!(
+        first_group.as_str(),
+        r#""FIRST=space = \"quote\" \\ $dollar café" "SECOND=""#
+    );
+    let raw: EntryValue = first_group.clone().into();
+    assert_eq!(raw.as_str(), first_group.as_str());
+
+    let second_group = EnvironmentAssignments::new([EnvironmentAssignment::new("THIRD", "last")?])?;
+    let mut builder = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    builder.push_container(ContainerKey::Image, value("example.invalid/application")?)?;
+    builder.push_container_environment_assignments(first_group)?;
+    builder.push_container_environment(EnvironmentAssignment::new("BETWEEN", "single")?)?;
+    builder.push_container_environment_assignments(second_group)?;
+    let generated = builder.build(SourceId::new(9_202))?;
+
+    assert_eq!(
+        generated.text(),
+        concat!(
+            "[Container]\n",
+            "Image=example.invalid/application\n",
+            "Environment=\"FIRST=space = \\\"quote\\\" \\\\ $dollar café\" \"SECOND=\"\n",
+            "Environment=\"BETWEEN=single\"\n",
+            "Environment=\"THIRD=last\"\n",
+        )
+    );
+    assert_eq!(
+        generated
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::Environment))
+            .map(|entry| entry.value().primary().text())
+            .collect::<Vec<_>>(),
+        [
+            r#""FIRST=space = \"quote\" \\ $dollar café" "SECOND=""#,
+            r#""BETWEEN=single""#,
+            r#""THIRD=last""#,
+        ]
+    );
+    Ok(())
+}
+
+#[test]
+fn environment_assignment_groups_reject_empty_input_and_inherit_assignment_validation() {
+    assert_eq!(
+        EnvironmentAssignments::new(Vec::<EnvironmentAssignment>::new()),
+        Err(EnvironmentAssignmentsError::Empty)
+    );
+    assert_eq!(
+        EnvironmentAssignment::new("INVALID-NAME", "value"),
+        Err(EnvironmentAssignmentError::InvalidName)
+    );
+    assert_eq!(
+        EnvironmentAssignment::new("VALID_NAME", "specifier%h"),
+        Err(EnvironmentAssignmentError::Specifier)
+    );
+}
+
+#[test]
+fn environment_reset_preserves_its_physical_position_and_parse_back_value() -> Result<(), Box<dyn std::error::Error>> {
+    let reset = EnvironmentReset::new();
+    assert_eq!(reset, EnvironmentReset::default());
+    assert_eq!(reset.as_str(), "");
+    let raw: EntryValue = reset.into();
+    assert_eq!(raw.as_str(), "");
+
+    let mut builder = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    builder.push_container(ContainerKey::Image, value("example.invalid/application")?)?;
+    builder.push_container_environment(EnvironmentAssignment::new("BEFORE", "one")?)?;
+    builder.push_container_environment_reset()?;
+    builder.push_container_environment_assignments(EnvironmentAssignments::new([
+        EnvironmentAssignment::new("AFTER_ONE", "one")?,
+        EnvironmentAssignment::new("AFTER_TWO", "two")?,
+    ])?)?;
+    let generated = builder.build(SourceId::new(9_203))?;
+
+    assert_eq!(
+        generated.text(),
+        concat!(
+            "[Container]\n",
+            "Image=example.invalid/application\n",
+            "Environment=\"BEFORE=one\"\n",
+            "Environment=\n",
+            "Environment=\"AFTER_ONE=one\" \"AFTER_TWO=two\"\n",
+        )
+    );
+    assert_eq!(
+        generated
+            .document()
+            .entries()
+            .filter(|entry| entry.kind() == EntryKind::Container(ContainerKey::Environment))
+            .map(|entry| entry.value().primary().text())
+            .collect::<Vec<_>>(),
+        [r#""BEFORE=one""#, "", r#""AFTER_ONE=one" "AFTER_TWO=two""#]
+    );
+
+    let mut pod = QuadletDocumentBuilder::new(QuadletUnitType::Pod);
+    assert_eq!(
+        pod.push_container_environment_reset(),
+        Err(RenderError::WrongUnitType {
+            document: QuadletUnitType::Pod,
+            entry: QuadletUnitType::Container,
+        })
+    );
+    Ok(())
+}
+
+#[test]
+fn container_environment_plan_preserves_directives_and_projects_effective_literal_values()
+-> Result<(), Box<dyn std::error::Error>> {
+    let first = EnvironmentAssignment::new("DUPLICATE", "before reset")?;
+    let mut plan = ContainerEnvironmentPlan::new();
+    assert!(plan.is_empty());
+    assert_eq!(plan.len(), 0);
+    plan.push_assignment(first.clone());
+    plan.push_assignments(EnvironmentAssignments::new([
+        EnvironmentAssignment::new("EMPTY", "")?,
+        EnvironmentAssignment::new("DUPLICATE", "later in group")?,
+    ])?);
+    assert_eq!(plan.get("DUPLICATE"), Some("later in group"));
+    assert_eq!(plan.get("EMPTY"), Some(""));
+    assert!(plan.contains("EMPTY"));
+    assert!(!plan.contains("ABSENT"));
+    assert_eq!(plan.len(), 2);
+    assert!(!plan.is_empty());
+
+    plan.push_reset();
+    assert_eq!(plan.get("DUPLICATE"), None);
+    assert_eq!(plan.get("EMPTY"), None);
+    assert!(plan.is_empty());
+    assert_eq!(plan.len(), 0);
+    plan.push_assignments(EnvironmentAssignments::new([
+        EnvironmentAssignment::new("FINAL", "first after reset")?,
+        EnvironmentAssignment::new("FINAL", "last after reset")?,
+        EnvironmentAssignment::new("EMPTY_AFTER_RESET", "")?,
+    ])?);
+    assert_eq!(plan.get("FINAL"), Some("last after reset"));
+    assert_eq!(plan.get("EMPTY_AFTER_RESET"), Some(""));
+    assert!(plan.contains("EMPTY_AFTER_RESET"));
+    assert_eq!(plan.len(), 2);
+    assert!(!plan.is_empty());
+    assert_eq!(plan.directives().len(), 4);
+    assert!(matches!(
+        plan.directives(),
+        [
+            ContainerEnvironmentDirective::Assignment(_),
+            ContainerEnvironmentDirective::Assignments(_),
+            ContainerEnvironmentDirective::Reset(_),
+            ContainerEnvironmentDirective::Assignments(_),
+        ]
+    ));
+
+    let debug = format!("{plan:?} {first:?}");
+    for secret in [
+        "before reset",
+        "later in group",
+        "first after reset",
+        "last after reset",
+    ] {
+        assert!(!debug.contains(secret));
+    }
+
+    let mut builder = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    builder.push_container(ContainerKey::Image, value("example.invalid/application")?)?;
+    builder.push_container_environment_plan(&plan)?;
+    let generated = builder.build(SourceId::new(9_204))?;
+    assert_eq!(
+        generated.text(),
+        concat!(
+            "[Container]\n",
+            "Image=example.invalid/application\n",
+            "Environment=\"DUPLICATE=before reset\"\n",
+            "Environment=\"EMPTY=\" \"DUPLICATE=later in group\"\n",
+            "Environment=\n",
+            "Environment=\"FINAL=first after reset\" \"FINAL=last after reset\" \"EMPTY_AFTER_RESET=\"\n",
+        )
+    );
+
+    let mut pod = QuadletDocumentBuilder::new(QuadletUnitType::Pod);
+    assert_eq!(
+        pod.push_container_environment_plan(&plan),
+        Err(RenderError::WrongUnitType {
+            document: QuadletUnitType::Pod,
+            entry: QuadletUnitType::Container,
+        })
+    );
+    Ok(())
+}
 
 #[test]
 fn builds_a_deterministic_first_conversion_document_set() -> Result<(), Box<dyn std::error::Error>> {
@@ -679,6 +943,58 @@ fn preserves_typed_optional_dependencies_and_rejects_duplicate_notify() -> Resul
 }
 
 #[test]
+fn builds_every_typed_systemd_unit_relationship_and_rejects_only_unsafe_physical_values()
+-> Result<(), Box<dyn std::error::Error>> {
+    let relationships = [
+        (SystemdUnitKey::Requires, "Requires"),
+        (SystemdUnitKey::Wants, "Wants"),
+        (SystemdUnitKey::After, "After"),
+        (SystemdUnitKey::Requisite, "Requisite"),
+        (SystemdUnitKey::BindsTo, "BindsTo"),
+        (SystemdUnitKey::PartOf, "PartOf"),
+        (SystemdUnitKey::Upholds, "Upholds"),
+        (SystemdUnitKey::Conflicts, "Conflicts"),
+        (SystemdUnitKey::Before, "Before"),
+    ];
+    let mut builder = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    for (key, _) in relationships {
+        builder.push_systemd_unit(key, value("alpha.container beta.pod")?)?;
+        builder.push_systemd_unit(key, value("")?)?;
+    }
+    builder.push_container(ContainerKey::Image, value("example.invalid/application")?)?;
+    let generated = builder.build(SourceId::new(9_101))?;
+    for (_, spelling) in relationships {
+        assert_eq!(
+            generated
+                .text()
+                .matches(&format!("{spelling}=alpha.container beta.pod\n"))
+                .count(),
+            1
+        );
+        assert_eq!(generated.text().matches(&format!("{spelling}=\n")).count(), 1);
+    }
+    assert!(matches!(
+        EntryValue::new("unsafe\0value"),
+        Err(RenderError::InvalidValue)
+    ));
+    assert!(matches!(
+        EntryValue::new("unsafe\nvalue"),
+        Err(RenderError::InvalidValue)
+    ));
+    assert!(matches!(
+        EntryValue::new("unsafe\rvalue"),
+        Err(RenderError::InvalidValue)
+    ));
+    for safe in ["", "quoted value", "value\twith-tab", "value%N", "value\\ with-escape"] {
+        assert!(
+            EntryValue::new(safe).is_ok(),
+            "{safe:?} must remain a valid single-line value"
+        );
+    }
+    Ok(())
+}
+
+#[test]
 fn rejects_unsafe_values_wrong_units_and_duplicate_singletons() -> Result<(), Box<dyn std::error::Error>> {
     assert!(matches!(
         EntryValue::new("first\nsecond"),
@@ -1095,6 +1411,78 @@ fn network_driver_and_options_builder_preserve_raw_values_and_enforce_cardinalit
 }
 
 #[test]
+fn network_completion_builder_preserves_opaque_values_and_enforces_singletons() -> Result<(), Box<dyn std::error::Error>>
+{
+    let mut network = QuadletDocumentBuilder::new(QuadletUnitType::Network);
+    network.push_network(NetworkKey::NetworkName, value("completion-network")?)?;
+    for (key, authored) in [
+        (NetworkKey::ContainersConfModule, "one.conf"),
+        (NetworkKey::ContainersConfModule, "two.conf"),
+        (NetworkKey::DNS, "9.9.9.9"),
+        (NetworkKey::DNS, "2001:4860:4860::8888"),
+        (NetworkKey::GlobalArgs, "--log-level=debug"),
+        (NetworkKey::PodmanArgs, "--internal"),
+        (NetworkKey::PodmanArgs, "--opt isolate=true"),
+    ] {
+        network.push_network(key, value(authored)?)?;
+    }
+    for (key, authored) in [
+        (NetworkKey::DisableDNS, "true"),
+        (NetworkKey::InterfaceName, "quadlet0"),
+        (NetworkKey::NetworkDeleteOnStop, "false"),
+        (NetworkKey::ServiceName, "completion-network-create"),
+    ] {
+        network.push_network(key, value(authored)?)?;
+        assert!(matches!(
+            network.push_network(key, value("other")?),
+            Err(RenderError::DuplicateSingleton(_))
+        ));
+    }
+    assert_eq!(
+        network.build(SourceId::new(904))?.text(),
+        concat!(
+            "[Network]\nNetworkName=completion-network\nContainersConfModule=one.conf\n",
+            "ContainersConfModule=two.conf\nDNS=9.9.9.9\nDNS=2001:4860:4860::8888\n",
+            "GlobalArgs=--log-level=debug\nPodmanArgs=--internal\nPodmanArgs=--opt isolate=true\n",
+            "DisableDNS=true\nInterfaceName=quadlet0\nNetworkDeleteOnStop=false\n",
+            "ServiceName=completion-network-create\n"
+        )
+    );
+    Ok(())
+}
+
+#[test]
+fn image_completion_builder_preserves_opaque_values_and_enforces_singletons() -> Result<(), Box<dyn std::error::Error>>
+{
+    let mut image = QuadletDocumentBuilder::new(QuadletUnitType::Image);
+    image.push_image(ImageKey::Image, value("example.invalid/application:1")?)?;
+    image.push_image(ImageKey::PodmanArgs, value("--quiet")?)?;
+    image.push_image(ImageKey::PodmanArgs, value("--all-tags")?)?;
+    for (key, authored) in [
+        (ImageKey::Policy, "newer"),
+        (ImageKey::Retry, "4"),
+        (ImageKey::RetryDelay, "7s"),
+        (ImageKey::TLSVerify, "false"),
+        (ImageKey::Variant, "v8"),
+    ] {
+        image.push_image(key, value(authored)?)?;
+        assert!(matches!(
+            image.push_image(key, value("other")?),
+            Err(RenderError::DuplicateSingleton(_))
+        ));
+    }
+    assert_eq!(
+        image.build(SourceId::new(905))?.text(),
+        concat!(
+            "[Image]\nImage=example.invalid/application:1\nPodmanArgs=--quiet\n",
+            "PodmanArgs=--all-tags\nPolicy=newer\nRetry=4\nRetryDelay=7s\n",
+            "TLSVerify=false\nVariant=v8\n"
+        )
+    );
+    Ok(())
+}
+
+#[test]
 fn volume_driver_options_device_type_and_copy_builder_preserve_raw_values_and_enforce_cardinality()
 -> Result<(), Box<dyn std::error::Error>> {
     let mut volume = QuadletDocumentBuilder::new(QuadletUnitType::Volume);
@@ -1417,6 +1805,115 @@ fn image_builder_requires_one_nonblank_opaque_source() -> Result<(), Box<dyn std
     assert!(matches!(
         blank.build(SourceId::new(444)),
         Err(RenderError::InvalidDocument(_))
+    ));
+    Ok(())
+}
+
+#[test]
+fn artifact_builder_requires_a_final_source_preserves_opaque_entries_and_redacts_sensitive_debug()
+-> Result<(), Box<dyn std::error::Error>> {
+    const CREDS: &str = "quadlet-lens-artifact-creds-canary:user-password";
+    const KEY: &str = "quadlet-lens-artifact-key-canary";
+    let mut artifact = QuadletDocumentBuilder::new(QuadletUnitType::Artifact);
+    artifact.push_quadlet(QuadletKey::DefaultDependencies, value("false")?)?;
+    artifact.push_artifact(ArtifactKey::Artifact, value("registry.invalid/example/artifact:1")?)?;
+    artifact.push_artifact(ArtifactKey::AuthFile, value("/run/quadlet-lens/auth.json")?)?;
+    artifact.push_artifact(ArtifactKey::CertDir, value("/run/quadlet-lens/certs")?)?;
+    artifact.push_artifact(ArtifactKey::Creds, value(CREDS)?)?;
+    artifact.push_artifact(ArtifactKey::DecryptionKey, value(KEY)?)?;
+    artifact.push_artifact(ArtifactKey::Quiet, value("true")?)?;
+    artifact.push_artifact(ArtifactKey::Retry, value("4")?)?;
+    artifact.push_artifact(ArtifactKey::RetryDelay, value("7s")?)?;
+    artifact.push_artifact(ArtifactKey::ServiceName, value("artifact-pull")?)?;
+    artifact.push_artifact(ArtifactKey::TLSVerify, value("false")?)?;
+    for module in ["pre.conf", "", "post-one.conf", "post-two.conf"] {
+        artifact.push_artifact(ArtifactKey::ContainersConfModule, value(module)?)?;
+    }
+    for argument in ["--log-level=debug", "", "--events-backend=file"] {
+        artifact.push_artifact(ArtifactKey::GlobalArgs, value(argument)?)?;
+    }
+    for argument in ["--pre", "", "--post"] {
+        artifact.push_artifact(ArtifactKey::PodmanArgs, value(argument)?)?;
+    }
+    let generated = artifact.build(SourceId::new(4_601))?;
+    assert_eq!(
+        generated.text(),
+        concat!(
+            "[Quadlet]\nDefaultDependencies=false\n\n",
+            "[Artifact]\nArtifact=registry.invalid/example/artifact:1\n",
+            "AuthFile=/run/quadlet-lens/auth.json\nCertDir=/run/quadlet-lens/certs\n",
+            "Creds=quadlet-lens-artifact-creds-canary:user-password\n",
+            "DecryptionKey=quadlet-lens-artifact-key-canary\nQuiet=true\nRetry=4\n",
+            "RetryDelay=7s\nServiceName=artifact-pull\nTLSVerify=false\n",
+            "ContainersConfModule=pre.conf\nContainersConfModule=\n",
+            "ContainersConfModule=post-one.conf\nContainersConfModule=post-two.conf\n",
+            "GlobalArgs=--log-level=debug\nGlobalArgs=\nGlobalArgs=--events-backend=file\n",
+            "PodmanArgs=--pre\nPodmanArgs=\nPodmanArgs=--post\n",
+        )
+    );
+    assert!(
+        generated
+            .document()
+            .entries()
+            .any(quadlet_lens::model::TypedEntry::is_sensitive)
+    );
+    let debug = format!("{artifact:#?}");
+    assert!(!debug.contains(CREDS) && !debug.contains(KEY));
+
+    for key in [
+        ArtifactKey::Artifact,
+        ArtifactKey::AuthFile,
+        ArtifactKey::CertDir,
+        ArtifactKey::Creds,
+        ArtifactKey::DecryptionKey,
+        ArtifactKey::Quiet,
+        ArtifactKey::Retry,
+        ArtifactKey::RetryDelay,
+        ArtifactKey::ServiceName,
+        ArtifactKey::TLSVerify,
+    ] {
+        let mut duplicate = QuadletDocumentBuilder::new(QuadletUnitType::Artifact);
+        duplicate.push_artifact(ArtifactKey::Artifact, value("registry.invalid/example/artifact:1")?)?;
+        if key != ArtifactKey::Artifact {
+            duplicate.push_artifact(key, value("first")?)?;
+        }
+        assert!(matches!(
+            duplicate.push_artifact(key, value("second")?),
+            Err(RenderError::DuplicateSingleton(_))
+        ));
+    }
+    assert!(matches!(
+        QuadletDocumentBuilder::new(QuadletUnitType::Artifact).build(SourceId::new(4_602)),
+        Err(RenderError::InvalidDocument(_))
+    ));
+    let mut blank = QuadletDocumentBuilder::new(QuadletUnitType::Artifact);
+    blank.push_artifact(ArtifactKey::Artifact, value(" ")?)?;
+    assert!(matches!(
+        blank.build(SourceId::new(4_603)),
+        Err(RenderError::InvalidDocument(_))
+    ));
+    Ok(())
+}
+
+#[test]
+fn quadlet_default_dependencies_builder_retains_raw_values_and_rejects_duplicates()
+-> Result<(), Box<dyn std::error::Error>> {
+    for value_text in ["true", "false", "not-a-boolean", ""] {
+        let mut document = QuadletDocumentBuilder::new(QuadletUnitType::Artifact);
+        document.push_quadlet(QuadletKey::DefaultDependencies, value(value_text)?)?;
+        document.push_artifact(ArtifactKey::Artifact, value("registry.invalid/example/artifact:1")?)?;
+        assert_eq!(
+            document.build(SourceId::new(4_610))?.text(),
+            format!(
+                "[Quadlet]\nDefaultDependencies={value_text}\n\n[Artifact]\nArtifact=registry.invalid/example/artifact:1\n"
+            )
+        );
+    }
+    let mut document = QuadletDocumentBuilder::new(QuadletUnitType::Artifact);
+    document.push_quadlet(QuadletKey::DefaultDependencies, value("true")?)?;
+    assert!(matches!(
+        document.push_quadlet(QuadletKey::DefaultDependencies, value("false")?),
+        Err(RenderError::DuplicateSingleton(_))
     ));
     Ok(())
 }
@@ -2604,4 +3101,230 @@ fn container_reload_keys_are_opaque_singletons_and_mutually_exclusive() -> Resul
 
 fn value(value: &str) -> Result<EntryValue, RenderError> {
     EntryValue::new(value)
+}
+
+#[test]
+fn remaining_container_key_builders_preserve_repeatable_order_and_reject_duplicate_singletons()
+-> Result<(), Box<dyn std::error::Error>> {
+    let mut container = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    container.push_container(ContainerKey::Image, value("example.invalid/app")?)?;
+    for authored in ["pre.conf", "", "post.conf"] {
+        container.push_container(ContainerKey::ContainersConfModule, value(authored)?)?;
+    }
+    for authored in ["--log-level=debug", "--events-backend=none"] {
+        container.push_container(ContainerKey::GlobalArgs, value(authored)?)?;
+    }
+    for authored in ["/assets", "src.image:/opt/assets"] {
+        container.push_container(ContainerKey::ImageVolume, value(authored)?)?;
+    }
+    for (key, authored) in [
+        (ContainerKey::HealthLogDestination, "local"),
+        (ContainerKey::HealthMaxLogCount, "5"),
+        (ContainerKey::HealthMaxLogSize, "10m"),
+        (ContainerKey::HealthStartupCmd, "CMD-SHELL echo ready"),
+        (ContainerKey::HealthStartupInterval, "2s"),
+        (ContainerKey::HealthStartupRetries, "4"),
+        (ContainerKey::HealthStartupSuccess, "2"),
+        (ContainerKey::HealthStartupTimeout, "1s"),
+        (ContainerKey::ServiceName, "chosen.service"),
+    ] {
+        container.push_container(key, value(authored)?)?;
+        assert!(matches!(
+            container.push_container(key, value("duplicate")?),
+            Err(RenderError::DuplicateSingleton(_))
+        ));
+    }
+    let text = container.build(SourceId::new(1_081))?.text().to_owned();
+    assert!(text.contains("ContainersConfModule=pre.conf\nContainersConfModule=\nContainersConfModule=post.conf\n"));
+    assert!(text.contains("GlobalArgs=--log-level=debug\nGlobalArgs=--events-backend=none\n"));
+    assert!(text.contains("ImageVolume=/assets\nImageVolume=src.image:/opt/assets\n"));
+    Ok(())
+}
+
+#[test]
+fn remaining_pod_key_builders_preserve_order_and_reject_duplicate_singletons() -> Result<(), Box<dyn std::error::Error>>
+{
+    let mut pod = QuadletDocumentBuilder::new(QuadletUnitType::Pod);
+    pod.push_pod(PodKey::PodName, value("example")?)?;
+    for (key, authored) in [
+        (PodKey::ContainersConfModule, "post.conf"),
+        (PodKey::DNS, "9.9.9.9"),
+        (PodKey::DNSOption, "ndots:1"),
+        (PodKey::DNSSearch, "example.invalid"),
+        (PodKey::GIDMap, "0:200000:1"),
+        (PodKey::GlobalArgs, "--log-level=debug"),
+        (PodKey::Label, "org.example.pod=yes"),
+        (PodKey::NetworkAlias, "api"),
+        (PodKey::PodmanArgs, "--replace"),
+        (PodKey::UIDMap, "0:100000:1"),
+    ] {
+        pod.push_pod(key, value(authored)?)?;
+    }
+    for (key, authored) in [
+        (PodKey::HostName, "pod-host"),
+        (PodKey::IP, "10.88.0.2"),
+        (PodKey::IP6, "fd00::2"),
+    ] {
+        pod.push_pod(key, value(authored)?)?;
+        assert!(matches!(
+            pod.push_pod(key, value("duplicate")?),
+            Err(RenderError::DuplicateSingleton(_))
+        ));
+    }
+    let text = pod.build(SourceId::new(1_092))?.text().to_owned();
+    assert!(text.contains("DNS=9.9.9.9\nDNSOption=ndots:1\nDNSSearch=example.invalid\n"));
+    Ok(())
+}
+
+#[test]
+fn pod_mapping_builders_accept_independent_direct_and_subordinate_forms() -> Result<(), Box<dyn std::error::Error>> {
+    let mut direct = QuadletDocumentBuilder::new(QuadletUnitType::Pod);
+    for (key, authored) in [
+        (PodKey::UIDMap, "0:100000:65536"),
+        (PodKey::UIDMap, "1:200000:1"),
+        (PodKey::GIDMap, "0:100000:65536"),
+        (PodKey::GIDMap, "1:200000:1"),
+    ] {
+        direct.push_pod(key, value(authored)?)?;
+    }
+    assert_eq!(
+        direct.build(SourceId::new(1_093))?.text(),
+        concat!(
+            "[Pod]\n",
+            "UIDMap=0:100000:65536\n",
+            "UIDMap=1:200000:1\n",
+            "GIDMap=0:100000:65536\n",
+            "GIDMap=1:200000:1\n",
+        )
+    );
+
+    let mut subordinate = QuadletDocumentBuilder::new(QuadletUnitType::Pod);
+    subordinate.push_pod(PodKey::SubUIDMap, value("keep-id")?)?;
+    subordinate.push_pod(PodKey::SubGIDMap, value("keep-id")?)?;
+    for key in [PodKey::SubUIDMap, PodKey::SubGIDMap] {
+        assert!(matches!(
+            subordinate.push_pod(key, value("duplicate")?),
+            Err(RenderError::DuplicateSingleton(actual)) if actual == pod_key_name_for_test(key)
+        ));
+    }
+    assert_eq!(
+        subordinate.build(SourceId::new(1_094))?.text(),
+        "[Pod]\nSubUIDMap=keep-id\nSubGIDMap=keep-id\n"
+    );
+    Ok(())
+}
+
+#[test]
+fn pod_mapping_builder_conflicts_fail_parse_back_validation() -> Result<(), Box<dyn std::error::Error>> {
+    let mut user = QuadletDocumentBuilder::new(QuadletUnitType::Pod);
+    user.push_pod(PodKey::UserNS, value("keep-id")?)?;
+    user.push_pod(PodKey::UIDMap, value("0:100000:1")?)?;
+    assert_invalid_pod_mapping_builder(&user, SourceId::new(1_095), "QLM0013")?;
+
+    let mut uid = QuadletDocumentBuilder::new(QuadletUnitType::Pod);
+    uid.push_pod(PodKey::UIDMap, value("0:100000:1")?)?;
+    uid.push_pod(PodKey::SubUIDMap, value("keep-id")?)?;
+    assert_invalid_pod_mapping_builder(&uid, SourceId::new(1_096), "QLM0014")?;
+
+    let mut gid = QuadletDocumentBuilder::new(QuadletUnitType::Pod);
+    gid.push_pod(PodKey::GIDMap, value("0:200000:1")?)?;
+    gid.push_pod(PodKey::SubGIDMap, value("keep-id")?)?;
+    assert_invalid_pod_mapping_builder(&gid, SourceId::new(1_097), "QLM0015")?;
+    Ok(())
+}
+
+#[test]
+fn kube_builder_preserves_order_rejects_singleton_duplicates_and_requires_yaml()
+-> Result<(), Box<dyn std::error::Error>> {
+    let mut generated = QuadletDocumentBuilder::new(QuadletUnitType::Kube);
+    for (key, text) in [
+        (KubeKey::Yaml, "./first.yaml"),
+        (KubeKey::Yaml, "/opt/quadlet-lens/second.yaml"),
+        (KubeKey::ConfigMap, "/run/quadlet-lens/first-config.yaml"),
+        (KubeKey::ConfigMap, "/run/quadlet-lens/second-config.yaml"),
+        (KubeKey::ContainersConfModule, "pre.conf"),
+        (KubeKey::ContainersConfModule, ""),
+        (KubeKey::ContainersConfModule, "post.conf"),
+        (KubeKey::GlobalArgs, "--log-level=debug"),
+        (KubeKey::GlobalArgs, ""),
+        (KubeKey::GlobalArgs, "--events-backend=file"),
+        (KubeKey::Network, "frontend.network"),
+        (KubeKey::PublishPort, "8080:80"),
+        (KubeKey::PublishPort, "8443:443"),
+        (KubeKey::PodmanArgs, "--replace"),
+        (KubeKey::PodmanArgs, ""),
+        (KubeKey::PodmanArgs, "--userns=keep-id"),
+        (KubeKey::AutoUpdate, "registry"),
+        (KubeKey::AutoUpdate, "local"),
+        (KubeKey::ExitCodePropagation, "any"),
+        (KubeKey::KubeDownForce, "true"),
+        (KubeKey::LogDriver, "k8s-file"),
+        (KubeKey::ServiceName, "quadlet-lens-kube.service"),
+        (KubeKey::SetWorkingDirectory, "unit"),
+        (KubeKey::UserNS, "keep-id"),
+        (KubeKey::LogOpt, "path=/run/quadlet-lens/kube.log"),
+        (KubeKey::LogOpt, "max-size=1m"),
+    ] {
+        generated.push_kube(key, value(text)?)?;
+    }
+    assert!(matches!(
+        generated.push_kube(KubeKey::KubeDownForce, value("false")?),
+        Err(RenderError::DuplicateSingleton(actual)) if actual == "KubeDownForce"
+    ));
+    let built = generated.build(SourceId::new(1_100))?;
+    assert!(
+        built
+            .text()
+            .starts_with("[Kube]\nYaml=./first.yaml\nYaml=/opt/quadlet-lens/second.yaml\n")
+    );
+    assert!(
+        built
+            .text()
+            .contains("ContainersConfModule=pre.conf\nContainersConfModule=\nContainersConfModule=post.conf\n")
+    );
+    assert!(
+        built
+            .text()
+            .contains("PodmanArgs=--replace\nPodmanArgs=\nPodmanArgs=--userns=keep-id\n")
+    );
+    let empty = QuadletDocumentBuilder::new(QuadletUnitType::Kube);
+    assert!(matches!(
+        empty.build(SourceId::new(1_101)),
+        Err(RenderError::InvalidDocument(_))
+    ));
+    let mut wrong = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    assert!(matches!(
+        wrong.push_kube(KubeKey::Yaml, value("placeholder.yaml")?),
+        Err(RenderError::WrongUnitType { .. })
+    ));
+    Ok(())
+}
+
+fn assert_invalid_pod_mapping_builder(
+    builder: &QuadletDocumentBuilder,
+    source_id: SourceId,
+    code: &str,
+) -> Result<(), String> {
+    let error = builder
+        .build(source_id)
+        .err()
+        .ok_or_else(|| "conflicting Pod mapping builder entries must not generate a valid document".to_owned())?;
+    assert!(matches!(error, RenderError::InvalidDocument(_)));
+    assert_eq!(
+        error
+            .diagnostics()
+            .iter()
+            .map(|diagnostic| diagnostic.code().as_str())
+            .collect::<Vec<_>>(),
+        [code]
+    );
+    Ok(())
+}
+
+fn pod_key_name_for_test(key: PodKey) -> &'static str {
+    match key {
+        PodKey::SubUIDMap => "SubUIDMap",
+        PodKey::SubGIDMap => "SubGIDMap",
+        _ => unreachable!("only subordinate mapping keys are passed to this helper"),
+    }
 }

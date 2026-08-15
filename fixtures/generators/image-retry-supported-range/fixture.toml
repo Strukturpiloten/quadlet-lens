@@ -1,0 +1,15 @@
+schema = 1
+id = "image-retry-supported-range"
+suite = "generators"
+description = "Isolates Image Retry and RetryDelay's 5.5.0 boundary from later Policy support."
+secrets_reviewed = true
+files = ["image-retry.image", "expected-fragments.txt"]
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+[environment]
+description = "Dry-run generator only; no image is pulled."
+[expectations]
+summary = "5.4.x rejects or excludes the keys; 5.5.0 onward emits exact retry and retry-delay arguments before the positional source."

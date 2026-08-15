@@ -1,0 +1,18 @@
+schema = 1
+id = "systemd-unit-missing-reference-supported-range"
+suite = "generators"
+description = "Records fail-closed generation when a Unit relationship names a Quadlet source file that is absent."
+secrets_reviewed = true
+files = ["expected-fragments.txt", "missing.container"]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "Dry-run generator only; no generated service is started and no generated Podman command is executed."
+
+[expectations]
+summary = "Podman 5.5 onward reports the missing native Quadlet source and does not generate the referencing service; Podman 5.4 retains the literal name."

@@ -1,0 +1,5 @@
+---image-retry-image.service---
+ExecStart=/usr/bin/podman image pull
+--retry 4
+--retry-delay 7s
+example.invalid/quadlet-lens-image-retry:latest

@@ -72,7 +72,7 @@ cargo deny check
 actionlint
 zizmor .github/workflows
 lychee --config lychee.toml --root-dir . --offline './**/*.md'
-cargo semver-checks check-release --package quadlet-lens --release-type patch
+cargo semver-checks check-release --package quadlet-lens
 ```
 
 ## Updating the container

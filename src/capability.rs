@@ -1,6 +1,11 @@
 //! Data-driven Quadlet capability catalogue and target-range evaluation.
 
-use std::{collections::BTreeSet, error::Error, fmt, str::FromStr};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    error::Error,
+    fmt,
+    str::FromStr,
+};
 
 use serde::Deserialize;
 
@@ -77,6 +82,113 @@ impl fmt::Display for VersionParseError {
 
 impl Error for VersionParseError {}
 
+/// Numeric systemd release used only where a capability has direct systemd evidence.
+///
+/// This is deliberately not a general distribution or systemd capability catalogue. A release
+/// number is optional target context supplied by the caller; `QuadletLens` never probes a host.
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct SystemdVersion(u64);
+
+impl SystemdVersion {
+    /// Creates a numeric systemd release.
+    #[must_use]
+    pub const fn new(release: u64) -> Self {
+        Self(release)
+    }
+
+    /// Returns the numeric systemd release.
+    #[must_use]
+    pub const fn release(self) -> u64 {
+        self.0
+    }
+}
+
+impl FromStr for SystemdVersion {
+    type Err = SystemdVersionParseError;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        if value.is_empty()
+            || (value.len() > 1 && value.starts_with('0'))
+            || !value.bytes().all(|byte| byte.is_ascii_digit())
+        {
+            return Err(SystemdVersionParseError(value.to_owned()));
+        }
+        value
+            .parse()
+            .map(Self)
+            .map_err(|_| SystemdVersionParseError(value.to_owned()))
+    }
+}
+
+impl fmt::Display for SystemdVersion {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(formatter, "{}", self.0)
+    }
+}
+
+/// Rejected systemd release spelling.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SystemdVersionParseError(String);
+
+impl SystemdVersionParseError {
+    /// Returns the rejected spelling.
+    #[must_use]
+    pub fn value(&self) -> &str {
+        &self.0
+    }
+}
+
+impl fmt::Display for SystemdVersionParseError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(formatter, "invalid numeric systemd version `{}`", self.0)
+    }
+}
+
+impl Error for SystemdVersionParseError {}
+
+/// Inclusive finite systemd release range attached to systemd-specific evidence.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct SystemdVersionRange {
+    minimum: SystemdVersion,
+    maximum: SystemdVersion,
+}
+
+impl SystemdVersionRange {
+    /// Creates a coherent inclusive systemd release range.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CatalogueError::InvalidRange`] for an inverted range.
+    pub fn new(
+        minimum: SystemdVersion,
+        maximum: SystemdVersion,
+        field: impl Into<String>,
+    ) -> Result<Self, CatalogueError> {
+        if maximum < minimum {
+            return Err(CatalogueError::InvalidRange(field.into()));
+        }
+        Ok(Self { minimum, maximum })
+    }
+
+    /// Returns the inclusive minimum release.
+    #[must_use]
+    pub const fn minimum(self) -> SystemdVersion {
+        self.minimum
+    }
+
+    /// Returns the inclusive maximum release.
+    #[must_use]
+    pub const fn maximum(self) -> SystemdVersion {
+        self.maximum
+    }
+
+    /// Returns whether this evidence range contains one release.
+    #[must_use]
+    pub fn contains(self, version: SystemdVersion) -> bool {
+        self.minimum <= version && version <= self.maximum
+    }
+}
+
 /// Inclusive finite version range in validated catalogue data.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct VersionRange {
@@ -131,6 +243,7 @@ impl VersionRange {
 pub struct PodmanTarget {
     minimum: PodmanVersion,
     maximum: Option<PodmanVersion>,
+    systemd_version: Option<SystemdVersion>,
 }
 
 impl PodmanTarget {
@@ -143,7 +256,11 @@ impl PodmanTarget {
         if maximum.is_some_and(|maximum| maximum < minimum) {
             return Err(CatalogueError::InvalidRange("target".to_owned()));
         }
-        Ok(Self { minimum, maximum })
+        Ok(Self {
+            minimum,
+            maximum,
+            systemd_version: None,
+        })
     }
 
     /// Returns `podmanMinimumVersion`.
@@ -156,6 +273,19 @@ impl PodmanTarget {
     #[must_use]
     pub const fn maximum(self) -> Option<PodmanVersion> {
         self.maximum
+    }
+
+    /// Adds caller-supplied systemd target context without probing a host.
+    #[must_use]
+    pub const fn with_systemd_version(mut self, systemd_version: SystemdVersion) -> Self {
+        self.systemd_version = Some(systemd_version);
+        self
+    }
+
+    /// Returns the optional caller-supplied systemd target release.
+    #[must_use]
+    pub const fn systemd_version(self) -> Option<SystemdVersion> {
+        self.systemd_version
     }
 }
 
@@ -242,6 +372,58 @@ impl EvidenceRecord {
     #[must_use]
     pub fn gap(&self) -> Option<&str> {
         self.gap.as_deref()
+    }
+}
+
+/// Immutable, versioned systemd evidence for a systemd target requirement.
+///
+/// This is intentionally separate from [`EvidenceRecord`], whose version range describes Podman
+/// behavior. It contains documentation provenance only and makes no host or distribution claim.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SystemdEvidenceRecord {
+    id: String,
+    versions: SystemdVersionRange,
+    url: String,
+    claim: String,
+    test: String,
+    gap: String,
+}
+
+impl SystemdEvidenceRecord {
+    /// Returns the stable evidence identifier.
+    #[must_use]
+    pub fn id(&self) -> &str {
+        &self.id
+    }
+
+    /// Returns the finite systemd release range established by this record.
+    #[must_use]
+    pub const fn versions(&self) -> SystemdVersionRange {
+        self.versions
+    }
+
+    /// Returns the immutable or versioned primary source URL.
+    #[must_use]
+    pub fn url(&self) -> &str {
+        &self.url
+    }
+
+    /// Returns the narrowly stated systemd claim.
+    #[must_use]
+    pub fn claim(&self) -> &str {
+        &self.claim
+    }
+
+    /// Returns the automated test or review identifier.
+    #[must_use]
+    pub fn test(&self) -> &str {
+        &self.test
+    }
+
+    /// Returns the explicit evidence gap.
+    #[must_use]
+    pub fn gap(&self) -> &str {
+        &self.gap
     }
 }
 
@@ -346,6 +528,8 @@ pub struct CapabilityRecord {
     required: bool,
     repeatable: bool,
     value_forms: Vec<String>,
+    systemd_minimum: Option<SystemdVersion>,
+    systemd_evidence: Vec<String>,
     native: Option<VersionRange>,
     deprecated_from: Option<PodmanVersion>,
     removed_from: Option<PodmanVersion>,
@@ -396,6 +580,18 @@ impl CapabilityRecord {
     #[must_use]
     pub fn value_forms(&self) -> &[String] {
         &self.value_forms
+    }
+
+    /// Returns an evidence-backed minimum systemd release, when this capability has one.
+    #[must_use]
+    pub const fn systemd_minimum(&self) -> Option<SystemdVersion> {
+        self.systemd_minimum
+    }
+
+    /// Returns systemd-specific evidence identifiers supporting [`Self::systemd_minimum`].
+    #[must_use]
+    pub fn systemd_evidence(&self) -> &[String] {
+        &self.systemd_evidence
     }
 
     /// Returns documentation-backed native coverage.
@@ -450,6 +646,7 @@ pub struct CapabilityEvaluation {
     assumes_later_versions: bool,
     selected_fallback: Option<String>,
     evidence: Vec<String>,
+    systemd_evidence: Vec<String>,
     note: Option<String>,
 }
 
@@ -490,6 +687,16 @@ impl CapabilityEvaluation {
         &self.evidence
     }
 
+    /// Returns systemd-specific evidence identifiers used by this evaluation.
+    ///
+    /// This is populated only for an in-coverage known capability with a declared systemd
+    /// requirement, regardless of whether the caller supplied a missing, too-old, or sufficient
+    /// systemd target. [`Self::evidence`] remains Podman evidence only.
+    #[must_use]
+    pub fn systemd_evidence(&self) -> &[String] {
+        &self.systemd_evidence
+    }
+
     /// Returns additional range or evidence context.
     #[must_use]
     pub fn note(&self) -> Option<&str> {
@@ -504,6 +711,7 @@ pub struct CapabilityCatalogue {
     id: String,
     coverage: VersionRange,
     evidence: Vec<EvidenceRecord>,
+    systemd_evidence: Vec<SystemdEvidenceRecord>,
     capabilities: Vec<CapabilityRecord>,
 }
 
@@ -550,6 +758,12 @@ impl CapabilityCatalogue {
     #[must_use]
     pub fn evidence(&self) -> &[EvidenceRecord] {
         &self.evidence
+    }
+
+    /// Returns systemd-specific evidence records in authored order.
+    #[must_use]
+    pub fn systemd_evidence(&self) -> &[SystemdEvidenceRecord] {
+        &self.systemd_evidence
     }
 
     /// Returns capabilities in authored order.
@@ -600,7 +814,8 @@ impl CapabilityCatalogue {
                 Some("capability is absent from this catalogue".to_owned()),
             );
         };
-        evaluate_record(capability, evaluated, assumes_later)
+        let evaluation = evaluate_record(capability, evaluated, assumes_later);
+        evaluate_systemd_requirement(capability, target.systemd_version(), evaluation)
     }
 
     fn from_raw(raw: RawCatalogue) -> Result<Self, CatalogueError> {
@@ -611,12 +826,18 @@ impl CapabilityCatalogue {
         let coverage = parse_required_range("coverage", &raw.coverage)?;
         let evidence = parse_evidence(raw.evidence, coverage)?;
         let evidence_ids: BTreeSet<_> = evidence.iter().map(|item| item.id.as_str()).collect();
-        let capabilities = parse_capabilities(raw.capability, coverage, &evidence_ids)?;
+        let systemd_evidence = parse_systemd_evidence(raw.systemd_evidence, &evidence_ids)?;
+        let systemd_evidence_ranges: BTreeMap<_, _> = systemd_evidence
+            .iter()
+            .map(|item| (item.id.as_str(), item.versions))
+            .collect();
+        let capabilities = parse_capabilities(raw.capability, coverage, &evidence_ids, &systemd_evidence_ranges)?;
         Ok(Self {
             schema: raw.schema,
             id: raw.id,
             coverage,
             evidence,
+            systemd_evidence,
             capabilities,
         })
     }
@@ -636,6 +857,13 @@ pub enum CatalogueError {
     DuplicateIdentifier(String),
     /// A version string is invalid.
     InvalidVersion {
+        /// Field path.
+        field: String,
+        /// Rejected spelling.
+        value: String,
+    },
+    /// A systemd version string is invalid.
+    InvalidSystemdVersion {
         /// Field path.
         field: String,
         /// Rejected spelling.
@@ -668,6 +896,9 @@ impl fmt::Display for CatalogueError {
             Self::DuplicateIdentifier(id) => write!(formatter, "duplicate stable identifier `{id}`"),
             Self::InvalidVersion { field, value } => {
                 write!(formatter, "invalid Podman version `{value}` in `{field}`")
+            }
+            Self::InvalidSystemdVersion { field, value } => {
+                write!(formatter, "invalid systemd version `{value}` in `{field}`")
             }
             Self::InvalidRange(field) => write!(formatter, "invalid version range in `{field}`"),
             Self::MissingEvidence { owner, evidence } => {
@@ -752,6 +983,43 @@ fn evaluate_record(record: &CapabilityRecord, range: VersionRange, assumes_later
     )
 }
 
+fn evaluate_systemd_requirement(
+    record: &CapabilityRecord,
+    systemd_version: Option<SystemdVersion>,
+    evaluation: CapabilityEvaluation,
+) -> CapabilityEvaluation {
+    let Some(minimum) = record.systemd_minimum else {
+        return evaluation;
+    };
+    if !matches!(
+        evaluation.classification,
+        SupportClassification::Native | SupportClassification::Deprecated | SupportClassification::Fallback
+    ) {
+        return evaluation;
+    }
+    let mut evaluation = evaluation;
+    evaluation.systemd_evidence.clone_from(&record.systemd_evidence);
+    match systemd_version {
+        None => {
+            evaluation.classification = SupportClassification::Unknown;
+            evaluation.selected_fallback = None;
+            evaluation.note = Some(format!(
+                "capability requires systemd {minimum} or newer, but the target has no systemd version"
+            ));
+            evaluation
+        }
+        Some(version) if version < minimum => {
+            evaluation.classification = SupportClassification::Unsupported;
+            evaluation.selected_fallback = None;
+            evaluation.note = Some(format!(
+                "capability requires systemd {minimum} or newer, but target systemd is {version}"
+            ));
+            evaluation
+        }
+        Some(_) => evaluation,
+    }
+}
+
 fn make_evaluation(
     capability: &str,
     classification: SupportClassification,
@@ -768,6 +1036,7 @@ fn make_evaluation(
         assumes_later_versions,
         selected_fallback,
         evidence,
+        systemd_evidence: Vec::new(),
         note,
     }
 }
@@ -832,10 +1101,68 @@ fn parse_evidence(raw: Vec<RawEvidence>, coverage: VersionRange) -> Result<Vec<E
     Ok(result)
 }
 
+fn parse_systemd_evidence(
+    raw: Vec<RawSystemdEvidence>,
+    podman_evidence_ids: &BTreeSet<&str>,
+) -> Result<Vec<SystemdEvidenceRecord>, CatalogueError> {
+    let mut ids = BTreeSet::new();
+    let mut result = Vec::with_capacity(raw.len());
+    for item in raw {
+        validate_id(&item.id, false)?;
+        if !ids.insert(item.id.clone()) || podman_evidence_ids.contains(item.id.as_str()) {
+            return Err(CatalogueError::DuplicateIdentifier(item.id));
+        }
+        if item.claim.is_empty() || item.test.is_empty() || item.gap.is_empty() || !is_versioned_systemd_url(&item.url)
+        {
+            return Err(CatalogueError::InvalidField(format!("systemd_evidence.{}", item.id)));
+        }
+        let versions = match (item.target, item.versions) {
+            (Some(target), None) => {
+                let target = parse_systemd_version(&format!("systemd_evidence.{}.target", item.id), &target)?;
+                SystemdVersionRange::new(target, target, format!("systemd_evidence.{}.target", item.id))?
+            }
+            (None, Some(versions)) => {
+                parse_systemd_range(&format!("systemd_evidence.{}.versions", item.id), &versions)?
+            }
+            _ => {
+                return Err(CatalogueError::InvalidField(format!(
+                    "systemd_evidence.{}.target-or-versions",
+                    item.id
+                )));
+            }
+        };
+        if !url_mentions_systemd_version(&item.url, versions.minimum()) {
+            return Err(CatalogueError::InvalidField(format!(
+                "systemd_evidence.{}.url",
+                item.id
+            )));
+        }
+        result.push(SystemdEvidenceRecord {
+            id: item.id,
+            versions,
+            url: item.url,
+            claim: item.claim,
+            test: item.test,
+            gap: item.gap,
+        });
+    }
+    Ok(result)
+}
+
+fn is_versioned_systemd_url(url: &str) -> bool {
+    url.starts_with("https://") && !url.contains("/latest/")
+}
+
+fn url_mentions_systemd_version(url: &str, version: SystemdVersion) -> bool {
+    let version = version.to_string();
+    url.contains(&format!("/{version}/")) || url.contains(&format!("v{version}"))
+}
+
 fn parse_capabilities(
     raw: Vec<RawCapability>,
     coverage: VersionRange,
     evidence_ids: &BTreeSet<&str>,
+    systemd_evidence_ranges: &BTreeMap<&str, SystemdVersionRange>,
 ) -> Result<Vec<CapabilityRecord>, CatalogueError> {
     let mut ids = BTreeSet::new();
     let mut result = Vec::with_capacity(raw.len());
@@ -852,6 +1179,8 @@ fn parse_capabilities(
             .native
             .map(|raw| parse_covered_range(&format!("{}.native", item.id), &raw, coverage))
             .transpose()?;
+        let (systemd_minimum, systemd_evidence) =
+            parse_systemd_requirement(&item.id, item.systemd, systemd_evidence_ranges)?;
         let deprecated_from = optional_covered_version(&item.id, "deprecated_from", item.deprecated_from, coverage)?;
         let removed_from = optional_covered_version(&item.id, "removed_from", item.removed_from, coverage)?;
         if deprecated_from
@@ -877,6 +1206,8 @@ fn parse_capabilities(
             required: item.required,
             repeatable: item.repeatable,
             value_forms: item.value_forms,
+            systemd_minimum,
+            systemd_evidence,
             native,
             deprecated_from,
             removed_from,
@@ -1019,6 +1350,53 @@ fn parse_version(field: &str, value: &str) -> Result<PodmanVersion, CatalogueErr
         })
 }
 
+fn parse_systemd_version(field: &str, value: &str) -> Result<SystemdVersion, CatalogueError> {
+    value.parse().map_err(|_| CatalogueError::InvalidSystemdVersion {
+        field: field.to_owned(),
+        value: value.to_owned(),
+    })
+}
+
+fn parse_systemd_range(field: &str, raw: &RawSystemdRange) -> Result<SystemdVersionRange, CatalogueError> {
+    let minimum = parse_systemd_version(&format!("{field}.minimum"), &raw.minimum)?;
+    let maximum = parse_systemd_version(&format!("{field}.maximum"), &raw.maximum)?;
+    SystemdVersionRange::new(minimum, maximum, field)
+}
+
+fn parse_systemd_requirement(
+    owner: &str,
+    raw: Option<RawSystemdRequirement>,
+    evidence_ranges: &BTreeMap<&str, SystemdVersionRange>,
+) -> Result<(Option<SystemdVersion>, Vec<String>), CatalogueError> {
+    let Some(raw) = raw else {
+        return Ok((None, Vec::new()));
+    };
+    let minimum = parse_systemd_version(&format!("{owner}.systemd.minimum"), &raw.minimum)?;
+    if raw.evidence.is_empty() {
+        return Err(CatalogueError::InvalidField(format!("{owner}.systemd.evidence")));
+    }
+    let mut references = BTreeSet::new();
+    for evidence in &raw.evidence {
+        if !references.insert(evidence.as_str()) {
+            return Err(CatalogueError::DuplicateIdentifier(evidence.clone()));
+        }
+        if !evidence_ranges.contains_key(evidence.as_str()) {
+            return Err(CatalogueError::MissingEvidence {
+                owner: format!("{owner}.systemd"),
+                evidence: evidence.clone(),
+            });
+        }
+    }
+    if !raw
+        .evidence
+        .iter()
+        .any(|id| evidence_ranges[id.as_str()].contains(minimum))
+    {
+        return Err(CatalogueError::InvalidField(format!("{owner}.systemd.minimum")));
+    }
+    Ok((Some(minimum), raw.evidence))
+}
+
 fn parse_part(part: &str, full: &str) -> Result<u64, VersionParseError> {
     if part.is_empty() || (part.len() > 1 && part.starts_with('0')) {
         return Err(VersionParseError(full.to_owned()));
@@ -1046,6 +1424,8 @@ struct RawCatalogue {
     coverage: RawRequiredRange,
     #[serde(default)]
     evidence: Vec<RawEvidence>,
+    #[serde(default)]
+    systemd_evidence: Vec<RawSystemdEvidence>,
     #[serde(default)]
     capability: Vec<RawCapability>,
 }
@@ -1079,6 +1459,25 @@ struct RawEvidence {
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
+struct RawSystemdEvidence {
+    id: String,
+    url: String,
+    target: Option<String>,
+    versions: Option<RawSystemdRange>,
+    claim: String,
+    test: String,
+    gap: String,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RawSystemdRange {
+    minimum: String,
+    maximum: String,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 struct RawCapability {
     id: String,
     description: String,
@@ -1090,6 +1489,7 @@ struct RawCapability {
     repeatable: bool,
     #[serde(default)]
     value_forms: Vec<String>,
+    systemd: Option<RawSystemdRequirement>,
     native: Option<RawRange>,
     deprecated_from: Option<String>,
     removed_from: Option<String>,
@@ -1099,6 +1499,14 @@ struct RawCapability {
     known_bug: Vec<RawKnownBug>,
     #[serde(default)]
     unsupported: Vec<RawUnsupported>,
+    #[serde(default)]
+    evidence: Vec<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RawSystemdRequirement {
+    minimum: String,
     #[serde(default)]
     evidence: Vec<String>,
 }

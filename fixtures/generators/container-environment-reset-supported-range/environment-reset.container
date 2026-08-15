@@ -1,0 +1,7 @@
+[Container]
+Image=registry.example.invalid/quadlet-lens-environment-reset:1
+Environment=QUADLET_LENS_ENV_RESET_PRE_ONE=one
+Environment=QUADLET_LENS_ENV_RESET_PRE_TWO=two
+Environment=
+Environment=QUADLET_LENS_ENV_RESET_POST_ONE=one
+Environment=QUADLET_LENS_ENV_RESET_POST_TWO=two

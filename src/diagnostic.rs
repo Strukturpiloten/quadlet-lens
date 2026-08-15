@@ -73,6 +73,11 @@ impl Diagnostic {
         }
     }
 
+    pub(crate) fn with_label(mut self, label: Label) -> Self {
+        self.labels.push(label);
+        self
+    }
+
     /// Returns the stable machine-readable code.
     #[must_use]
     pub const fn code(&self) -> DiagnosticCode {

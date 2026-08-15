@@ -1,0 +1,18 @@
+schema = 1
+id = "systemd-unit-artifact-reference-supported-range"
+suite = "generators"
+description = "Exercises every typed Unit relationship against the experimental Artifact unit suffix where that unit type is supported."
+secrets_reviewed = true
+files = ["a.artifact", "expected-fragments.txt", "relationships.container"]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "Dry-run generator only; no artifact is pulled, no generated service is started, and no generated command is executed."
+
+[expectations]
+summary = "Podman 5.7 onward rewrites the Artifact basename in all nine typed Unit relationship keys to the generated artifact service name."

@@ -1,0 +1,10 @@
+---batch.service---
+SourcePath=/fixtures/batch.container
+---auto-local.service---
+---cgroups-enabled.service---
+---cgroups-disabled.service---
+---cgroups-no-conmon.service---
+---cgroups-split.service---
+---mount-reset.service---
+---completion-chosen.service---
+SourcePath=/fixtures/completion.container

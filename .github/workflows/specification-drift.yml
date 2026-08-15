@@ -1,0 +1,31 @@
+name: Quadlet specification drift
+
+on:
+  schedule:
+    - cron: "31 3 * * 4"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quadlet-specification-drift-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  manual:
+    name: Compare upstream Quadlet manual keys
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Download the current aggregate Podman Quadlet manual
+        run: >-
+          curl --fail --location --retry 3 --retry-all-errors --silent --show-error
+          --output "${RUNNER_TEMP}/podman-systemd.unit.5.md"
+          https://raw.githubusercontent.com/podman-container-tools/podman/main/docs/source/markdown/podman-systemd.unit.5.md
+      - name: Report manual-key drift without modifying the repository
+        run: bash scripts/check-specification-drift.sh "${RUNNER_TEMP}/podman-systemd.unit.5.md"

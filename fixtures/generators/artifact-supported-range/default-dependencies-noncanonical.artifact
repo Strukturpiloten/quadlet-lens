@@ -1,0 +1,5 @@
+[Quadlet]
+DefaultDependencies=not-a-boolean
+
+[Artifact]
+Artifact=registry.invalid/quadlet-lens/default-dependencies-noncanonical:latest

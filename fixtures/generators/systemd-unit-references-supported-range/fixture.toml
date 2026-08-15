@@ -1,0 +1,18 @@
+schema = 1
+id = "systemd-unit-references-supported-range"
+suite = "generators"
+description = "Exercises reset-aware Unit relationship lists and Quadlet basename rewriting across the supported Podman range."
+secrets_reviewed = true
+files = ["b.build", "c.container", "expected-fragments.txt", "i.image", "k.kube", "n.network", "p.pod", "relationships.container", "v.volume"]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "Dry-run generator only; no generated service is started and no generated Podman command is executed."
+
+[expectations]
+summary = "Podman 5.4 preserves native Quadlet basenames literally; Podman 5.5 onward rewrites them to generated service names while retaining duplicates, order, resets, ordinary systemd units, and all nine reviewed relationship keys."

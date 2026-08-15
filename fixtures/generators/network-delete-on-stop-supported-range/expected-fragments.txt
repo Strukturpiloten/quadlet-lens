@@ -1,0 +1,2 @@
+---network-delete-network.service---
+ExecStopPost=/usr/bin/podman network rm quadlet-lens-delete-boundary

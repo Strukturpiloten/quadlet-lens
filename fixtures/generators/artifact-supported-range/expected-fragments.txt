@@ -1,0 +1,8 @@
+---quadlet-lens-artifact-completion.service---
+---artifact-default-artifact.service---
+---chosen-artifact.service---
+---artifact-template-artifact@.service---
+---default-dependencies-true-artifact.service---
+---default-dependencies-false-artifact.service---
+---default-dependencies-noncanonical-artifact.service---
+---default-dependencies-empty-artifact.service---

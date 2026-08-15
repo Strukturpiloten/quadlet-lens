@@ -27,7 +27,7 @@ fn repository_supply_chain_has_single_sources_and_immutable_pins() -> Result<(),
 #[test]
 fn public_api_compatibility_runs_in_ci_and_release() -> Result<(), String> {
     const ACTION: &str = "obi1kenobi/cargo-semver-checks-action@6b69fcf40e9b5fb17adeb57e4b6ecd020649a239 # v2.9";
-    const CONFIGURATION: &str = "package: quadlet-lens\n          release-type: patch";
+    const CONFIGURATION: &str = "package: quadlet-lens";
 
     for workflow_name in ["ci.yml", "release.yml"] {
         let workflow_path = repository_root().join(".github/workflows").join(workflow_name);
@@ -35,9 +35,12 @@ fn public_api_compatibility_runs_in_ci_and_release() -> Result<(), String> {
             .map_err(|error| format!("failed to read {}: {error}", workflow_path.display()))?;
 
         let configured_action = format!("uses: {ACTION}\n        with:\n          {CONFIGURATION}");
-        if workflow.matches(ACTION).count() != 1 || workflow.matches(&configured_action).count() != 1 {
+        if workflow.matches(ACTION).count() != 1
+            || workflow.matches(&configured_action).count() != 1
+            || workflow.contains("release-type:")
+        {
             return Err(format!(
-                "{workflow_name} must contain one pinned cargo-semver-checks action for quadlet-lens patch releases"
+                "{workflow_name} must contain one version-derived cargo-semver-checks action for quadlet-lens"
             ));
         }
     }
@@ -95,7 +98,7 @@ fn local_developer_workflow_covers_deterministic_release_checks() -> Result<(), 
         "${CARGO_TARGET_DIR:-${repository_root}/target}/cargo-home",
         "env CARGO_HOME=\"${semver_cargo_home}\"",
         "cargo semver-checks check-release",
-        "--package quadlet-lens --release-type patch",
+        "--package quadlet-lens",
     ] {
         if !script.contains(required) {
             return Err(format!("local validation runner missing `{required}`"));
@@ -104,6 +107,10 @@ fn local_developer_workflow_covers_deterministic_release_checks() -> Result<(), 
 
     if script.contains("semver_cargo_home=\"${CARGO_HOME:-}\"") {
         return Err("local SemVer checks must not reuse ambient CARGO_HOME".to_owned());
+    }
+
+    if script.contains("--release-type") {
+        return Err("local SemVer checks must derive the release type from Cargo versions".to_owned());
     }
 
     for opt_in in ["cargo ci-generators", "cargo ci-real-world-quadlet"] {

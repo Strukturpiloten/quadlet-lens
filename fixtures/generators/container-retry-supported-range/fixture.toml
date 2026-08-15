@@ -1,0 +1,18 @@
+schema = 1
+id = "container-retry-supported-range"
+suite = "generators"
+description = "Exercises Container Retry and RetryDelay rejection through 5.4.2 and exact command construction from 5.5.0 through 6.0.2."
+secrets_reviewed = true
+files = ["retry.container", "expected-fragments.txt"]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "Dry-run generator only; no registry, workload, timing, or runtime behavior is exercised."
+
+[expectations]
+summary = "5.4.x rejects the keys. Later recorded releases emit one separate --retry 4 and --retry-delay 7s argument."

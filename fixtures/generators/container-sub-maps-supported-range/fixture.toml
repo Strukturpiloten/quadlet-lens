@@ -1,0 +1,18 @@
+schema = 1
+id = "container-sub-maps-supported-range"
+suite = "generators"
+description = "Exercises independent Container SubUIDMap and SubGIDMap command construction across the complete supported Podman generator range."
+secrets_reviewed = true
+files = ["sub-maps.container", "expected-fragments.txt"]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "Dry-run generator only; it does not read host subordinate-ID files."
+
+[expectations]
+summary = "Every release emits one --subuidname and one --subgidname argument without direct UID/GID mappings."

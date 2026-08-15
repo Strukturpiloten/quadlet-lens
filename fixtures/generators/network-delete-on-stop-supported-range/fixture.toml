@@ -1,0 +1,15 @@
+schema = 1
+id = "network-delete-on-stop-supported-range"
+suite = "generators"
+description = "Isolates NetworkDeleteOnStop's 5.5.0 boundary from later InterfaceName support."
+secrets_reviewed = true
+files = ["network-delete.network", "expected-fragments.txt"]
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+[environment]
+description = "Dry-run generator only; no network is created or deleted."
+[expectations]
+summary = "5.4.x rejects or excludes the key; 5.5.0 onward emits exactly one network cleanup ExecStopPost."

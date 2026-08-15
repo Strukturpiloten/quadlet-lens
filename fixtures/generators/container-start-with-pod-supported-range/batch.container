@@ -1,0 +1,4 @@
+[Container]
+Image=registry.example.invalid/container-start-with-pod:1
+Pod=batch.pod
+StartWithPod=true

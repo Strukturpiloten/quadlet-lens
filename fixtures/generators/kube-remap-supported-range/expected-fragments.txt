@@ -1,0 +1,4 @@
+---remap.service---
+ExecStart=/usr/bin/podman
+kube play
+./quadlet-lens-remap-placeholder.yaml

@@ -1,0 +1,18 @@
+schema = 1
+id = "container-start-with-pod-supported-range"
+suite = "generators"
+description = "Exercises Container StartWithPod with an exact Pod reference across the complete supported generator range."
+secrets_reviewed = true
+files = ["batch.container", "batch.pod", "expected-fragments.txt"]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "Dry-run generator only; it does not activate systemd units or start a pod or container."
+
+[expectations]
+summary = "Every recorded release emits the exact pod relationship; releases before 5.7.0 use one --pod-id-file %t/batch-pod.pod-id pair, while 5.7.0 and later use one --pod systemd-batch pair for StartWithPod=true."

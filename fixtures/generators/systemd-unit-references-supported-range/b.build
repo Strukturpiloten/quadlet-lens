@@ -1,0 +1,3 @@
+[Build]
+ImageTag=example.invalid/build:1
+SetWorkingDirectory=unit

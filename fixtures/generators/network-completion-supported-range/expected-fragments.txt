@@ -1,0 +1,14 @@
+---quadlet-lens-network-completion.service---
+ExecStart=/usr/bin/podman
+network create
+--module=post-one.conf
+--module=post-two.conf
+--events-backend=file
+--disable-dns
+--dns 9.9.9.9
+--dns 2001:4860:4860::8888
+--interface-name quadlet0
+--label=post-one
+--label=post-two
+quadlet-lens-network-completion
+ExecStopPost=/usr/bin/podman --module=post-one.conf --module=post-two.conf --events-backend=file network rm quadlet-lens-network-completion

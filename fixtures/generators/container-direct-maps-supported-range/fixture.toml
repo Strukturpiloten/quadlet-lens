@@ -1,0 +1,18 @@
+schema = 1
+id = "container-direct-maps-supported-range"
+suite = "generators"
+description = "Exercises reset-aware ordered Container UIDMap and GIDMap command construction across the complete supported Podman generator range."
+secrets_reviewed = true
+files = ["maps.container", "expected-fragments.txt"]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "Dry-run generator only; it does not inspect host user namespaces or subordinate-ID files."
+
+[expectations]
+summary = "Every release retains two ordered post-reset UIDMap and GIDMap arguments, never a pre-reset or empty form."
