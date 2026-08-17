@@ -1,7 +1,7 @@
 schema = 1
 id = "build-podman-args-shm-size-32m-supported-range"
 suite = "generators"
-description = "Records one exact opaque Build PodmanArgs --shm-size=32m command argument across Podman 5.4.0 through 6.0.2."
+description = "Records one exact opaque Build PodmanArgs --shm-size=32m command argument across Podman 5.4.0 through 6.1.0."
 secrets_reviewed = true
 files = ["build-podman-args-shm-size-32m.build", "expected-fragments.txt"]
 

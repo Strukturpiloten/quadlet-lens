@@ -35,7 +35,7 @@ is more valuable than extra coverage without a behavioral assertion.
 
 Completed for the bounded phase-1 key surface: the strict, versioned
 [`quadlet-manual-current.toml`](../fixtures/specification-drift/quadlet-manual-current.toml)
-inventory records the 222 closed keys in the pinned official aggregate manual, provenance, and a
+inventory records the 223 closed keys in the pinned official aggregate manual, provenance, and a
 classification. Offline policy tests reject schema, spelling, ordering, duplicate, section, and
 classification drift; scheduled/manual-only automation compares it with upstream and only reports
 added or removed rows. It neither runs for pull requests nor writes files or issues.

@@ -3114,9 +3114,11 @@ fn remaining_container_key_builders_preserve_repeatable_order_and_reject_duplica
     for authored in ["--log-level=debug", "--events-backend=none"] {
         container.push_container(ContainerKey::GlobalArgs, value(authored)?)?;
     }
-    for authored in ["/assets", "src.image:/opt/assets"] {
-        container.push_container(ContainerKey::ImageVolume, value(authored)?)?;
-    }
+    container.push_container(ContainerKey::ImageVolume, value("tmpfs")?)?;
+    assert!(matches!(
+        container.push_container(ContainerKey::ImageVolume, value("bind")?),
+        Err(RenderError::DuplicateSingleton(_))
+    ));
     for (key, authored) in [
         (ContainerKey::HealthLogDestination, "local"),
         (ContainerKey::HealthMaxLogCount, "5"),
@@ -3137,7 +3139,7 @@ fn remaining_container_key_builders_preserve_repeatable_order_and_reject_duplica
     let text = container.build(SourceId::new(1_081))?.text().to_owned();
     assert!(text.contains("ContainersConfModule=pre.conf\nContainersConfModule=\nContainersConfModule=post.conf\n"));
     assert!(text.contains("GlobalArgs=--log-level=debug\nGlobalArgs=--events-backend=none\n"));
-    assert!(text.contains("ImageVolume=/assets\nImageVolume=src.image:/opt/assets\n"));
+    assert!(text.contains("ImageVolume=tmpfs\n"));
     Ok(())
 }
 

@@ -32,7 +32,7 @@ real-world corpus tasks are explicitly labelled opt-in.
 
 The image provides Rust, Cargo, rustfmt, Clippy, rust-analyzer, CodeLLDB, Git, GitHub CLI, Node.js,
 `cargo-deny`, `cargo-llvm-cov`, `cargo-semver-checks`, `lychee`, `zizmor`, `actionlint`, Prettier,
-markdownlint-cli2, Taplo, shfmt, ShellCheck, and Hadolint. Node tools use the committed lockfile;
+markdownlint-cli2, Tombi, shfmt, ShellCheck, and Hadolint. Node tools use the committed lockfile;
 downloaded native tools use reviewed SHA-256 checksums.
 
 Run the complete deterministic local workflow with:
@@ -45,15 +45,19 @@ It formats Rust and owned non-Rust files, then runs all deterministic checks. It
 does not execute generator containers or download the real-world corpus. Run only the non-Rust
 layer with `./scripts/check-files.sh --fix`; CI and release validation use its non-mutating
 `--check` mode. Authored fixtures, the capability catalogue, and generator-matrix data are
-syntax-checked but not rewritten, so exact versioned evidence remains stable. Routine
+syntax-checked but not rewritten, so exact versioned evidence remains stable. Coverage starts by
+removing its complete repository-specific artifact tree, so the persistent target volume cannot
+retain a fingerprint for a missing test executable and another repository's concurrent cleanup
+cannot remove a QuadletLens executable. Routine
 documentation-link checks are offline. A scheduled workflow performs the slower, rate-limited
 external-link check.
 
-The final API-compatibility check always uses an isolated `cargo-home` directory under
-`CARGO_TARGET_DIR`. It never reuses the container image's `/usr/local/cargo`, because that
-directory can appear writable while its existing global package-lock file remains read-only.
-Registry downloads and the SemVer check's exclusive lock therefore stay in writable, disposable
-build storage.
+The script keeps coverage and API-compatibility artifacts under
+`$CARGO_TARGET_DIR/check-all/quadlet-lens`. It never reuses the container image's
+`/usr/local/cargo`, another repository's validation tree, or an older `target/semver-checks` tree,
+because those locations can contain read-only package locks or incompatible build artifacts.
+Registry downloads, the SemVer check's exclusive lock, and its generated rustdoc projects
+therefore stay in writable, repository-specific build storage.
 
 Useful focused checks include:
 

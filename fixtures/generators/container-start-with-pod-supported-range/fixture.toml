@@ -15,4 +15,4 @@ modifications = "none"
 description = "Dry-run generator only; it does not activate systemd units or start a pod or container."
 
 [expectations]
-summary = "Every recorded release emits the exact pod relationship; releases before 5.7.0 use one --pod-id-file %t/batch-pod.pod-id pair, while 5.7.0 and later use one --pod systemd-batch pair for StartWithPod=true."
+summary = "Every recorded release emits the exact pod relationship; releases before 5.6.0 use one --pod-id-file %t/batch-pod.pod-id pair, while 5.6.0 and later use one --pod systemd-batch pair for StartWithPod=true."

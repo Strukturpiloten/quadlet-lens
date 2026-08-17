@@ -1,0 +1,18 @@
+schema = 1
+id = "container-image-volume-supported-range"
+suite = "generators"
+description = "Isolates the Podman 6.1.0 Container ImageVolume introduction boundary."
+secrets_reviewed = true
+files = ["image-volume.container", "expected-fragments.txt"]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "The harness mounts this directory read-only and invokes only exact Podman Quadlet generators in dry-run mode; no image is pulled and no container is created."
+
+[expectations]
+summary = "Podman 5.4.0 through 6.0.2 reject ImageVolume with no generated unit or --image-volume argument; Podman 6.1.0 selects the final authored value and emits exactly one --image-volume tmpfs argument."

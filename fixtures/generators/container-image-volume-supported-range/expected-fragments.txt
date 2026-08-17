@@ -1,0 +1,2 @@
+---image-volume.service---
+SourcePath=/fixtures/image-volume.container

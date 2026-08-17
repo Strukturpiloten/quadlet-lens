@@ -10,8 +10,8 @@ use quadlet_lens::source::SourceId;
 use toml::{Table, Value};
 
 const INVENTORY: &str = include_str!("../fixtures/specification-drift/quadlet-manual-current.toml");
-const PINNED_MANUAL_EVIDENCE: &str = "fixtures/specification-drift/podman-systemd.unit.5-v6.0.2.md.gz.b64";
-const PINNED_MANUAL_LICENSE: &str = "fixtures/specification-drift/podman-v6.0.2-LICENSE";
+const PINNED_MANUAL_EVIDENCE: &str = "fixtures/specification-drift/podman-systemd.unit.5-v6.1.0.md.gz.b64";
+const PINNED_MANUAL_LICENSE: &str = "fixtures/specification-drift/podman-v6.1.0-LICENSE";
 const SECTION_ORDER: &[&str] = &[
     "Container",
     "Pod",
@@ -24,7 +24,7 @@ const SECTION_ORDER: &[&str] = &[
     "Quadlet",
 ];
 const EXPECTED_COUNTS: &[(&str, usize)] = &[
-    ("Container", 89),
+    ("Container", 90),
     ("Pod", 25),
     ("Network", 18),
     ("Volume", 16),
@@ -45,7 +45,7 @@ struct InventoryRow {
 #[test]
 fn inventory_is_complete_ordered_and_matches_the_public_native_parser() -> Result<(), String> {
     let rows = validate_inventory(INVENTORY)?;
-    assert_eq!(rows.len(), 222);
+    assert_eq!(rows.len(), 223);
 
     let mut counts = BTreeMap::new();
     for row in rows {
@@ -243,7 +243,6 @@ fn historical_parser_keys_are_excluded_from_the_current_manual_inventory() -> Re
         .map(|row| (row.section, row.key))
         .collect::<BTreeSet<_>>();
     for (section, key) in [
-        ("Container", "ImageVolume"),
         ("Kube", "LogOpt"),
         ("Kube", "RemapGid"),
         ("Kube", "RemapUid"),

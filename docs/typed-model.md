@@ -111,7 +111,7 @@ remains preserved with the normal `QLM0004` singleton warning. `ContainersConfMo
 and `PodmanArgs` remain ordered raw physical entries, including resets and duplicates; every other
 Artifact value is an opaque singleton. `Creds` and `DecryptionKey` retain exact text for rendering
 and explicit caller access but are redacted from repository-owned debug output. Artifact units are
-capability-supported only from Podman 5.7.0 through 6.0.2. Container, Pod, and Build `Volume=`
+capability-supported only from Podman 5.7.0 through 6.1.0. Container, Pod, and Build `Volume=`
 source prefixes ending in `.artifact`, plus Container `Mount=type=artifact,source=` or `src=` exact
 suffixes, resolve in document sets without parsing mount grammar; other suffixes remain opaque.
 Shared `[Quadlet] DefaultDependencies` is an opaque singleton available for every typed unit type:

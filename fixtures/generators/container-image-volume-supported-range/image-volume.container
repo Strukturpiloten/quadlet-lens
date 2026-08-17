@@ -1,0 +1,4 @@
+[Container]
+Image=registry.example.invalid/image-volume:1
+ImageVolume=bind
+ImageVolume=tmpfs

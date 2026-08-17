@@ -15,4 +15,4 @@ modifications = "none"
 description = "The harness mounts this directory read-only with label separation disabled and invokes only exact Podman Quadlet generators in dry-run mode. It does not start workloads, inspect containers, execute reload commands, or send signals."
 
 [expectations]
-summary = "Every recorded Podman release rejects this fixture: 5.4.x because neither key is supported and 5.5.0 through 6.0.2 because the two keys are mutually exclusive."
+summary = "Every recorded Podman release rejects this fixture: 5.4.x because neither key is supported and 5.5.0 through 6.1.0 because the two keys are mutually exclusive."

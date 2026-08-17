@@ -15,4 +15,4 @@ modifications = "none"
 description = "The harness mounts this directory read-only and invokes only Podman's dry-run Quadlet generator. It does not execute a build, remove resources, inspect failures, read defaults or configuration, or establish cache behavior."
 
 [expectations]
-summary = "Every recorded Podman release from 5.4.0 through 6.0.2 emits one bare --force-rm for ForceRM=true and one --force-rm=false for ForceRM=false, each before its final positional '.'."
+summary = "Every recorded Podman release from 5.4.0 through 6.1.0 emits one bare --force-rm for ForceRM=true and one --force-rm=false for ForceRM=false, each before its final positional '.'."

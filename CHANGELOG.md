@@ -5,6 +5,17 @@ Versioning for its documented pre-1.0 public API.
 
 ## [Unreleased]
 
+### Added
+
+- Extends the reviewed Podman catalogue and exact generator matrix through 5.8.6 and 6.1.0,
+  including the 6.1.0 `Container.ImageVolume` introduction boundary.
+
+### Changed
+
+- Automates version and changelog preparation with release-plz, makes this changelog the sole
+  release-history source, and retains the protected trusted-publishing workflow as publisher.
+- Treats `Container.ImageVolume` as a singleton, matching Podman's effective-value lookup.
+
 ## [0.2.0] - 2026-08-17
 
 ### Added

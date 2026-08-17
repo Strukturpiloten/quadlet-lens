@@ -1,7 +1,7 @@
 schema = 1
 id = "build-podman-args-add-host-buildhost-supported-range"
 suite = "generators"
-description = "Records one exact opaque Build PodmanArgs --add-host=buildhost:192.0.2.10 command argument across Podman 5.4.0 through 6.0.2."
+description = "Records one exact opaque Build PodmanArgs --add-host=buildhost:192.0.2.10 command argument across Podman 5.4.0 through 6.1.0."
 secrets_reviewed = true
 files = ["build-podman-args-add-host-buildhost.build", "expected-fragments.txt"]
 

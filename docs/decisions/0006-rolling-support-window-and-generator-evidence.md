@@ -39,8 +39,8 @@ rules.
 
 ## Current evidence boundary
 
-The full execution covered all 20 Podman patch releases from 5.4.0 through current 6.0.2: 14
-official immutable images through 5.8.2 and six exact source builds thereafter. It verified the
+The full execution covers all 22 Podman patch releases from 5.4.0 through current 6.1.0: 14
+official immutable images through 5.8.2 and eight exact source builds thereafter. It verifies the
 first-conversion container, pod, network, volume, generic systemd, image, command, environment,
 environment-file, port, mount, resource-reference, health-command, health timing,
 `Notify=healthy` readiness, `Requires`/`Wants`/`After` dependency ordering, restart, and
@@ -49,7 +49,7 @@ environment-file, port, mount, resource-reference, health-command, health timing
 fixture requires exactly one respective argument immediately before each image and rejects
 `--privileged=true`, positional false, short, quoted, bundled, alternate, duplicate, and
 conflicting forms. Endpoint Quadlet manuals, tagged command placement, and Podman CLI
-boolean/default documentation support the finite 5.4.0-through-6.0.2 claim without adding a
+boolean/default documentation support the finite 5.4.0-through-6.1.0 claim without adding a
 dedicated `Privileged` model key or wrapper. This establishes generated command text only, not
 runtime privileges, devices, LSM, seccomp, rootless, or cross-format equivalence. It also verifies
 repeated container labels, container user/group, distinct container and pod user namespaces, repeated
@@ -96,15 +96,17 @@ leading `-`, executes no workload, and establishes no CDI, runtime-access, rootl
 cgroup, host-device-existence, or symlink behavior.
 A separately mounted `Memory` fixture protects its later introduction without making the existing
 Podman 5.4-compatible fixture conditional. The three 5.4.x generators reject or exclude the
-unsupported key and emit no memory argument. Every one of the 17 recorded patch releases from
-5.5.0 through 6.0.2 applies singleton last-value behavior to earlier duplicate and empty
+unsupported key and emit no memory argument. Every one of the 19 recorded patch releases from
+5.5.0 through 6.1.0 applies singleton last-value behavior to earlier duplicate and empty
 assignments and emits exactly one final `--memory 16777216b` argument, with no duplicate, equals,
 empty, quoted, or alternate form. The fixture invokes no workload and establishes no cgroup,
 page-size, swap, host-memory, rootless, runtime-inspection, or cross-format behavior.
-The all-20 first-conversion lane now includes DNS, exposed-port, annotation, seccomp,
+The all-22 first-conversion lane includes DNS, exposed-port, annotation, seccomp,
 no-new-privileges, SELinux-label, Mask, and Unmask fixtures. They assert ordered command
 construction, reset effects, singleton/boolean handling, and absence of alternate forms. AppArmor
-is explicitly rejected through 5.7.1 and accepted from 5.8.0.
+is explicitly rejected through 5.7.1 and accepted from 5.8.0. Container `ImageVolume` is
+explicitly rejected through 6.0.2; the exact 6.1.0 source build selects one final value and emits
+one separate `--image-volume` argument. This is generator evidence only.
 
 The fixtures run only the generator. They do not validate profiles or paths, inspect host state,
 start workloads, or establish resolver, OCI, security-policy, filesystem, runtime, or cross-format

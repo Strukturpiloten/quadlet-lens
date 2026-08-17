@@ -21,4 +21,4 @@ modifications = "none"
 description = "The harness mounts this directory read-only with label separation disabled and invokes only exact Podman Quadlet generators in dry-run mode. It does not create pods, start workloads, inspect runtime state, or apply restart policy."
 
 [expectations]
-summary = "Podman 5.4.0 through 5.5.2 reject the unsupported key. Podman 5.6.0 through 6.0.2 emits one --exit-policy flag after --replace for continue and stop, chooses the final duplicate, and retains an empty argument for a final blank assignment."
+summary = "Podman 5.4.0 through 5.5.2 reject the unsupported key. Podman 5.6.0 through 6.1.0 emits one --exit-policy flag after --replace for continue and stop, chooses the final duplicate, and retains an empty argument for a final blank assignment."

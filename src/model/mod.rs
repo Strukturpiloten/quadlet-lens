@@ -798,7 +798,6 @@ impl EntryKind {
                         | ContainerKey::UIDMap
                         | ContainerKey::ContainersConfModule
                         | ContainerKey::GlobalArgs
-                        | ContainerKey::ImageVolume
                 )
                 | Self::Pod(
                     PodKey::AddHost

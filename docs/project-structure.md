@@ -12,6 +12,7 @@ quadlet-lens/
 ├── lychee.toml            # offline/local and rate-limited external link policy
 ├── Cargo.toml
 ├── Cargo.lock
+├── release-plz.toml      # release-PR preparation only; publication stays protected
 ├── CHANGELOG.md
 ├── rust-toolchain.toml
 ├── rustfmt.toml
@@ -55,7 +56,6 @@ quadlet-lens/
 │   └── generator-matrix.toml # supported target, pinned images, commits, and builder
 ├── docs/
 │   ├── api-stability.md    # supported pre-1.0 consumer contract
-│   ├── releases/           # version-matched public release notes
 │   └── fixture-format.md   # versioned fixture manifest contract
 └── .github/
     ├── renovate.json
@@ -63,6 +63,7 @@ quadlet-lens/
         ├── ci.yml
         ├── documentation-links.yml
         ├── generator-matrix.yml
+        ├── release-plz.yml
         └── release.yml
 ```
 

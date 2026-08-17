@@ -21,4 +21,4 @@ modifications = "none"
 description = "The harness mounts this directory read-only with label separation disabled and invokes only exact Podman Quadlet generators in dry-run mode. It does not start workloads, inspect containers, execute reload commands, or send signals."
 
 [expectations]
-summary = "Podman 5.4.0 through 5.4.2 reject the unsupported keys. Podman 5.5.x emits cidfile-targeted command and signal ExecReload forms; Podman 5.6.0 through 6.0.2 emits generated-name forms. A final blank ReloadCmd emits no ExecReload action while an unmatched quote is tokenized into the recorded command text."
+summary = "Podman 5.4.0 through 5.4.2 reject the unsupported keys. Podman 5.5.x emits cidfile-targeted command and signal ExecReload forms; Podman 5.6.0 through 6.1.0 emits generated-name forms. A final blank ReloadCmd emits no ExecReload action while an unmatched quote is tokenized into the recorded command text."

@@ -1,7 +1,7 @@
 schema = 1
 id = "build-pull-supported-range"
 suite = "generators"
-description = "Records one opaque Build Pull command argument across Podman 5.4.0 through 6.0.2."
+description = "Records one opaque Build Pull command argument across Podman 5.4.0 through 6.1.0."
 secrets_reviewed = true
 files = ["build-pull.build", "expected-fragments.txt"]
 

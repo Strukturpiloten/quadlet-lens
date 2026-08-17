@@ -194,7 +194,7 @@ native support, and documentation evidence remains distinguishable from exact ge
 Catalogue `value_forms` identify evidenced and supported caller representations; they do not add
 key-specific semantic validation to the source-aware model or the physical-line-safe builder.
 The built-in catalogue starts at Podman 5.4.0 and currently verifies the first-conversion subset
-through current Podman 6.0.2. [ADR 0004](decisions/0004-versioned-capability-catalogue.md) defines the core schema;
+through current Podman 6.1.0. [ADR 0004](decisions/0004-versioned-capability-catalogue.md) defines the core schema;
 [ADR 0006](decisions/0006-rolling-support-window-and-generator-evidence.md) defines ranged evidence
 and the rolling upper target.
 

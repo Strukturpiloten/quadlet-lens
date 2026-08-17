@@ -1,7 +1,7 @@
 schema = 1
 id = "container-http-proxy-supported-range"
 suite = "generators"
-description = "Exercises Container HttpProxy rejection through 5.6.2 and exact false command construction from 5.7.0 through 6.0.2."
+description = "Exercises Container HttpProxy rejection through 5.6.2 and exact false command construction from 5.7.0 through 6.1.0."
 secrets_reviewed = true
 files = ["http-proxy.container", "expected-fragments.txt"]
 

@@ -1,9 +1,9 @@
 schema = 1
-manual_version = "6.0.2"
-source_url = "https://raw.githubusercontent.com/podman-container-tools/podman/v6.0.2/docs/source/markdown/podman-systemd.unit.5.md"
+manual_version = "6.1.0"
+source_url = "https://raw.githubusercontent.com/podman-container-tools/podman/v6.1.0/docs/source/markdown/podman-systemd.unit.5.md"
 source_license = "Apache-2.0"
-retrieved_on = "2026-08-14"
-source_sha256 = "3b9fc55c9f342a0071aa83d2655178f1216f1348ed9269cb9564746e39debe70"
+retrieved_on = "2026-08-17"
+source_sha256 = "5b1f681f6358d8715057b52f5b4d29c13530f2ed2fa507f7f9437f86361bac33"
 
 # Each row is [section, key, classification]. Non-typed rows require a fourth rationale field.
 # Unit, Service, and Install remain outside this inventory because systemd owns their open key space.
@@ -50,6 +50,7 @@ keys = [
   ["Container", "IP", "typed"],
   ["Container", "IP6", "typed"],
   ["Container", "Image", "typed"],
+  ["Container", "ImageVolume", "typed"],
   ["Container", "Label", "typed"],
   ["Container", "LogDriver", "typed"],
   ["Container", "LogOpt", "typed"],

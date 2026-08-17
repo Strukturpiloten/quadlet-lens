@@ -63,8 +63,8 @@ Exit criteria:
 Completion evidence: accepted ADRs 0002–0004; exact preservation and conservative canonical
 rendering; source locations and structured recovery; lexical path/specifier classification; a
 bounded generated property corpus; the strict versioned TOML catalogue schema; and Podman 5.4.0 as
-the support floor. The generator harness now verifies the first-conversion subset on all 20 patch
-releases through current 6.0.2, using 14 digest-pinned official images and six exact source builds.
+the support floor. The generator harness now verifies the first-conversion subset on all 22 patch
+releases through current 6.1.0, using 14 digest-pinned official images and eight exact source builds.
 Capability and boundary tests fail closed below 5.4 and above verified coverage, exercise fallback
 and known-bug precedence synthetically, and retain explicit gaps for unverified capabilities.
 
@@ -112,7 +112,7 @@ emergency-only fallback.
 
 Explicit host mappings are complete across merged Compose `extra_hosts` with full provenance, the
 BoxFerry neutral model, and repeatable Quadlet `AddHost` keys with exact Podman
-5.4.0-through-6.0.2 generator evidence. Separate containers retain service scope; single-pod
+5.4.0-through-6.1.0 generator evidence. Separate containers retain service scope; single-pod
 grouping requires identical ordered mappings and moves them to pod scope.
 
 ### Coverage guardrail, completed health slice, and dependency release gate
@@ -138,11 +138,11 @@ are invalid. Golden tests cover separate containers and explicitly grouped pods.
 QuadletLens 0.1.5 is published and consumed by BoxFerry for execution identity and container
 context. Typed container `User`, `Group`, `UserNS`, repeatable `GroupAdd`, `WorkingDir`, and
 `ReadOnly` keys have capability records and generated-command evidence on every recorded Podman
-patch from 5.4.0 through 6.0.2. QuadletLens 0.1.6 adds the distinct pod-level `UserNS` key required
+patch from 5.4.0 through 6.1.0. QuadletLens 0.1.6 adds the distinct pod-level `UserNS` key required
 to preserve a compatible namespace choice when BoxFerry explicitly groups services into a pod,
 plus repeatable container `Secret` entries for the next config/secret conversion slice; that release
 is published. QuadletLens 0.1.7 adds ordered repeatable native container labels with exact generator
-evidence across Podman 5.4.0 through 6.0.2. ComposeLens 0.1.9 and QuadletLens 0.1.8 are published
+evidence across Podman 5.4.0 through 6.1.0. ComposeLens 0.1.9 and QuadletLens 0.1.8 are published
 with real-world parser corrections and the first pinned Quadlet corpus. ComposeLens 0.1.10 and
 QuadletLens 0.1.9 are the coordinated candidates for an explicit Compose `container_name` and
 native Quadlet `ContainerName=` boundary. BoxFerry will consume both published releases before
@@ -152,24 +152,24 @@ substituting it for an image.
 
 QuadletLens now additionally types native singleton container `StopSignal` and `StopTimeout`,
 preserves an authored zero timeout, and records exact named/numeric signal and positive/zero
-timeout generator observations across its supported Podman 5.4.0-through-6.0.2 range. This is a
+timeout generator observations across its supported Podman 5.4.0-through-6.1.0 range. This is a
 Quadlet-native boundary only; runtime zero behavior, cross-format lifecycle mapping, and
 zero/default equivalence remain outside this repository.
 
 QuadletLens additionally types native singleton container `Pull`, preserves omission and raw
 one-line values, and records isolated `always`, `missing`, `never`, and `newer` generated
-`--pull` forms across Podman 5.4.0 through 6.0.2. Registry and local-image runtime behavior remain
+`--pull` forms across Podman 5.4.0 through 6.1.0. Registry and local-image runtime behavior remain
 outside this generator-only evidence.
 
 QuadletLens additionally types native singleton container `PidsLimit`, preserves omission, zero,
 and raw noncanonical values, and provides safe `-1` unlimited or nonzero ASCII-decimal construction
 without parsing or integer overflow. Isolated positive and `-1` generated `--pids-limit` forms are
-verified from Podman 5.4.0 through 6.0.2; a portable numeric maximum, zero, and runtime cgroup
+verified from Podman 5.4.0 through 6.1.0; a portable numeric maximum, zero, and runtime cgroup
 behavior remain outside the capability evidence.
 
 QuadletLens additionally types native singleton container `HostName`, preserves omission and raw
 one-line values without Compose validation or normalization, and verifies one isolated logical
-`--hostname app.example` argument from Podman 5.4.0 through 6.0.2. The key requires a private UTS
+`--hostname app.example` argument from Podman 5.4.0 through 6.1.0. The key requires a private UTS
 namespace; for a container joining a pod with default shared UTS, the pod hostname wins. Runtime
 hostname inspection, pod hostname typing, and UTS-mode changes remain outside this slice.
 
@@ -177,7 +177,7 @@ QuadletLens additionally types native singleton container and pod `ShmSize`, pre
 and raw values, and provides safe non-negative ASCII-decimal construction with optional lowercase
 `b`, `k`, `m`, or `g` without parsing or overflow. Explicit zero remains distinguishable as
 Podman's documented unlimited IPC-memory value. Positive container, zero container, and pod-owned
-generated `--shm-size` forms are verified from Podman 5.4.0 through 6.0.2, including a joined
+generated `--shm-size` forms are verified from Podman 5.4.0 through 6.1.0, including a joined
 container that does not duplicate the pod argument. Runtime enforcement, omission defaults,
 rootless behavior, IPC-mode keys, pod lifting, and `/dev/shm` inspection remain outside this slice.
 Future BoxFerry exact mapping is limited to a positive explicit-byte Compose value on a separate
@@ -186,7 +186,7 @@ private-IPC container; that cross-format policy is not implemented in QuadletLen
 QuadletLens additionally types native repeatable container `DropCapability`, preserving omission,
 repetition, insertion order, and exact opaque one-line values without splitting, deduplication,
 lowercasing, or capability-name validation. The native capability is evidenced exactly from Podman
-5.4.0 through 6.0.2. An isolated full-matrix fixture observes four ordered lowercase `--cap-drop`
+5.4.0 through 6.1.0. An isolated full-matrix fixture observes four ordered lowercase `--cap-drop`
 forms from three entries and no `--cap-add`; tagged source separately records drops before additions.
 Rootless/rootful operation, effective bounding sets, user namespaces, SELinux/seccomp interaction,
 and runtime privilege outcomes remain explicit evidence gaps.
@@ -196,7 +196,7 @@ empty native reset assignments, duplicates, insertion order, case, and exact opa
 without splitting, deduplication, lowercasing, or capability validation. Documentation establishes
 repeatable space-separated additions beyond Podman's default set; tagged 5.4.0 and 6.0.2 source,
 not the Quadlet prose, records `all`, empty resets, lowercasing, drops-before-adds construction, and
-capability merger semantics. Across all 20 patches, an isolated fixture emits exactly four ordered
+capability merger semantics. Across all 22 patches, an isolated fixture emits exactly four ordered
 lowercase additions and no drops, while a combined fixture emits one drop-all before one specific
 addition and no other capability arguments. Compose `cap_add`, BoxFerry mapping, rootless/rootful
 operation, effective and bounding sets, user namespaces, SELinux/seccomp interaction, and runtime
@@ -207,7 +207,7 @@ native reset assignments, duplicates, insertion order, case, options, and exact 
 text without splitting, normalization, deduplication, mount-option validation, or conflation with
 `Volume`. Quadlet documentation establishes the repeatable `CONTAINER-DIR[:OPTIONS]` mapping;
 separate Podman CLI documentation records Linux mount flags and the `rw,noexec,nosuid,nodev`
-default. Tagged source and all 20 recorded generators establish `LookupAll` post-reset command
+default. Tagged source and all 22 recorded generators establish `LookupAll` post-reset command
 construction: the isolated fixture emits exactly one final
 `--tmpfs /data:mode=755,uid=1009,gid=1009`, no pre-reset path, and no extra tmpfs form. Target-only
 option acceptance, rootless operation, copy-up, mount creation, default enforcement, runtime
@@ -218,7 +218,7 @@ QuadletLens additionally types native repeatable container `Sysctl`, preserving 
 native reset assignments, duplicates, insertion order, case, whitespace, systemd quoting and
 specifiers, and exact opaque one-line values without parsing `name=value`, splitting lists,
 normalization, or namespace/runtime validation. Endpoint manuals, Podman-run namespace limits,
-tagged 5.4.0/6.0.2 `LookupAllStrv` construction/tokenization/reset source, and all 20 recorded
+tagged 5.4.0/6.0.2 `LookupAllStrv` construction/tokenization/reset source, and all 22 recorded
 generators establish exactly one final post-reset `--sysctl net.ipv4.ip_forward=1`, neither
 pre-reset setting, and no other sysctl form. Pod `Sysctl`, Compose/BoxFerry mapping, runtime
 namespace state, rootless behavior, kernel acceptance, and actual parameter effects remain outside
@@ -228,7 +228,7 @@ QuadletLens additionally types native repeatable container `Ulimit`, preserving 
 native reset assignments, duplicates, insertion order, case, quotes/specifiers, and exact opaque
 one-line values without splitting, unquoting, parsing `TYPE=SOFT[:HARD]`, normalization, or
 resource-name validation. Distinct endpoint manuals, Podman-run grammar/default caveats, tagged
-5.4.0/6.0.2 command and `LookupAll` reset source, and all 20 recorded generators establish exactly
+5.4.0/6.0.2 command and `LookupAll` reset source, and all 22 recorded generators establish exactly
 two ordered final post-reset `--ulimit nproc=4096:8192` and `--ulimit stack=-1:-1` arguments, with
 neither pre-reset limit nor duplicate, empty, or alternate form. Pod `Ulimit`, Compose/BoxFerry
 mapping, runtime enforcement, host inheritance, defaults, cgroups, rootless behavior, and
@@ -239,7 +239,7 @@ physical value, empty native resets, duplicates, insertion order, case, quotes/s
 whitespace-token-containing lines, and leading `-` as exact opaque text without splitting,
 unquoting, parsing paths/permissions, normalization, or device validation. Endpoint manuals,
 Podman-run caveats, tagged 5.4.0/6.0.2 `LookupAllStrv` tokenization/reset and conditional
-leading-minus command source, and all 20 recorded generators establish exactly two ordered final
+leading-minus command source, and all 22 recorded generators establish exactly two ordered final
 post-reset `--device /dev/null:/dev/final-null:r` and
 `--device /dev/zero:/dev/final-zero:w` arguments and exactly two total, with no pre-reset, empty,
 or alternate form. The generator fixture contains no leading `-` and runs no workload. Pod
@@ -249,8 +249,8 @@ device existence, and symlink behavior remain outside this native generator-only
 QuadletLens additionally types native singleton container `Memory`, preserving omission,
 duplicates, empty assignments, quotes/specifiers, and exact opaque one-line values. A focused
 helper constructs positive arbitrary-precision ASCII-decimal amounts with optional lowercase
-`b`/`k`/`m`/`g` while retaining leading zeros. The capability begins at Podman 5.5.0: all 17
-recorded patches through 6.0.2 emit exactly one final `--memory 16777216b`, while all three 5.4.x
+`b`/`k`/`m`/`g` while retaining leading zeros. The capability begins at Podman 5.5.0: all 19
+recorded patches through 6.1.0 emit exactly one final `--memory 16777216b`, while all three 5.4.x
 generators reject or exclude the unsupported key and emit no memory argument. Runtime cgroup,
 page-size, swap, host-memory, rootless, and cross-format behavior remain outside this native slice.
 
@@ -258,14 +258,14 @@ QuadletLens additionally types opaque singleton container `LogDriver` and opaque
 resettable `LogOpt` at appended `ContainerKey` ordinals 56–57. Physical values, duplicates, order,
 empty option resets, quotes, and systemd specifiers remain source-aware without option-map
 parsing, validation, or defaults. Endpoint
-manuals, tagged 5.4.0/6.0.2 source, and an isolated all-20 generator fixture establish one driver
+manuals, tagged 5.4.0/6.0.2 source, and an isolated all-22 generator fixture establish one driver
 argument plus ordered post-reset options only; runtime logging, host policy, log inspection, and
 cross-format behavior remain outside this native slice.
 
 QuadletLens additionally types opaque singleton container `IP` and `IP6` plus opaque repeatable,
 resettable `NetworkAlias` at appended `ContainerKey` ordinals 58–60. Physical values, duplicate
 singleton diagnostics, alias duplicates and order, empty resets, quotes, specifiers, and
-continuations remain source-aware. An isolated all-20 generator fixture with one `Network=` proves
+continuations remain source-aware. An isolated all-22 generator fixture with one `Network=` proves
 the two address flags and ordered final post-reset aliases without asserting map-dependent relative
 flag ordering or address, IPAM, DNS, network, runtime, or cross-format semantics.
 
@@ -291,7 +291,7 @@ inference, and BoxFerry-owned prefix-complete mapping policy remain outside Quad
 
 QuadletLens additionally types native repeatable/resettable volume `Label`, retaining every
 physical source value and allowing generated empty resets without OCI parsing or target-effective
-normalization. Endpoint manuals, tagged parser/helper source, and all 20 generator releases record
+normalization. Endpoint manuals, tagged parser/helper source, and all 22 generator releases record
 reset, last-key collapse, lexical sorting, explicit empty and embedded-equals values, quoted
 whitespace presentation, and the bare-token boundary; volume creation, inspection, runtime, and
 BoxFerry policy remain outside this native slice.
@@ -299,7 +299,7 @@ BoxFerry policy remain outside this native slice.
 QuadletLens now types the native networking, annotation, and security keys added in
 `ContainerKey` ordinals 41–55. Repeatable values preserve order, duplicates, and resets; singleton
 values use the standard duplicate diagnostic. The 20-patch generator matrix covers Podman
-5.4.0–6.0.2, with AppArmor explicitly unsupported through 5.7.1 and native from 5.8.0.
+5.4.0–6.1.0, with AppArmor explicitly unsupported through 5.7.1 and native from 5.8.0.
 
 This slice establishes native parsing, construction, capability, and dry-run command evidence only.
 It does not validate host policy, inspect runtime state, or define Compose/BoxFerry mappings.

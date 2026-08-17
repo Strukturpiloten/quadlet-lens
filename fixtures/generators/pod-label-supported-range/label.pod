@@ -1,0 +1,5 @@
+[Pod]
+Label=discarded=value
+Label=
+Label=example.invalid/one=first
+Label=example.invalid/two=second

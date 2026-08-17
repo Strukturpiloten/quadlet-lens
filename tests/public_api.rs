@@ -134,7 +134,7 @@ fn authored_environment_and_optional_systemd_target_context_are_public() -> Resu
     assert_eq!(environment.get("APP"), AuthoredContainerEnvironmentValue::Deferred);
     assert_eq!(environment.get("BARE"), AuthoredContainerEnvironmentValue::Deferred);
 
-    let target = PodmanTarget::new(PodmanVersion::new(6, 0, 2), Some(PodmanVersion::new(6, 0, 2)))?
+    let target = PodmanTarget::new(PodmanVersion::new(6, 1, 0), Some(PodmanVersion::new(6, 1, 0)))?
         .with_systemd_version(SystemdVersion::new(249));
     assert_eq!(target.systemd_version(), Some(SystemdVersion::new(249)));
     let evaluation = CapabilityCatalogue::supported_range()?.evaluate("systemd.unit.upholds", target);
@@ -867,7 +867,7 @@ fn container_pids_limit_has_safe_typed_and_raw_public_construction() -> Result<(
     assert_eq!(raw_zero.as_str(), "0");
 
     let catalogue = CapabilityCatalogue::supported_range()?;
-    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 1, 0)))?;
     assert_eq!(
         catalogue
             .evaluate("quadlet.container.pids-limit", target)
@@ -967,7 +967,7 @@ fn container_memory_has_safe_typed_public_construction() -> Result<(), Box<dyn s
     for (target, expected) in [
         (PodmanVersion::new(5, 4, 2), SupportClassification::Unknown),
         (PodmanVersion::new(5, 5, 0), SupportClassification::Native),
-        (PodmanVersion::new(6, 0, 2), SupportClassification::Native),
+        (PodmanVersion::new(6, 1, 0), SupportClassification::Native),
     ] {
         let target = PodmanTarget::new(target, Some(target))?;
         assert_eq!(
@@ -1010,7 +1010,7 @@ fn container_drop_capability_uses_repeatable_raw_public_values() -> Result<(), B
     );
 
     let catalogue = CapabilityCatalogue::supported_range()?;
-    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 1, 0)))?;
     assert_eq!(
         catalogue
             .evaluate("quadlet.container.drop-capability", target)
@@ -1051,7 +1051,7 @@ fn container_add_capability_uses_repeatable_raw_public_values() -> Result<(), Bo
     );
 
     let catalogue = CapabilityCatalogue::supported_range()?;
-    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 1, 0)))?;
     assert_eq!(
         catalogue
             .evaluate("quadlet.container.add-capability", target)
@@ -1090,7 +1090,7 @@ fn container_tmpfs_uses_repeatable_raw_public_values() -> Result<(), Box<dyn std
     );
 
     let catalogue = CapabilityCatalogue::supported_range()?;
-    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 1, 0)))?;
     assert_eq!(
         catalogue.evaluate("quadlet.container.tmpfs", target).classification(),
         SupportClassification::Native
@@ -1131,7 +1131,7 @@ fn container_sysctl_uses_repeatable_raw_public_values() -> Result<(), Box<dyn st
     );
 
     let catalogue = CapabilityCatalogue::supported_range()?;
-    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 1, 0)))?;
     assert_eq!(
         catalogue.evaluate("quadlet.container.sysctl", target).classification(),
         SupportClassification::Native
@@ -1172,7 +1172,7 @@ fn container_ulimit_uses_repeatable_raw_public_values() -> Result<(), Box<dyn st
     );
 
     let catalogue = CapabilityCatalogue::supported_range()?;
-    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 1, 0)))?;
     assert_eq!(
         catalogue.evaluate("quadlet.container.ulimit", target).classification(),
         SupportClassification::Native
@@ -1211,7 +1211,7 @@ fn container_add_device_uses_repeatable_raw_public_values() -> Result<(), Box<dy
     );
 
     let catalogue = CapabilityCatalogue::supported_range()?;
-    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 1, 0)))?;
     assert_eq!(
         catalogue
             .evaluate("quadlet.container.add-device", target)
@@ -1253,7 +1253,7 @@ fn container_logging_uses_singleton_driver_and_repeatable_raw_options() -> Resul
     );
 
     let catalogue = CapabilityCatalogue::supported_range()?;
-    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 1, 0)))?;
     for capability in ["quadlet.container.log-driver", "quadlet.container.log-opt"] {
         assert_eq!(
             catalogue.evaluate(capability, target).classification(),
@@ -1284,7 +1284,7 @@ fn container_network_identity_uses_singletons_and_repeatable_raw_aliases() -> Re
     );
 
     let catalogue = CapabilityCatalogue::supported_range()?;
-    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 1, 0)))?;
     for capability in [
         "quadlet.container.ip",
         "quadlet.container.ip6",
@@ -1318,7 +1318,7 @@ fn network_driver_and_options_use_public_singleton_and_repeatable_keys() -> Resu
     );
 
     let catalogue = CapabilityCatalogue::supported_range()?;
-    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 1, 0)))?;
     for capability in ["quadlet.network.driver", "quadlet.network.options"] {
         assert_eq!(
             catalogue.evaluate(capability, target).classification(),
@@ -1346,7 +1346,7 @@ fn volume_driver_options_device_type_and_copy_use_public_singleton_keys() -> Res
         entry.kind() == EntryKind::Volume(VolumeKey::Options) && entry.value().primary().text() == "mode=1777"
     }));
     let catalogue = CapabilityCatalogue::supported_range()?;
-    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 1, 0)))?;
     for capability in [
         "quadlet.volume.driver",
         "quadlet.volume.options",
@@ -1398,7 +1398,7 @@ fn volume_labels_use_the_public_repeatable_opaque_key() -> Result<(), Box<dyn st
     );
 
     let catalogue = CapabilityCatalogue::supported_range()?;
-    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 1, 0)))?;
     assert_eq!(
         catalogue.evaluate("quadlet.volume.label", target).classification(),
         SupportClassification::Native
@@ -1442,7 +1442,7 @@ fn network_labels_use_the_public_repeatable_opaque_key() -> Result<(), Box<dyn s
     );
 
     let catalogue = CapabilityCatalogue::supported_range()?;
-    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 1, 0)))?;
     assert_eq!(
         catalogue.evaluate("quadlet.network.label", target).classification(),
         SupportClassification::Native
@@ -1463,7 +1463,7 @@ fn network_internal_and_ipv6_use_public_opaque_singleton_keys() -> Result<(), Bo
     );
 
     let catalogue = CapabilityCatalogue::supported_range()?;
-    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 1, 0)))?;
     for capability in ["quadlet.network.internal", "quadlet.network.ipv6"] {
         assert_eq!(
             catalogue.evaluate(capability, target).classification(),
@@ -1504,7 +1504,7 @@ fn network_ipam_keys_use_public_opaque_singleton_and_repeatable_forms() -> Resul
         );
     }
     let catalogue = CapabilityCatalogue::supported_range()?;
-    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 1, 0)))?;
     for capability in [
         "quadlet.network.ipam-driver",
         "quadlet.network.subnet",
@@ -1554,7 +1554,7 @@ fn container_dns_uses_repeatable_raw_public_values() -> Result<(), Box<dyn std::
     );
 
     let catalogue = CapabilityCatalogue::supported_range()?;
-    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 1, 0)))?;
     assert_eq!(
         catalogue.evaluate("quadlet.container.dns", target).classification(),
         SupportClassification::Native
@@ -1597,7 +1597,7 @@ fn container_dns_option_uses_repeatable_raw_public_values() -> Result<(), Box<dy
     );
 
     let catalogue = CapabilityCatalogue::supported_range()?;
-    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 1, 0)))?;
     assert_eq!(
         catalogue
             .evaluate("quadlet.container.dns-option", target)
@@ -1642,7 +1642,7 @@ fn container_dns_search_uses_repeatable_raw_public_values() -> Result<(), Box<dy
     );
 
     let catalogue = CapabilityCatalogue::supported_range()?;
-    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 1, 0)))?;
     assert_eq!(
         catalogue
             .evaluate("quadlet.container.dns-search", target)
@@ -1695,7 +1695,7 @@ fn container_expose_host_port_uses_repeatable_raw_public_values() -> Result<(), 
     );
 
     let catalogue = CapabilityCatalogue::supported_range()?;
-    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 1, 0)))?;
     assert_eq!(
         catalogue
             .evaluate("quadlet.container.expose-host-port", target)
@@ -1742,7 +1742,7 @@ fn container_annotation_uses_repeatable_raw_public_values() -> Result<(), Box<dy
     );
 
     let catalogue = CapabilityCatalogue::supported_range()?;
-    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 1, 0)))?;
     assert_eq!(
         catalogue
             .evaluate("quadlet.container.annotation", target)
@@ -1768,7 +1768,7 @@ fn container_apparmor_uses_a_singleton_raw_public_value() -> Result<(), Box<dyn 
     }));
 
     let catalogue = CapabilityCatalogue::supported_range()?;
-    let target = PodmanTarget::new(PodmanVersion::new(5, 8, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 8, 0), Some(PodmanVersion::new(6, 1, 0)))?;
     assert_eq!(
         catalogue
             .evaluate("quadlet.container.apparmor", target)
@@ -1795,7 +1795,7 @@ fn container_no_new_privileges_uses_a_singleton_raw_public_value() -> Result<(),
     }));
 
     let catalogue = CapabilityCatalogue::supported_range()?;
-    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 1, 0)))?;
     assert_eq!(
         catalogue
             .evaluate("quadlet.container.no-new-privileges", target)
@@ -1825,7 +1825,7 @@ fn container_seccomp_profile_uses_a_singleton_raw_public_value() -> Result<(), B
     }));
 
     let catalogue = CapabilityCatalogue::supported_range()?;
-    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 1, 0)))?;
     assert_eq!(
         catalogue
             .evaluate("quadlet.container.seccomp-profile", target)
@@ -1852,7 +1852,7 @@ fn container_security_label_disable_uses_a_singleton_raw_public_value() -> Resul
     }));
 
     let catalogue = CapabilityCatalogue::supported_range()?;
-    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 1, 0)))?;
     assert_eq!(
         catalogue
             .evaluate("quadlet.container.security-label-disable", target)
@@ -1879,7 +1879,7 @@ fn container_security_label_file_type_uses_a_singleton_raw_public_value() -> Res
     }));
 
     let catalogue = CapabilityCatalogue::supported_range()?;
-    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 1, 0)))?;
     assert_eq!(
         catalogue
             .evaluate("quadlet.container.security-label-file-type", target)
@@ -1906,7 +1906,7 @@ fn container_security_label_level_uses_a_singleton_raw_public_value() -> Result<
     }));
 
     let catalogue = CapabilityCatalogue::supported_range()?;
-    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 1, 0)))?;
     assert_eq!(
         catalogue
             .evaluate("quadlet.container.security-label-level", target)
@@ -1933,7 +1933,7 @@ fn container_security_label_nested_uses_a_singleton_raw_public_value() -> Result
     }));
 
     let catalogue = CapabilityCatalogue::supported_range()?;
-    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 1, 0)))?;
     assert_eq!(
         catalogue
             .evaluate("quadlet.container.security-label-nested", target)
@@ -1960,7 +1960,7 @@ fn container_security_label_type_uses_a_singleton_raw_public_value() -> Result<(
     }));
 
     let catalogue = CapabilityCatalogue::supported_range()?;
-    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 1, 0)))?;
     assert_eq!(
         catalogue
             .evaluate("quadlet.container.security-label-type", target)
@@ -1992,7 +1992,7 @@ fn container_mask_uses_repeatable_raw_public_values() -> Result<(), Box<dyn std:
     );
 
     let catalogue = CapabilityCatalogue::supported_range()?;
-    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 1, 0)))?;
     assert_eq!(
         catalogue.evaluate("quadlet.container.mask", target).classification(),
         SupportClassification::Native
@@ -2030,7 +2030,7 @@ fn container_unmask_uses_repeatable_raw_public_values() -> Result<(), Box<dyn st
     );
 
     let catalogue = CapabilityCatalogue::supported_range()?;
-    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 1, 0)))?;
     assert_eq!(
         catalogue.evaluate("quadlet.container.unmask", target).classification(),
         SupportClassification::Native
@@ -2053,7 +2053,7 @@ fn supported_public_pipeline_compiles_and_keeps_stages_explicit() -> Result<(), 
     assert!(documents.graph().is_complete());
 
     let catalogue = CapabilityCatalogue::supported_range()?;
-    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 0, 2)))?;
+    let target = PodmanTarget::new(PodmanVersion::new(5, 4, 0), Some(PodmanVersion::new(6, 1, 0)))?;
     for capability in [
         "quadlet.container.image",
         "quadlet.container.rootfs",

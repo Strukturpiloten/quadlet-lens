@@ -15,4 +15,4 @@ modifications = "none"
 description = "The harness mounts this directory read-only and invokes only exact Podman Quadlet generators in dry-run mode. It does not create a volume or inspect a mount."
 
 [expectations]
-summary = "Every release accepts the unmatched Options quote, but Podman 5.4.0 through 5.8.1 strips it while Podman 5.8.2 through 6.0.2 preserves it in the generated `o=` argument presentation."
+summary = "Every release accepts the unmatched Options quote, but Podman 5.4.0 through 5.8.1 strips it while Podman 5.8.2 through 6.1.0 preserves it in the generated `o=` argument presentation."

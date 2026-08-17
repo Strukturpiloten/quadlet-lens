@@ -79,7 +79,7 @@ Validation succeeds only if the selected representation works throughout the ran
 
 When the maximum is omitted, evaluation extends through the newest catalogue version and reports
 that later releases are untested assumptions. The built-in supported-range catalogue currently has
-finite evidence coverage from Podman 5.4.0 through current Podman 6.0.2. Generator-proven
+finite evidence coverage from Podman 5.4.0 through current Podman 6.1.0. Generator-proven
 first-conversion capabilities span that range; capabilities not protected by the fixture remain
 `unknown` above their narrower evidence boundary. A newer upstream release becomes a tracked target
 before it becomes catalogue evidence.
@@ -118,15 +118,15 @@ relies on Podman's default private UTS namespace and proves exactly one emitted 
 namespace, the pod hostname wins; runtime hostname inspection and that precedence remain outside
 generator evidence.
 
-The Build `File` capability is repeatable and opaque from Podman 5.4.0 through 6.0.2. QuadletLens
+The Build `File` capability is repeatable and opaque from Podman 5.4.0 through 6.1.0. QuadletLens
 retains every authored physical line, including duplicates, empty assignments, quoting, specifiers,
 and order, without path or URL classification, Containerfile resolution, or normalization. Tagged
 5.4.0 and 6.0.2 source observes that the generator selects one last effective value, and the full
-20-release matrix emits one final `--file Containerfile.final` argument. That target behavior is
+22-release matrix emits one final `--file Containerfile.final` argument. That target behavior is
 evidence only: it is not applied by the source-aware model or builder, and no build, context,
 filesystem, registry, runtime, or cross-format behavior is claimed.
 
-Build `Network` is repeatable and opaque from Podman 5.4.0 through 6.0.2. The endpoint manuals,
+Build `Network` is repeatable and opaque from Podman 5.4.0 through 6.1.0. The endpoint manuals,
 tagged source, and complete generator matrix record the ordered `host`, `none`, and `.network`
 forms, including the generated dependency for the exact `.network` reference. QuadletLens itself
 classifies only that exact lowercase suffix for document-set resolution; it does not parse modes or
@@ -135,49 +135,49 @@ build-time or runtime networking behavior.
 
 Build `Retry` and `RetryDelay` are opaque singleton values. Podman 5.4.0 through 5.4.2 rejects or
 excludes their isolated fixture, so both capabilities are `unsupported` there; they are native from
-5.5.0 through 6.0.2 and `unknown` outside that finite range. The complete supported 5.5.0-through-
-6.0.2 matrix requires exactly one separate `--retry 4` pair and one separate `--retry-delay 7s`
+5.5.0 through 6.1.0 and `unknown` outside that finite range. The complete supported 5.5.0-through-
+6.1.0 matrix requires exactly one separate `--retry 4` pair and one separate `--retry-delay 7s`
 pair before the final `.` build context, without asserting an order between those pairs. This does not parse retry
 counts or delays, select defaults, model effective-last behavior, link Compose `dockerfile_inline`,
 access a registry, execute retries or timing, establish build success, inspect runtime behavior, or
 define conversion behavior.
 
-Build `TLSVerify` is an opaque singleton from Podman 5.4.0 through 6.0.2 and `unknown` outside
+Build `TLSVerify` is an opaque singleton from Podman 5.4.0 through 6.1.0 and `unknown` outside
 that finite range. Its two-unit matrix fixture requires one bare `--tls-verify` for authored `true`
 and one `--tls-verify=false` for authored `false`, each before the final `.` build context. This
 does not add boolean parsing, defaults, or effective-last behavior, and does not establish TLS
 connectivity, certificate validation, registry configuration, image pull, build success, security
 posture, provenance equivalence, runtime behavior, or conversion behavior.
 
-Build `ForceRM` is an opaque singleton from Podman 5.4.0 through 6.0.2 and `unknown` outside
+Build `ForceRM` is an opaque singleton from Podman 5.4.0 through 6.1.0 and `unknown` outside
 that finite range. Its two-unit matrix fixture requires one bare `--force-rm` for authored `true`
 and one `--force-rm=false` for authored `false`, each before the final `.` build context. This
 does not add boolean parsing, defaults, or effective-last behavior, and does not establish cleanup
 occurrence, failure behavior, execution, defaults or configuration, cache equivalence, runtime
 behavior, or conversion behavior.
 
-Build `GroupAdd` is repeatable opaque physical-line text from Podman 5.4.0 through 6.0.2 and
+Build `GroupAdd` is repeatable opaque physical-line text from Podman 5.4.0 through 6.1.0 and
 `unknown` outside that finite range. Its fixture requires ordered separate `--group-add 1234` then
 `--group-add 5678` pairs before the final `.` build context, without a relative-order claim against
 map-derived flags. This does not perform group lookup,
 interpret keep-groups exclusivity, rootless or user-namespace behavior, runtime behavior, build
 execution, Compose privilege equivalence, or conversion behavior.
 
-Build `DNS` is repeatable opaque physical-line text from Podman 5.4.0 through 6.0.2 and `unknown`
+Build `DNS` is repeatable opaque physical-line text from Podman 5.4.0 through 6.1.0 and `unknown`
 outside that finite range. Its fixture requires ordered separate `--dns 9.9.9.9` then
 `--dns 2001:4860:4860::8888` pairs before the final `.` build context, without a relative-order
 claim against map-derived flags. This does not perform resolver work, establish `none`
 compatibility, inspect `resolv.conf` or host DNS, execute a build, map Compose endpoints, or define
 conversion behavior.
 
-Build `DNSSearch` is repeatable opaque physical-line text from Podman 5.4.0 through 6.0.2 and
+Build `DNSSearch` is repeatable opaque physical-line text from Podman 5.4.0 through 6.1.0 and
 `unknown` outside that finite range. Its fixture requires ordered separate `--dns-search
 corp.example` then `--dns-search .` pairs before the final `.` build context, without a
 relative-order claim against map-derived flags. QuadletLens does not apply reset or special-dot
 semantics, perform domain removal, resolve DNS, inspect resolver state, execute a build, map
 Compose values, or define conversion behavior.
 
-Build `AuthFile` is opaque singleton physical-line text from Podman 5.4.0 through 6.0.2 and
+Build `AuthFile` is opaque singleton physical-line text from Podman 5.4.0 through 6.1.0 and
 `unknown` outside that finite range. Its fixture proves one separate `--authfile PATH` pair, the
 generator's effective-last result for repeated entries, and final-empty omission only. QuadletLens
 does not normalize those results, validate or read paths, parse credentials, classify content or
@@ -185,13 +185,13 @@ path metadata as sensitive, authenticate to a registry, establish build success,
 Compose, or conversion behavior.
 
 Build `IgnoreFile` is opaque singleton physical-line text, unsupported from Podman 5.4.0 through
-5.6.2, native from 5.7.0 through 6.0.2, and `unknown` outside those ranges. Its fixture proves one
+5.6.2, native from 5.7.0 through 6.1.0, and `unknown` outside those ranges. Its fixture proves one
 separate `--ignorefile PATH` pair, generator-effective-last output for repeated entries, and
 final-empty omission only. QuadletLens does not normalize those results, resolve or read paths,
 parse ignore files, infer `.containerignore` or `.dockerignore` defaults, normalize relative paths,
 establish build success, or define runtime, Compose, or conversion behavior.
 
-Build `Annotation` is opaque repeatable physical-line text, native from Podman 5.4.0 through 6.0.2
+Build `Annotation` is opaque repeatable physical-line text, native from Podman 5.4.0 through 6.1.0
 and `unknown` outside that range. Its fixture records only the generator's reset, tokenization,
 unquoting, C-unescaping, duplicate-key collapse, sorting, and 5.6.0 bare/malformed-token boundary.
 QuadletLens preserves raw lines in source order without applying those target semantics or claiming
@@ -205,7 +205,7 @@ QuadletLens preserves raw lines in source order without applying those target se
 lookup, build success, runtime, Compose, or conversion behavior.
 
 Build `ContainersConfModule` is opaque repeatable physical-line text, native from Podman 5.4.0
-through 6.0.2 and `unknown` outside that range. Tagged base-command helpers and the full matrix
+through 6.1.0 and `unknown` outside that range. Tagged base-command helpers and the full matrix
 record only target logical lookup, empty reset, and ordered `--module=VALUE` placement before the
 build subcommand. QuadletLens preserves every authored physical line without path parsing, module
 reads, configuration inspection, reset, deduplication, tokenization, normalization, build success,
@@ -218,21 +218,21 @@ placement between `podman` and `build`. QuadletLens preserves the source without
 target rules or validating options, inferring semantic/security/runtime effects, building, running,
 or defining Compose or conversion behavior.
 
-Build `ServiceName` is opaque singleton physical-line text, native from Podman 5.4.0 through 6.0.2
+Build `ServiceName` is opaque singleton physical-line text, native from Podman 5.4.0 through 6.1.0
 and `unknown` outside that range. The Build manual is absent through 5.8.5 and appears from 6.0.0.
 The full matrix records only target last-value selection, `.service` addition, ordinary/default and
 template naming, plus the 5.7.0 template and 5.8.2 unmatched-quote lookup boundaries. QuadletLens
 does not strip extensions, derive names, mutate document or dependency identity, operate systemd,
 resolve collisions or escaping, build, run, or define Compose or conversion behavior.
 
-Build `Volume` is opaque repeatable physical-line text, native from Podman 5.4.0 through 6.0.2 and
+Build `Volume` is opaque repeatable physical-line text, native from Podman 5.4.0 through 6.1.0 and
 `unknown` outside that range. Its full matrix records target reset/continuation lookup, ordered `-v`
 output, relative `.` resolution, and exact `.volume` substitution/dependency only. QuadletLens does
 not parse mount grammar or options, access a filesystem, mutate generated identities, or establish
 mount, build, runtime, lifecycle, image, systemd, security, Compose, or conversion behavior.
 
 Volume `ContainersConfModule` is opaque repeatable physical-line text, native from Podman 5.4.0
-through 6.0.2 and `unknown` outside that range. Tagged volume-command helpers and the full matrix
+through 6.1.0 and `unknown` outside that range. Tagged volume-command helpers and the full matrix
 record only logical lookup, empty reset, continuation presentation, and ordered `--module=VALUE`
 placement before `volume create`. QuadletLens preserves every authored physical line without path
 parsing, module reads, configuration inspection, reset, deduplication, tokenization,
@@ -255,71 +255,71 @@ physical line without applying those rules, parsing a CLI, assigning dedicated-k
 inferring sensitivity, creating a volume, or establishing lifecycle, filesystem, systemd, security,
 runtime, Compose, or conversion behavior.
 
-Volume `User` is opaque singleton physical-line text, native from Podman 5.4.0 through 6.0.2 and
+Volume `User` is opaque singleton physical-line text, native from Podman 5.4.0 through 6.1.0 and
 unknown outside that range. Boundary manuals describe a numeric UID or user name, while tagged
 generator source numeric-converts with invalid/default behavior; that discrepancy is explicit
-evidence, not Lens validation or provider behavior. The all-20 fixture uses only `User=123` and
+evidence, not Lens validation or provider behavior. The all-22 fixture uses only `User=123` and
 observes `o=uid=123` before the volume name. It makes no UID/name grammar, ownership, mount,
 filesystem, lifecycle, security, runtime, Compose, or conversion claim.
 
-Volume `Group` is opaque singleton physical-line text, native from Podman 5.4.0 through 6.0.2 and
+Volume `Group` is opaque singleton physical-line text, native from Podman 5.4.0 through 6.1.0 and
 unknown outside that range. Boundary manuals describe a numeric GID or group name, while tagged
 generator source numeric-converts with invalid/out-of-range/default behavior and constructs
-`o=gid`; that discrepancy is evidence only, not Lens validation or provider behavior. The all-20
+`o=gid`; that discrepancy is evidence only, not Lens validation or provider behavior. The all-22
 fixture uses only `Group=456` and observes `o=gid=456` before the volume name. It makes no GID/name
 grammar, account lookup, ownership, mount, filesystem, lifecycle, security, runtime, Compose, or conversion claim.
 
 Volume `UID` is opaque singleton physical-line text, unsupported from 5.4.0 through 5.8.5 and
-native only from 6.0.0 through 6.0.2. The three 6.0.x dry-run generators emit exactly one
+native only from 6.0.0 through 6.1.0. The four dry-run generators from 6.0.0 through 6.1.0 emit exactly one
 `--uid 1234` before the terminal volume name; this is command-text evidence only, with no UID
 grammar, lookup, default, ownership, mount, filesystem, security, runtime, Compose, or conversion claim.
 
 Volume `GID` is opaque singleton physical-line text, unsupported from 5.4.0 through 5.8.5 and
-native only from 6.0.0 through 6.0.2. The three 6.0.x dry-run generators emit exactly one
+native only from 6.0.0 through 6.1.0. The four dry-run generators from 6.0.0 through 6.1.0 emit exactly one
 `--gid 5678` before the terminal volume name; this is command-text evidence only and does not
 interpret the authored value.
 
-Volume `ServiceName` is opaque singleton physical-line text, native from 5.4.0 through 6.0.2 and
-unknown outside that range. The all-20 fixture records target last-value, `.service`, ordinary,
+Volume `ServiceName` is opaque singleton physical-line text, native from 5.4.0 through 6.1.0 and
+unknown outside that range. The all-22 fixture records target last-value, `.service`, ordinary,
 template, and unmatched-quote naming observations without interpreting the authored value.
 
-Pod `ServiceName` is opaque singleton physical-line text, native from Podman 5.4.0 through 6.0.2
-and unknown outside that range. Its all-20-release fixture records only target generated-unit
+Pod `ServiceName` is opaque singleton physical-line text, native from Podman 5.4.0 through 6.1.0
+and unknown outside that range. Its all-22-release fixture records only target generated-unit
 default, duplicate-last, `.service`, template, unmatched-quote, final-blank, and extension-bearing
 naming observations. QuadletLens retains source text without stripping or requiring extensions,
 deriving names, normalizing an effective value, evaluating templates/specifiers, or assigning
 document/dependency identity, systemd, restart, runtime, or cross-format semantics.
 
-Volume `Image` is opaque singleton physical-line text, native from 5.4.0 through 6.0.2 and
+Volume `Image` is opaque singleton physical-line text, native from 5.4.0 through 6.1.0 and
 unknown outside that range. Only exact lowercase `.image` and `.build` basenames become native
 document-set references and resolve when their typed documents are present. The fixture records
 target driver behavior separately.
 
-Image `ImageTag` is opaque singleton physical-line text, native from 5.4.0 through 6.0.2 and
+Image `ImageTag` is opaque singleton physical-line text, native from 5.4.0 through 6.1.0 and
 unknown outside that range. Its fixture records target-only resource-name substitution,
 duplicate-last/final-blank behavior, generated dependencies, and quote presentation; QuadletLens
 does not adopt any of those as model, builder, or graph behavior.
 
-Image `ServiceName` is opaque singleton physical-line text, native from 5.4.0 through 6.0.2 and
+Image `ServiceName` is opaque singleton physical-line text, native from 5.4.0 through 6.1.0 and
 unknown outside that range. Its fixture records target-only naming defaults, duplicate-last,
 template, and quote boundaries; QuadletLens does not derive identity or expose those semantics.
 
-Image `AllTags` is opaque singleton physical-line text, native from 5.4.0 through 6.0.2 and
+Image `AllTags` is opaque singleton physical-line text, native from 5.4.0 through 6.1.0 and
 unknown outside that range. Its fixture records target-only true/false, duplicate-last,
 absent/blank, and 5.8.2 unmatched-quote command-text observations; QuadletLens does not parse
 booleans, select defaults, construct pulls, or expose registry, runtime, or graph semantics.
 
-Image `Arch` is opaque singleton physical-line text, native from 5.4.0 through 6.0.2 and unknown
+Image `Arch` is opaque singleton physical-line text, native from 5.4.0 through 6.1.0 and unknown
 outside that range. Its fixture records target-only normal, duplicate-last, blank-omission, and
 5.8.2 unmatched-quote command presentation; QuadletLens does not parse platform grammar, select a
 host default, construct pulls, or expose image metadata, storage, registry, runtime, or graph semantics.
 
-Image `AuthFile` is opaque singleton physical-line text, native from 5.4.0 through 6.0.2 and unknown
+Image `AuthFile` is opaque singleton physical-line text, native from 5.4.0 through 6.1.0 and unknown
 outside that range. Its fixture records target-only normal, duplicate-last, blank-omission, and
 5.8.2 unmatched-quote command presentation; QuadletLens does not validate or read paths, parse
 credentials, infer sensitivity, authenticate to a registry, construct pulls, or expose runtime or graph semantics.
 
-Image `CertDir` is opaque singleton physical-line text, native from 5.4.0 through 6.0.2 and unknown
+Image `CertDir` is opaque singleton physical-line text, native from 5.4.0 through 6.1.0 and unknown
 outside that range. Its fixture records target-only normal, duplicate-last, blank-omission, and
 5.8.2 unmatched-quote command presentation; QuadletLens does not validate or read paths or certificates,
 select containers-certs.d defaults or remote-client policy, infer sensitivity, authenticate to a registry,
@@ -330,7 +330,7 @@ Image `ContainersConfModule` is repeatable opaque physical-line text, native fro
 post-reset `--module` arguments before image pull; QuadletLens preserves every authored physical
 line without module or configuration reads, reset, tokenization, CLI validation, pull, runtime, or graph semantics.
 
-Image `Creds` is opaque singleton physical-line text, native from 5.4.0 through 6.0.2 and unknown
+Image `Creds` is opaque singleton physical-line text, native from 5.4.0 through 6.1.0 and unknown
 outside that finite range. It preserves blanks, quotes, specifiers, continuations, and duplicate
 authored entries with `QLM0004`; repository-owned debug output redacts only this key's authored
 value and continuation segments, while explicit text access and rendering remain exact. The
@@ -338,7 +338,7 @@ placeholder-only fixture records target normal, duplicate-last, final-blank omis
 unmatched-quote command text without a flag-order or quote-boundary claim. QuadletLens does not
 split, parse, validate, read, default, authenticate, pull, or otherwise handle credentials.
 
-Image `DecryptionKey` is opaque singleton physical-line text, native from 5.4.0 through 6.0.2 and
+Image `DecryptionKey` is opaque singleton physical-line text, native from 5.4.0 through 6.1.0 and
 unknown outside that finite range. It preserves blanks, quotes, specifiers, continuations, and
 duplicate authored entries with `QLM0004`; repository-owned debug output redacts its authored
 value and continuation segments, while explicit text access and rendering remain exact. The
@@ -347,49 +347,49 @@ unmatched-quote command text without a flag-order or quote-boundary claim. Quadl
 split key or passphrase text, validate or read files, decrypt, select defaults, authenticate, pull,
 or otherwise handle key material.
 
-Image `GlobalArgs` is opaque repeatable physical-line text, native from 5.4.0 through 6.0.2 and
+Image `GlobalArgs` is opaque repeatable physical-line text, native from 5.4.0 through 6.1.0 and
 unknown outside that finite range. Its full matrix records only target empty reset,
 tokenization/unquoting/C-unescaping, malformed-line omission, and ordered post-reset tokens between
 `podman` and `image pull`. QuadletLens preserves every source line without applying those rules,
 parsing or validating arguments, inferring sensitivity, or claiming image-pull, runtime, Compose,
 or conversion behavior.
 
-Image `OS` is opaque singleton physical-line text, native from 5.4.0 through 6.0.2 and unknown
+Image `OS` is opaque singleton physical-line text, native from 5.4.0 through 6.1.0 and unknown
 outside that finite range. Its full matrix records target effective-last lookup, final-blank
 omission, and endpoint-specific unmatched-quote command presentation before the image name.
 QuadletLens preserves every authored value and duplicate diagnostic without applying those rules,
 parsing operating-system grammar, or claiming host/default, pull, runtime, Compose, or conversion behavior.
 
-Build `Label` is repeatable and opaque from Podman 5.4.0 through 6.0.2. QuadletLens retains every
+Build `Label` is repeatable and opaque from Podman 5.4.0 through 6.1.0. QuadletLens retains every
 physical line and its order without parsing `KEY=VALUE`, unquoting, duplicate-name selection, map
 collapse or sorting, or validation. The full matrix asserts only `build.label=one` and `empty=` as
 separate `--label` arguments. It does not establish bare-label acceptance, duplicate-order or
 collapse behavior, label grammar, build execution, runtime behavior, or cross-format behavior.
 
-Build `Target` is an opaque singleton from Podman 5.4.0 through 6.0.2. Duplicate authored values
+Build `Target` is an opaque singleton from Podman 5.4.0 through 6.1.0. Duplicate authored values
 remain retained with the ordinary singleton diagnostic, while generated construction rejects a
 second value. Endpoint manuals, tagged source, and the complete generator matrix record one
 `--target build-stage` argument only; they do not validate a stage name, Containerfile, build, or
 runtime behavior.
 
 Build `BuildArg` is repeatable opaque physical-line text with native evidence from Podman 5.7.0
-through 6.0.2. The exact 5.4.0–5.6.2 generator range rejects or excludes it. Tagged 5.7/5.8
+through 6.1.0. The exact 5.4.0–5.6.2 generator range rejects or excludes it. Tagged 5.7/5.8
 manuals and generator source record the `--build-arg` mapping; the current manual confirms it,
 while the versioned v6.0.2 manual omits the key as an explicit documentation gap. The isolated
 fixture proves only `key=value` and explicit empty-value `key=` command forms. QuadletLens does not parse assignments,
 resolve environments or secrets, or claim bare/null, build, runtime, or cross-format behavior.
 
 Build `Secret` is repeatable opaque physical-line text with native evidence from Podman 5.4.0
-through 6.0.2 and unknown support outside that finite range. QuadletLens retains every authored
+through 6.1.0 and unknown support outside that finite range. QuadletLens retains every authored
 line and order without splitting comma-separated text, parsing argument names, resolving
 environment forms or paths, or materializing secret data. Tagged 5.4.0 and 6.0.2 generator source
-uses repeated effective values to append `--secret`; the isolated 20-release fixture asserts only
+uses repeated effective values to append `--secret`; the isolated 22-release fixture asserts only
 two separate ordered placeholder-source arguments, with no bare, environment, build, runtime, or
 cross-format claim.
 
 Build `PodmanArgs` is repeatable opaque physical-line text with native evidence from Podman 5.4.0
-through 6.0.2 and unknown support outside that finite range. Boundary manuals and tagged source
-record appended build arguments; isolated all-20 fixtures prove only one separate
+through 6.1.0 and unknown support outside that finite range. Boundary manuals and tagged source
+record appended build arguments; isolated all-22 fixtures prove only one separate
 `--build-context extra=container-image://alpine:3.15`, exact `--no-cache`, or equals-form
 `--isolation=chroot` argument immediately before final positional `.`. The isolation fixture rejects
 separate, quoted, alternate, duplicate, and reordered forms; it does not lower Compose, establish
@@ -403,7 +403,7 @@ CLI; build; run; or claim cache, image, runtime, or cross-format behavior.
 
 The exact Build `PodmanArgs=--sbom=syft` then
 `PodmanArgs=--sbom-output=/tmp/quadlet-lens-sbom.json` pair is separately native only from Podman
-5.4.0 through 6.0.2 and unknown outside that range. Its full generator matrix proves one ordered
+5.4.0 through 6.1.0 and unknown outside that range. Its full generator matrix proves one ordered
 terminal pair before final positional `.` and rejects missing output, quoted, alternate, duplicate,
 and reordered forms. Endpoint Quadlet `PodmanArgs`, build `--sbom=PRESET`, build `--sbom-output`,
 and tagged `LookupAllArgs` evidence establish forwarding only. It does not lower Compose; create a
@@ -411,7 +411,7 @@ file; download an image; run a scanner; establish SBOM content, PURLs, attestati
 provenance, build, runtime, security, or conversion behavior.
 
 The exact Build `PodmanArgs=--ulimit=nproc=4096:8192` form is separately native only from
-Podman 5.4.0 through 6.0.2 and unknown outside that range. Its full generator matrix proves one
+Podman 5.4.0 through 6.1.0 and unknown outside that range. Its full generator matrix proves one
 equals-form immediately before final positional `.` and rejects separate, quoted, alternate,
 duplicate, and reordered forms. Endpoint Quadlet `PodmanArgs`, build `--ulimit`, and tagged
 `LookupAllArgs` evidence establish forwarding only. It adds no native Build `Ulimit` key and does
@@ -419,7 +419,7 @@ not establish Compose name, range, or `-1` equivalence; host/rootless/rootful, `
 default, build, runtime resource-limit enforcement, or conversion behavior.
 
 The exact Build `PodmanArgs=--add-host=buildhost:192.0.2.10` form is separately native only from
-Podman 5.4.0 through 6.0.2 and unknown outside that range. Its full generator matrix proves one
+Podman 5.4.0 through 6.1.0 and unknown outside that range. Its full generator matrix proves one
 equals-form immediately before final positional `.` and rejects separate, quoted, alternate,
 duplicate, and reordered forms. Endpoint Quadlet `PodmanArgs`, build `--add-host`, and tagged
 `LookupAllArgs` evidence establish forwarding only. It does not lower Compose list or map
@@ -427,7 +427,7 @@ duplicate, and reordered forms. Endpoint Quadlet `PodmanArgs`, build `--add-host
 resolve conflicts or defaults; execute a build; or establish runtime or conversion behavior.
 
 The exact Build `PodmanArgs=--cap-add=CAP_SYS_ADMIN` form is separately native only from Podman
-5.4.0 through 6.0.2 and unknown outside that range. Its full generator matrix proves one
+5.4.0 through 6.1.0 and unknown outside that range. Its full generator matrix proves one
 equals-form immediately before final positional `.` and rejects separate, quoted, alternate,
 duplicate, and reordered forms. Endpoint Quadlet `PodmanArgs`, build `--cap-add`, and tagged
 `LookupAllArgs` evidence establish forwarding only. It does not establish Compose entitlement
@@ -437,7 +437,7 @@ runtime effects.
 Build `Arch` and `Variant` are opaque singletons with native evidence from Podman 5.4.0 through
 6.0.2 and unknown support outside that finite range. Duplicate and blank physical entries remain
 source-aware while programmatic construction rejects a second value. Endpoint manuals and tagged
-source record singleton `--arch` and `--variant` construction. The isolated 20-release fixture
+source record singleton `--arch` and `--variant` construction. The isolated 22-release fixture
 asserts exactly one `--arch arm64` and one `--variant v8` argument without a relative-order claim.
 QuadletLens does not parse platform grammar, select host defaults, apply effective-last behavior,
 build an image, inspect metadata, or claim runtime or cross-format behavior.
@@ -446,7 +446,7 @@ The generic repeatable container `PodmanArgs` escape hatch remains the sole publ
 arguments that have no dedicated Quadlet key; there is no separate `Tty` or `Privileged` key or
 wrapper. Its separately evidenced exact `PodmanArgs=--interactive`, `PodmanArgs=--tty`,
 `PodmanArgs=--privileged`, and `PodmanArgs=--privileged=false` forms are native from Podman 5.4.0
-through 6.0.2 and unknown outside that finite range. The two privileged forms each appear exactly
+through 6.1.0 and unknown outside that finite range. The two privileged forms each appear exactly
 once as a separate argument immediately before their respective image in every recorded generator;
 the assertion rejects `--privileged=true`, positional false, short, quoted, bundled, alternate,
 duplicate, and conflicting forms. Boundary endpoint manuals, tagged generator placement, and
@@ -538,14 +538,14 @@ registers the singleton key and maps its last effective value to one `--memory` 
 and raw builder values remain opaque, including empty, quoted, specifier-bearing, zero, and
 noncanonical spellings. The focused constructor accepts only a positive ASCII-decimal amount with
 no unit or one lowercase `b`, `k`, `m`, or `g`, preserving leading zeros and arbitrary precision
-without integer parsing. Every recorded 5.5.0-through-6.0.2 generator emits exactly one final
+without integer parsing. Every recorded 5.5.0-through-6.1.0 generator emits exactly one final
 `--memory 16777216b` argument for the separate fixture; the 5.4.x line rejects or excludes that
 unsupported key and emits no memory argument. This establishes native recognition and dry-run
 command construction only, not cgroup enforcement, page rounding, swap interaction, host-memory
 availability, rootless behavior, runtime inspection, or Compose/BoxFerry equivalence.
 
 The container logging capabilities cover opaque singleton `LogDriver` and repeatable `LogOpt`
-from Podman 5.4.0 through 6.0.2. Parsed and constructed values remain physical-line-safe authored
+from Podman 5.4.0 through 6.1.0. Parsed and constructed values remain physical-line-safe authored
 text; `LogOpt` assignments may repeat and reset, but QuadletLens does not apply Podman's effective
 tokenization to its model, parse options as key/value maps, validate drivers/options, or inject
 defaults. Endpoint manuals and tagged 5.4.0/6.0.2 source establish the native flag mappings,
@@ -555,14 +555,14 @@ start a workload, inspect configuration or logs, or establish host-policy, defau
 cross-format behavior.
 
 The container network-identity capabilities cover opaque singleton `IP` and `IP6` plus repeatable,
-resettable `NetworkAlias` from Podman 5.4.0 through 6.0.2. The model and builder do not parse or
+resettable `NetworkAlias` from Podman 5.4.0 through 6.1.0. The model and builder do not parse or
 validate addresses or aliases. An isolated fixture with one `Network=bridge` proves one `--ip`,
 one `--ip6`, one network selection, and two ordered final post-reset `--network-alias` arguments
-across all 20 patches. It does not assert map-dependent relative flag ordering or establish IPAM,
+across all 22 patches. It does not assert map-dependent relative flag ordering or establish IPAM,
 IPv6 enablement, DNS, network-option, runtime, or cross-format behavior.
 
 Network `Driver` is a singleton and `Options` is repeatable and resettable across Podman 5.4.0
-through 6.0.2. The native model preserves every physical entry and does not validate driver
+through 6.1.0. The native model preserves every physical entry and does not validate driver
 availability or provider options. The complete generator lane proves one `--driver bridge`, reset
 handling, final duplicate-key collapse, and sorted retained options. It separately records that
 5.4.0 drops the authored bare option token whereas 6.0.2 emits it. Those effective-generator
@@ -577,7 +577,7 @@ all authored values without applying those generator rules; no network creation,
 runtime claim is made.
 
 Network `IPAMDriver` is an opaque singleton; `Subnet`, `Gateway`, and `IPRange` are opaque,
-repeatable/resettable physical keys across Podman 5.4.0–6.0.2. Endpoint manuals and tagged source
+repeatable/resettable physical keys across Podman 5.4.0–6.1.0. Endpoint manuals and tagged source
 record `--ipam-driver` plus indexed subnet/gateway/range command construction. The full matrix
 proves one explicit driver, blank-driver omission, and two ordered final reset-aware columns. It
 does not validate IPAM-driver availability or defaults, address/range grammar, network creation,
@@ -587,7 +587,7 @@ only human-readable diagnostics, so they are recorded as tagged-source evidence 
 text-matching matrix assertions. Cross-format prefix-complete mapping policy belongs to BoxFerry;
 QuadletLens preserves native syntax and validates target capability only.
 
-Volume `Driver` is an opaque singleton across Podman 5.4.0–6.0.2. Endpoint evidence uses the
+Volume `Driver` is an opaque singleton across Podman 5.4.0–6.1.0. Endpoint evidence uses the
 combined 5.4 manual and the split 6.0.2 `podman-volume.unit(5)` manual. Volume `Options` is a
 separate opaque singleton raw mount-option string; it is observed in tagged source and absent from
 those endpoint manuals. Tagged source and the full matrix record last-physical-value lookup, blank
@@ -601,7 +601,7 @@ define Device as the source and Type as its filesystem type; tagged parser evide
 common last-physical-value lookup. All 20 generators emit final `device=` and `type=bind` options,
 suppress final blanks, reject Type without Device, and retain quote, specifier, and continuation
 inputs. For a bind Device containing a literal space, the additional generated `RequiresMountsFor`
-line is absent through 5.5.2, unescaped from 5.6.0–5.7.1, and quoted with `\\x20` from 5.8.0–6.0.2.
+line is absent through 5.5.2, unescaped from 5.6.0–5.7.1, and quoted with `\\x20` from 5.8.0–6.1.0.
 These dry-run observations do not claim source availability, filesystem support, mount ordering,
 runtime behavior, or Compose/BoxFerry equivalence.
 
@@ -613,7 +613,7 @@ records literal-space presentation in 5.4.x and `\\x20` from 5.5.0 onward. Quadl
 every physical source entry and claims no volume creation, inspection, or runtime behavior.
 
 Container `DNS`, `DNSOption`, and `DNSSearch` are native repeatable capabilities across
-Podman 5.4.0–6.0.2. `ExposeHostPort` is native over the same range; tagged Quadlet accepts TCP/UDP
+Podman 5.4.0–6.1.0. `ExposeHostPort` is native over the same range; tagged Quadlet accepts TCP/UDP
 while the Podman CLI also documents SCTP, so `/sctp` remains preserved but not claimed as
 generator-compatible. The full matrix verifies ordered post-reset command construction only.
 
@@ -635,10 +635,10 @@ The security and metadata capabilities use the following reviewed ranges:
 
 | Keys                                                  | Native range | Evidence summary                                                                 |
 | ----------------------------------------------------- | ------------ | -------------------------------------------------------------------------------- |
-| `Annotation`                                          | 5.4.0–6.0.2  | Repeatable reset and sorted final command arguments                              |
-| `AppArmor`                                            | 5.8.0–6.0.2  | Explicitly unsupported through 5.7.1                                             |
-| `NoNewPrivileges`, `SeccompProfile`, `SecurityLabel*` | 5.4.0–6.0.2  | Singleton/boolean command construction                                           |
-| `Mask`, `Unmask`                                      | 5.4.0–6.0.2  | Repeatable reset/tokenization command construction; earlier introduction unknown |
+| `Annotation`                                          | 5.4.0–6.1.0  | Repeatable reset and sorted final command arguments                              |
+| `AppArmor`                                            | 5.8.0–6.1.0  | Explicitly unsupported through 5.7.1                                             |
+| `NoNewPrivileges`, `SeccompProfile`, `SecurityLabel*` | 5.4.0–6.1.0  | Singleton/boolean command construction                                           |
+| `Mask`, `Unmask`                                      | 5.4.0–6.1.0  | Repeatable reset/tokenization command construction; earlier introduction unknown |
 
 Parsed and constructed values remain opaque. Generator fixtures do not validate profiles, OCI or
 SELinux policy, paths, host state, runtime effects, or cross-format semantics.
@@ -674,7 +674,7 @@ Fallback records describe a semantic option, not a preassembled shell string. Re
 
 ## Volume `Copy`
 
-Volume `Copy` is an opaque singleton with native evidence from Podman 5.4.0 through 6.0.2.
+Volume `Copy` is an opaque singleton with native evidence from Podman 5.4.0 through 6.1.0.
 Endpoint manuals, tagged conversion/parser source, and the isolated dry-run matrix record omission,
 accepted true spellings, invalid-as-`nocopy`, duplicate last-value selection, quote/continuation
 handling, the 5.8.2 unmatched-quote boundary, and image-driver suppression. The model retains raw

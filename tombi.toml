@@ -1,0 +1,33 @@
+toml-version = "v1.0.0"
+
+[files]
+include = ["**/*.toml"]
+respect-ignore-files = true
+
+[format.rules]
+line-ending = "lf"
+
+[lint.rules]
+dotted-keys-out-of-order = "error"
+key-empty = "error"
+tables-out-of-order = "error"
+
+# Catalogue, generator-matrix, and fixture records use deliberate evidence or execution ordering.
+# Tombi still parses and lints them, but formatting is disabled so their order remains stable.
+[[overrides]]
+files.include = [
+  "catalogue/*.toml",
+  "catalogue/**/*.toml",
+  "catalogue/v1/*.toml",
+  "fixtures/*.toml",
+  "fixtures/**/*.toml",
+  "tools/*.toml",
+  "tools/**/*.toml",
+]
+
+[overrides.format]
+enabled = false
+
+[overrides.lint.rules]
+dotted-keys-out-of-order = "off"
+tables-out-of-order = "off"

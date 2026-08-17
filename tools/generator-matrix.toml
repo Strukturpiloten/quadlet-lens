@@ -1,12 +1,12 @@
 schema = 1
 support_minimum = "5.4.0"
 # renovate: datasource=github-releases depName=podman-container-tools/podman
-tracked_current = "6.0.2"
-checked_on = "2026-08-06"
+tracked_current = "6.1.0"
+checked_on = "2026-08-17"
 official_image_maximum = "5.8.2"
 source_repository = "https://github.com/podman-container-tools/podman.git"
 # renovate: datasource=docker depName=docker.io/library/golang
-builder_reference = "docker.io/library/golang:1.25.6-bookworm@sha256:f4490d7b261d73af4543c46ac6597d7d101b6e1755bcdd8c5159fda7046b6b3e"
+builder_reference = "docker.io/library/golang:1.25.9-bookworm@sha256:298734aec230b5f3e8cee450ce6d7eccc39f1797ba548ee90d57e9803030c6c3"
 
 [[image]]
 version = "5.4.0"
@@ -79,6 +79,10 @@ version = "5.8.5"
 commit = "6d48b6f12f793176f3f6bc808b5a440984c14eb2"
 
 [[source]]
+version = "5.8.6"
+commit = "a859fc66702c23e869c282c63e92d9b6cd264229"
+
+[[source]]
 version = "6.0.0"
 commit = "a8ed4b6dd12992decf659cadfdfb3d0cb1937748"
 
@@ -89,4 +93,8 @@ commit = "4cabbe61fa3a27fafc4a3ee1226e38ae1664ae57"
 [[source]]
 version = "6.0.2"
 commit = "b28edb9ad70ce4317dc762ee9ce0a6d081d154e9"
+
+[[source]]
+version = "6.1.0"
+commit = "cade97a52ebdf9dbf9e81de8009015776837a074"
 smoke = true
