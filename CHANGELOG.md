@@ -5,6 +5,8 @@ Versioning for its documented pre-1.0 public API.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-08-17
+
 ### Added
 
 - Typed opaque Container support for automatic updates, cgroup and environment/proxy controls,
