@@ -268,6 +268,8 @@ fn non_rust_file_quality_is_locked_and_required() -> Result<(), String> {
         "dotted-keys-out-of-order = \"error\"",
         "key-empty = \"error\"",
         "tables-out-of-order = \"error\"",
+        "docs/schemas/tombi-cargo-offline.schema.json",
+        "include = [\"Cargo.toml\", \"**/Cargo.toml\"]",
         "enabled = false",
         "catalogue/**/*.toml",
         "fixtures/**/*.toml",
@@ -275,6 +277,13 @@ fn non_rust_file_quality_is_locked_and_required() -> Result<(), String> {
     ] {
         if !tombi.contains(required) {
             return Err(format!("tombi.toml is missing `{required}`"));
+        }
+    }
+
+    let cargo_schema = read_repository_file("docs/schemas/tombi-cargo-offline.schema.json")?;
+    for required in [r#""type": "object""#, r#""additionalProperties": true"#] {
+        if !cargo_schema.contains(required) {
+            return Err(format!("offline Cargo schema must contain `{required}`"));
         }
     }
 

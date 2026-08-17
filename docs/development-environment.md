@@ -52,6 +52,12 @@ cannot remove a QuadletLens executable. Routine
 documentation-link checks are offline. A scheduled workflow performs the slower, rate-limited
 external-link check.
 
+Offline Tombi runs select the repository's structural Cargo-manifest schema instead of Tombi
+1.4.0's embedded Cargo schema, whose lint subsections reference two remote-only schemas. Cargo
+metadata, checks, Clippy, tests, and packaging remain the authoritative semantic manifest
+validation. This keeps an empty CI cache equivalent to an established local cache without
+disabling schema discovery for other TOML files.
+
 The script keeps coverage and API-compatibility artifacts under
 `$CARGO_TARGET_DIR/check-all/quadlet-lens`. It never reuses the container image's
 `/usr/local/cargo`, another repository's validation tree, or an older `target/semver-checks` tree,
