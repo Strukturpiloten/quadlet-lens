@@ -311,6 +311,31 @@ fn non_rust_file_quality_is_locked_and_required() -> Result<(), String> {
 }
 
 #[test]
+fn offline_manual_evidence_uses_linux_and_macos_portable_tool_interfaces() -> Result<(), String> {
+    let test_source = read_repository_file("tests/specification_inventory.rs")?;
+    for required in [
+        "base64 --decode | gzip -d -c",
+        ".stdin(evidence_file)",
+        "Command::new(\"shasum\")",
+        ".args([\"-a\", \"256\"])",
+    ] {
+        if !test_source.contains(required) {
+            return Err(format!(
+                "offline manual evidence check is missing portable form `{required}`"
+            ));
+        }
+    }
+    for forbidden in ["base64 --decode --", "Command::new(\"sha256sum\")"] {
+        if test_source.contains(forbidden) {
+            return Err(format!(
+                "offline manual evidence check retains GNU-only form `{forbidden}`"
+            ));
+        }
+    }
+    Ok(())
+}
+
+#[test]
 fn routine_link_checks_are_offline_and_external_checks_are_scheduled() -> Result<(), String> {
     let ci = read_repository_file(".github/workflows/ci.yml")?;
     for required in ["--config lychee.toml", "--offline"] {

@@ -355,6 +355,9 @@ The capability suite parses the embedded strict TOML schema, locks the first-con
 from Podman 5.4.0 through current 6.1.0, checks required/repeated/path/reference metadata, evaluates
 the lower and rolling upper coverage boundaries, and uses synthetic evidence to exercise fallback
 and known-bug precedence. Capabilities outside the generator fixture retain explicit evidence gaps.
+The pinned aggregate-manual evidence test streams Base64 input through the decoder and uses
+`shasum -a 256`, keeping the same offline digest and inventory check portable across Linux and
+macOS runners.
 
 The typed-model suite protects the initial `.container`, `.pod`, `.network`, `.volume`, `.image`, and minimal
 `.build` surface. It checks ordered repeated Build `ImageTag`, `Network`, `Label`, `File`, `BuildArg`, `Secret`, `GroupAdd`, `DNS`, `DNSOption`, `DNSSearch`, `Annotation`, `Environment`, `ContainersConfModule`, and `PodmanArgs` values, singleton

@@ -191,7 +191,7 @@ fn pinned_aggregate_manual_verifies_digest_and_exact_inventory_rows_offline() ->
         .map_err(|error| format!("invalid inventory TOML: {error}"))?;
     assert_eq!(
         required_string(&inventory, "source_sha256")?,
-        sha256sum(&manual)?,
+        sha256_digest(&manual)?,
         "pinned source evidence must verify the inventory digest"
     );
 
@@ -462,11 +462,12 @@ fn valid_key(value: &str) -> bool {
 
 fn decode_pinned_manual() -> Result<Vec<u8>, String> {
     let evidence_path = repository_root().join(PINNED_MANUAL_EVIDENCE);
+    let evidence_file = fs::File::open(&evidence_path)
+        .map_err(|error| format!("failed to open {}: {error}", evidence_path.display()))?;
     let output = Command::new("bash")
         .arg("-c")
-        .arg("base64 --decode -- \"$1\" | gzip --decompress")
-        .arg("decode-pinned-manual")
-        .arg(&evidence_path)
+        .arg("base64 --decode | gzip -d -c")
+        .stdin(evidence_file)
         .output()
         .map_err(|error| format!("failed to decode {}: {error}", evidence_path.display()))?;
     if output.status.success() {
@@ -476,11 +477,12 @@ fn decode_pinned_manual() -> Result<Vec<u8>, String> {
     }
 }
 
-fn sha256sum(bytes: &[u8]) -> Result<String, String> {
+fn sha256_digest(bytes: &[u8]) -> Result<String, String> {
     let temporary_path = temporary_manual_path();
     fs::write(&temporary_path, bytes)
         .map_err(|error| format!("failed to write {}: {error}", temporary_path.display()))?;
-    let output = Command::new("sha256sum")
+    let output = Command::new("shasum")
+        .args(["-a", "256"])
         .arg(&temporary_path)
         .output()
         .map_err(|error| format!("failed to hash {}: {error}", temporary_path.display()))?;
@@ -491,7 +493,7 @@ fn sha256sum(bytes: &[u8]) -> Result<String, String> {
     let digest = String::from_utf8_lossy(&output.stdout)
         .split_whitespace()
         .next()
-        .ok_or_else(|| "sha256sum produced no digest".to_owned())?
+        .ok_or_else(|| "shasum produced no digest".to_owned())?
         .to_owned();
     Ok(digest)
 }
