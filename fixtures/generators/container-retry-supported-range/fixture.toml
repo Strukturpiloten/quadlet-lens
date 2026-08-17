@@ -1,7 +1,7 @@
 schema = 1
 id = "container-retry-supported-range"
 suite = "generators"
-description = "Exercises Container Retry and RetryDelay rejection through 5.4.2 and exact command construction from 5.5.0 through 6.0.2."
+description = "Exercises Container Retry and RetryDelay rejection through 5.4.2 and exact command construction from 5.5.0 through 6.1.0."
 secrets_reviewed = true
 files = ["retry.container", "expected-fragments.txt"]
 

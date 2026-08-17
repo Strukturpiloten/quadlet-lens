@@ -123,7 +123,7 @@ fn systemd_target_context_is_opt_in_and_only_gates_evidence_backed_upholds() -> 
     assert!(requires.systemd_evidence().is_empty());
     let out_of_coverage = catalogue.evaluate(
         "systemd.unit.upholds",
-        PodmanTarget::new(PodmanVersion::new(6, 0, 3), Some(PodmanVersion::new(6, 0, 3)))
+        PodmanTarget::new(PodmanVersion::new(6, 1, 1), Some(PodmanVersion::new(6, 1, 1)))
             .map_err(|error| error.to_string())?
             .with_systemd_version(SystemdVersion::new(249)),
     );

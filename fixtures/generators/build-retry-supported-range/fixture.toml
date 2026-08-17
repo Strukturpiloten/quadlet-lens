@@ -15,4 +15,4 @@ modifications = "none"
 description = "The harness mounts this directory read-only and invokes only Podman's dry-run Quadlet generator. It does not access a registry, run a build, or exercise retry, delay, or runtime behavior."
 
 [expectations]
-summary = "All three recorded Podman 5.4.x releases reject or exclude the unsupported Retry and RetryDelay keys without retry arguments. Each of the 17 recorded releases from 5.5.0 through 6.0.2 emits exactly one separate --retry 4 pair and one separate --retry-delay 7s pair before the final positional '.', with no required relative order between pairs."
+summary = "All three recorded Podman 5.4.x releases reject or exclude the unsupported Retry and RetryDelay keys without retry arguments. Each of the 17 recorded releases from 5.5.0 through 6.1.0 emits exactly one separate --retry 4 pair and one separate --retry-delay 7s pair before the final positional '.', with no required relative order between pairs."

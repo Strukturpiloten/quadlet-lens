@@ -12,7 +12,7 @@ redistribution = "allowed"
 modifications = "none"
 
 [environment]
-description = "Primary Podman 5.4.0, 5.5.0, and 6.0.2 Quadlet and CLI documentation, reviewed tagged source behavior where recorded, and exact 5.4.0 through 6.0.2 generator evidence including isolated logging, network-identity, network driver/options/labels, network IPAM columns, network Internal/IPv6, Memory, and security-option lanes; unverified runtime behavior and capabilities outside the protected fixtures retain explicit evidence gaps."
+description = "Primary Podman 5.4.0, 5.5.0, 6.0.2, and 6.1.0 Quadlet and CLI documentation, reviewed tagged source behavior where recorded, and exact 5.4.0 through 6.1.0 generator evidence including isolated logging, network-identity, network driver/options/labels, network IPAM columns, network Internal/IPv6, Memory, ImageVolume, and security-option lanes; unverified runtime behavior and capabilities outside the protected fixtures retain explicit evidence gaps."
 
 [expectations]
 summary = "The supported range cannot silently lose a reviewed native capability, repeatability rule, or capability required by the first Compose-to-Quadlet conversion."

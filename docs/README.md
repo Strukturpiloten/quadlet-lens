@@ -16,21 +16,12 @@ This directory defines QuadletLens's architecture and version-aware behavior.
 - [Real-world Quadlet corpus](real-world-quadlet-corpus.md) — pinned ecosystem projects and feature pressure
 - [Development environment](development-environment.md) — reproducible VS Code tooling and update policy
 - [API stability](api-stability.md) — supported 0.2.x consumer contract and exclusions
-- [Release process](releasing.md) — trusted publishing, repository setup, and recovery
+- [Release process](releasing.md) — automated release PRs, trusted publishing, and recovery
 - [Fixture format](fixture-format.md) — shared metadata, provenance, and secrets contract
 - [Podlet regression map](research/podlet-regressions-2026-08-01.md) — native syntax, document-set, and capability lessons from user reports
 - [Dependency and license policy](dependency-policy.md) — dependency selection, allowed sources, and license checks
 - [Implementation plan](implementation-plan.md) — synchronized cross-repository tasks T1–T8
 - [Roadmap](roadmap.md) — implementation order
-- [0.2.0 release notes](releases/0.2.0.md) — complete native-key coverage and consolidated model APIs
-- [0.1.13 release notes](releases/0.1.13.md) — boundary tests and coverage/API regression guards
-- [0.1.12 release notes](releases/0.1.12.md) — native Image, Volume, and Build coverage with 20-release evidence
-- [0.1.11 release notes](releases/0.1.11.md) — networking, metadata, and security settings
-- [0.1.10 release notes](releases/0.1.10.md) — lifecycle, resource, capability, and device settings
-- [0.1.9 release notes](releases/0.1.9.md) — explicit Podman container names
-- [0.1.6 release notes](releases/0.1.6.md) — pod user namespaces and container secrets
-- [0.1.5 release notes](releases/0.1.5.md) — container execution identity and context
-- [0.1.0 release notes](releases/0.1.0.md) — initial public-delivery scope and known limits
 - [Architecture decisions](decisions/README.md) — durable design choices
 
 ## Documentation rules

@@ -1,7 +1,7 @@
 schema = 1
 id = "build-podman-args-isolation-chroot-supported-range"
 suite = "generators"
-description = "Records one exact opaque Build PodmanArgs --isolation=chroot command argument across Podman 5.4.0 through 6.0.2."
+description = "Records one exact opaque Build PodmanArgs --isolation=chroot command argument across Podman 5.4.0 through 6.1.0."
 secrets_reviewed = true
 files = ["build-podman-args-isolation-chroot.build", "expected-fragments.txt"]
 

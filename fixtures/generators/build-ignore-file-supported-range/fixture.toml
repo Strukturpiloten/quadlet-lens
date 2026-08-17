@@ -1,7 +1,7 @@
 schema = 1
 id = "build-ignore-file-supported-range"
 suite = "generators"
-description = "Records Build IgnoreFile rejection or exclusion before Podman 5.7 and opaque command construction from 5.7.0 through 6.0.2."
+description = "Records Build IgnoreFile rejection or exclusion before Podman 5.7 and opaque command construction from 5.7.0 through 6.1.0."
 secrets_reviewed = true
 files = ["build-ignore-file-single.build", "build-ignore-file-last.build", "build-ignore-file-empty.build", "expected-fragments.txt"]
 
@@ -15,4 +15,4 @@ modifications = "none"
 description = "The harness invokes only Podman's dry-run Quadlet generator; it does not resolve or read the authored paths, parse ignore-file content, infer defaults, or execute a build."
 
 [expectations]
-summary = "Podman 5.4.0 through 5.6.2 must reject or exclude IgnoreFile with no --ignorefile mapping. Podman 5.7.0 through 6.0.2 must emit one separate path, retain only the effective last repeated path, and omit the flag after final empty."
+summary = "Podman 5.4.0 through 5.6.2 must reject or exclude IgnoreFile with no --ignorefile mapping. Podman 5.7.0 through 6.1.0 must emit one separate path, retain only the effective last repeated path, and omit the flag after final empty."

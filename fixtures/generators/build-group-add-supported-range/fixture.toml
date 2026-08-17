@@ -15,4 +15,4 @@ modifications = "none"
 description = "The harness mounts this directory read-only and invokes only Podman's dry-run Quadlet generator. It does not execute a build, look up groups, resolve keep-groups interactions, inspect rootless or user-namespace behavior, or establish runtime behavior."
 
 [expectations]
-summary = "Every recorded Podman release from 5.4.0 through 6.0.2 emits ordered separate --group-add 1234 then --group-add 5678 pairs before its final positional '.', without a relative-order claim against map-derived flags."
+summary = "Every recorded Podman release from 5.4.0 through 6.1.0 emits ordered separate --group-add 1234 then --group-add 5678 pairs before its final positional '.', without a relative-order claim against map-derived flags."

@@ -1,0 +1,18 @@
+schema = 1
+id = "pod-label-supported-range"
+suite = "generators"
+description = "Records the Pod Label generator boundary and reset behavior without parsing metadata, creating a pod, or importing label semantics into QuadletLens."
+secrets_reviewed = true
+files = ["label.pod", "expected-fragments.txt"]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "Dry-run generator only; no pod creation, systemd operation, metadata lookup, or runtime execution."
+
+[expectations]
+summary = "Podman 5.4.x and 5.5.x reject Label; every recorded release from 5.6.0 through 6.1.0 clears the pre-reset value and emits exactly the two final --label pairs."

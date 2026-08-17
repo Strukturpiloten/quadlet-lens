@@ -1,0 +1,18 @@
+schema = 1
+id = "pod-hostname-supported-range"
+suite = "generators"
+description = "Records the Pod HostName generator boundary without resolving names, creating a pod, or importing hostname semantics into QuadletLens."
+secrets_reviewed = true
+files = ["hostname.pod", "expected-fragments.txt"]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "Dry-run generator only; no pod creation, resolver access, network access, systemd operation, or runtime execution."
+
+[expectations]
+summary = "Podman 5.4.x rejects HostName; every recorded release from 5.5.0 through 6.1.0 emits exactly one --hostname pod.example.invalid pair."

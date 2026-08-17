@@ -15,4 +15,4 @@ modifications = "none"
 description = "The harness mounts this directory read-only with label separation disabled and invokes only exact Podman Quadlet generators in dry-run mode. It does not start generated services or container workloads."
 
 [expectations]
-summary = "Podman 5.4.0 through 5.4.2 reject or exclude the unsupported Memory key and emit no memory argument. Every recorded release from 5.5.0 through 6.0.2 emits exactly one final `--memory 16777216b` argument with no duplicate, equals, empty, quoted, or alternate form."
+summary = "Podman 5.4.0 through 5.4.2 reject or exclude the unsupported Memory key and emit no memory argument. Every recorded release from 5.5.0 through 6.1.0 emits exactly one final `--memory 16777216b` argument with no duplicate, equals, empty, quoted, or alternate form."

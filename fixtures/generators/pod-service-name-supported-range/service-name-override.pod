@@ -19,13 +19,8 @@ DNSOption=attempts:3
 DNSSearch=pre.example.invalid
 DNSSearch=
 DNSSearch=example.invalid
-HostName=pod.example.invalid
 IP=192.0.2.42
 IP6=2001:db8::42
-Label=pre=value
-Label=
-Label=example.invalid/one=first
-Label=example.invalid/two=second
 NetworkAlias=pre-alias
 NetworkAlias=
 NetworkAlias=post-one

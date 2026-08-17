@@ -39,6 +39,7 @@ quadlet.container.health-timeout
 quadlet.container.hostname
 quadlet.container.http-proxy
 quadlet.container.image
+quadlet.container.image-volume
 quadlet.container.ip
 quadlet.container.ip6
 quadlet.container.label

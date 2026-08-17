@@ -6037,7 +6037,7 @@ fn read_only_tmpfs_relationship_diagnostic_recognizes_effective_boolean_forms() 
 }
 
 #[test]
-fn remaining_container_keys_preserve_opaque_values_duplicates_resets_and_order() -> Result<(), String> {
+fn remaining_container_keys_preserve_opaque_values_and_native_cardinality() -> Result<(), String> {
     let source = concat!(
         "[Container]\nImage=example.invalid/app:1\n",
         "ContainersConfModule=pre.conf\nContainersConfModule=\n",
@@ -6082,7 +6082,14 @@ fn remaining_container_keys_preserve_opaque_values_duplicates_resets_and_order()
             .collect::<Vec<_>>(),
         ["pre.conf", "", "post-one.conf", "post-two.conf"]
     );
-    assert!(result.model_diagnostics().is_empty());
+    assert_eq!(
+        result
+            .model_diagnostics()
+            .iter()
+            .map(|diagnostic| diagnostic.code().as_str())
+            .collect::<Vec<_>>(),
+        ["QLM0004"]
+    );
     Ok(())
 }
 

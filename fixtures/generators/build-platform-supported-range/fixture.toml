@@ -1,7 +1,7 @@
 schema = 1
 id = "build-platform-supported-range"
 suite = "generators"
-description = "Records one opaque Build Arch and Variant command argument across Podman 5.4.0 through 6.0.2 without asserting their relative command order."
+description = "Records one opaque Build Arch and Variant command argument across Podman 5.4.0 through 6.1.0 without asserting their relative command order."
 secrets_reviewed = true
 files = ["build-platform.build", "expected-fragments.txt"]
 

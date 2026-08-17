@@ -1,7 +1,7 @@
 schema = 1
 id = "pod-service-name-supported-range"
 suite = "generators"
-description = "Records target Pod ServiceName selection plus opaque Pod completion-key command construction boundaries without importing identity, resolver, network, mapping, label, or runtime semantics into QuadletLens."
+description = "Records target Pod ServiceName selection plus Pod completion keys available across the full supported range, without importing identity, resolver, network, mapping, or runtime semantics into QuadletLens."
 secrets_reviewed = true
 files = ["service-name-default.pod", "service-name-override.pod", "service-name-template@.pod", "service-name-unmatched-quote.pod", "service-name-final-blank.pod", "service-name-extension.pod", "pod-direct-maps.pod", "pod-sub-maps.pod", "expected-fragments.txt"]
 [provenance]
@@ -12,4 +12,4 @@ modifications = "none"
 [environment]
 description = "Dry-run generator only; no pod creation, systemd operation, restart behavior, or runtime execution."
 [expectations]
-summary = "The target derives an omitted default, selects the final ServiceName, appends .service, and records template, quote, blank, extension-bearing, reset, ordering, direct-map, subordinate-map, and final-only PodmanArgs command-construction boundaries; QuadletLens preserves opaque source text."
+summary = "The target derives an omitted default, selects the final ServiceName, appends .service, and records template, quote, blank, extension-bearing, full-range completion-key reset, ordering, direct-map, subordinate-map, and final-only PodmanArgs command-construction boundaries; QuadletLens preserves opaque source text."

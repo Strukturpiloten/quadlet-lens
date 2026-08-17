@@ -10,8 +10,8 @@ use quadlet_lens::source::SourceId;
 use toml::{Table, Value};
 
 const INVENTORY: &str = include_str!("../fixtures/specification-drift/quadlet-manual-current.toml");
-const PINNED_MANUAL_EVIDENCE: &str = "fixtures/specification-drift/podman-systemd.unit.5-v6.0.2.md.gz.b64";
-const PINNED_MANUAL_LICENSE: &str = "fixtures/specification-drift/podman-v6.0.2-LICENSE";
+const PINNED_MANUAL_EVIDENCE: &str = "fixtures/specification-drift/podman-systemd.unit.5-v6.1.0.md.gz.b64";
+const PINNED_MANUAL_LICENSE: &str = "fixtures/specification-drift/podman-v6.1.0-LICENSE";
 const SECTION_ORDER: &[&str] = &[
     "Container",
     "Pod",
@@ -24,7 +24,7 @@ const SECTION_ORDER: &[&str] = &[
     "Quadlet",
 ];
 const EXPECTED_COUNTS: &[(&str, usize)] = &[
-    ("Container", 89),
+    ("Container", 90),
     ("Pod", 25),
     ("Network", 18),
     ("Volume", 16),
@@ -45,7 +45,7 @@ struct InventoryRow {
 #[test]
 fn inventory_is_complete_ordered_and_matches_the_public_native_parser() -> Result<(), String> {
     let rows = validate_inventory(INVENTORY)?;
-    assert_eq!(rows.len(), 222);
+    assert_eq!(rows.len(), 223);
 
     let mut counts = BTreeMap::new();
     for row in rows {
@@ -191,7 +191,7 @@ fn pinned_aggregate_manual_verifies_digest_and_exact_inventory_rows_offline() ->
         .map_err(|error| format!("invalid inventory TOML: {error}"))?;
     assert_eq!(
         required_string(&inventory, "source_sha256")?,
-        sha256sum(&manual)?,
+        sha256_digest(&manual)?,
         "pinned source evidence must verify the inventory digest"
     );
 
@@ -243,7 +243,6 @@ fn historical_parser_keys_are_excluded_from_the_current_manual_inventory() -> Re
         .map(|row| (row.section, row.key))
         .collect::<BTreeSet<_>>();
     for (section, key) in [
-        ("Container", "ImageVolume"),
         ("Kube", "LogOpt"),
         ("Kube", "RemapGid"),
         ("Kube", "RemapUid"),
@@ -463,11 +462,12 @@ fn valid_key(value: &str) -> bool {
 
 fn decode_pinned_manual() -> Result<Vec<u8>, String> {
     let evidence_path = repository_root().join(PINNED_MANUAL_EVIDENCE);
+    let evidence_file = fs::File::open(&evidence_path)
+        .map_err(|error| format!("failed to open {}: {error}", evidence_path.display()))?;
     let output = Command::new("bash")
         .arg("-c")
-        .arg("base64 --decode -- \"$1\" | gzip --decompress")
-        .arg("decode-pinned-manual")
-        .arg(&evidence_path)
+        .arg("base64 --decode | gzip -d -c")
+        .stdin(evidence_file)
         .output()
         .map_err(|error| format!("failed to decode {}: {error}", evidence_path.display()))?;
     if output.status.success() {
@@ -477,11 +477,12 @@ fn decode_pinned_manual() -> Result<Vec<u8>, String> {
     }
 }
 
-fn sha256sum(bytes: &[u8]) -> Result<String, String> {
+fn sha256_digest(bytes: &[u8]) -> Result<String, String> {
     let temporary_path = temporary_manual_path();
     fs::write(&temporary_path, bytes)
         .map_err(|error| format!("failed to write {}: {error}", temporary_path.display()))?;
-    let output = Command::new("sha256sum")
+    let output = Command::new("shasum")
+        .args(["-a", "256"])
         .arg(&temporary_path)
         .output()
         .map_err(|error| format!("failed to hash {}: {error}", temporary_path.display()))?;
@@ -492,7 +493,7 @@ fn sha256sum(bytes: &[u8]) -> Result<String, String> {
     let digest = String::from_utf8_lossy(&output.stdout)
         .split_whitespace()
         .next()
-        .ok_or_else(|| "sha256sum produced no digest".to_owned())?
+        .ok_or_else(|| "shasum produced no digest".to_owned())?
         .to_owned();
     Ok(digest)
 }

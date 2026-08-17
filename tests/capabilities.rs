@@ -16,7 +16,7 @@ fn supported_range_has_the_reviewed_first_conversion_surface() -> Result<(), Str
     assert_eq!(catalogue.schema(), 1);
     assert_eq!(catalogue.id(), "podman-supported-range");
     assert_eq!(catalogue.coverage().minimum(), version(5, 4, 0));
-    assert_eq!(catalogue.coverage().maximum(), version(6, 0, 2));
+    assert_eq!(catalogue.coverage().maximum(), version(6, 1, 0));
 
     let actual: BTreeSet<_> = catalogue
         .capabilities()
@@ -25,8 +25,8 @@ fn supported_range_has_the_reviewed_first_conversion_surface() -> Result<(), Str
         .collect();
     let expected: BTreeSet<_> = EXPECTED_CAPABILITIES.lines().filter(|line| !line.is_empty()).collect();
     assert_eq!(actual, expected);
-    assert_eq!(catalogue.capabilities().len(), 257);
-    assert_eq!(catalogue.evidence().len(), 657);
+    assert_eq!(catalogue.capabilities().len(), 258);
+    assert_eq!(catalogue.evidence().len(), 660);
     assert_eq!(catalogue.systemd_evidence().len(), 1);
 
     let documentation: Vec<_> = catalogue
@@ -35,7 +35,7 @@ fn supported_range_has_the_reviewed_first_conversion_surface() -> Result<(), Str
         .filter(|evidence| evidence.level() == VerificationLevel::Documentation)
         .collect();
     assert!(!documentation.is_empty());
-    assert_eq!(documentation.len(), 550);
+    assert_eq!(documentation.len(), 552);
     assert!(documentation.iter().all(|evidence| evidence.gap().is_some()));
     let generator = catalogue
         .evidence()
@@ -43,7 +43,7 @@ fn supported_range_has_the_reviewed_first_conversion_surface() -> Result<(), Str
         .find(|evidence| evidence.id() == "podman-5-4-through-current-first-conversion-generators")
         .ok_or_else(|| "supported range must have generator evidence".to_owned())?;
     assert_eq!(generator.versions().minimum(), version(5, 4, 0));
-    assert_eq!(generator.versions().maximum(), version(6, 0, 2));
+    assert_eq!(generator.versions().maximum(), version(6, 1, 0));
     assert_eq!(generator.gap(), None);
     Ok(())
 }
@@ -80,17 +80,56 @@ fn supported_range_records_container_environment_reset() -> Result<(), String> {
         .native_range()
         .ok_or_else(|| "Container Environment must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
             catalogue
                 .evaluate("quadlet.container.environment", target)
+                .classification(),
+            expected
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn supported_range_records_container_image_volume() -> Result<(), String> {
+    let catalogue = CapabilityCatalogue::supported_range().map_err(|error| error.to_string())?;
+    let capability = catalogue
+        .capability("quadlet.container.image-volume")
+        .ok_or_else(|| "Container ImageVolume capability must exist".to_owned())?;
+    assert_eq!(capability.unit_types(), ["container"]);
+    assert_eq!(capability.sections(), ["Container"]);
+    assert!(!capability.is_repeatable());
+    assert_eq!(capability.value_forms(), ["opaque-one-line-image-volume-policy"]);
+    assert_eq!(
+        capability.evidence(),
+        [
+            "podman-6-1-container-image-volume",
+            "podman-6-1-container-image-volume-source",
+            "podman-6-1-container-image-volume-generator",
+        ]
+    );
+    let native = capability
+        .native_range()
+        .ok_or_else(|| "Container ImageVolume must have native coverage".to_owned())?;
+    assert_eq!(native.minimum(), version(6, 1, 0));
+    assert_eq!(native.maximum(), version(6, 1, 0));
+    for (target, expected) in [
+        (version(6, 0, 2), SupportClassification::Unsupported),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
+    ] {
+        let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
+        assert_eq!(
+            catalogue
+                .evaluate("quadlet.container.image-volume", target)
                 .classification(),
             expected
         );
@@ -180,7 +219,7 @@ fn supported_range_records_kube_keys() -> Result<(), String> {
             .native_range()
             .ok_or_else(|| format!("missing native range for {id}"))?;
         assert_eq!(native.minimum(), version(5, 4, 0), "{id}");
-        assert_eq!(native.maximum(), version(6, 0, 2), "{id}");
+        assert_eq!(native.maximum(), version(6, 1, 0), "{id}");
     }
     Ok(())
 }
@@ -216,7 +255,7 @@ fn supported_range_records_artifact_and_default_dependencies() -> Result<(), Str
             .native_range()
             .ok_or_else(|| format!("missing native range for {id}"))?;
         assert_eq!(native.minimum(), version(5, 7, 0), "{id}");
-        assert_eq!(native.maximum(), version(6, 0, 2), "{id}");
+        assert_eq!(native.maximum(), version(6, 1, 0), "{id}");
         for target in [version(5, 4, 0), version(5, 6, 2)] {
             assert_eq!(
                 catalogue
@@ -229,7 +268,7 @@ fn supported_range_records_artifact_and_default_dependencies() -> Result<(), Str
                 "{id} at {target}"
             );
         }
-        for target in [version(5, 7, 0), version(6, 0, 2)] {
+        for target in [version(5, 7, 0), version(6, 1, 0)] {
             assert_eq!(
                 catalogue
                     .evaluate(
@@ -255,7 +294,7 @@ fn supported_range_records_artifact_and_default_dependencies() -> Result<(), Str
         .native_range()
         .ok_or("DefaultDependencies native range missing")?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     Ok(())
 }
 
@@ -314,13 +353,13 @@ fn supported_range_records_container_batch_keys() -> Result<(), String> {
         assert_eq!(capability.unit_types(), ["container"]);
         assert_eq!(capability.sections(), ["Container"]);
         assert_eq!(capability.is_repeatable(), repeatable);
-        let target = PodmanTarget::new(version(6, 0, 2), Some(version(6, 0, 2))).map_err(|error| error.to_string())?;
+        let target = PodmanTarget::new(version(6, 1, 0), Some(version(6, 1, 0))).map_err(|error| error.to_string())?;
         if let Some(minimum) = minimum {
             let native = capability
                 .native_range()
                 .ok_or_else(|| format!("{id} lacks native range"))?;
             assert_eq!(native.minimum(), minimum);
-            assert_eq!(native.maximum(), version(6, 0, 2));
+            assert_eq!(native.maximum(), version(6, 1, 0));
             assert_eq!(
                 catalogue.evaluate(id, target).classification(),
                 SupportClassification::Native
@@ -374,7 +413,7 @@ fn supported_range_records_build_arg() -> Result<(), String> {
         .native_range()
         .ok_or_else(|| "BuildArg must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 7, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     assert_eq!(capability.unsupported_ranges().len(), 1);
     assert_eq!(
         capability.unsupported_ranges()[0].versions().minimum(),
@@ -389,8 +428,8 @@ fn supported_range_records_build_arg() -> Result<(), String> {
         (version(5, 4, 0), SupportClassification::Unsupported),
         (version(5, 6, 2), SupportClassification::Unsupported),
         (version(5, 7, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -425,12 +464,12 @@ fn supported_range_records_build_secret() -> Result<(), String> {
         .native_range()
         .ok_or_else(|| "Build Secret must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -465,12 +504,12 @@ fn supported_range_records_build_podman_args() -> Result<(), String> {
         .native_range()
         .ok_or_else(|| "Build PodmanArgs must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -507,12 +546,12 @@ fn supported_range_records_build_podman_args_no_cache() -> Result<(), String> {
         .native_range()
         .ok_or_else(|| "Build PodmanArgs --no-cache must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -551,12 +590,12 @@ fn supported_range_records_build_podman_args_isolation_chroot() -> Result<(), St
         .native_range()
         .ok_or_else(|| "Build PodmanArgs --isolation=chroot must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -595,12 +634,12 @@ fn supported_range_records_build_podman_args_ssh_default() -> Result<(), String>
         .native_range()
         .ok_or_else(|| "Build PodmanArgs --ssh=default must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -639,12 +678,12 @@ fn supported_range_records_build_podman_args_shm_size_32m() -> Result<(), String
         .native_range()
         .ok_or_else(|| "Build PodmanArgs --shm-size=32m must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -683,12 +722,12 @@ fn supported_range_records_build_podman_args_ulimit_nproc() -> Result<(), String
         .native_range()
         .ok_or_else(|| "Build PodmanArgs --ulimit=nproc=4096:8192 must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -730,12 +769,12 @@ fn supported_range_records_build_podman_args_add_host_buildhost() -> Result<(), 
         .native_range()
         .ok_or_else(|| "Build PodmanArgs --add-host=buildhost:192.0.2.10 must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -774,12 +813,12 @@ fn supported_range_records_build_podman_args_cap_add_cap_sys_admin() -> Result<(
         .native_range()
         .ok_or_else(|| "Build PodmanArgs --cap-add=CAP_SYS_ADMIN must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -823,12 +862,12 @@ fn supported_range_records_build_podman_args_cache_locations() -> Result<(), Str
         .native_range()
         .ok_or_else(|| "Build PodmanArgs cache locations must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -875,12 +914,12 @@ fn supported_range_records_build_podman_args_sbom() -> Result<(), String> {
         .native_range()
         .ok_or_else(|| "Build PodmanArgs SBOM must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -932,12 +971,12 @@ fn supported_range_records_build_platform() -> Result<(), String> {
             .native_range()
             .ok_or_else(|| format!("{id} must have native coverage"))?;
         assert_eq!(native.minimum(), version(5, 4, 0));
-        assert_eq!(native.maximum(), version(6, 0, 2));
+        assert_eq!(native.maximum(), version(6, 1, 0));
         for (target, expected) in [
             (version(5, 3, 0), SupportClassification::Unknown),
             (version(5, 4, 0), SupportClassification::Native),
-            (version(6, 0, 2), SupportClassification::Native),
-            (version(6, 0, 3), SupportClassification::Unknown),
+            (version(6, 1, 0), SupportClassification::Native),
+            (version(6, 1, 1), SupportClassification::Unknown),
         ] {
             let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
             assert_eq!(catalogue.evaluate(id, target).classification(), expected);
@@ -970,12 +1009,12 @@ fn supported_range_records_build_pull() -> Result<(), String> {
         .native_range()
         .ok_or_else(|| "Build Pull must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -1027,7 +1066,7 @@ fn supported_range_records_build_retry() -> Result<(), String> {
             .native_range()
             .ok_or_else(|| format!("{id} must have native coverage"))?;
         assert_eq!(native.minimum(), version(5, 5, 0));
-        assert_eq!(native.maximum(), version(6, 0, 2));
+        assert_eq!(native.maximum(), version(6, 1, 0));
         assert_eq!(capability.unsupported_ranges().len(), 1);
         assert_eq!(
             capability.unsupported_ranges()[0].versions().minimum(),
@@ -1042,8 +1081,8 @@ fn supported_range_records_build_retry() -> Result<(), String> {
             (version(5, 4, 0), SupportClassification::Unsupported),
             (version(5, 4, 2), SupportClassification::Unsupported),
             (version(5, 5, 0), SupportClassification::Native),
-            (version(6, 0, 2), SupportClassification::Native),
-            (version(6, 0, 3), SupportClassification::Unknown),
+            (version(6, 1, 0), SupportClassification::Native),
+            (version(6, 1, 1), SupportClassification::Unknown),
         ] {
             let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
             assert_eq!(catalogue.evaluate(id, target).classification(), expected);
@@ -1076,12 +1115,12 @@ fn supported_range_records_build_tls_verify() -> Result<(), String> {
         .native_range()
         .ok_or_else(|| "Build TLSVerify must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -1116,12 +1155,12 @@ fn supported_range_records_build_force_rm() -> Result<(), String> {
         .native_range()
         .ok_or_else(|| "Build ForceRM must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -1156,12 +1195,12 @@ fn supported_range_records_build_group_add() -> Result<(), String> {
         .native_range()
         .ok_or_else(|| "Build GroupAdd must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -1196,12 +1235,12 @@ fn supported_range_records_build_dns() -> Result<(), String> {
         .native_range()
         .ok_or_else(|| "Build DNS must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -1232,8 +1271,8 @@ fn supported_range_records_build_dns_option() -> Result<(), String> {
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         assert_eq!(
             catalogue
@@ -1270,12 +1309,12 @@ fn supported_range_records_build_dns_search() -> Result<(), String> {
     );
     let native = capability.native_range().ok_or("Build DNSSearch range missing")?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         assert_eq!(
             catalogue
@@ -1312,12 +1351,12 @@ fn supported_range_records_build_auth_file() -> Result<(), String> {
     );
     let native = capability.native_range().ok_or("Build AuthFile range missing")?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         assert_eq!(
             catalogue
@@ -1356,7 +1395,7 @@ fn supported_range_records_build_ignore_file() -> Result<(), String> {
     );
     let native = capability.native_range().ok_or("Build IgnoreFile range missing")?;
     assert_eq!(native.minimum(), version(5, 7, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     assert_eq!(capability.unsupported_ranges().len(), 1);
     assert_eq!(
         capability.unsupported_ranges()[0].versions().minimum(),
@@ -1371,8 +1410,8 @@ fn supported_range_records_build_ignore_file() -> Result<(), String> {
         (version(5, 4, 0), SupportClassification::Unsupported),
         (version(5, 6, 2), SupportClassification::Unsupported),
         (version(5, 7, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         assert_eq!(
             catalogue
@@ -1411,12 +1450,12 @@ fn supported_range_records_build_annotation() -> Result<(), String> {
     );
     let native = capability.native_range().ok_or("Build Annotation range missing")?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         assert_eq!(
             catalogue
@@ -1455,12 +1494,12 @@ fn supported_range_records_build_environment() -> Result<(), String> {
     );
     let native = capability.native_range().ok_or("Build Environment range missing")?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         assert_eq!(
             catalogue
@@ -1504,12 +1543,12 @@ fn supported_range_records_build_containers_conf_module() -> Result<(), String> 
         .native_range()
         .ok_or("Build ContainersConfModule range missing")?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         assert_eq!(
             catalogue
@@ -1544,12 +1583,12 @@ fn supported_range_records_build_global_args() -> Result<(), String> {
     );
     let native = capability.native_range().ok_or("Build GlobalArgs range missing")?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         assert_eq!(
             catalogue
@@ -1585,12 +1624,12 @@ fn supported_range_records_build_service_name() -> Result<(), String> {
     );
     let native = capability.native_range().ok_or("Build ServiceName range missing")?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         assert_eq!(
             catalogue
@@ -1630,12 +1669,12 @@ fn supported_range_records_build_volume() -> Result<(), String> {
     );
     let native = capability.native_range().ok_or("Build Volume range missing")?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         assert_eq!(
             catalogue
@@ -1677,12 +1716,12 @@ fn supported_range_records_volume_containers_conf_module() -> Result<(), String>
         .native_range()
         .ok_or("Volume ContainersConfModule range missing")?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         assert_eq!(
             catalogue
@@ -1719,12 +1758,12 @@ fn supported_range_records_volume_global_args() -> Result<(), String> {
     );
     let native = capability.native_range().ok_or("Volume GlobalArgs range missing")?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         assert_eq!(
             catalogue
@@ -1761,12 +1800,12 @@ fn supported_range_records_volume_podman_args() -> Result<(), String> {
     );
     let native = capability.native_range().ok_or("Volume PodmanArgs range missing")?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         assert_eq!(
             catalogue
@@ -1803,12 +1842,12 @@ fn supported_range_records_volume_user() -> Result<(), String> {
     );
     let native = capability.native_range().ok_or("Volume User range missing")?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         assert_eq!(
             catalogue
@@ -1845,12 +1884,12 @@ fn supported_range_records_volume_group() -> Result<(), String> {
     );
     let native = capability.native_range().ok_or("Volume Group range missing")?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         assert_eq!(
             catalogue
@@ -1884,14 +1923,14 @@ fn supported_range_records_volume_uid() -> Result<(), String> {
     );
     let native = capability.native_range().ok_or("Volume UID range missing")?;
     assert_eq!(native.minimum(), version(6, 0, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Unsupported),
         (version(5, 8, 5), SupportClassification::Unsupported),
         (version(6, 0, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         assert_eq!(
             catalogue
@@ -1925,14 +1964,14 @@ fn supported_range_records_volume_gid() -> Result<(), String> {
     );
     let native = capability.native_range().ok_or("Volume GID range missing")?;
     assert_eq!(native.minimum(), version(6, 0, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Unsupported),
         (version(5, 8, 5), SupportClassification::Unsupported),
         (version(6, 0, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         assert_eq!(
             catalogue
@@ -1968,12 +2007,12 @@ fn supported_range_records_volume_service_name() -> Result<(), String> {
     );
     let native = capability.native_range().ok_or("Volume ServiceName range missing")?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         assert_eq!(
             catalogue
@@ -2001,12 +2040,12 @@ fn supported_range_records_volume_image() -> Result<(), String> {
     );
     let native = capability.native_range().ok_or("Volume Image range missing")?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         assert_eq!(
             catalogue
@@ -2033,12 +2072,12 @@ fn supported_range_records_image_core() -> Result<(), String> {
     assert_eq!(capability.value_forms(), ["opaque-one-line-image-source"]);
     let native = capability.native_range().ok_or("Image core range missing")?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         assert_eq!(
             catalogue
@@ -2075,12 +2114,12 @@ fn supported_range_records_image_image_tag() -> Result<(), String> {
     );
     let native = capability.native_range().ok_or("ImageTag range missing")?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         assert_eq!(
             catalogue
@@ -2116,12 +2155,12 @@ fn supported_range_records_image_service_name() -> Result<(), String> {
     );
     let native = capability.native_range().ok_or("Image ServiceName range missing")?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         assert_eq!(
             catalogue
@@ -2158,12 +2197,12 @@ fn supported_range_records_image_all_tags() -> Result<(), String> {
     );
     let native = capability.native_range().ok_or("Image AllTags range missing")?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         assert_eq!(
             catalogue
@@ -2198,12 +2237,12 @@ fn supported_range_records_image_arch() -> Result<(), String> {
     );
     let native = capability.native_range().ok_or("Image Arch range missing")?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         assert_eq!(
             catalogue
@@ -2240,12 +2279,12 @@ fn supported_range_records_image_auth_file() -> Result<(), String> {
     );
     let native = capability.native_range().ok_or("Image AuthFile range missing")?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         assert_eq!(
             catalogue
@@ -2282,12 +2321,12 @@ fn supported_range_records_image_cert_dir() -> Result<(), String> {
     );
     let native = capability.native_range().ok_or("Image CertDir range missing")?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         assert_eq!(
             catalogue
@@ -2331,12 +2370,12 @@ fn supported_range_records_image_containers_conf_module() -> Result<(), String> 
         .native_range()
         .ok_or("Image ContainersConfModule range missing")?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         assert_eq!(
             catalogue
@@ -2373,12 +2412,12 @@ fn supported_range_records_image_creds() -> Result<(), String> {
     );
     let native = capability.native_range().ok_or("Image Creds range missing")?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         assert_eq!(
             catalogue
@@ -2415,12 +2454,12 @@ fn supported_range_records_image_decryption_key() -> Result<(), String> {
     );
     let native = capability.native_range().ok_or("Image DecryptionKey range missing")?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         assert_eq!(
             catalogue
@@ -2457,12 +2496,12 @@ fn supported_range_records_image_global_args() -> Result<(), String> {
     );
     let native = capability.native_range().ok_or("Image GlobalArgs range missing")?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         assert_eq!(
             catalogue
@@ -2497,12 +2536,12 @@ fn supported_range_records_image_os() -> Result<(), String> {
     );
     let native = capability.native_range().ok_or("Image OS range missing")?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         assert_eq!(
             catalogue
@@ -2545,12 +2584,12 @@ fn supported_range_records_build_core() -> Result<(), String> {
             .native_range()
             .ok_or_else(|| format!("{id} must have native coverage"))?;
         assert_eq!(native.minimum(), version(5, 4, 0));
-        assert_eq!(native.maximum(), version(6, 0, 2));
+        assert_eq!(native.maximum(), version(6, 1, 0));
         for (target, expected) in [
             (version(5, 3, 0), SupportClassification::Unknown),
             (version(5, 4, 0), SupportClassification::Native),
-            (version(6, 0, 2), SupportClassification::Native),
-            (version(6, 0, 3), SupportClassification::Unknown),
+            (version(6, 1, 0), SupportClassification::Native),
+            (version(6, 1, 1), SupportClassification::Unknown),
         ] {
             let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
             assert_eq!(catalogue.evaluate(id, target).classification(), expected);
@@ -2583,13 +2622,13 @@ fn supported_range_records_container_podman_args_interactive() -> Result<(), Str
         .native_range()
         .ok_or_else(|| "container PodmanArgs interactive must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
 
     for (target, expected) in [
         (version(5, 3, 0), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -2626,13 +2665,13 @@ fn supported_range_records_container_podman_args_tty() -> Result<(), String> {
         .native_range()
         .ok_or_else(|| "container PodmanArgs TTY must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
 
     for (target, expected) in [
         (version(5, 3, 0), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -2677,13 +2716,13 @@ fn supported_range_records_container_podman_args_privileged() -> Result<(), Stri
         .native_range()
         .ok_or_else(|| "container PodmanArgs privileged must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
 
     for (target, expected) in [
         (version(5, 3, 0), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -2765,7 +2804,7 @@ fn supported_range_records_paths_references_and_repetition() -> Result<(), Strin
         assert!(record.is_repeatable());
     }
 
-    let current = PodmanTarget::new(version(6, 0, 2), Some(version(6, 0, 2))).map_err(|error| error.to_string())?;
+    let current = PodmanTarget::new(version(6, 1, 0), Some(version(6, 1, 0))).map_err(|error| error.to_string())?;
     for capability in [
         "quadlet.unit-type.pod",
         "quadlet.container.add-host",
@@ -2832,7 +2871,7 @@ fn supported_range_records_systemd_unit_relationships_and_rewrite_boundary() -> 
             .native_range()
             .ok_or_else(|| format!("{capability} must have native coverage"))?;
         assert_eq!(native.minimum(), version(5, 4, 0));
-        assert_eq!(native.maximum(), version(6, 0, 2));
+        assert_eq!(native.maximum(), version(6, 1, 0));
     }
 
     let upholds = catalogue
@@ -2857,13 +2896,13 @@ fn supported_range_records_systemd_unit_relationships_and_rewrite_boundary() -> 
         .native_range()
         .ok_or_else(|| "rewrite capability must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 5, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     assert_eq!(rewrite.unsupported_ranges().len(), 1);
 
     for (target, expected) in [
         (version(5, 4, 2), SupportClassification::Unsupported),
         (version(5, 5, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
+        (version(6, 1, 0), SupportClassification::Native),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -2894,11 +2933,11 @@ fn supported_range_records_container_stop_lifecycle() -> Result<(), String> {
             .native_range()
             .ok_or_else(|| format!("{id} must have native coverage"))?;
         assert_eq!(native.minimum(), version(5, 4, 0));
-        assert_eq!(native.maximum(), version(6, 0, 2));
+        assert_eq!(native.maximum(), version(6, 1, 0));
 
         for target in [
             PodmanTarget::new(version(5, 4, 0), Some(version(5, 4, 0))),
-            PodmanTarget::new(version(6, 0, 2), Some(version(6, 0, 2))),
+            PodmanTarget::new(version(6, 1, 0), Some(version(6, 1, 0))),
         ] {
             assert_eq!(
                 catalogue
@@ -2934,13 +2973,13 @@ fn supported_range_records_container_pull() -> Result<(), String> {
         .native_range()
         .ok_or_else(|| "container pull must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
 
     for (target, expected) in [
         (version(5, 3, 0), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -2965,13 +3004,13 @@ fn supported_range_records_container_pids_limit() -> Result<(), String> {
         .native_range()
         .ok_or_else(|| "container pids-limit must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
 
     for (target, expected) in [
         (version(5, 3, 0), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -3006,13 +3045,13 @@ fn supported_range_records_container_hostname() -> Result<(), String> {
         .native_range()
         .ok_or_else(|| "container hostname must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
 
     for (target, expected) in [
         (version(5, 3, 0), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -3066,13 +3105,13 @@ fn supported_range_records_container_and_pod_shm_size() -> Result<(), String> {
             .native_range()
             .ok_or_else(|| format!("{id} must have native coverage"))?;
         assert_eq!(native.minimum(), version(5, 4, 0));
-        assert_eq!(native.maximum(), version(6, 0, 2));
+        assert_eq!(native.maximum(), version(6, 1, 0));
 
         for (target, expected) in [
             (version(5, 3, 0), SupportClassification::Unknown),
             (version(5, 4, 0), SupportClassification::Native),
-            (version(6, 0, 2), SupportClassification::Native),
-            (version(6, 0, 3), SupportClassification::Unknown),
+            (version(6, 1, 0), SupportClassification::Native),
+            (version(6, 1, 1), SupportClassification::Unknown),
         ] {
             let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
             assert_eq!(catalogue.evaluate(id, target).classification(), expected);
@@ -3108,15 +3147,15 @@ fn supported_range_records_pod_exit_policy() -> Result<(), String> {
         .native_range()
         .ok_or_else(|| "pod exit-policy must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 6, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     assert_eq!(capability.unsupported_ranges().len(), 1);
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Unsupported),
         (version(5, 5, 2), SupportClassification::Unsupported),
         (version(5, 6, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -3154,15 +3193,15 @@ fn supported_range_records_pod_stop_timeout() -> Result<(), String> {
         .native_range()
         .ok_or_else(|| "pod stop-timeout must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 7, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     assert_eq!(capability.unsupported_ranges().len(), 1);
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Unsupported),
         (version(5, 6, 2), SupportClassification::Unsupported),
         (version(5, 7, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -3197,13 +3236,13 @@ fn supported_range_records_pod_service_name() -> Result<(), String> {
         .native_range()
         .ok_or_else(|| "pod service-name must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     assert!(capability.unsupported_ranges().is_empty());
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -3217,22 +3256,22 @@ fn supported_range_records_pod_service_name() -> Result<(), String> {
 #[test]
 fn supported_range_records_pod_completion_keys() -> Result<(), String> {
     let catalogue = CapabilityCatalogue::supported_range().map_err(|error| error.to_string())?;
-    for (id, repeatable) in [
-        ("quadlet.pod.containers-conf-module", true),
-        ("quadlet.pod.dns", true),
-        ("quadlet.pod.dns-option", true),
-        ("quadlet.pod.dns-search", true),
-        ("quadlet.pod.gid-map", true),
-        ("quadlet.pod.global-args", true),
-        ("quadlet.pod.hostname", false),
-        ("quadlet.pod.ip", false),
-        ("quadlet.pod.ip6", false),
-        ("quadlet.pod.label", true),
-        ("quadlet.pod.network-alias", true),
-        ("quadlet.pod.podman-args", true),
-        ("quadlet.pod.subgid-map", false),
-        ("quadlet.pod.subuid-map", false),
-        ("quadlet.pod.uid-map", true),
+    for (id, repeatable, native_minimum, unsupported_maximum) in [
+        ("quadlet.pod.containers-conf-module", true, version(5, 4, 0), None),
+        ("quadlet.pod.dns", true, version(5, 4, 0), None),
+        ("quadlet.pod.dns-option", true, version(5, 4, 0), None),
+        ("quadlet.pod.dns-search", true, version(5, 4, 0), None),
+        ("quadlet.pod.gid-map", true, version(5, 4, 0), None),
+        ("quadlet.pod.global-args", true, version(5, 4, 0), None),
+        ("quadlet.pod.hostname", false, version(5, 5, 0), Some(version(5, 4, 2))),
+        ("quadlet.pod.ip", false, version(5, 4, 0), None),
+        ("quadlet.pod.ip6", false, version(5, 4, 0), None),
+        ("quadlet.pod.label", true, version(5, 6, 0), Some(version(5, 5, 2))),
+        ("quadlet.pod.network-alias", true, version(5, 4, 0), None),
+        ("quadlet.pod.podman-args", true, version(5, 4, 0), None),
+        ("quadlet.pod.subgid-map", false, version(5, 4, 0), None),
+        ("quadlet.pod.subuid-map", false, version(5, 4, 0), None),
+        ("quadlet.pod.uid-map", true, version(5, 4, 0), None),
     ] {
         let capability = catalogue.capability(id).ok_or_else(|| format!("missing {id}"))?;
         assert_eq!(capability.unit_types(), ["pod"]);
@@ -3242,23 +3281,50 @@ fn supported_range_records_pod_completion_keys() -> Result<(), String> {
             capability
                 .native_range()
                 .map(quadlet_lens::capability::VersionRange::minimum),
-            Some(version(5, 4, 0))
+            Some(native_minimum)
         );
         assert_eq!(
             capability
                 .native_range()
                 .map(quadlet_lens::capability::VersionRange::maximum),
-            Some(version(6, 0, 2))
+            Some(version(6, 1, 0))
         );
-        assert_eq!(
-            capability.evidence(),
-            [
+        let expected_evidence: &[&str] = if id == "quadlet.pod.hostname" || id == "quadlet.pod.label" {
+            &[
+                "podman-6-0-2-pod-completion-keys",
+                "podman-5-4-through-current-pod-completion-generators",
+            ]
+        } else {
+            &[
                 "podman-5-4-pod-completion-keys",
                 "podman-6-0-2-pod-completion-keys",
                 "podman-5-4-through-current-pod-completion-generators",
             ]
+        };
+        assert_eq!(capability.evidence(), expected_evidence);
+        match unsupported_maximum {
+            Some(maximum) => {
+                assert_eq!(capability.unsupported_ranges().len(), 1);
+                assert_eq!(
+                    capability.unsupported_ranges()[0].versions().minimum(),
+                    version(5, 4, 0)
+                );
+                assert_eq!(capability.unsupported_ranges()[0].versions().maximum(), maximum);
+                let target = PodmanTarget::new(maximum, Some(maximum)).map_err(|error| error.to_string())?;
+                assert_eq!(
+                    catalogue.evaluate(id, target).classification(),
+                    SupportClassification::Unsupported
+                );
+            }
+            None => assert!(capability.unsupported_ranges().is_empty()),
+        }
+        let native_target =
+            PodmanTarget::new(native_minimum, Some(native_minimum)).map_err(|error| error.to_string())?;
+        assert_eq!(
+            catalogue.evaluate(id, native_target).classification(),
+            SupportClassification::Native
         );
-        let target = PodmanTarget::new(version(6, 0, 2), Some(version(6, 0, 2))).map_err(|error| error.to_string())?;
+        let target = PodmanTarget::new(version(6, 1, 0), Some(version(6, 1, 0))).map_err(|error| error.to_string())?;
         assert_eq!(
             catalogue.evaluate(id, target).classification(),
             SupportClassification::Native
@@ -3291,13 +3357,13 @@ fn supported_range_records_repeatable_container_drop_capability() -> Result<(), 
         .native_range()
         .ok_or_else(|| "container drop-capability must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
 
     for (target, expected) in [
         (version(5, 3, 0), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -3340,13 +3406,13 @@ fn supported_range_records_repeatable_container_add_capability() -> Result<(), S
         .native_range()
         .ok_or_else(|| "container add-capability must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
 
     for (target, expected) in [
         (version(5, 3, 0), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -3385,13 +3451,13 @@ fn supported_range_records_repeatable_container_tmpfs() -> Result<(), String> {
         .native_range()
         .ok_or_else(|| "container tmpfs must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
 
     for (target, expected) in [
         (version(5, 3, 0), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -3432,13 +3498,13 @@ fn supported_range_records_repeatable_container_sysctl() -> Result<(), String> {
         .native_range()
         .ok_or_else(|| "container sysctl must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
 
     for (target, expected) in [
         (version(5, 3, 0), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -3479,13 +3545,13 @@ fn supported_range_records_repeatable_container_ulimit() -> Result<(), String> {
         .native_range()
         .ok_or_else(|| "container ulimit must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
 
     for (target, expected) in [
         (version(5, 3, 0), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -3532,13 +3598,13 @@ fn supported_range_records_repeatable_container_add_device() -> Result<(), Strin
         .native_range()
         .ok_or_else(|| "container add-device must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
 
     for (target, expected) in [
         (version(5, 3, 0), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -3594,13 +3660,13 @@ fn supported_range_records_container_logging() -> Result<(), String> {
             .native_range()
             .ok_or_else(|| format!("{id} must have native coverage"))?;
         assert_eq!(native.minimum(), version(5, 4, 0));
-        assert_eq!(native.maximum(), version(6, 0, 2));
+        assert_eq!(native.maximum(), version(6, 1, 0));
 
         for (target, expected) in [
             (version(5, 3, 0), SupportClassification::Unknown),
             (version(5, 4, 0), SupportClassification::Native),
-            (version(6, 0, 2), SupportClassification::Native),
-            (version(6, 0, 3), SupportClassification::Unknown),
+            (version(6, 1, 0), SupportClassification::Native),
+            (version(6, 1, 1), SupportClassification::Unknown),
         ] {
             let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
             assert_eq!(catalogue.evaluate(id, target).classification(), expected);
@@ -3654,13 +3720,13 @@ fn supported_range_records_container_network_identity() -> Result<(), String> {
             .native_range()
             .ok_or_else(|| format!("{id} must have native coverage"))?;
         assert_eq!(native.minimum(), version(5, 4, 0));
-        assert_eq!(native.maximum(), version(6, 0, 2));
+        assert_eq!(native.maximum(), version(6, 1, 0));
 
         for (target, expected) in [
             (version(5, 3, 0), SupportClassification::Unknown),
             (version(5, 4, 0), SupportClassification::Native),
-            (version(6, 0, 2), SupportClassification::Native),
-            (version(6, 0, 3), SupportClassification::Unknown),
+            (version(6, 1, 0), SupportClassification::Native),
+            (version(6, 1, 1), SupportClassification::Unknown),
         ] {
             let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
             assert_eq!(catalogue.evaluate(id, target).classification(), expected);
@@ -3717,13 +3783,13 @@ fn supported_range_records_network_driver_and_options() -> Result<(), String> {
             .native_range()
             .ok_or_else(|| format!("{id} must have native coverage"))?;
         assert_eq!(native.minimum(), version(5, 4, 0));
-        assert_eq!(native.maximum(), version(6, 0, 2));
+        assert_eq!(native.maximum(), version(6, 1, 0));
 
         for (target, expected) in [
             (version(5, 3, 0), SupportClassification::Unknown),
             (version(5, 4, 0), SupportClassification::Native),
-            (version(6, 0, 2), SupportClassification::Native),
-            (version(6, 0, 3), SupportClassification::Unknown),
+            (version(6, 1, 0), SupportClassification::Native),
+            (version(6, 1, 1), SupportClassification::Unknown),
         ] {
             let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
             assert_eq!(catalogue.evaluate(id, target).classification(), expected);
@@ -3821,12 +3887,12 @@ fn supported_range_records_volume_driver_options_device_type_and_copy() -> Resul
             .native_range()
             .ok_or_else(|| format!("{id} must have native coverage"))?;
         assert_eq!(native.minimum(), version(5, 4, 0));
-        assert_eq!(native.maximum(), version(6, 0, 2));
+        assert_eq!(native.maximum(), version(6, 1, 0));
         for (target, expected) in [
             (version(5, 3, 0), SupportClassification::Unknown),
             (version(5, 4, 0), SupportClassification::Native),
-            (version(6, 0, 2), SupportClassification::Native),
-            (version(6, 0, 3), SupportClassification::Unknown),
+            (version(6, 1, 0), SupportClassification::Native),
+            (version(6, 1, 1), SupportClassification::Unknown),
         ] {
             let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
             assert_eq!(catalogue.evaluate(id, target).classification(), expected);
@@ -3865,12 +3931,12 @@ fn supported_range_records_network_labels() -> Result<(), String> {
         .native_range()
         .ok_or_else(|| "network label must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 0), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -3911,12 +3977,12 @@ fn supported_range_records_volume_labels() -> Result<(), String> {
         .native_range()
         .ok_or_else(|| "volume label must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     for (target, expected) in [
         (version(5, 3, 0), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -3946,12 +4012,12 @@ fn supported_range_records_network_ipam_columns() -> Result<(), String> {
             .native_range()
             .ok_or_else(|| format!("{id} must have native coverage"))?;
         assert_eq!(native.minimum(), version(5, 4, 0));
-        assert_eq!(native.maximum(), version(6, 0, 2));
+        assert_eq!(native.maximum(), version(6, 1, 0));
         for (target, expected) in [
             (version(5, 3, 0), SupportClassification::Unknown),
             (version(5, 4, 0), SupportClassification::Native),
-            (version(6, 0, 2), SupportClassification::Native),
-            (version(6, 0, 3), SupportClassification::Unknown),
+            (version(6, 1, 0), SupportClassification::Native),
+            (version(6, 1, 1), SupportClassification::Unknown),
         ] {
             let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
             assert_eq!(catalogue.evaluate(id, target).classification(), expected);
@@ -4002,12 +4068,12 @@ fn supported_range_records_network_internal_and_ipv6() -> Result<(), String> {
             .native_range()
             .ok_or_else(|| format!("{id} must have native coverage"))?;
         assert_eq!(native.minimum(), version(5, 4, 0));
-        assert_eq!(native.maximum(), version(6, 0, 2));
+        assert_eq!(native.maximum(), version(6, 1, 0));
         for (target, expected) in [
             (version(5, 3, 0), SupportClassification::Unknown),
             (version(5, 4, 0), SupportClassification::Native),
-            (version(6, 0, 2), SupportClassification::Native),
-            (version(6, 0, 3), SupportClassification::Unknown),
+            (version(6, 1, 0), SupportClassification::Native),
+            (version(6, 1, 1), SupportClassification::Unknown),
         ] {
             let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
             assert_eq!(catalogue.evaluate(id, target).classification(), expected);
@@ -4044,13 +4110,13 @@ fn supported_range_records_repeatable_container_dns() -> Result<(), String> {
         .native_range()
         .ok_or_else(|| "container dns must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
 
     for (target, expected) in [
         (version(5, 3, 0), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -4089,13 +4155,13 @@ fn supported_range_records_repeatable_container_dns_option() -> Result<(), Strin
         .native_range()
         .ok_or_else(|| "container dns-option must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
 
     for (target, expected) in [
         (version(5, 3, 0), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -4136,13 +4202,13 @@ fn supported_range_records_repeatable_container_dns_search() -> Result<(), Strin
         .native_range()
         .ok_or_else(|| "container dns-search must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
 
     for (target, expected) in [
         (version(5, 3, 0), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -4185,13 +4251,13 @@ fn supported_range_records_repeatable_container_expose_host_port() -> Result<(),
         .native_range()
         .ok_or_else(|| "container expose-host-port must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
 
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -4230,13 +4296,13 @@ fn supported_range_records_repeatable_container_annotation() -> Result<(), Strin
         .native_range()
         .ok_or_else(|| "container annotation must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
 
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -4273,7 +4339,7 @@ fn supported_range_records_singleton_container_apparmor() -> Result<(), String> 
         .native_range()
         .ok_or_else(|| "container apparmor must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 8, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
     assert_eq!(capability.unsupported_ranges().len(), 1);
     assert_eq!(
         capability.unsupported_ranges()[0].versions().minimum(),
@@ -4289,8 +4355,8 @@ fn supported_range_records_singleton_container_apparmor() -> Result<(), String> 
         (version(5, 4, 0), SupportClassification::Unsupported),
         (version(5, 7, 1), SupportClassification::Unsupported),
         (version(5, 8, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -4333,13 +4399,13 @@ fn supported_range_records_singleton_container_no_new_privileges() -> Result<(),
         .native_range()
         .ok_or_else(|| "container no-new-privileges must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
 
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -4376,13 +4442,13 @@ fn supported_range_records_singleton_container_seccomp_profile() -> Result<(), S
         .native_range()
         .ok_or_else(|| "container seccomp-profile must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
 
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -4418,13 +4484,13 @@ fn supported_range_records_singleton_container_security_label_disable() -> Resul
         .native_range()
         .ok_or_else(|| "container security-label-disable must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
 
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -4460,13 +4526,13 @@ fn supported_range_records_singleton_container_security_label_file_type() -> Res
         .native_range()
         .ok_or_else(|| "container security-label-file-type must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
 
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -4502,13 +4568,13 @@ fn supported_range_records_singleton_container_security_label_level() -> Result<
         .native_range()
         .ok_or_else(|| "container security-label-level must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
 
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -4544,13 +4610,13 @@ fn supported_range_records_singleton_container_security_label_nested() -> Result
         .native_range()
         .ok_or_else(|| "container security-label-nested must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
 
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -4586,13 +4652,13 @@ fn supported_range_records_singleton_container_security_label_type() -> Result<(
         .native_range()
         .ok_or_else(|| "container security-label-type must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
 
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -4629,13 +4695,13 @@ fn supported_range_records_repeatable_container_mask() -> Result<(), String> {
         .native_range()
         .ok_or_else(|| "container mask must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
 
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -4670,13 +4736,13 @@ fn supported_range_records_repeatable_container_unmask() -> Result<(), String> {
         .native_range()
         .ok_or_else(|| "container unmask must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
 
     for (target, expected) in [
         (version(5, 3, 3), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -4718,15 +4784,15 @@ fn supported_range_records_container_memory_from_5_5() -> Result<(), String> {
         .native_range()
         .ok_or_else(|| "container memory must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 5, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
 
     for (target, expected) in [
         (version(5, 3, 0), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Unknown),
         (version(5, 4, 2), SupportClassification::Unknown),
         (version(5, 5, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -4788,7 +4854,7 @@ fn supported_range_records_container_reload_keys() -> Result<(), String> {
             .native_range()
             .ok_or_else(|| format!("{id} must have native coverage"))?;
         assert_eq!(native.minimum(), version(5, 5, 0));
-        assert_eq!(native.maximum(), version(6, 0, 2));
+        assert_eq!(native.maximum(), version(6, 1, 0));
         assert_eq!(capability.unsupported_ranges().len(), 1);
         assert_eq!(
             capability.unsupported_ranges()[0].versions().minimum(),
@@ -4803,8 +4869,8 @@ fn supported_range_records_container_reload_keys() -> Result<(), String> {
             (version(5, 4, 0), SupportClassification::Unsupported),
             (version(5, 4, 2), SupportClassification::Unsupported),
             (version(5, 5, 0), SupportClassification::Native),
-            (version(6, 0, 2), SupportClassification::Native),
-            (version(6, 0, 3), SupportClassification::Unknown),
+            (version(6, 1, 0), SupportClassification::Native),
+            (version(6, 1, 1), SupportClassification::Unknown),
         ] {
             let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
             assert_eq!(catalogue.evaluate(id, target).classification(), expected);
@@ -4827,13 +4893,13 @@ fn run_init_capability_is_bounded_and_describes_evidenced_boolean_text() -> Resu
         .native_range()
         .ok_or_else(|| "container run-init must have native coverage".to_owned())?;
     assert_eq!(native.minimum(), version(5, 4, 0));
-    assert_eq!(native.maximum(), version(6, 0, 2));
+    assert_eq!(native.maximum(), version(6, 1, 0));
 
     for (target, expected) in [
         (version(5, 3, 0), SupportClassification::Unknown),
         (version(5, 4, 0), SupportClassification::Native),
-        (version(6, 0, 2), SupportClassification::Native),
-        (version(6, 0, 3), SupportClassification::Unknown),
+        (version(6, 1, 0), SupportClassification::Native),
+        (version(6, 1, 1), SupportClassification::Unknown),
     ] {
         let target = PodmanTarget::new(target, Some(target)).map_err(|error| error.to_string())?;
         assert_eq!(
@@ -4856,10 +4922,10 @@ fn podman_5_4_floor_is_fail_closed_outside_evidence_coverage() -> Result<(), Str
         ("5.4.0..=5.8.0 native", target(5, 4, Some((5, 8)))?),
         ("5.4.0..=6.0.0 native", target(5, 4, Some((6, 0)))?),
         (
-            "6.0.2..=6.0.2 native",
-            PodmanTarget::new(version(6, 0, 2), Some(version(6, 0, 2))).map_err(|error| error.to_string())?,
+            "6.1.0..=6.1.0 native",
+            PodmanTarget::new(version(6, 1, 0), Some(version(6, 1, 0))).map_err(|error| error.to_string())?,
         ),
-        ("5.4.0..=6.1.0 unknown", target(5, 4, Some((6, 1)))?),
+        ("5.4.0..=6.1.0 native", target(5, 4, Some((6, 1)))?),
     ];
     let mut observed = Vec::new();
     for (label, target) in cases {
@@ -4878,7 +4944,7 @@ fn podman_5_4_floor_is_fail_closed_outside_evidence_coverage() -> Result<(), Str
     let future_open_ended = catalogue.evaluate(capability, target(5, 5, None)?);
     assert_eq!(future_open_ended.classification(), SupportClassification::Native);
     assert_eq!(future_open_ended.evaluated_range().minimum(), version(5, 5, 0));
-    assert_eq!(future_open_ended.evaluated_range().maximum(), version(6, 0, 2));
+    assert_eq!(future_open_ended.evaluated_range().maximum(), version(6, 1, 0));
 
     let unverified_form = catalogue.evaluate("quadlet.container.image-unit-reference", target(6, 0, Some((6, 0)))?);
     assert_eq!(unverified_form.classification(), SupportClassification::Unknown);

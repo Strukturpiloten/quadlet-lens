@@ -5,8 +5,8 @@
 QuadletLens has a fixed minimum Podman version and a rolling upper target:
 
 - minimum supported version: Podman 5.4.0;
-- current upstream target checked on 2026-08-06: Podman 6.0.2;
-- current generator-verified first-conversion range: Podman 5.4.0 through 6.0.2.
+- current upstream target checked on 2026-08-17: Podman 6.1.0;
+- current generator-verified first-conversion range: Podman 5.4.0 through 6.1.0.
 
 “Supported target,” “catalogue evidence,” and “generator verified” are deliberately separate. A
 new upstream release expands the target immediately, but it does not become verified merely because
@@ -39,9 +39,15 @@ encoder.
 
 A separate Container Environment-reset fixture authors two distinct pre-reset assignments, one
 blank `Environment=` directive, and two distinct post-reset assignments. Across the complete
-5.4.0–6.0.2 matrix, the verifier requires both pre-reset names to be absent and each post-reset
+5.4.0–6.1.0 matrix, the verifier requires both pre-reset names to be absent and each post-reset
 name to be one separate `--env` argument. It does not assert map order, duplicate-name selection,
 bare-token or percent behavior, manager expansion, or runtime state.
+
+A separate Container `ImageVolume` fixture records its Podman 6.1.0 introduction. Every earlier
+recorded generator must reject the key without emitting a unit or `--image-volume`; 6.1.0 must
+select the final authored value and emit exactly one separate `--image-volume tmpfs` argument.
+This establishes generator text only, not accepted policy grammar, image contents, storage
+behavior, or runtime portability.
 
 ## Official versioned containers
 
@@ -50,7 +56,7 @@ Podman patch release from 5.4.0 through 5.8.2. QuadletLens records both the exac
 manifest digest for every image. A generator test also asks the Podman binary inside the image to
 report its version before accepting its output.
 
-The registry currently has no exact release images for Podman 5.8.3 through 6.0.2. For those six
+The registry currently has no exact release images for Podman 5.8.3 through 6.1.0. For those eight
 patch releases, the harness fetches the full commit recorded from the corresponding upstream
 release tag and builds only `./cmd/quadlet` in a version-and-digest-pinned Go container. It verifies
 the checked-out commit and the generator's reported version before accepting output. The harness
@@ -85,19 +91,19 @@ effective-last observation remains tagged-source/generator evidence and is never
 normalization, plus one `--target build-stage` argument without stage validation. It does not test
 bare labels, duplicate-label ordering or collapse, label grammar, build execution, runtime, or
 cross-format behavior. A separate BuildArg fixture requires rejection or exclusion without a mapping through
-5.6.2, then exactly `--build-arg key=value` and `--build-arg empty=` from 5.7.0 through 6.0.2; it
+5.6.2, then exactly `--build-arg key=value` and `--build-arg empty=` from 5.7.0 through 6.1.0; it
 does not establish bare/null, environment, secret, build, runtime, or
 cross-format behavior. A separate Build Secret fixture requires exactly two ordered separate `--secret`
-arguments for opaque placeholder-source values across all 20 releases; it does not establish bare,
+arguments for opaque placeholder-source values across all 22 releases; it does not establish bare,
 environment, comma/argument parsing, path resolution, secret materialization, build, runtime, or
 cross-format behavior. A separate Build platform fixture requires exactly one `--arch arm64` and one
-`--variant v8` argument across all 20 releases without asserting relative argument order. It does not
+`--variant v8` argument across all 22 releases without asserting relative argument order. It does not
 parse platform grammar, select host defaults, apply effective-last behavior, build an image, inspect
 metadata, or establish runtime or cross-format behavior. A separate Build Pull fixture requires
-exactly one `--pull=always` argument across all 20 releases; source evidence records blank-value
+exactly one `--pull=always` argument across all 22 releases; source evidence records blank-value
 omission only, and policy acceptance, defaults, Compose mapping, registry, image-pull, and runtime behavior remain unclaimed. The separate Build retry fixture records rejection or exclusion without
-`--retry`/`--retry-delay` output in all three 5.4.x releases, then requires each of the 17 releases
-from 5.5.0 through 6.0.2 to emit exactly one separate `--retry 4` pair and one separate
+`--retry`/`--retry-delay` output in all three 5.4.x releases, then requires each of the 19 releases
+from 5.5.0 through 6.1.0 to emit exactly one separate `--retry 4` pair and one separate
 `--retry-delay 7s` pair before the final `.` context without a relative-order claim between pairs.
 The endpoint [5.5.0 Retry manual](https://docs.podman.io/en/v5.5.0/markdown/podman-systemd.unit.5.html#id54),
 [5.5.0 RetryDelay manual](https://docs.podman.io/en/v5.5.0/markdown/podman-systemd.unit.5.html#id55),
@@ -110,7 +116,7 @@ apply effective-last behavior, link Compose `dockerfile_inline`, contact a regis
 or timing behavior, establish build success, inspect runtime behavior, or claim conversion behavior.
 
 The Build TLSVerify fixture has one `TLSVerify=true` unit and one `TLSVerify=false` unit. Every
-recorded generator from 5.4.0 through 6.0.2 must emit one bare `--tls-verify` for the true unit and
+recorded generator from 5.4.0 through 6.1.0 must emit one bare `--tls-verify` for the true unit and
 one `--tls-verify=false` for the false unit, each before final `.`. Endpoint
 [5.4.0](https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#tlsverify) and
 [6.0.2](https://docs.podman.io/en/v6.0.2/markdown/podman-build.unit.5.html#tlsverify) manuals plus
@@ -121,7 +127,7 @@ connectivity, certificate validation, registry configuration, image pull, build 
 posture, provenance equivalence, runtime behavior, or conversion behavior.
 
 The Build ForceRM fixture has one `ForceRM=true` unit and one `ForceRM=false` unit. Every recorded
-generator from 5.4.0 through 6.0.2 must emit one bare `--force-rm` for the true unit and one
+generator from 5.4.0 through 6.1.0 must emit one bare `--force-rm` for the true unit and one
 `--force-rm=false` for the false unit, each before final `.` and without equals, quoted, alternate,
 duplicate, or post-context forms. Endpoint
 [5.4.0](https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#forcerm) and
@@ -133,7 +139,7 @@ defaults, apply effective-last behavior, or establish cleanup occurrence, failur
 execution, defaults or configuration, cache equivalence, runtime behavior, or conversion behavior.
 
 The Build GroupAdd fixture has ordered `GroupAdd=1234` and `GroupAdd=5678` values. Every recorded
-generator from 5.4.0 through 6.0.2 must emit ordered separate `--group-add 1234` then
+generator from 5.4.0 through 6.1.0 must emit ordered separate `--group-add 1234` then
 `--group-add 5678` pairs before final `.`, rejecting equals, quoted, merged, duplicate, reordered,
 and post-context forms, without a relative-order claim against map-derived flags. Endpoint
 [5.4.0](https://docs.podman.io/en/v5.4.0/markdown/podman-systemd.unit.5.html#groupadd) and
@@ -143,7 +149,7 @@ interpret keep-groups exclusivity, rootless or user-namespace behavior, runtime 
 execution, Compose privilege equivalence, or conversion behavior.
 
 The Build DNS fixture has ordered `DNS=9.9.9.9` and `DNS=2001:4860:4860::8888` values. Every
-recorded generator from 5.4.0 through 6.0.2 must emit ordered separate `--dns 9.9.9.9` then
+recorded generator from 5.4.0 through 6.1.0 must emit ordered separate `--dns 9.9.9.9` then
 `--dns 2001:4860:4860::8888` pairs before final `.`, rejecting equals, quoted, empty, merged,
 duplicate, reordered, and post-context forms without a relative-order claim against map-derived
 flags. Endpoint manuals and tagged mapping/formatter source establish command text only. The
@@ -151,7 +157,7 @@ fixture does not resolve DNS, establish `none` compatibility, inspect `resolv.co
 execute a build, map Compose endpoints, or define conversion behavior.
 
 The Build DNSSearch fixture has pre-reset `old.example`, an empty reset, `corp.example`, and
-literal `.` values. Every recorded generator from 5.4.0 through 6.0.2 must emit ordered separate
+literal `.` values. Every recorded generator from 5.4.0 through 6.1.0 must emit ordered separate
 `--dns-search corp.example` then `--dns-search .` pairs before final `.`, rejecting old, empty,
 equals, quoted, merged, duplicate, reordered, and post-context forms without a relative-order
 claim against map-derived flags. Endpoint manuals and tagged mapping/formatter source establish
@@ -159,7 +165,7 @@ command text only. The fixture does not apply model reset or dot semantics, remo
 DNS, inspect resolver state, execute a build, map Compose values, or define conversion behavior.
 
 The Build AuthFile fixture has a single-path unit, a repeated-path unit, and a final-empty unit.
-Every recorded generator from 5.4.0 through 6.0.2 must emit one separate `--authfile PATH` pair
+Every recorded generator from 5.4.0 through 6.1.0 must emit one separate `--authfile PATH` pair
 for the single unit, only the effective last path for the repeated unit, and no `--authfile` flag
 for final empty, rejecting equals, quoted, duplicate, alternate, and post-context forms. Endpoint
 manuals and tagged Lookup/formatter source establish command construction only. The fixture does
@@ -168,7 +174,7 @@ sensitive, authenticate, establish build success, or define runtime, Compose, or
 
 The Build IgnoreFile fixture has a single-path unit, a repeated-path unit, and a final-empty unit.
 Every recorded generator from 5.4.0 through 5.6.2 must reject or exclude it with no `--ignorefile`
-argument. Every recorded generator from 5.7.0 through 6.0.2 must emit one separate `--ignorefile
+argument. Every recorded generator from 5.7.0 through 6.1.0 must emit one separate `--ignorefile
 PATH` pair for the single unit, only the effective last path for the repeated unit, and no flag for
 final empty, rejecting equals, quoted, duplicate, alternate, and post-context forms. Endpoint
 manuals and tagged Lookup/formatter source establish command construction only. The fixture does
@@ -201,15 +207,15 @@ malformed physical forms. Every recorded generator emits only decoded post-reset
 order between `podman` and `image pull`; QuadletLens preserves authored physical lines without
 tokenization, reset, unquoting, C-unescaping, option validation, or pull semantics.
 A separate Build PodmanArgs fixture requires exactly one separate
-`--build-context extra=container-image://alpine:3.15` immediately before final positional `.` across all 20 releases,
+`--build-context extra=container-image://alpine:3.15` immediately before final positional `.` across all 22 releases,
 rejecting equals, quoted, alternate, duplicate, and reordered forms. It runs only the dry-run generator and does not
 lower Compose contexts, resolve paths/environments/images/services, validate a CLI, build, run, or claim cross-format behavior. A second isolated Build PodmanArgs fixture requires exactly one separate
-`--no-cache` immediately before final positional `.` across all 20 releases, likewise rejecting equals,
+`--no-cache` immediately before final positional `.` across all 22 releases, likewise rejecting equals,
 quoted, alternate, duplicate, and reordered forms. It is repeatable command-text evidence only: it does
 not lower Compose `no_cache`, interpret false, string, or interpolation values, establish cache semantic
 equivalence, or claim execution, cache, image, runtime, or cross-format behavior. A third isolated
-Build PodmanArgs fixture requires exactly one equals-form `--isolation=chroot` immediately before final positional `.` across all 20 releases, rejecting separate, quoted, alternate, duplicate, and reordered forms. It forwards command text only: it does not lower Compose, establish isolation-mode equivalence/defaults, or claim rootless/rootful, namespace, LSM, environment, build, runtime, or cross-format behavior. A fourth isolated
-Build PodmanArgs fixture requires one equals-form `--ssh=default` immediately before final positional `.` across all 20 releases, rejecting separate, quoted, alternate, duplicate, and reordered forms. It forwards non-secret command text only: it does not provide, resolve, inspect, or claim keys, sockets, an agent, PEM data, paths, environments, mounts, builds, runtime state, or Compose lowering. A fifth isolated Build PodmanArgs fixture requires one equals-form `--shm-size=32m` immediately before final positional `.` across all 20 releases, rejecting separate, quoted, alternate, duplicate, and reordered forms. It adds no native Build `ShmSize` key and does not establish Compose or unit equivalence, zero or omission defaults, IPC selection, host/cgroup/memory behavior, build execution, runtime behavior, or conversion behavior. A sixth isolated Build PodmanArgs fixture requires one ordered terminal `--cache-from registry.invalid/quadlet-lens/cache-from --cache-to registry.invalid/quadlet-lens/cache-to .` chain across all 20 releases, rejecting equals, quoted, missing, duplicate, and reordered forms. It forwards command text only: it does not lower Compose, parse descriptors or cache types, resolve images, credentials, paths, or registries, validate the CLI, build, use an effective cache, run, or establish runtime or cross-format behavior. A seventh isolated Build PodmanArgs fixture requires one ordered terminal `--sbom=syft --sbom-output=/tmp/quadlet-lens-sbom.json .` pair across all 20 releases, rejecting missing output, quoted, alternate, duplicate, and reordered forms. It forwards command text only: it does not lower Compose; create a file; download an image; run a scanner; establish SBOM content, PURLs, attestations, publishing, provenance, build, runtime, security, or conversion behavior. An eighth isolated Build PodmanArgs fixture requires one equals-form `--add-host=buildhost:192.0.2.10` immediately before final positional `.` across all 20 releases, rejecting separate, quoted, alternate, duplicate, and reordered forms. It does not lower Compose list or map `extra_hosts` forms; establish IPv6 or `host-gateway` equivalence; alter DNS or `/etc/hosts`; resolve conflicts or defaults; execute a build; or establish runtime or conversion behavior. The fixture also covers mutually exclusive registry-image and host-rootfs workload
+Build PodmanArgs fixture requires exactly one equals-form `--isolation=chroot` immediately before final positional `.` across all 22 releases, rejecting separate, quoted, alternate, duplicate, and reordered forms. It forwards command text only: it does not lower Compose, establish isolation-mode equivalence/defaults, or claim rootless/rootful, namespace, LSM, environment, build, runtime, or cross-format behavior. A fourth isolated
+Build PodmanArgs fixture requires one equals-form `--ssh=default` immediately before final positional `.` across all 22 releases, rejecting separate, quoted, alternate, duplicate, and reordered forms. It forwards non-secret command text only: it does not provide, resolve, inspect, or claim keys, sockets, an agent, PEM data, paths, environments, mounts, builds, runtime state, or Compose lowering. A fifth isolated Build PodmanArgs fixture requires one equals-form `--shm-size=32m` immediately before final positional `.` across all 22 releases, rejecting separate, quoted, alternate, duplicate, and reordered forms. It adds no native Build `ShmSize` key and does not establish Compose or unit equivalence, zero or omission defaults, IPC selection, host/cgroup/memory behavior, build execution, runtime behavior, or conversion behavior. A sixth isolated Build PodmanArgs fixture requires one ordered terminal `--cache-from registry.invalid/quadlet-lens/cache-from --cache-to registry.invalid/quadlet-lens/cache-to .` chain across all 22 releases, rejecting equals, quoted, missing, duplicate, and reordered forms. It forwards command text only: it does not lower Compose, parse descriptors or cache types, resolve images, credentials, paths, or registries, validate the CLI, build, use an effective cache, run, or establish runtime or cross-format behavior. A seventh isolated Build PodmanArgs fixture requires one ordered terminal `--sbom=syft --sbom-output=/tmp/quadlet-lens-sbom.json .` pair across all 22 releases, rejecting missing output, quoted, alternate, duplicate, and reordered forms. It forwards command text only: it does not lower Compose; create a file; download an image; run a scanner; establish SBOM content, PURLs, attestations, publishing, provenance, build, runtime, security, or conversion behavior. An eighth isolated Build PodmanArgs fixture requires one equals-form `--add-host=buildhost:192.0.2.10` immediately before final positional `.` across all 22 releases, rejecting separate, quoted, alternate, duplicate, and reordered forms. It does not lower Compose list or map `extra_hosts` forms; establish IPv6 or `host-gateway` equivalence; alter DNS or `/etc/hosts`; resolve conflicts or defaults; execute a build; or establish runtime or conversion behavior. The fixture also covers mutually exclusive registry-image and host-rootfs workload
 sources, including `name:tag@digest` images and absolute `Rootfs` values, explicit container names,
 JSON-array entrypoints, explicit true/false init-process selection, commands,
 named and numeric container stop signals plus positive and zero container stop timeouts,
@@ -270,7 +276,7 @@ and [6.0.2](https://docs.podman.io/en/v6.0.2/markdown/podman-build.1.html#add-ho
 build manuals document `--add-host=hostname:ip`. Endpoint generator source at
 [5.4.0](https://github.com/podman-container-tools/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L1949-L1953)
 and [6.0.2](https://github.com/podman-container-tools/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L2009-L2013)
-records repeatable `LookupAllArgs` forwarding before the final build context. The all-20-release
+records repeatable `LookupAllArgs` forwarding before the final build context. The all-22-release
 fixture proves only one terminal `--add-host=buildhost:192.0.2.10 .` command-text pair. It does
 not lower Compose list or map `extra_hosts` forms; establish IPv6 or `host-gateway` equivalence;
 alter DNS or `/etc/hosts`; resolve conflicts or defaults; execute a build; or establish runtime or
@@ -283,7 +289,7 @@ and [6.0.2](https://docs.podman.io/en/v6.0.2/markdown/podman-build.1.html#cap-ad
 build manuals document `--cap-add=CAPABILITY`. Endpoint generator source at
 [5.4.0](https://github.com/podman-container-tools/podman/blob/f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2/pkg/systemd/quadlet/quadlet.go#L1949-L1953)
 and [6.0.2](https://github.com/podman-container-tools/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L2009-L2013)
-records repeatable `LookupAllArgs` forwarding before the final build context. The all-20-release
+records repeatable `LookupAllArgs` forwarding before the final build context. The all-22-release
 fixture proves only one terminal `--cap-add=CAP_SYS_ADMIN .` command-text pair. It does not
 establish Compose entitlement equivalence or conversion; actual capability grants; build execution;
 LSM, seccomp, rootless, or runtime effects.
@@ -300,40 +306,40 @@ evidence only: it does not create files, download images, run scanners, or estab
 attestation, publishing, provenance, build, runtime, security, or conversion behavior.
 
 `Memory` uses a separate fixture because the native key was introduced in Podman 5.5.0 and must
-not make the existing all-20 first-conversion fixture conditional. It authors an earlier
+not make the existing all-22 first-conversion fixture conditional. It authors an earlier
 `Memory=32m`, an empty assignment, and a final explicit-byte `Memory=16777216b`. The full lane runs
 that fixture against the three 5.4.x releases to require rejection or exclusion with no memory
-argument, then against all 17 recorded patches from 5.5.0 through 6.0.2 to require exactly one
+argument, then against all 19 recorded patches from 5.5.0 through 6.1.0 to require exactly one
 final `--memory 16777216b` argument and no duplicate, equals, empty, quoted, or alternate form.
-The smoke lane protects the 5.4.0 unsupported boundary plus 5.8.2 and current 6.0.2 support.
+The smoke lane protects the 5.4.0 unsupported boundary plus 5.8.2 and current 6.1.0 support.
 
-Container logging uses a separate all-20 fixture. It authors `LogDriver=k8s-file`, two pre-reset
+Container logging uses a separate all-22 fixture. It authors `LogDriver=k8s-file`, two pre-reset
 `LogOpt` entries, an empty reset, then final `tag=quadlet-lens-final` and
 `path=/tmp/quadlet-lens-final.log` entries. Each selected smoke, full, or exact-version run requires
 one driver argument and exactly those two ordered final option arguments.
 
-The `PodmanArgs=--interactive` fixture is also isolated and runs across all 20 releases. It
+The `PodmanArgs=--interactive` fixture is also isolated and runs across all 22 releases. It
 requires exactly one separate `--interactive` argument immediately before its image, rejecting
 short, equals, quoted, alternate, and duplicate forms. It invokes only the dry-run generator, so
 it proves command text rather than runtime stdin, attach, or TTY behavior.
 
-The `PodmanArgs=--tty` fixture is also isolated and runs across all 20 releases. It requires
+The `PodmanArgs=--tty` fixture is also isolated and runs across all 22 releases. It requires
 exactly one separate `--tty` argument immediately before its image, rejecting `-t`, combined,
 equals, quoted, alternate, and duplicate forms. It retains generic `PodmanArgs` as the sole public
 API rather than adding a `Tty` key or wrapper. It invokes only the dry-run generator, so it proves
 command text rather than runtime TTY, stdout, stderr, or pipe behavior.
 
-The `PodmanArgs=--privileged` fixture is likewise isolated and runs two units across all 20
+The `PodmanArgs=--privileged` fixture is likewise isolated and runs two units across all 22
 releases: one requires exactly one bare `--privileged` argument and one exactly one
 `--privileged=false` argument, each immediately before its respective image. It rejects
 `--privileged=true`, positional false, short, quoted, bundled, alternate, duplicate, and
 conflicting forms. Generic `PodmanArgs` remains the sole public API; no `Privileged` key or wrapper
 is introduced. Endpoint Quadlet manuals, tagged command-placement source, and Podman CLI
-boolean/default documentation support the finite 5.4.0-through-6.0.2 claim. The dry-run evidence
+boolean/default documentation support the finite 5.4.0-through-6.1.0 claim. The dry-run evidence
 is command text only, not runtime privileges, devices, LSM, seccomp, rootless, or cross-format
 equivalence.
 
-Volume Device/Type coverage uses the all-20 volume fixture plus a Type-only negative fixture. It
+Volume Device/Type coverage uses the all-22 volume fixture plus a Type-only negative fixture. It
 requires final `--opt device=tmpfs` and `--opt type=bind` forms, final blank suppression, and
 single logical command construction for matched/unmatched quotes, specifiers, and continuations.
 Every release rejects `Type=bind` without `Device`. A bind source containing a literal space adds
@@ -409,7 +415,7 @@ Exact tagged source at both evidence boundaries records the implementation behav
   treats add-all as the known bounding set and drop-all plus specific additions as only those
   additions.
 
-Separately, every one of the 20 recorded generators emits exactly four ordered lowercase
+Separately, every one of the 22 recorded generators emits exactly four ordered lowercase
 separate-argument forms from the isolated drop fixture and exactly four from the isolated add
 fixture. Each unit has no opposite capability form. The combined fixture emits exactly
 `--cap-drop all` followed by `--cap-add cap_net_bind_service` and no other capability argument.
@@ -432,7 +438,7 @@ Tagged source at [Podman 5.4.0](https://github.com/podman-container-tools/podman
 and [Podman 6.0.2](https://github.com/podman-container-tools/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L706-L716)
 maps `Tmpfs` through the repeated-string helper, which uses `LookupAll`. The corresponding 5.4.0
 and 6.0.2 parser evidence cited by the catalogue shows that an empty assignment clears earlier
-logical values before later entries are returned. Every one of the 20 recorded generators then
+logical values before later entries are returned. Every one of the 22 recorded generators then
 confirms the post-reset command result: `tmpfs.service` contains exactly one logical
 `--tmpfs /data:mode=755,uid=1009,gid=1009`, neither pre-reset path, and no duplicate, equals, or
 other tmpfs form.
@@ -453,7 +459,7 @@ Tagged generator source at [5.4.0](https://github.com/podman-container-tools/pod
 and [6.0.2](https://github.com/podman-container-tools/podman/blob/b28edb9ad70ce4317dc762ee9ce0a6d081d154e9/pkg/systemd/quadlet/quadlet.go#L826-L829)
 uses `LookupAllStrv` to append one `--sysctl` pair per effective word. Separate tagged parser
 evidence in the catalogue records systemd-compatible whitespace/quote tokenization and the empty
-assignment that resets prior logical values. All 20 recorded generators confirm that
+assignment that resets prior logical values. All 22 recorded generators confirm that
 `sysctl.service` contains exactly one final `--sysctl net.ipv4.ip_forward=1`, neither pre-reset
 setting, and no other sysctl form.
 
@@ -480,7 +486,7 @@ use `LookupAll`, not `LookupAllStrv`, so every effective authored entry becomes 
 argument. Separate tagged parser evidence in the catalogue records the empty assignment that
 resets prior logical values.
 
-All 20 recorded generators require `ulimit.service` to contain exactly two ordered final
+All 22 recorded generators require `ulimit.service` to contain exactly two ordered final
 arguments, `--ulimit nproc=4096:8192` followed by `--ulimit stack=-1:-1`, with neither pre-reset
 limit and no duplicate, empty, or alternate form. The fixture invokes only the dry-run generator;
 it does not execute a container or claim runtime enforcement, host inheritance, defaults,
@@ -504,7 +510,7 @@ whitespace/quote tokenization and empty-assignment reset behavior. QuadletLens d
 any of those transformations in its native model or builder; every authored physical value stays
 opaque.
 
-All 20 recorded generators require `device.service` to contain exactly two ordered final
+All 22 recorded generators require `device.service` to contain exactly two ordered final
 arguments, `--device /dev/null:/dev/final-null:r` followed by
 `--device /dev/zero:/dev/final-zero:w`, and exactly two `--device` forms total, with neither
 pre-reset mapping nor duplicate, empty, or alternate form. The fixture deliberately contains no
@@ -567,46 +573,46 @@ IPv4-enable key, or establish isolation or dual-stack runtime behavior.
 
 The promoted fixtures record the following dry-run expectations across the full matrix:
 
-| Fixture group                          | Required result                                                                                                                |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| DNS, DNS option, DNS search            | Ordered final values after an empty reset                                                                                      |
-| IP, IP6, network alias                 | One address flag each and ordered final aliases after reset                                                                    |
-| IPAM driver, subnet, gateway, range    | Explicit/blank driver behavior and two indexed final groups after reset                                                        |
-| ExposeHostPort                         | Four ordered TCP/UDP-compatible values after reset                                                                             |
-| Annotation                             | Two final key-sorted assignments after reset                                                                                   |
-| Container completion keys              | Ordered post-reset `--module` and GlobalArgs before `run`; health-log/startup pairs; final `ServiceName` output name           |
-| Build Environment                      | Final key-sorted `--env` arguments after reset; 5.6.0 bare-token boundary                                                      |
-| Build ContainersConfModule             | Two ordered post-reset `--module=VALUE` arguments before `build`                                                               |
-| Build GlobalArgs                       | Ordered post-reset tokens between `podman` and `build`; malformed line omitted                                                 |
-| Image GlobalArgs                       | Ordered decoded post-reset tokens between `podman` and `image pull`; malformed line omitted                                    |
-| Image OS                               | Normal/duplicate-last `--os VALUE`, final-blank omission, and endpoint-specific unmatched-quote presentation                   |
-| Build ServiceName                      | Last value, `.service` addition, and 5.7.0/5.8.2 naming boundaries                                                             |
-| Pod ServiceName                        | Omitted default, duplicate-last, `.service`, template/quote, blank, and extension-bearing naming observations                  |
-| Pod completion keys                    | Post-reset modules/global arguments; final DNS/label/alias values; direct or subordinate maps; final-only PodmanArgs placement |
-| Build Volume                           | Reset/continuation `-v` order, relative `.`, and `.volume` substitution/dependency                                             |
-| Volume ContainersConfModule            | Ordered post-reset `--module=VALUE` arguments before `volume create`; 5.4 literal-space/5.5 `\\x20` continuation presentation  |
-| Volume GlobalArgs                      | Decoded post-reset tokens in authored order between `podman` and `volume create`; malformed line omitted                       |
-| Volume PodmanArgs                      | Decoded post-reset tokens in authored order at the end of `volume create` before the volume name; malformed line omitted       |
-| Volume User                            | Unambiguous `User=123` emits `o=uid=123` before the volume name                                                                |
-| Volume Group                           | Unambiguous `Group=456` emits `o=gid=456` before the volume name                                                               |
-| Volume GID                             | Rejected through 5.8.5; exactly one `--gid 5678` before the volume name from 6.0.0                                             |
-| Volume ServiceName                     | Target last value, `.service`, ordinary/template, and unmatched-quote naming boundaries                                        |
-| Volume Image                           | Literal, missing, ignored-driver, and exact image/build-reference observations                                                 |
-| Image core                             | Literal pull unit, missing/empty errors, and target duplicate-last source selection                                            |
-| Image ImageTag                         | Normal/archive source commands plus target-only resource-name, dependency, default, and quote observations                     |
-| Image ServiceName                      | Target default, duplicate-last, `.service`, template, and unmatched-quote naming observations                                  |
-| Image AllTags                          | Target true/false, duplicate-last, absent/blank, and 5.8.2 unmatched-quote pull-command observations                           |
-| Image Arch                             | Target normal, duplicate-last, blank omission, and 5.8.2 unmatched-quote pull-command observations                             |
-| Image AuthFile                         | Target normal, duplicate-last, blank omission, and 5.8.2 unmatched-quote pull-command observations                             |
-| Image CertDir                          | Target normal, duplicate-last, blank omission, and 5.8.2 unmatched-quote pull-command observations                             |
-| Image ContainersConfModule             | Target reset and ordered post-reset `--module` arguments before image pull                                                     |
-| AppArmor                               | Rejected through 5.7.1; one separate option from 5.8.0                                                                         |
-| NoNewPrivileges and boolean label keys | One option for true; none for false                                                                                            |
-| Seccomp and valued label keys          | One isolated separate option per value                                                                                         |
-| Mask                                   | One final path-list option after reset                                                                                         |
-| Unmask                                 | Ordered `ALL` and path-list options after reset                                                                                |
-| Kube                                   | Required YAML source, reset-aware module/global/argument forms, native network dependency, and force-cleanup command text      |
-| Artifact                               | 5.7.0 boundary, required final source, reset-aware arguments, oneshot defaults, naming observations, and DefaultDependencies   |
+| Fixture group                          | Required result                                                                                                               |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| DNS, DNS option, DNS search            | Ordered final values after an empty reset                                                                                     |
+| IP, IP6, network alias                 | One address flag each and ordered final aliases after reset                                                                   |
+| IPAM driver, subnet, gateway, range    | Explicit/blank driver behavior and two indexed final groups after reset                                                       |
+| ExposeHostPort                         | Four ordered TCP/UDP-compatible values after reset                                                                            |
+| Annotation                             | Two final key-sorted assignments after reset                                                                                  |
+| Container completion keys              | Ordered post-reset `--module` and GlobalArgs before `run`; health-log/startup pairs; final `ServiceName` output name          |
+| Build Environment                      | Final key-sorted `--env` arguments after reset; 5.6.0 bare-token boundary                                                     |
+| Build ContainersConfModule             | Two ordered post-reset `--module=VALUE` arguments before `build`                                                              |
+| Build GlobalArgs                       | Ordered post-reset tokens between `podman` and `build`; malformed line omitted                                                |
+| Image GlobalArgs                       | Ordered decoded post-reset tokens between `podman` and `image pull`; malformed line omitted                                   |
+| Image OS                               | Normal/duplicate-last `--os VALUE`, final-blank omission, and endpoint-specific unmatched-quote presentation                  |
+| Build ServiceName                      | Last value, `.service` addition, and 5.7.0/5.8.2 naming boundaries                                                            |
+| Pod ServiceName                        | Omitted default, duplicate-last, `.service`, template/quote, blank, and extension-bearing naming observations                 |
+| Pod completion keys                    | Full-range modules/global arguments, DNS/alias values, maps, and PodmanArgs; HostName from 5.5.0; Label from 5.6.0            |
+| Build Volume                           | Reset/continuation `-v` order, relative `.`, and `.volume` substitution/dependency                                            |
+| Volume ContainersConfModule            | Ordered post-reset `--module=VALUE` arguments before `volume create`; 5.4 literal-space/5.5 `\\x20` continuation presentation |
+| Volume GlobalArgs                      | Decoded post-reset tokens in authored order between `podman` and `volume create`; malformed line omitted                      |
+| Volume PodmanArgs                      | Decoded post-reset tokens in authored order at the end of `volume create` before the volume name; malformed line omitted      |
+| Volume User                            | Unambiguous `User=123` emits `o=uid=123` before the volume name                                                               |
+| Volume Group                           | Unambiguous `Group=456` emits `o=gid=456` before the volume name                                                              |
+| Volume GID                             | Rejected through 5.8.5; exactly one `--gid 5678` before the volume name from 6.0.0                                            |
+| Volume ServiceName                     | Target last value, `.service`, ordinary/template, and unmatched-quote naming boundaries                                       |
+| Volume Image                           | Literal, missing, ignored-driver, and exact image/build-reference observations                                                |
+| Image core                             | Literal pull unit, missing/empty errors, and target duplicate-last source selection                                           |
+| Image ImageTag                         | Normal/archive source commands plus target-only resource-name, dependency, default, and quote observations                    |
+| Image ServiceName                      | Target default, duplicate-last, `.service`, template, and unmatched-quote naming observations                                 |
+| Image AllTags                          | Target true/false, duplicate-last, absent/blank, and 5.8.2 unmatched-quote pull-command observations                          |
+| Image Arch                             | Target normal, duplicate-last, blank omission, and 5.8.2 unmatched-quote pull-command observations                            |
+| Image AuthFile                         | Target normal, duplicate-last, blank omission, and 5.8.2 unmatched-quote pull-command observations                            |
+| Image CertDir                          | Target normal, duplicate-last, blank omission, and 5.8.2 unmatched-quote pull-command observations                            |
+| Image ContainersConfModule             | Target reset and ordered post-reset `--module` arguments before image pull                                                    |
+| AppArmor                               | Rejected through 5.7.1; one separate option from 5.8.0                                                                        |
+| NoNewPrivileges and boolean label keys | One option for true; none for false                                                                                           |
+| Seccomp and valued label keys          | One isolated separate option per value                                                                                        |
+| Mask                                   | One final path-list option after reset                                                                                        |
+| Unmask                                 | Ordered `ALL` and path-list options after reset                                                                               |
+| Kube                                   | Required YAML source, reset-aware module/global/argument forms, native network dependency, and force-cleanup command text     |
+| Artifact                               | 5.7.0 boundary, required final source, reset-aware arguments, oneshot defaults, naming observations, and DefaultDependencies  |
 
 The model preserves raw physical values and does not emulate the generator's effective lookup,
 sorting, reset, or tokenization rules. These fixtures start no workload and establish no resolver,
@@ -621,7 +627,7 @@ first ships in Podman 5.5.0 and is absent from the 5.4 tags. Tagged
 and [6.0.2 command construction](https://github.com/podman-container-tools/podman/blob/v6.0.2/pkg/systemd/quadlet/quadlet.go#L690-L704)
 map the last effective singleton value to one `--memory` pair; corresponding tagged parser source
 records last-assignment lookup. All three 5.4.x generators reject or exclude the unsupported
-fixture without emitting `--memory`. All 17 releases from 5.5.0 through 6.0.2 emit exactly one
+fixture without emitting `--memory`. All 19 releases from 5.5.0 through 6.1.0 emit exactly one
 `--memory 16777216b` argument and no alternate form. The fixture invokes only the dry-run
 generator; it does not start a workload or establish cgroup enforcement, page rounding, swap
 interaction, host-memory availability, rootless behavior, runtime inspection, or Compose/BoxFerry
@@ -629,25 +635,25 @@ equivalence. Pod `Memory` remains outside this evidence.
 
 `ReloadCmd` and `ReloadSignal` use isolated command and signal units plus a raw conflicting unit.
 The three 5.4.x generators reject the unsupported keys. Podman 5.5.x emits cidfile-targeted
-`ExecReload` commands, while 5.6.0 through 6.0.2 use the generated container name. The matrix also
+`ExecReload` commands, while 5.6.0 through 6.1.0 use the generated container name. The matrix also
 records final blank omission, malformed `ReloadCmd` tokenization, and every supported-range conflict.
 It invokes only the dry-run generator and establishes no command execution, signal delivery,
 container inspection, runtime reload, or cross-format semantics.
 
 Pod `ExitPolicy` uses isolated continue, stop, duplicate-final-stop, and final-blank units. The six
-recorded 5.4.0–5.5.2 generators reject the unsupported key; every 5.6.0–6.0.2 generator emits one
+recorded 5.4.0–5.5.2 generators reject the unsupported key; every 5.6.0–6.1.0 generator emits one
 `--exit-policy` argument after `--replace`, selecting the final duplicate and retaining an empty
 argument for a final blank assignment. This dry-run evidence does not create a pod or establish
 policy defaults, restart behavior, runtime behavior, or cross-format equivalence.
 
 Pod `StopTimeout` uses isolated normal-37, zero, negative-one, duplicate-final-37, and final-blank
-units. The nine recorded 5.4.0–5.6.2 generators reject the unsupported key; every 5.7.0–6.0.2
+units. The nine recorded 5.4.0–5.6.2 generators reject the unsupported key; every 5.7.0–6.1.0
 generator emits exactly one final `--time=` form for the recorded values, retaining `--time=` for a
 final blank assignment. This dry-run evidence does not stop a pod or establish defaults, timing,
 systemd, restart, runtime, or cross-format equivalence.
 
 Pod `ServiceName` uses omitted-default, ordinary override, duplicate-final override, template,
-unmatched-quote, final-blank, and extension-bearing units. Every recorded 5.4.0–6.0.2 generator
+unmatched-quote, final-blank, and extension-bearing units. Every recorded 5.4.0–6.1.0 generator
 selects the final physical value and appends `.service`; template-default handling changes at 5.7.0
 and unmatched-quote lookup changes at 5.8.2. The blank and extension-bearing outputs are retained
 as generated text observations only; they do not assign Lens document/dependency identity, operate
@@ -669,12 +675,12 @@ The harness can use Docker where Podman is unavailable:
 QUADLET_LENS_CONTAINER_ENGINE=docker cargo ci-generators
 ```
 
-The smoke lane tests 5.4.0, the official-image boundary at 5.8.2, and current stable 6.0.2. The full
+The smoke lane tests 5.4.0, the official-image boundary at 5.8.2, and current stable 6.1.0. The full
 lane tests the first-conversion, container-logging, container-network-identity, container-reload, network
-driver/options, network-labels, volume-labels, network-IPAM, and network-boolean fixtures on all 20 patch releases,
-and the separate Memory and reload fixtures on the same three unsupported 5.4.x boundaries plus all 17
-supported 5.5.0-through-6.0.2
-patches: 14 digest-pinned official images and six exact source builds. It
+driver/options, network-labels, volume-labels, network-IPAM, and network-boolean fixtures on all 22 patch releases,
+and the separate Memory and reload fixtures on the same three unsupported 5.4.x boundaries plus all 19
+supported 5.5.0-through-6.1.0
+patches: 14 digest-pinned official images and eight exact source builds. It
 belongs in the scheduled/manual GitHub workflow rather than pull-request CI.
 
 ## Local requirements
@@ -682,8 +688,8 @@ belongs in the scheduled/manual GitHub workflow rather than pull-request CI.
 Running generator containers requires either `podman` or `docker`; source-backed releases also
 require Git. Go itself runs inside the pinned builder and is not a host requirement. Maintaining
 the registry matrix benefits from `skopeo` and `jq`, but the Rust harness does not require them. The
-current development machine already has Podman 6.0.2, Git, Skopeo, and jq, so no additional
-installation is needed.
+current development machine has Podman 6.0.2, Git, Skopeo, and jq. It can act as the outer
+container engine, while the pinned source-build lane supplies exact Podman 6.1.0 generator evidence.
 
 ## Volume `Copy`
 

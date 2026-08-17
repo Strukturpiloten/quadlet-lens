@@ -64,7 +64,7 @@ Quadlet-file edges.
 The first run exposed a real typed-model defect: `containers/qm` uses `Rootfs=` as the documented
 alternative to `Image=`, while QuadletLens required `Image=` unconditionally. `Rootfs` is now a
 typed singleton, empty and conflicting `Image`/`Rootfs` sources produce explicit diagnostics, and
-the generator fixture protects its `--rootfs` output from Podman 5.4.0 through 6.0.2.
+the generator fixture protects its `--rootfs` output from Podman 5.4.0 through 6.1.0.
 
 ## Compatibility pressure from the corpus
 

@@ -17,7 +17,7 @@ const EXPECTED_IMAGE_VERSIONS: &[&str] = &[
     "5.4.0", "5.4.1", "5.4.2", "5.5.0", "5.5.1", "5.5.2", "5.6.0", "5.6.1", "5.6.2", "5.7.0", "5.7.1", "5.8.0",
     "5.8.1", "5.8.2",
 ];
-const EXPECTED_SOURCE_VERSIONS: &[&str] = &["5.8.3", "5.8.4", "5.8.5", "6.0.0", "6.0.1", "6.0.2"];
+const EXPECTED_SOURCE_VERSIONS: &[&str] = &["5.8.3", "5.8.4", "5.8.5", "5.8.6", "6.0.0", "6.0.1", "6.0.2", "6.1.0"];
 const QUOTED_LABEL_LITERAL_SPACE: &str =
     r#"--label "io.github.strukturpiloten.quadlet-lens.metadata={\"channel\": \"stable\"}""#;
 const QUOTED_LABEL_HEX_SPACE: &str =
@@ -852,7 +852,10 @@ struct GeneratorFixtures {
     container_retry: (PathBuf, Vec<String>),
     container_http_proxy: (PathBuf, Vec<String>),
     container_start_with_pod: (PathBuf, Vec<String>),
+    pod_hostname: (PathBuf, Vec<String>),
+    pod_label: (PathBuf, Vec<String>),
     container_environment_reset: (PathBuf, Vec<String>),
+    container_image_volume: (PathBuf, Vec<String>),
     memory: (PathBuf, Vec<String>),
     build_retry: (PathBuf, Vec<String>),
     build_tls_verify: (PathBuf, Vec<String>),
@@ -962,8 +965,8 @@ fn generator_matrix_is_exact_complete_and_digest_pinned() -> Result<(), String> 
     let matrix = parse_matrix()?;
     assert_eq!(matrix.schema, 1);
     assert_eq!(matrix.support_minimum, "5.4.0");
-    assert_eq!(matrix.tracked_current, "6.0.2");
-    assert_eq!(matrix.checked_on, "2026-08-06");
+    assert_eq!(matrix.tracked_current, "6.1.0");
+    assert_eq!(matrix.checked_on, "2026-08-17");
     assert_eq!(matrix.official_image_maximum, "5.8.2");
 
     assert_eq!(
@@ -1030,7 +1033,7 @@ fn generator_matrix_is_exact_complete_and_digest_pinned() -> Result<(), String> 
         .chain(matrix.source.iter().map(|source| source.version.as_str()))
         .filter(|version| PodmanVersion::from_str(version).is_ok_and(|version| version >= PodmanVersion::new(5, 5, 0)))
         .count();
-    assert_eq!(memory_versions, 17);
+    assert_eq!(memory_versions, 19);
     Ok(())
 }
 
@@ -2289,7 +2292,10 @@ fn load_generator_fixtures() -> Result<GeneratorFixtures, String> {
         container_retry: load_named_container_fixture("container-retry-supported-range")?,
         container_http_proxy: load_named_container_fixture("container-http-proxy-supported-range")?,
         container_start_with_pod: load_named_container_fixture("container-start-with-pod-supported-range")?,
+        pod_hostname: load_named_container_fixture("pod-hostname-supported-range")?,
+        pod_label: load_named_container_fixture("pod-label-supported-range")?,
         container_environment_reset: load_named_container_fixture("container-environment-reset-supported-range")?,
+        container_image_volume: load_named_container_fixture("container-image-volume-supported-range")?,
         memory: load_memory_fixture()?,
         build_retry: load_build_retry_fixture()?,
         build_tls_verify: load_build_tls_verify_fixture()?,
@@ -2727,10 +2733,25 @@ fn verify_image_isolated_fixtures(
         &fixtures.container_start_with_pod.1,
         &run_generator_raw(engine, image, &fixtures.container_start_with_pod.0)?,
     )?;
+    verify_pod_hostname_generator_output(
+        &image.version,
+        &fixtures.pod_hostname.1,
+        &run_generator_raw(engine, image, &fixtures.pod_hostname.0)?,
+    )?;
+    verify_pod_label_generator_output(
+        &image.version,
+        &fixtures.pod_label.1,
+        &run_generator_raw(engine, image, &fixtures.pod_label.0)?,
+    )?;
     verify_container_environment_reset_generator_output(
         &image.version,
         &fixtures.container_environment_reset.1,
         &run_generator_raw(engine, image, &fixtures.container_environment_reset.0)?,
+    )?;
+    verify_container_image_volume_generator_output(
+        &image.version,
+        &fixtures.container_image_volume.1,
+        &run_generator_raw(engine, image, &fixtures.container_image_volume.0)?,
     )?;
     verify_image_memory(engine, image, &fixtures.memory)?;
     verify_image_build_retry(engine, image, &fixtures.build_retry)?;
@@ -3707,6 +3728,28 @@ fn verify_source_isolated_fixtures(
             &fixtures.container_start_with_pod.0,
         )?,
     )?;
+    verify_pod_hostname_generator_output(
+        &source.version,
+        &fixtures.pod_hostname.1,
+        &run_source_generator_raw(
+            engine,
+            &matrix.builder_reference,
+            source,
+            generator,
+            &fixtures.pod_hostname.0,
+        )?,
+    )?;
+    verify_pod_label_generator_output(
+        &source.version,
+        &fixtures.pod_label.1,
+        &run_source_generator_raw(
+            engine,
+            &matrix.builder_reference,
+            source,
+            generator,
+            &fixtures.pod_label.0,
+        )?,
+    )?;
     verify_container_environment_reset_generator_output(
         &source.version,
         &fixtures.container_environment_reset.1,
@@ -3716,6 +3759,17 @@ fn verify_source_isolated_fixtures(
             source,
             generator,
             &fixtures.container_environment_reset.0,
+        )?,
+    )?;
+    verify_container_image_volume_generator_output(
+        &source.version,
+        &fixtures.container_image_volume.1,
+        &run_source_generator_raw(
+            engine,
+            &matrix.builder_reference,
+            source,
+            generator,
+            &fixtures.container_image_volume.0,
         )?,
     )?;
     verify_source_memory(engine, matrix, source, generator, &fixtures.memory)?;
@@ -4868,6 +4922,52 @@ fn verify_container_environment_reset_generator_output(
     Ok(())
 }
 
+fn verify_container_image_volume_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    let generated = String::from_utf8(output.stdout.clone())
+        .map_err(|error| format!("{version} generator emitted non-UTF-8 output: {error}"))?;
+    let diagnostics = String::from_utf8_lossy(&output.stderr);
+    if parsed < PodmanVersion::new(6, 1, 0) {
+        let rejected = !output.status.success()
+            && diagnostics.contains("unsupported key 'ImageVolume'")
+            && !generated.contains("---image-volume.service---")
+            && !generated.contains("--image-volume");
+        if !rejected {
+            return Err(format!(
+                "Podman {version} predates ImageVolume and must reject the fixture without a generated unit or argument\nstdout:\n{generated}\nstderr:\n{diagnostics}"
+            ));
+        }
+        return Ok(());
+    }
+
+    ensure_success(version, "Container ImageVolume generator", output)?;
+    for fragment in expected {
+        if !generated.contains(fragment) {
+            return Err(format!(
+                "Podman {version} Container ImageVolume output is missing {fragment:?}\n{generated}"
+            ));
+        }
+    }
+    let unit = generated_unit(version, &generated, "image-volume.service", output)?;
+    let command = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| format!("Podman {version} Container ImageVolume command is missing"))?;
+    if command.matches("--image-volume tmpfs").count() != 1
+        || command.matches("--image-volume").count() != 1
+        || command.contains("--image-volume bind")
+    {
+        return Err(format!(
+            "Podman {version} Container ImageVolume must emit only the final authored value as one --image-volume tmpfs argument\n{command}"
+        ));
+    }
+    Ok(())
+}
+
 fn verify_build_core_arguments(version: &str, generated: &str, output: &Output) -> Result<(), String> {
     let generated_unit = generated_unit(version, generated, "application-build.service", output)?;
     let podman_build = generated_unit
@@ -5241,8 +5341,8 @@ fn verify_pod_completion_generator_output(version: &str, generated: &str, output
     let unit = generated_unit(version, generated, "chosen-override.service", output)?;
     let command = unit
         .lines()
-        .find(|line| line.starts_with("ExecStart=/usr/bin/podman "))
-        .ok_or_else(|| format!("Podman {version} Pod completion output has no podman command"))?;
+        .find(|line| line.starts_with("ExecStartPre=/usr/bin/podman "))
+        .ok_or_else(|| format!("Podman {version} Pod completion output has no pod create command"))?;
     let arguments = exec_arguments(command);
     let pod_create_position = arguments
         .windows(2)
@@ -5281,7 +5381,11 @@ fn verify_pod_completion_modules_and_global_args(
     if module_positions[0] >= module_positions[1]
         || module_positions.iter().any(|position| *position >= pod_create_position)
         || global_position >= pod_create_position
-        || arguments.iter().filter(|argument| **argument == "--module").count() != 2
+        || arguments
+            .iter()
+            .filter(|argument| argument.starts_with("--module="))
+            .count()
+            != 2
         || arguments
             .iter()
             .filter(|argument| **argument == "--log-level=debug")
@@ -5305,11 +5409,8 @@ fn verify_pod_completion_native_arguments(version: &str, arguments: &[&str]) -> 
         ["--dns", "192.0.2.53"],
         ["--dns-option", "attempts:3"],
         ["--dns-search", "example.invalid"],
-        ["--hostname", "pod.example.invalid"],
         ["--ip", "192.0.2.42"],
         ["--ip6", "2001:db8::42"],
-        ["--label", "example.invalid/one=first"],
-        ["--label", "example.invalid/two=second"],
         ["--network-alias", "post-one"],
         ["--network-alias", "post-two"],
     ] {
@@ -5332,7 +5433,6 @@ fn verify_pod_completion_native_arguments(version: &str, arguments: &[&str]) -> 
     if arguments.iter().filter(|argument| **argument == "--dns").count() != 1
         || arguments.iter().filter(|argument| **argument == "--dns-option").count() != 1
         || arguments.iter().filter(|argument| **argument == "--dns-search").count() != 1
-        || arguments.iter().filter(|argument| **argument == "--label").count() != 2
         || arguments
             .iter()
             .filter(|argument| **argument == "--network-alias")
@@ -5346,16 +5446,15 @@ fn verify_pod_completion_native_arguments(version: &str, arguments: &[&str]) -> 
                 "rotate",
                 "pre.example.invalid",
                 "pre-alias",
-                "pre=value",
             ]
             .contains(argument)
         })
         || arguments.contains(&"--infra=false")
-        || replace_positions.len() != 1
-        || replace_positions[0] <= final_alias_position
+        || replace_positions.len() != 2
+        || replace_positions[1] <= final_alias_position
     {
         return Err(format!(
-            "Podman {version} must retain only final reset-aware Pod DNS, label, alias, and PodmanArgs forms, placing the final PodmanArgs token after native pod arguments"
+            "Podman {version} must retain only final reset-aware Pod DNS, alias, and PodmanArgs forms, placing the final PodmanArgs token after native pod arguments"
         ));
     }
 
@@ -5370,7 +5469,7 @@ fn verify_pod_completion_maps(version: &str, generated: &str, output: &Output) -
         let unit = generated_unit(version, generated, unit_name, output)?;
         let command = unit
             .lines()
-            .find(|line| line.starts_with("ExecStart=/usr/bin/podman pod create "))
+            .find(|line| line.starts_with("ExecStartPre=/usr/bin/podman pod create "))
             .ok_or_else(|| format!("Podman {version} {unit_name} has no pod create command"))?;
         let arguments = exec_arguments(command);
         let uid_positions: Vec<_> = arguments
@@ -8996,7 +9095,7 @@ fn verify_container_start_with_pod_generator_output(
         .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
         .ok_or_else(|| format!("Podman {version} StartWithPod output has no podman run command"))?;
     let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
-    let expected_argument = if parsed < PodmanVersion::new(5, 7, 0) {
+    let expected_argument = if parsed < PodmanVersion::new(5, 6, 0) {
         "--pod-id-file %t/batch-pod.pod-id"
     } else {
         "--pod systemd-batch"
@@ -9010,6 +9109,77 @@ fn verify_container_start_with_pod_generator_output(
     if expected_count != 1 {
         return Err(format!(
             "Podman {version} StartWithPod output must contain exactly one `{expected_argument}` argument"
+        ));
+    }
+    Ok(())
+}
+
+fn verify_pod_hostname_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    let generated = String::from_utf8_lossy(&output.stdout);
+    if parsed < PodmanVersion::new(5, 5, 0) {
+        if output.status.success() || generated.contains("--hostname") {
+            return Err(format!(
+                "Podman {version} predates Pod HostName and must reject it without emitting --hostname\n{generated}"
+            ));
+        }
+        return Ok(());
+    }
+    ensure_success(version, "Pod HostName generator", output)?;
+    if expected.iter().any(|fragment| !generated.contains(fragment)) {
+        return Err(format!(
+            "Podman {version} Pod HostName output misses an expected fixture fragment"
+        ));
+    }
+    let unit = generated_unit(version, &generated, "hostname-pod.service", output)?;
+    let create = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStartPre=/usr/bin/podman pod create "))
+        .ok_or_else(|| format!("Podman {version} Pod HostName output has no pod create command"))?;
+    let arguments = exec_arguments(create);
+    if count_argument_pair(&arguments, "--hostname", "pod.example.invalid") != 1
+        || arguments.iter().filter(|argument| **argument == "--hostname").count() != 1
+    {
+        return Err(format!(
+            "Podman {version} Pod HostName must emit exactly one --hostname pod.example.invalid pair"
+        ));
+    }
+    Ok(())
+}
+
+fn verify_pod_label_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+    let generated = String::from_utf8_lossy(&output.stdout);
+    if parsed < PodmanVersion::new(5, 6, 0) {
+        if output.status.success() || generated.contains("--label") {
+            return Err(format!(
+                "Podman {version} predates Pod Label and must reject it without emitting --label\n{generated}"
+            ));
+        }
+        return Ok(());
+    }
+    ensure_success(version, "Pod Label generator", output)?;
+    if expected.iter().any(|fragment| !generated.contains(fragment)) {
+        return Err(format!(
+            "Podman {version} Pod Label output misses an expected fixture fragment"
+        ));
+    }
+    let unit = generated_unit(version, &generated, "label-pod.service", output)?;
+    let create = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStartPre=/usr/bin/podman pod create "))
+        .ok_or_else(|| format!("Podman {version} Pod Label output has no pod create command"))?;
+    let arguments = exec_arguments(create);
+    for value in ["example.invalid/one=first", "example.invalid/two=second"] {
+        if count_argument_pair(&arguments, "--label", value) != 1 {
+            return Err(format!("Podman {version} Pod Label output misses --label {value}"));
+        }
+    }
+    if arguments.iter().filter(|argument| **argument == "--label").count() != 2
+        || arguments.contains(&"discarded=value")
+    {
+        return Err(format!(
+            "Podman {version} Pod Label must retain exactly the two post-reset label values"
         ));
     }
     Ok(())
@@ -9284,7 +9454,7 @@ fn verify_network_driver_options_generator_output(
     let bare_count = podman_network.matches(NETWORK_OPTIONS_BARE_ARGUMENT).count();
     let bare_expectation = if parsed == PodmanVersion::new(5, 4, 0) {
         Some(0)
-    } else if parsed == PodmanVersion::new(6, 0, 2) {
+    } else if parsed >= PodmanVersion::new(6, 0, 2) {
         Some(1)
     } else {
         None

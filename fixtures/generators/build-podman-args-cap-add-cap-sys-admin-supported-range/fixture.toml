@@ -1,7 +1,7 @@
 schema = 1
 id = "build-podman-args-cap-add-cap-sys-admin-supported-range"
 suite = "generators"
-description = "Records one exact opaque Build PodmanArgs --cap-add=CAP_SYS_ADMIN command argument across Podman 5.4.0 through 6.0.2."
+description = "Records one exact opaque Build PodmanArgs --cap-add=CAP_SYS_ADMIN command argument across Podman 5.4.0 through 6.1.0."
 secrets_reviewed = true
 files = ["build-podman-args-cap-add-cap-sys-admin.build", "expected-fragments.txt"]
 

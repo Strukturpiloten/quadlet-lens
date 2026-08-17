@@ -17,9 +17,9 @@ defines what “good enough” means for testing and conformance.
 
 ## Specification coverage ledger
 
-The bounded phase-1 ledger is completed and was audited on 2026-08-14 against the current official
+The bounded phase-1 ledger is completed and was audited on 2026-08-17 against the current official
 [Podman Quadlet manual](https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html). Its
-strict 222-row, versioned source of truth is
+strict 223-row, versioned source of truth is
 [`quadlet-manual-current.toml`](../fixtures/specification-drift/quadlet-manual-current.toml). It
 records the latest documented key surface, not the subset available at the Podman 5.4 minimum.
 Each promoted key still needs separate introduction/deprecation/removal evidence over the finite
@@ -31,7 +31,7 @@ that the syntax parser rejects it.
 
 | Section/unit                 | Current keys | Typed keys | Syntax-preserved only |
 | ---------------------------- | -----------: | ---------: | --------------------: |
-| `[Container]` / `.container` |           89 |         89 |                     0 |
+| `[Container]` / `.container` |           90 |         90 |                     0 |
 | `[Pod]` / `.pod`             |           25 |         25 |                     0 |
 | `[Network]` / `.network`     |           18 |         18 |                     0 |
 | `[Volume]` / `.volume`       |           16 |         16 |                     0 |
@@ -42,8 +42,8 @@ that the syntax parser rejects it.
 | `[Quadlet]`                  |            1 |          1 |                     0 |
 | reviewed `[Unit]` relations  |            9 |          9 |                     0 |
 
-The typed model additionally recognizes historical/non-current-manual `Container.ImageVolume` and
-Kube `LogOpt`, `RemapGid`, `RemapUid`, `RemapUidSize`, and `RemapUsers`. They remain preserved and
+The typed model additionally recognizes historical/non-current-manual Kube `LogOpt`, `RemapGid`,
+`RemapUid`, `RemapUidSize`, and `RemapUsers`. They remain preserved and
 typed parser surface, but are deliberately outside the 222-row current-manual drift inventory until
 the aggregate manual documents them again. `[Unit]`, `[Service]`, and `[Install]` are also excluded
 because systemd, not Quadlet, owns their open-ended directive vocabulary.
@@ -86,6 +86,9 @@ The typed Pod keys are `AddHost`, `PodName`, `PublishPort`, `Network`, `Volume`,
 `ShmSize`, `ExitPolicy`, `StopTimeout`, `ServiceName`, `ContainersConfModule`, `DNS`, `DNSOption`,
 `DNSSearch`, `GIDMap`, `GlobalArgs`, `HostName`, `IP`, `IP6`, `Label`, `NetworkAlias`,
 `PodmanArgs`, `SubGIDMap`, `SubUIDMap`, and `UIDMap`.
+
+The native Pod generator boundary starts `HostName` at Podman 5.5.0 and `Label` at 5.6.0; all other
+keys in this completion batch are evidenced from the 5.4.0 support floor.
 
 ### `[Network]` key boundary
 

@@ -1,7 +1,7 @@
 schema = 1
 id = "build-podman-args-cache-locations-supported-range"
 suite = "generators"
-description = "Records exact opaque Build PodmanArgs cache-location command text across Podman 5.4.0 through 6.0.2."
+description = "Records exact opaque Build PodmanArgs cache-location command text across Podman 5.4.0 through 6.1.0."
 secrets_reviewed = true
 files = ["build-podman-args-cache-locations.build", "expected-fragments.txt"]
 

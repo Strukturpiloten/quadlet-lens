@@ -40,14 +40,17 @@ Repeated native keys retain insertion order. Native keys classified as singleton
 when repeated. Generic systemd directives may repeat because their list and reset semantics are
 directive-specific.
 
-Container `ContainersConfModule`, `GlobalArgs`, and `ImageVolume` are repeatable opaque physical
-entries. The builder retains their order and accepts empty source-safe entries; it does not apply
-Podman's reset, tokenization, module-loading, or image-volume semantics. `HealthLogDestination`,
+Container `ContainersConfModule` and `GlobalArgs` are repeatable opaque physical entries. The
+builder retains their order and accepts empty source-safe entries; it does not apply Podman's
+reset, tokenization, or module-loading semantics. `ImageVolume` is an opaque singleton because the
+Podman 6.1.0 generator selects one effective value; the builder rejects duplicates and does not
+validate policy values or inject Podman's default. `HealthLogDestination`,
 `HealthMaxLogCount`, `HealthMaxLogSize`, `HealthStartupCmd`, `HealthStartupInterval`,
 `HealthStartupRetries`, `HealthStartupSuccess`, `HealthStartupTimeout`, and `ServiceName` are
 opaque singletons: the builder rejects a duplicate but does not parse a path, number, size,
 duration, command, service identity, or health behavior. Versioned generator evidence covers the
-first eleven native keys through 6.0.2; `ImageVolume` intentionally has no positive support claim.
+first eleven native keys through 6.1.0. `ImageVolume` is explicitly unsupported through 6.0.2 and
+native only at the current 6.1.0 catalogue ceiling.
 
 A generated container requires exactly one workload source. `ContainerKey::Image` selects an image
 or native image/build reference; `ContainerKey::Rootfs` selects a Podman root filesystem. Building
@@ -79,7 +82,7 @@ text; `EntryValue` retains that spelling exactly.
 `ContainerKey::RunInit` is a singleton that carries exact authored one-line text. Leaving the key
 out, writing `true`, and writing `false` remain three distinct builder results; raw noncanonical
 text is preserved rather than interpreted as a boolean. Across the evidenced Podman
-5.4.0-through-6.0.2 generator range, authored `true` emits exactly one `--init` argument and
+5.4.0-through-6.1.0 generator range, authored `true` emits exactly one `--init` argument and
 authored `false` emits exactly one `--init=false` argument. This generator observation does not
 inspect the init binary or establish runtime signal-forwarding and child-reaping behavior.
 
