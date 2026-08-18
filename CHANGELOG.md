@@ -5,6 +5,13 @@ Versioning for its documented pre-1.0 public API.
 
 ## [Unreleased]
 
+## [0.2.1](https://github.com/Strukturpiloten/quadlet-lens/compare/v0.2.0...v0.2.1) - 2026-08-18
+
+### Other
+
+- Fix release-plz authentication and Renovate coverage ([#41](https://github.com/Strukturpiloten/quadlet-lens/pull/41))
+- Update Podman Versions ([#39](https://github.com/Strukturpiloten/quadlet-lens/pull/39))
+
 ### Added
 
 - Extends the reviewed Podman catalogue and exact generator matrix through 5.8.6 and 6.1.0,
