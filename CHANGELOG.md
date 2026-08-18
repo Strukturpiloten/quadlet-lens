@@ -5,6 +5,12 @@ Versioning for its documented pre-1.0 public API.
 
 ## [Unreleased]
 
+## [0.2.2](https://github.com/Strukturpiloten/quadlet-lens/compare/v0.2.1...v0.2.2) - 2026-08-18
+
+### Other
+
+- Document issue-to-PR agent workflow ([#44](https://github.com/Strukturpiloten/quadlet-lens/pull/44))
+
 ## [0.2.1](https://github.com/Strukturpiloten/quadlet-lens/compare/v0.2.0...v0.2.1) - 2026-08-18
 
 ### Other
