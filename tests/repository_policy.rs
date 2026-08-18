@@ -244,6 +244,46 @@ fn local_developer_workflow_covers_deterministic_release_checks() -> Result<(), 
 }
 
 #[test]
+fn issue_to_pr_workflow_requires_sol_ownership_and_the_complete_local_gate() -> Result<(), String> {
+    for (path, required) in [
+        (
+            "AGENTS.md",
+            &[
+                "## GitHub issue-to-PR workflow",
+                "Run `./scripts/check-all.sh`",
+                "hard gate against commit, push",
+                "primary Sol agent runs this workflow",
+                "high reasoning effort",
+                "Terra subagents",
+                "never execute the Git or GitHub",
+                "remains Sol's responsibility",
+            ][..],
+        ),
+        (
+            "docs/development-environment.md",
+            &[
+                "## Issue-to-PR contribution workflow",
+                "./scripts/check-all.sh",
+                "All steps must pass before the change is committed, pushed, or submitted",
+                "primary Sol agent uses high reasoning effort",
+                "Terra agents",
+                "never perform Git or GitHub writes",
+                "Sol's final responsibility",
+            ][..],
+        ),
+    ] {
+        let contents = read_repository_file(path)?;
+        for value in required {
+            if !contents.contains(value) {
+                return Err(format!("{path} is missing `{value}`"));
+            }
+        }
+    }
+
+    Ok(())
+}
+
+#[test]
 fn non_rust_file_quality_is_locked_and_required() -> Result<(), String> {
     let script = read_repository_file("scripts/check-files.sh")?;
     for required in [
