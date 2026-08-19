@@ -38,6 +38,9 @@ source text
 
 ## Documentation
 
+- [QuadletLens user documentation](https://boxferry.dev/docs/libraries/quadlet-lens/)
+- [Published Rust API documentation](https://boxferry.dev/docs/api/quadlet-lens/)
+- [Public documentation sources](docs/public/index.md)
 - [Documentation index](docs/README.md)
 - [Software architecture](docs/architecture.md)
 - [Native typed model](docs/typed-model.md)
