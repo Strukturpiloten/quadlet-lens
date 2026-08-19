@@ -49,6 +49,8 @@ External fixtures and behavior-oracle results must record source, version, comma
 - Add parser, renderer, capability-boundary, and real-generator tests with behavior changes.
 - Record Podman tag/commit, documentation source, and observed generator behavior for capability updates.
 - Update documentation and compatibility claims in the same change.
+- Start every repository-owned complete YAML document with `---`; marker-free YAML belongs only in
+  explicit parser test data.
 - Keep release notes and changelog entries concise: summarize user-visible feature families and
   link to canonical technical documentation instead of repeating model, fixture, and test details.
   Follow `docs/releasing.md`.
