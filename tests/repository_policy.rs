@@ -3,6 +3,7 @@
 mod support;
 
 use std::{
+    collections::BTreeSet,
     fs,
     path::{Path, PathBuf},
     process::{Command, Output},
@@ -863,4 +864,87 @@ fn repository_root() -> PathBuf {
 fn read_repository_file(path: &str) -> Result<String, String> {
     let path = repository_root().join(path);
     fs::read_to_string(&path).map_err(|error| format!("failed to read {}: {error}", path.display()))
+}
+
+#[test]
+fn public_documentation_is_bounded_and_website_owned() -> Result<(), String> {
+    const PAGES: &[(&str, &[&str])] = &[
+        ("docs/public/index.md", &["directly", "Rust API"]),
+        ("docs/public/model/index.md", &["QuadletDocumentSet", "side effects"]),
+        (
+            "docs/public/parsing-rendering/index.md",
+            &["render_preserved", "QuadletDocumentBuilder", "Podman"],
+        ),
+        (
+            "docs/public/diagnostics/index.md",
+            &["machine-readable code", "source", "recovery"],
+        ),
+        (
+            "docs/public/compatibility/index.md",
+            &["PodmanTarget", "downloadable TOML catalogue", "Unknown"],
+        ),
+    ];
+
+    let root = repository_root();
+    let public_root = root.join("docs/public");
+    let actual = walk_markdown_files(&public_root)?;
+    let expected = PAGES.iter().map(|(path, _)| root.join(path)).collect::<BTreeSet<_>>();
+    if actual != expected {
+        return Err(format!(
+            "docs/public must contain exactly the website-owned page inventory; expected {expected:#?}, found {actual:#?}"
+        ));
+    }
+
+    for (path, topics) in PAGES {
+        let document = read_repository_file(path)?;
+        if document.lines().filter(|line| line.starts_with("# ")).count() != 1 {
+            return Err(format!("{path} must contain exactly one level-one heading"));
+        }
+        if document.lines().count() > 90 {
+            return Err(format!("{path} exceeds the 90-line public-page limit"));
+        }
+        for paragraph in document.split("\n\n") {
+            if paragraph.lines().count() > 14 {
+                return Err(format!("{path} contains a paragraph longer than 14 lines"));
+            }
+        }
+        let lowercase = document.to_ascii_lowercase();
+        for placeholder in ["todo", "coming soon", "lorem ipsum"] {
+            if lowercase.contains(placeholder) {
+                return Err(format!("{path} contains placeholder text `{placeholder}`"));
+            }
+        }
+        for topic in *topics {
+            if !document.contains(topic) {
+                return Err(format!("{path} is missing required public topic `{topic}`"));
+            }
+        }
+    }
+
+    let catalogue = read_repository_file("catalogue/v1/podman-supported-range.toml")?;
+    for required in ["schema = 1", "minimum = \"5.4.0\"", "maximum = \"6.1.0\""] {
+        if !catalogue.contains(required) {
+            return Err(format!("public capability catalogue is missing `{required}`"));
+        }
+    }
+
+    Ok(())
+}
+
+fn walk_markdown_files(root: &Path) -> Result<BTreeSet<PathBuf>, String> {
+    let mut files = BTreeSet::new();
+    let mut directories = vec![root.to_path_buf()];
+    while let Some(directory) = directories.pop() {
+        for entry in
+            fs::read_dir(&directory).map_err(|error| format!("failed to read {}: {error}", directory.display()))?
+        {
+            let path = entry.map_err(|error| error.to_string())?.path();
+            if path.is_dir() {
+                directories.push(path);
+            } else if path.extension().is_some_and(|extension| extension == "md") {
+                files.insert(path);
+            }
+        }
+    }
+    Ok(files)
 }
