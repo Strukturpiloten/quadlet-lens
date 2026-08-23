@@ -867,6 +867,142 @@ fn read_repository_file(path: &str) -> Result<String, String> {
 }
 
 #[test]
+fn maintainer_documentation_is_task_oriented_and_bounded() -> Result<(), String> {
+    const GUIDES: &[&str] = &[
+        "README.md",
+        "api-stability.md",
+        "architecture.md",
+        "capability-model.md",
+        "dependency-policy.md",
+        "development-environment.md",
+        "fixture-format.md",
+        "generation.md",
+        "generator-matrix.md",
+        "real-world-quadlet-corpus.md",
+        "releasing.md",
+        "roadmap.md",
+        "testing.md",
+        "typed-model.md",
+    ];
+
+    let root = repository_root();
+    let docs_root = root.join("docs");
+    let actual = fs::read_dir(&docs_root)
+        .map_err(|error| format!("failed to read {}: {error}", docs_root.display()))?
+        .filter_map(|entry| {
+            let path = entry.ok()?.path();
+            (path.is_file() && path.extension().is_some_and(|extension| extension == "md")).then_some(path)
+        })
+        .collect::<BTreeSet<_>>();
+    let expected = GUIDES.iter().map(|path| docs_root.join(path)).collect::<BTreeSet<_>>();
+    if actual != expected {
+        return Err(format!(
+            "docs must contain exactly the task-oriented guide inventory; expected {expected:#?}, found {actual:#?}"
+        ));
+    }
+
+    for path in GUIDES {
+        let repository_path = format!("docs/{path}");
+        let document = read_repository_file(&repository_path)?;
+        let mut inside_fence = false;
+        let mut level_one_headings = 0;
+        for line in document.lines() {
+            if line.starts_with("```") {
+                inside_fence = !inside_fence;
+            } else if !inside_fence && line.starts_with("# ") {
+                level_one_headings += 1;
+            }
+        }
+        if level_one_headings != 1 {
+            return Err(format!("{repository_path} must contain exactly one level-one heading"));
+        }
+        if document.lines().count() > 150 {
+            return Err(format!("{repository_path} exceeds the 150-line maintainer-guide limit"));
+        }
+        for paragraph in document.split("\n\n") {
+            let block = paragraph.trim_start();
+            let is_table_or_code = block.starts_with('|') || block.starts_with("```");
+            if !is_table_or_code && paragraph.split_whitespace().count() > 120 {
+                return Err(format!(
+                    "{repository_path} contains a prose paragraph longer than 120 words"
+                ));
+            }
+        }
+        let lowercase = document.to_ascii_lowercase();
+        for placeholder in ["todo", "coming soon", "lorem ipsum"] {
+            if lowercase.contains(placeholder) {
+                return Err(format!("{repository_path} contains placeholder text `{placeholder}`"));
+            }
+        }
+    }
+
+    Ok(())
+}
+
+#[test]
+fn documentation_uses_machine_sources_instead_of_stale_ledgers() -> Result<(), String> {
+    let root = repository_root();
+    for removed in [
+        "docs/coverage.md",
+        "docs/implementation-plan.md",
+        "docs/project-structure.md",
+        "docs/quality-plan.md",
+        "docs/research/podlet-regressions-2026-08-01.md",
+    ] {
+        if root.join(removed).exists() {
+            return Err(format!("obsolete documentation ledger still exists: {removed}"));
+        }
+    }
+
+    let index = read_repository_file("docs/README.md")?;
+    for source in [
+        "fixtures/specification-drift/quadlet-manual-current.toml",
+        "catalogue/v1/podman-supported-range.toml",
+        "tools/generator-matrix.toml",
+        "fixtures/real-world/corpus.toml",
+        "CHANGELOG.md",
+    ] {
+        if !index.contains(source) {
+            return Err(format!("documentation index does not route readers to `{source}`"));
+        }
+    }
+
+    let roadmap = read_repository_file("docs/roadmap.md")?;
+    for stale in ["## Phase 0", "## Additive 0.", "Maintainer-controlled 0.1.0"] {
+        if roadmap.contains(stale) {
+            return Err(format!("roadmap contains completed release ledger marker `{stale}`"));
+        }
+    }
+
+    for path in [
+        "docs/README.md",
+        "docs/architecture.md",
+        "docs/capability-model.md",
+        "docs/generation.md",
+        "docs/generator-matrix.md",
+        "docs/roadmap.md",
+        "docs/testing.md",
+        "docs/typed-model.md",
+    ] {
+        let document = read_repository_file(path)?;
+        for stale in ["222-key", "222-row", "20-patch", "all-20", "current 6.0.2"] {
+            if document.contains(stale) {
+                return Err(format!("{path} contains stale prose-ledger marker `{stale}`"));
+            }
+        }
+    }
+
+    let agents = read_repository_file("AGENTS.md")?;
+    for required in ["docs/README.md", "Read only the guide", "only the ADRs relevant"] {
+        if !agents.contains(required) {
+            return Err(format!("AGENTS.md is missing task-based reading rule `{required}`"));
+        }
+    }
+
+    Ok(())
+}
+
+#[test]
 fn public_documentation_is_bounded_and_website_owned() -> Result<(), String> {
     const PAGES: &[(&str, &[&str])] = &[
         ("docs/public/index.md", &["directly", "Rust API"]),
