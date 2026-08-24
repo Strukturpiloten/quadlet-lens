@@ -5,6 +5,12 @@ Versioning for its documented pre-1.0 public API.
 
 ## [Unreleased]
 
+### Changed
+
+- Replace repeated key, capability, generator, and release ledgers with bounded task-oriented
+  guides that route exact support claims to catalogues, matrices, fixtures, and tests
+  ([#58](https://github.com/Strukturpiloten/quadlet-lens/pull/58)).
+
 ## [0.2.1](https://github.com/Strukturpiloten/quadlet-lens/compare/v0.2.0...v0.2.1) - 2026-08-18
 
 ### Other
