@@ -8,16 +8,21 @@ only component allowed to publish the crate, create a tag, or create a GitHub re
 1. Create one organization-owned GitHub App for the three Strukturpiloten repositories. Disable
    webhooks and grant repository **Contents: read and write** and **Pull requests: read and
    write**.
+
 2. Install the App on `boxferry`, `compose-lens`, and `quadlet-lens`. Whenever repository
    permissions change, review and approve the updated installation permissions in the
    organization before rerunning the workflow.
+
 3. Store the App client ID as the organization Actions variable
    `RELEASE_PLZ_APP_CLIENT_ID`. Store only the private key as the organization Actions secret
    `RELEASE_PLZ_APP_PRIVATE_KEY`. Limit both to these three repositories.
+
 4. Keep the default workflow token read-only. The App token is used only to create or update the
    release pull request so that normal pull-request CI runs.
+
 5. Keep the protected `release` environment, required reviewer, default-branch restriction,
    crates.io trusted publisher, tag ruleset, and immutable-release setting unchanged.
+
 6. Require the stable `PR gate` status check in default-branch protection instead of enumerating
    its implementation jobs individually.
 

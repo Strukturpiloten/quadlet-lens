@@ -1,134 +1,83 @@
 # Development environment
 
-The supported VS Code setup is the repository's Dev Container. Open the repository in VS Code
-and run **Dev Containers: Reopen in Container**. The default container is unprivileged and is
-suitable for parser, model, rendering, documentation, and repository-policy work.
+The supported VS Code setup is the repository Dev Container. Open the checkout and run
+**Dev Containers: Reopen in Container**. The default container is unprivileged and supports normal
+library, documentation, and repository-policy work.
 
 ## Sources of truth
 
-- `rust-toolchain.toml` selects the current Rust toolchain and its components.
-- `rust-version` in the workspace `Cargo.toml` declares the MSRV. CI reads it from Cargo
-  metadata; the workflow does not duplicate it.
-- `Cargo.toml` declares package versions. Release workflows read package versions from Cargo
-  metadata rather than accepting a manually typed version.
-- `.devcontainer/Dockerfile` records the exact base-image release and pins its digest.
-- `.devcontainer/devcontainer-lock.json` pins resolved Dev Container feature versions and
-  integrity hashes.
-- `.devcontainer/Dockerfile` pins repository tooling; Renovate owns version proposals.
+| Concern                               | Source                                   |
+| ------------------------------------- | ---------------------------------------- |
+| Current Rust toolchain and components | `rust-toolchain.toml`                    |
+| Minimum supported Rust                | workspace `rust-version` in `Cargo.toml` |
+| Rust dependencies and package version | `Cargo.toml` and `Cargo.lock`            |
+| Base image and installed tools        | `.devcontainer/Dockerfile`               |
+| Dev Container features                | `.devcontainer/devcontainer-lock.json`   |
+| Editor behavior and tasks             | `.vscode/`                               |
+| Cargo command definitions             | `.cargo/config.toml`                     |
 
-## Shared editor setup
+Do not repeat tool versions in prose. Renovate proposes updates to the checked configuration.
 
-Repository settings in `.vscode/settings.json` enable format-on-save, exclude Cargo output from
-search and file watching, use all Cargo features in rust-analyzer, and select the matching
-formatter for Rust, Markdown, JSON, YAML, TOML, and shell files. `.vscode/extensions.json`
-contains recommendations for contributors who open the checkout outside the container.
+## Daily workflow
 
-Use **Tasks: Run Test Task** or **QuadletLens: Format, lint, and test all** for the complete local
-workflow. **QuadletLens: Required Rust checks** and the focused format, check, catalogue, model,
-policy, Clippy, test, documentation, and package tasks support shorter edit cycles. Generator and
-real-world corpus tasks are explicitly labelled opt-in.
-
-## Included tools
-
-The image provides Rust, Cargo, rustfmt, Clippy, rust-analyzer, CodeLLDB, Git, GitHub CLI, Node.js,
-`cargo-deny`, `cargo-llvm-cov`, `cargo-semver-checks`, `lychee`, `zizmor`, `actionlint`, Prettier,
-markdownlint-cli2, Tombi, shfmt, ShellCheck, and Hadolint. Node tools use the committed lockfile;
-downloaded native tools use reviewed SHA-256 checksums.
-
-Run the complete deterministic local workflow with:
+Run the complete deterministic gate with:
 
 ```console
 ./scripts/check-all.sh
 ```
 
-It formats Rust and owned non-Rust files, then runs all deterministic checks. It intentionally
-does not execute generator containers or download the real-world corpus. Run only the non-Rust
-layer with `./scripts/check-files.sh --fix`; CI and release validation use its non-mutating
-`--check` mode. Authored fixtures, the capability catalogue, and generator-matrix data are
-syntax-checked but not rewritten, so exact versioned evidence remains stable. Coverage starts by
-removing its complete repository-specific artifact tree, so the persistent target volume cannot
-retain a fingerprint for a missing test executable and another repository's concurrent cleanup
-cannot remove a QuadletLens executable. Routine
-documentation-link checks are offline. A scheduled workflow performs the slower, rate-limited
-external-link check.
+The script formats repository-owned files before checking them. Use focused commands while editing:
+
+```console
+./scripts/check-files.sh --check
+cargo fmt --all -- --check
+cargo ci-check
+cargo ci-model
+cargo ci-catalogue
+cargo ci-policy
+cargo ci-test
+cargo ci-doc
+```
+
+The VS Code task **QuadletLens: Format, lint, and test all** runs the complete gate. Other tasks
+match the focused Cargo aliases.
+
+Generator containers and the downloaded real-world corpus remain explicit opt-in tiers:
+
+```console
+cargo ci-generators
+cargo ci-real-world-quadlet
+```
+
+See [Testing](testing.md) before selecting a tier.
 
 ## Issue-to-PR contribution workflow
 
-For an issue-backed change, inspect the complete working-tree diff first and preserve unrelated
-work. Search for a duplicate issue, create the issue, synchronize local `main` with `origin/main`,
-and create `TheRealBecks/issue<NUMBER>`. After implementation and final diff review, run:
+Coding agents follow the issue-to-PR procedure in [`AGENTS.md`](../AGENTS.md). Human contributors
+use the same essential gate: start from synchronized `main`, keep one focused change, run
+`./scripts/check-all.sh`, review the staged diff, and submit a linked pull request.
 
-```console
-./scripts/check-all.sh
-```
+All steps must pass before the change is committed, pushed, or submitted as a pull request. A file
+change after a successful complete gate requires running the gate again.
 
-All steps must pass before the change is committed, pushed, or submitted as a pull request. If any
-source, test, configuration, or documentation file changes after that successful run, run the
-complete task again. Then stage only explicit in-scope paths, check the staged diff, commit, push,
-and open a ready-for-review pull request containing `Closes #<NUMBER>`. Read the created pull
-request back from GitHub to verify its base branch, head branch, issue linkage, draft state, and
-check status.
+The primary Sol agent uses high reasoning effort and owns integration, Git and GitHub writes, and
+the final complete gate. Terra agents may perform bounded implementation, research, review, or
+non-mutating verification, but they never perform Git or GitHub writes. Formatting can change
+repository files, so the complete check remains Sol's final responsibility.
 
-The pull-request title becomes the squash commit title and controls automated release eligibility.
-Use `feat`, `fix`, `perf`, `refactor`, or `revert` only for release-worthy code changes, with an
-optional scope and breaking `!`. Use `docs`, `test`, `ci`, `build`, `style`, or `chore` for
-non-code work; release-plz ignores those commits and excludes them from generated release notes.
+## Update the container
 
-The primary Sol agent uses high reasoning effort and owns the issue, branch, final integration,
-complete local gate, staging, commit, push, pull request, and GitHub readback. Terra agents may
-perform bounded implementation, research, read-only review, or non-mutating verification, but they
-never perform Git or GitHub writes. The formatting `./scripts/check-all.sh` task therefore remains
-Sol's final responsibility.
+Review Renovate changes to their original source: image digests, feature integrity values, Rust
+toolchain, Node lockfile, native tool checksums, and workflow pins. Regenerate the Dev Container
+lock with the CLI version already pinned by the repository, rebuild the container, run
+`.devcontainer/verify-tools.sh`, and then run the complete gate.
 
-Offline Tombi runs select the repository's structural Cargo-manifest schema instead of Tombi
-1.4.0's embedded Cargo schema, whose lint subsections reference two remote-only schemas. Cargo
-metadata, checks, Clippy, tests, and packaging remain the authoritative semantic manifest
-validation. This keeps an empty CI cache equivalent to an established local cache without
-disabling schema discovery for other TOML files.
+## Runtime boundary
 
-The script keeps coverage and API-compatibility artifacts under
-`$CARGO_TARGET_DIR/check-all/quadlet-lens`. It never reuses the container image's
-`/usr/local/cargo`, another repository's validation tree, or an older `target/semver-checks` tree,
-because those locations can contain read-only package locks or incompatible build artifacts.
-Registry downloads, the SemVer check's exclusive lock, and its generated rustdoc projects
-therefore stay in writable, repository-specific build storage.
+The Dev Container does not provide an installed systemd deployment environment and normal tests do
+not need one. Exact Podman generators run in isolated containers described by the
+[generator matrix](generator-matrix.md).
 
-Useful focused checks include:
-
-```console
-cargo fmt --all -- --check
-./scripts/check-files.sh --check
-cargo ci-check
-cargo ci-catalogue
-cargo ci-model
-cargo ci-policy
-cargo ci-clippy
-cargo ci-test
-cargo ci-doctest
-RUSTDOCFLAGS="-D warnings" cargo ci-doc
-cargo deny check
-actionlint
-zizmor .github/workflows
-lychee --config lychee.toml --root-dir . --offline './**/*.md'
-cargo semver-checks check-release --package quadlet-lens
-```
-
-## Updating the container
-
-Renovate proposes updates for the base image, feature references, Rust toolchain, and installed
-tools. When a feature changes, regenerate the committed lock file with the pinned CLI version:
-
-```console
-npx --yes @devcontainers/cli@0.88.0 upgrade --workspace-folder .
-```
-
-Review the resolved version and integrity changes, rebuild the container, and run the repository
-checks before merging.
-
-## Runtime conformance
-
-The default container deliberately does not mount a Docker or Podman socket, run systemd, or
-request privileged mode. Runtime and Quadlet-generator conformance requires explicit, isolated
-test environments with documented engine versions, privileges, and host requirements. Those
-environments will be added with their test harnesses instead of expanding the trust boundary of
-every editor session.
+Add a privileged or host-integrated environment only for a named runtime claim that dry-run
+generator output cannot establish. Document its engine, versions, privilege mode, isolation, inputs,
+and cleanup before treating its result as evidence.

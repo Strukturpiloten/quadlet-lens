@@ -1,74 +1,66 @@
 # QuadletLens
 
-QuadletLens is a Rust library for parsing, modeling, validating, and rendering Podman Quadlet files across supported Podman versions.
+QuadletLens is a Rust library for reading, inspecting, generating, and rendering Podman Quadlet
+documents. It preserves source details while keeping Podman and systemd compatibility decisions
+explicit.
 
-It combines a source-aware Quadlet document model with a data-driven capability catalogue so callers can answer not only “is this valid Quadlet?” but also “for which Podman and systemd environments is this valid?”
+## Install
 
-## Goals
-
-- Parse all supported Quadlet unit types and their shared systemd sections.
-- Preserve comments, ordering, repeated keys, continuations, specifiers, and unknown fields where practical.
-- Expose a typed native Quadlet model without losing the source document.
-- Render preservation-oriented and deterministic canonical output.
-- Validate against explicit Podman version ranges and relevant systemd capabilities.
-- Describe native support, deprecation, removal, known bugs, and available Podman-argument fallbacks.
-- Model relationships between multiple Quadlet files.
-- Attach evidence and tests to every compatibility claim.
-
-## Non-goals
-
-- Running or installing Quadlet files
-- Reimplementing Podman or systemd
-- Parsing arbitrary generated systemd service files as Quadlet
-- Converting Compose or Kubernetes directly to Quadlet
-- Defining BoxFerry's cross-format conversion policy
-
-Cross-format conversion belongs to [BoxFerry](https://github.com/Strukturpiloten/boxferry). Compose handling belongs to [ComposeLens](https://github.com/Strukturpiloten/compose-lens).
-
-## Planned processing levels
-
-```text
-source text
-  → loss-aware unit document
-  → typed Quadlet document set
-  → dependency graph
-  → target-version validation
-  → rendered Quadlet files
+```console
+cargo add quadlet-lens
 ```
+
+QuadletLens requires Rust 1.85.0 or newer.
+
+## Parse a document
+
+```rust
+use quadlet_lens::{
+    model::{QuadletDocument, QuadletUnitType},
+    source::SourceId,
+};
+
+let source = "[Container]\nImage=example.invalid/web:1\n";
+let parsed = QuadletDocument::parse(
+    QuadletUnitType::Container,
+    SourceId::new(1),
+    source,
+)
+.expect("valid Quadlet input");
+
+assert!(parsed.is_valid());
+```
+
+The parse result retains typed entries, the original syntax document, source spans, and separate
+syntax and model diagnostics.
+
+## What the library guarantees
+
+- Ordered sections, repeated keys, comments, continuations, unknown fields, and systemd specifiers
+  remain available.
+- Typed documents cover the supported Quadlet unit types without flattening their source.
+- Document sets resolve native cross-file references without filesystem discovery.
+- Preservation and canonical rendering are deterministic.
+- Programmatic generation validates and reparses its output before returning it.
+- Compatibility queries use a versioned, evidence-backed catalogue.
+
+QuadletLens never installs units, reloads systemd, invokes Podman, inspects the host, or converts
+another container format. Cross-format conversion belongs to
+[BoxFerry](https://github.com/Strukturpiloten/boxferry).
 
 ## Documentation
 
-- [QuadletLens user documentation](https://boxferry.dev/docs/libraries/quadlet-lens/)
-- [Published Rust API documentation](https://boxferry.dev/docs/api/quadlet-lens/)
-- [Public documentation sources](docs/public/index.md)
-- [Documentation index](docs/README.md)
-- [Software architecture](docs/architecture.md)
-- [Native typed model](docs/typed-model.md)
-- [Native coverage](docs/coverage.md)
-- [Programmatic generation](docs/generation.md)
-- [Target project structure](docs/project-structure.md)
-- [Capability model](docs/capability-model.md)
-- [Podman generator matrix](docs/generator-matrix.md)
-- [Testing strategy](docs/testing.md)
-- [Real-world Quadlet corpus](docs/real-world-quadlet-corpus.md)
-- [Development environment](docs/development-environment.md)
-- [API stability policy](docs/api-stability.md)
-- [Release policy](docs/releasing.md)
-- [Changelog](CHANGELOG.md)
-- [Cross-repository implementation plan](docs/implementation-plan.md)
+- [User guide](https://boxferry.dev/docs/libraries/quadlet-lens/)
+- [Rust API](https://boxferry.dev/docs/api/quadlet-lens/)
+- [Maintainer guide](docs/README.md)
 - [Roadmap](docs/roadmap.md)
-- [Architecture decisions](docs/decisions/README.md)
+- [Changelog](CHANGELOG.md)
 
-Repository-specific guidance for coding agents is in [AGENTS.md](AGENTS.md).
+Repository instructions for coding agents are in [AGENTS.md](AGENTS.md).
 
-## Origin
+## Project
 
-QuadletLens is implemented from scratch. It is not a fork of Podlet and does not copy or mechanically translate Podlet source code.
-
-## Stewardship
-
-QuadletLens is created and maintained by [Martin “Becks” Beckert](https://github.com/TheRealBecks) through [Strukturpiloten OHG](https://www.strukturpiloten.de/). The project is part of Strukturpiloten's work on open, maintainable, and portable container infrastructure.
-
-## License
-
-QuadletLens is licensed under the [Mozilla Public License 2.0](LICENSE).
+QuadletLens is an independent, from-scratch implementation. It is maintained by
+[Martin “Becks” Beckert](https://github.com/TheRealBecks) through
+[Strukturpiloten OHG](https://www.strukturpiloten.de/) and licensed under the
+[Mozilla Public License 2.0](LICENSE).
