@@ -63,6 +63,11 @@ the existing hand-authored `[Unreleased]` material into the generated version se
 release-plz did not already represent it, then leave `[Unreleased]` empty. Future entries come from
 merged pull-request and commit titles.
 
+Record user-visible changes in the single `Unreleased` section. Ordinary product pull requests
+must not create a future numbered section, set its date, or bump the crate version. release-plz
+owns those three operations so generated commit notes and reviewed notes become one release
+section instead of duplicate `Added`, `Changed`, or `Fixed` headings.
+
 Release-plz also owns the generated changelog layout. The non-Rust file checker keeps
 `CHANGELOG.md` in Markdownlint and release-structure validation, but `.prettierignore` excludes
 only that file from Prettier so generated wrapping cannot make a release pull request fail.
