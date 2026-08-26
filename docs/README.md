@@ -5,6 +5,10 @@ in [`public/`](public/index.md) and are published on boxferry.dev.
 
 ## Choose a task
 
+Environment-file and secret work starts with
+[Environment and secrets](environment-and-secrets.md), then uses the typed-model and generation
+guides for the affected boundary.
+
 | Task                                      | Read                                                          |
 | ----------------------------------------- | ------------------------------------------------------------- |
 | Understand boundaries or module ownership | [Architecture](architecture.md)                               |

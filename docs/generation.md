@@ -61,6 +61,11 @@ explicit per-name literal lookup where later assignments win and resets clear ea
 The plan renders its original directives. It does not expose a host-derived environment map, load
 files or secrets, expand specifiers, or evaluate runtime state. Debug output redacts values.
 
+For newly generated literal assignments, `ContainerEnvironmentPlan::sorted_by_name()` returns an
+opt-in stable key order. It preserves reset boundaries and duplicate same-name order while expanding
+groups into individual directives. Default generation and every parsed rendering keep authored
+insertion order. See [environment and secret values](environment-and-secrets.md).
+
 ## Multiple files
 
 Build each file independently with a distinct `SourceId`. Pair successful documents with validated

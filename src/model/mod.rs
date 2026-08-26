@@ -3,10 +3,16 @@
 use std::{collections::BTreeSet, error::Error, fmt};
 
 mod document_set;
+mod environment;
 
 pub use document_set::{
     DependencyEdge, DependencyGraph, DocumentSetError, NamedQuadletDocument, QuadletDocumentSet, ReferenceResolution,
     UnitFileName, UnitReference,
+};
+pub use environment::{
+    AuthorizedContainerEnvironment, AuthorizedEnvironmentAssignment, ContainerEnvironmentResolution,
+    ContainerEnvironmentSources, EnvironmentFileReference, EnvironmentFileResolution, EnvironmentReferenceState,
+    EnvironmentSecretReference, EnvironmentSecretResolution, EnvironmentValueError, SensitiveEnvironmentValue,
 };
 
 use crate::diagnostic::{Diagnostic, DiagnosticCode, Label, Severity};

@@ -11,6 +11,18 @@ QuadletLens separates source syntax, typed document meaning, relationships, and 
 
 The model covers `.container`, `.volume`, `.network`, `.pod`, `.image`, `.build`, `.kube`, and `.artifact` units plus the supported systemd sections. Unknown or malformed entries remain available as syntax evidence where recovery is possible.
 
+## Environment and secrets
+
+`QuadletDocument::container_environment_sources()` keeps inline assignments, environment-file
+references, environment-exposing secret references, and source locations separate. QuadletLens
+does not read those external sources. A caller may explicitly provide already-decoded values through
+`AuthorizedContainerEnvironment`; absent authorization stays unresolved and protected values remain
+redacted in `Debug` output.
+
+Generated literal environment plans can opt into stable key order with
+`ContainerEnvironmentPlan::sorted_by_name()`. Parsed and canonical rendering always preserve
+authored order, groups, duplicates, resets, quoting, and specifiers.
+
 ## Direct use
 
 ```rust

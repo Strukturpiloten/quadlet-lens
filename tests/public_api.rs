@@ -4,9 +4,11 @@ use quadlet_lens::capability::{
     CapabilityCatalogue, PodmanTarget, PodmanVersion, SupportClassification, SystemdVersion, SystemdVersionRange,
 };
 use quadlet_lens::model::{
-    ArtifactKey, AuthoredContainerEnvironmentDirective, AuthoredContainerEnvironmentValue, BuildKey, ContainerKey,
-    EntryKind, ImageKey, KubeKey, NamedQuadletDocument, NetworkKey, PodKey, QuadletDocument, QuadletDocumentSet,
-    QuadletKey, QuadletUnitType, SectionKind, SystemdUnitKey, TypedEntry, UnitReferenceKind, ValueKind, VolumeKey,
+    ArtifactKey, AuthoredContainerEnvironmentDirective, AuthoredContainerEnvironmentValue,
+    AuthorizedContainerEnvironment, AuthorizedEnvironmentAssignment, BuildKey, ContainerKey, EntryKind,
+    EnvironmentReferenceState, ImageKey, KubeKey, NamedQuadletDocument, NetworkKey, PodKey, QuadletDocument,
+    QuadletDocumentSet, QuadletKey, QuadletUnitType, SectionKind, SensitiveEnvironmentValue, SystemdUnitKey,
+    TypedEntry, UnitReferenceKind, ValueKind, VolumeKey,
 };
 use quadlet_lens::path::{PathForm, classify_path};
 use quadlet_lens::render::{
@@ -162,6 +164,64 @@ fn authored_environment_and_optional_systemd_target_context_are_public() -> Resu
         SystemdVersionRange::new(SystemdVersion::new(249), SystemdVersion::new(249), "public API")?
     );
     assert!(evidence.url().contains("/249/"));
+    Ok(())
+}
+
+#[test]
+fn caller_authorized_external_environment_and_sorted_generation_are_public() -> Result<(), Box<dyn std::error::Error>> {
+    let parsed = QuadletDocument::parse(
+        QuadletUnitType::Container,
+        SourceId::new(9_207),
+        concat!(
+            "[Container]\n",
+            "Image=example.invalid/application\n",
+            "EnvironmentFile=./application.env\n",
+            "Secret=application-token,type=env,target=APPLICATION_TOKEN\n",
+        ),
+    )?;
+    let sources = parsed.document().container_environment_sources();
+    assert_eq!(
+        sources.environment_files()[0].state(),
+        EnvironmentReferenceState::Literal
+    );
+
+    let mut authorized = AuthorizedContainerEnvironment::new();
+    authorized.authorize_environment_file(
+        "./application.env",
+        [AuthorizedEnvironmentAssignment::new(
+            "APPLICATION_MODE",
+            SensitiveEnvironmentValue::new("production")?,
+        )?],
+    )?;
+    authorized.authorize_secret("application-token", SensitiveEnvironmentValue::new("protected")?)?;
+    let resolved = sources.resolve(&authorized);
+    assert_eq!(
+        resolved.environment_files()[0]
+            .assignments()
+            .ok_or("environment file was not authorized")?[0]
+            .value()
+            .expose_secret(),
+        "production"
+    );
+    assert_eq!(
+        resolved.environment_secrets()[0]
+            .value()
+            .ok_or("secret was not authorized")?
+            .expose_secret(),
+        "protected"
+    );
+
+    let mut plan = ContainerEnvironmentPlan::new();
+    plan.push_assignment(EnvironmentAssignment::new("ZETA", "last")?);
+    plan.push_assignment(EnvironmentAssignment::new("ALPHA", "first")?);
+    let sorted = plan.sorted_by_name();
+    assert!(matches!(
+        sorted.directives(),
+        [
+            ContainerEnvironmentDirective::Assignment(first),
+            ContainerEnvironmentDirective::Assignment(second),
+        ] if first.name() == "ALPHA" && second.name() == "ZETA"
+    ));
     Ok(())
 }
 

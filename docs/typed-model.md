@@ -69,6 +69,11 @@ loads environment files or secrets and never performs manager, process, or runti
 Repository-owned debug output redacts recognized environment values; explicit source access remains
 the caller's responsibility.
 
+`QuadletDocument::container_environment_sources()` adds source-located `EnvironmentFile=` and
+environment-exposing `Secret=` references without acquiring their values. Resolution accepts only
+decoded values explicitly authorized by the caller. See
+[environment and secret values](environment-and-secrets.md) for trust and BoxFerry boundaries.
+
 ## Document sets
 
 Use `NamedQuadletDocument` to pair a document with a validated basename, then build a
