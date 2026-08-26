@@ -296,6 +296,43 @@ impl ContainerEnvironmentPlan {
         &self.directives
     }
 
+    /// Returns an opt-in deterministic plan ordered by assignment name within reset boundaries.
+    ///
+    /// Assignment groups are expanded to individual directives. Sorting is stable, so repeated
+    /// assignments for the same name retain their original last-wins order. Explicit resets stay
+    /// in their authored positions and divide independently sorted segments. The original plan is
+    /// unchanged.
+    ///
+    /// Parsed and canonical source rendering never calls this method: source-owned repetition,
+    /// grouping, quoting, and order remain lossless. This helper is only for caller-owned literal
+    /// generation plans whose cross-name order has no authored significance.
+    #[must_use]
+    pub fn sorted_by_name(&self) -> Self {
+        fn flush(assignments: &mut Vec<EnvironmentAssignment>, directives: &mut Vec<ContainerEnvironmentDirective>) {
+            assignments.sort_by(|left, right| left.name().cmp(right.name()));
+            directives.extend(assignments.drain(..).map(ContainerEnvironmentDirective::Assignment));
+        }
+
+        let mut directives = Vec::with_capacity(self.directives.len());
+        let mut assignments = Vec::new();
+        for directive in &self.directives {
+            match directive {
+                ContainerEnvironmentDirective::Assignment(assignment) => {
+                    assignments.push(assignment.clone());
+                }
+                ContainerEnvironmentDirective::Assignments(group) => {
+                    assignments.extend(group.iter().cloned());
+                }
+                ContainerEnvironmentDirective::Reset(reset) => {
+                    flush(&mut assignments, &mut directives);
+                    directives.push(ContainerEnvironmentDirective::Reset(*reset));
+                }
+            }
+        }
+        flush(&mut assignments, &mut directives);
+        Self { directives }
+    }
+
     /// Returns the effective literal value for one explicitly requested name.
     ///
     /// This projection does not expose map iteration order. It applies only the validated literal

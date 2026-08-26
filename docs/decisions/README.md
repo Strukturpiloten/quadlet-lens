@@ -9,6 +9,9 @@
 
 ## Index
 
+ADR [0012](0012-caller-authorized-external-environment-resolution.md) accepts caller-authorized
+external environment resolution and reset-safe generated ordering.
+
 | ADR                                                                | Status     | Decision                                                                               |
 | ------------------------------------------------------------------ | ---------- | -------------------------------------------------------------------------------------- |
 | [0001](0001-project-boundaries-and-origin.md)                      | accepted   | Independent Quadlet library, data-driven capabilities, and from-scratch implementation |

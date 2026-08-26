@@ -5,6 +5,12 @@ Versioning for its documented pre-1.0 public API.
 
 ## [Unreleased]
 
+### Added
+
+- Adds source-located environment-file and environment-secret discovery with explicit caller-only
+  value authorization, default payload redaction, and opt-in reset-safe deterministic environment
+  sorting for generated literal plans ([#56](https://github.com/Strukturpiloten/quadlet-lens/issues/56)).
+
 ### Changed
 
 - Replace repeated key, capability, generator, and release ledgers with bounded task-oriented

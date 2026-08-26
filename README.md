@@ -36,6 +36,7 @@ syntax and model diagnostics.
 
 ## What the library guarantees
 
+- External environment files and secrets resolve only from caller-authorized, already-decoded values.
 - Ordered sections, repeated keys, comments, continuations, unknown fields, and systemd specifiers
   remain available.
 - Typed documents cover the supported Quadlet unit types without flattening their source.

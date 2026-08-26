@@ -875,6 +875,7 @@ fn maintainer_documentation_is_task_oriented_and_bounded() -> Result<(), String>
         "capability-model.md",
         "dependency-policy.md",
         "development-environment.md",
+        "environment-and-secrets.md",
         "fixture-format.md",
         "generation.md",
         "generator-matrix.md",
