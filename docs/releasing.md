@@ -58,15 +58,13 @@ maintenance-only updates remain `chore(deps): ...`.
 
 GitHub release notes are extracted from the matching version section in `CHANGELOG.md`, which is
 the only release-history source in the repository. Keep changelog entries short and move technical
-detail into the canonical topic documentation. On the first automated release pull request, move
-the existing hand-authored `[Unreleased]` material into the generated version section if
-release-plz did not already represent it, then leave `[Unreleased]` empty. Future entries come from
-merged pull-request and commit titles.
+detail into the canonical topic documentation.
 
 Record user-visible changes in the single `Unreleased` section. Ordinary product pull requests
-must not create a future numbered section, set its date, or bump the crate version. release-plz
-owns those three operations so generated commit notes and reviewed notes become one release
-section instead of duplicate `Added`, `Changed`, or `Fixed` headings.
+must not create a future numbered section, set its date, or bump the crate version. Release-plz
+inserts only the dated version heading, with blank lines on both sides; the curated notes below
+`Unreleased` thereby become that release's notes exactly once, without duplicate `Added`,
+`Changed`, or `Fixed` headings.
 
 Release-plz also owns the generated changelog layout. The non-Rust file checker keeps
 `CHANGELOG.md` in Markdownlint and release-structure validation, but `.prettierignore` excludes
