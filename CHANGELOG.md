@@ -13,6 +13,9 @@ Versioning for its documented pre-1.0 public API.
 
 ### Changed
 
+- Promote curated `Unreleased` notes under a blank-line-safe release-plz version heading instead
+  of generating duplicate changelog groups ([#65](https://github.com/Strukturpiloten/quadlet-lens/issues/65)).
+
 - Replace repeated key, capability, generator, and release ledgers with bounded task-oriented
   guides that route exact support claims to catalogues, matrices, fixtures, and tests
   ([#58](https://github.com/Strukturpiloten/quadlet-lens/pull/58)).
