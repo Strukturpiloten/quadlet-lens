@@ -5,6 +5,8 @@ Versioning for its documented pre-1.0 public API.
 
 ## [Unreleased]
 
+## [0.2.2](https://github.com/Strukturpiloten/quadlet-lens/compare/v0.2.1...v0.2.2) - 2026-08-27
+
 ### Added
 
 - Adds source-located environment-file and environment-secret discovery with explicit caller-only
