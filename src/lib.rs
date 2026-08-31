@@ -1,4 +1,5 @@
-//! Loss-aware parsing, modeling, compatibility evaluation, and rendering of Podman Quadlet.
+//! Source-aware parsing, modeling, generation, compatibility evaluation, and rendering of Podman
+//! Quadlet files.
 //!
 //! `QuadletLens` keeps physical source syntax separate from typed native meaning and target-version
 //! evidence. Parsing and generation are in-memory operations: the crate never invokes Podman,
