@@ -1,8 +1,12 @@
 # QuadletLens
 
-QuadletLens is a Rust library for reading, inspecting, generating, and rendering Podman Quadlet
-documents. It preserves source details while keeping Podman and systemd compatibility decisions
-explicit.
+QuadletLens is an open-source Rust library for parsing, inspecting, generating, and rendering
+Podman Quadlet files. It preserves source details while keeping Podman and systemd compatibility
+decisions explicit.
+
+[Guides](https://boxferry.dev/docs/libraries/quadlet-lens/) ·
+[Rust API](https://docs.rs/quadlet-lens) · [crates.io](https://crates.io/crates/quadlet-lens) ·
+[Source code](https://github.com/Strukturpiloten/quadlet-lens)
 
 ## Install
 
@@ -59,9 +63,10 @@ another container format. Cross-format conversion belongs to
 
 Repository instructions for coding agents are in [AGENTS.md](AGENTS.md).
 
-## Project
+## Open source
 
-QuadletLens is an independent, from-scratch implementation. It is maintained by
+QuadletLens is an independent, from-scratch implementation maintained by
 [Martin “Becks” Beckert](https://github.com/TheRealBecks) through
-[Strukturpiloten OHG](https://www.strukturpiloten.de/) and licensed under the
-[Mozilla Public License 2.0](LICENSE).
+[Strukturpiloten OHG](https://www.strukturpiloten.de/) and released under the
+[Mozilla Public License 2.0](LICENSE). Contributions and real-world Quadlet compatibility reports
+are welcome.
