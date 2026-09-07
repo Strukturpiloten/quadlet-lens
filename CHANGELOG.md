@@ -5,6 +5,12 @@ Versioning for its documented pre-1.0 public API.
 
 ## [Unreleased]
 
+### Changed
+
+- Standardize repository-local agent roles and model-independent workflow ownership; add
+  non-formatting full verification and regression tests
+  ([#99](https://github.com/Strukturpiloten/quadlet-lens/issues/99)).
+
 ## [0.2.2](https://github.com/Strukturpiloten/quadlet-lens/compare/v0.2.1...v0.2.2) - 2026-08-27
 
 ### Added
