@@ -5,6 +5,8 @@ Versioning for its documented pre-1.0 public API.
 
 ## [Unreleased]
 
+## [0.2.3](https://github.com/Strukturpiloten/quadlet-lens/compare/v0.2.2...v0.2.3) - 2026-09-07
+
 ### Added
 
 - Add bounded source-aware native decoding views for Quadlet ports, mounts, commands, and build
