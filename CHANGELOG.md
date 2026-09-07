@@ -5,6 +5,12 @@ Versioning for its documented pre-1.0 public API.
 
 ## [Unreleased]
 
+### Added
+
+- Add bounded source-aware native decoding views for Quadlet ports, mounts, commands, and build
+  environment assignments, retaining resets, source spans, diagnostics, and opaque native mount
+  evidence ([#97](https://github.com/Strukturpiloten/quadlet-lens/issues/97)).
+
 ### Changed
 
 - Standardize repository-local agent roles and model-independent workflow ownership; add

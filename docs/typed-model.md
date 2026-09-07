@@ -74,6 +74,30 @@ environment-exposing `Secret=` references without acquiring their values. Resolu
 decoded values explicitly authorized by the caller. See
 [environment and secret values](environment-and-secrets.md) for trust and BoxFerry boundaries.
 
+## Bounded native value views
+
+`container_ports()` and `pod_ports()` decode ordered `PublishPort=` directives, including
+bracketed IPv6 addresses, omitted host ports, ranges, protocols, resets, and the primary
+physical source-value segment span. Continued values retain their complete authored syntax in
+the document; native views intentionally point to the first segment rather than inventing one
+span across physical lines.
+`container_mounts()` and `pod_mounts()` preserve ordered `Volume=` and long `Mount=` forms,
+including unknown mount options and relative or Quadlet reference spellings. `container_commands()`
+uses bounded lexical word tokenization for `Exec=`, plus JSON string-array or literal-executable
+decoding for `Entrypoint=`. `NativeCommand::syntax()` retains the authored Entrypoint form. It
+retains lexical command prefixes and separators as arguments; it does not claim
+systemd executable, prefix, or semicolon execution semantics.
+
+Each view keeps valid native evidence separate from malformed values and values that need systemd
+specifier expansion. It returns recoverable diagnostics and does not select a Podman release,
+expand a specifier, inspect a path, or decide whether a value can be represented portably. `%%` is
+the one context-independent systemd escape decoded to a literal percent; every other `%` specifier
+is retained as a deferred value until a manager context is available.
+`build_environment()` applies the same redacted authored-environment decoder to `[Build]`
+`Environment=` values; `container_environment()` retains its existing container-only behavior.
+These source-only views take no Podman target. Capability evaluation remains a separate caller
+action; native decoding makes no portability or target-support decision.
+
 ## Document sets
 
 Use `NamedQuadletDocument` to pair a document with a validated basename, then build a

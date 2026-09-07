@@ -13,6 +13,8 @@ use serde::Deserialize;
 const MATRIX: &str = include_str!("../tools/generator-matrix.toml");
 const CONTAINER_ENVIRONMENT_RESET_FIXTURE: &str =
     include_str!("../fixtures/generators/container-environment-reset-supported-range/environment-reset.container");
+const NATIVE_VALUE_DECODING_FIXTURE: &str =
+    include_str!("../fixtures/generators/native-value-decoding-supported-range/native-values.container");
 const EXPECTED_IMAGE_VERSIONS: &[&str] = &[
     "5.4.0", "5.4.1", "5.4.2", "5.5.0", "5.5.1", "5.5.2", "5.6.0", "5.6.1", "5.6.2", "5.7.0", "5.7.1", "5.8.0",
     "5.8.1", "5.8.2",
@@ -855,6 +857,7 @@ struct GeneratorFixtures {
     pod_hostname: (PathBuf, Vec<String>),
     pod_label: (PathBuf, Vec<String>),
     container_environment_reset: (PathBuf, Vec<String>),
+    native_value_decoding: (PathBuf, Vec<String>),
     container_image_volume: (PathBuf, Vec<String>),
     memory: (PathBuf, Vec<String>),
     build_retry: (PathBuf, Vec<String>),
@@ -958,6 +961,24 @@ fn container_environment_reset_fixture_has_the_exact_authored_directive_sequence
             "Environment=QUADLET_LENS_ENV_RESET_POST_TWO=two",
         ]
     );
+}
+
+#[test]
+fn native_value_decoding_fixture_keeps_the_generator_forms_as_authored_evidence() {
+    for directive in [
+        "PublishPort=[::1]:18080:8080/tcp",
+        "PublishPort=127.0.0.1::9090",
+        "Volume=cache.volume:/var/cache:z,Z",
+        "Volume=cache.volume:/var/overlay:O",
+        "Mount=type=tmpfs,target=/run/cache,tmpfs-size=64m,unknown-option=retained",
+        "Exec=/usr/bin/app before \"\" after",
+        "Entrypoint=[\"/usr/bin/app\",\"--foreground\"]",
+    ] {
+        assert!(
+            NATIVE_VALUE_DECODING_FIXTURE.lines().any(|line| line == directive),
+            "native decoding fixture is missing `{directive}`"
+        );
+    }
 }
 
 #[test]
@@ -2295,6 +2316,7 @@ fn load_generator_fixtures() -> Result<GeneratorFixtures, String> {
         pod_hostname: load_named_container_fixture("pod-hostname-supported-range")?,
         pod_label: load_named_container_fixture("pod-label-supported-range")?,
         container_environment_reset: load_named_container_fixture("container-environment-reset-supported-range")?,
+        native_value_decoding: load_named_container_fixture("native-value-decoding-supported-range")?,
         container_image_volume: load_named_container_fixture("container-image-volume-supported-range")?,
         memory: load_memory_fixture()?,
         build_retry: load_build_retry_fixture()?,
@@ -2747,6 +2769,11 @@ fn verify_image_isolated_fixtures(
         &image.version,
         &fixtures.container_environment_reset.1,
         &run_generator_raw(engine, image, &fixtures.container_environment_reset.0)?,
+    )?;
+    verify_native_value_decoding_generator_output(
+        &image.version,
+        &fixtures.native_value_decoding.1,
+        &run_generator_raw(engine, image, &fixtures.native_value_decoding.0)?,
     )?;
     verify_container_image_volume_generator_output(
         &image.version,
@@ -3759,6 +3786,17 @@ fn verify_source_isolated_fixtures(
             source,
             generator,
             &fixtures.container_environment_reset.0,
+        )?,
+    )?;
+    verify_native_value_decoding_generator_output(
+        &source.version,
+        &fixtures.native_value_decoding.1,
+        &run_source_generator_raw(
+            engine,
+            &matrix.builder_reference,
+            source,
+            generator,
+            &fixtures.native_value_decoding.0,
         )?,
     )?;
     verify_container_image_volume_generator_output(
@@ -4918,6 +4956,71 @@ fn verify_container_environment_reset_generator_output(
     }
     eprintln!(
         "Podman {version} Container Environment reset: pre-reset assignments are absent and distinct post-reset assignments become separate --env arguments"
+    );
+    Ok(())
+}
+
+fn verify_native_value_decoding_generator_output(
+    version: &str,
+    expected: &[String],
+    output: &Output,
+) -> Result<(), String> {
+    ensure_success(version, "native value decoding generator", output)?;
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| error.to_string())?;
+    if expected.iter().any(|fragment| !generated.contains(fragment)) {
+        return Err(format!(
+            "Podman {version} native value decoding output is missing fixture fragments\n{generated}"
+        ));
+    }
+    let unit = generated_unit(version, &generated, "native-values.service", output)?;
+    let command = unit
+        .lines()
+        .find(|line| line.starts_with("ExecStart=/usr/bin/podman run "))
+        .ok_or_else(|| format!("Podman {version} native value decoding command is missing"))?;
+    let required = [
+        "--publish [::1]:18080:8080/tcp",
+        "--publish 127.0.0.1::9090",
+        "-v quadlet-lens-native-values-cache:/var/cache:z,Z",
+        "-v quadlet-lens-native-values-cache:/var/overlay:O",
+        "--mount type=tmpfs,target=/run/cache,tmpfs-size=64m,unknown-option=retained",
+        "--entrypoint",
+        "--foreground",
+    ];
+    if let Some(missing) = required.iter().find(|argument| !command.contains(**argument)) {
+        return Err(format!(
+            "Podman {version} native value decoding command is missing `{missing}`\n{command}"
+        ));
+    }
+    let before = command
+        .find("before")
+        .ok_or_else(|| format!("Podman {version} native Exec command is missing `before`\n{command}"))?;
+    let after = command.find("after");
+    let literal_unit = generated_unit(version, &generated, "native-literal.service", output)?;
+    if !literal_unit.contains("--entrypoint /usr/bin/app ") && !literal_unit.contains("--entrypoint=/usr/bin/app ") {
+        return Err(format!(
+            "Podman {version} omitted the literal Entrypoint option: {literal_unit}"
+        ));
+    }
+    if matches!(version, "5.4.0" | "5.8.2") {
+        if after.is_some() {
+            return Err(format!(
+                "Podman {version} must retain its recorded empty-argv trailing-argument truncation gap\n{command}"
+            ));
+        }
+    } else if let Some(after) = after {
+        if after <= before {
+            return Err(format!(
+                "Podman {version} native Exec arguments are not ordered around empty argv\n{command}"
+            ));
+        }
+    }
+    let empty_argv_observation = if after.is_some() {
+        "retains the trailing argument"
+    } else {
+        "truncates after empty argv"
+    };
+    eprintln!(
+        "Podman {version} native values: ports, mounts, entrypoint, and empty argv ({empty_argv_observation}) are generator evidence"
     );
     Ok(())
 }

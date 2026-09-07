@@ -4,6 +4,8 @@ use std::{collections::BTreeSet, error::Error, fmt};
 
 mod document_set;
 mod environment;
+mod native_values;
+pub use native_values::NativeCommandSyntax;
 
 pub use document_set::{
     DependencyEdge, DependencyGraph, DocumentSetError, NamedQuadletDocument, QuadletDocumentSet, ReferenceResolution,
@@ -13,6 +15,11 @@ pub use environment::{
     AuthorizedContainerEnvironment, AuthorizedEnvironmentAssignment, ContainerEnvironmentResolution,
     ContainerEnvironmentSources, EnvironmentFileReference, EnvironmentFileResolution, EnvironmentReferenceState,
     EnvironmentSecretReference, EnvironmentSecretResolution, EnvironmentValueError, SensitiveEnvironmentValue,
+};
+pub use native_values::{
+    NativeCommand, NativeCommandDirective, NativeCommandKind, NativeContainerCommands, NativeMountDirective,
+    NativeMountOption, NativeMountSpecification, NativeMountSpecifications, NativePortProtocol, NativePortPublication,
+    NativePortPublications, NativePortRange, NativePortSpecification,
 };
 
 use crate::diagnostic::{Diagnostic, DiagnosticCode, Label, Severity};
@@ -1095,12 +1102,17 @@ pub struct AuthoredContainerEnvironment {
 
 impl AuthoredContainerEnvironment {
     fn from_document(document: &QuadletDocument) -> Self {
+        Self::from_entries(document, EntryKind::Container(ContainerKey::Environment))
+    }
+
+    pub(super) fn from_build_document(document: &QuadletDocument) -> Self {
+        Self::from_entries(document, EntryKind::Build(BuildKey::Environment))
+    }
+
+    fn from_entries(document: &QuadletDocument, expected_kind: EntryKind) -> Self {
         let mut directives = Vec::new();
         let mut diagnostics = Vec::new();
-        for entry in document
-            .entries()
-            .filter(|entry| entry.kind == EntryKind::Container(ContainerKey::Environment))
-        {
+        for entry in document.entries().filter(|entry| entry.kind == expected_kind) {
             let span = entry.value.primary.span();
             let Some(value) = logical_authored_value(entry) else {
                 diagnostics.push(environment_diagnostic(
@@ -1512,6 +1524,46 @@ impl QuadletDocument {
         AuthoredContainerEnvironment::from_document(self)
     }
 
+    /// Returns the same bounded, source-aware `Environment=` view for `[Build]` entries.
+    ///
+    /// This does not read a build context, process environment, or external file. The historical
+    /// type name remains for source compatibility; its directives are interpreted using the same
+    /// documented systemd word grammar as `Container Environment=`.
+    #[must_use]
+    pub fn build_environment(&self) -> AuthoredContainerEnvironment {
+        AuthoredContainerEnvironment::from_build_document(self)
+    }
+
+    /// Returns ordered source-aware native `PublishPort=` directives from `[Container]`.
+    #[must_use]
+    pub fn container_ports(&self) -> NativePortPublications {
+        NativePortPublications::from_document(self, SectionKind::Container)
+    }
+
+    /// Returns ordered source-aware native `PublishPort=` directives from `[Pod]`.
+    #[must_use]
+    pub fn pod_ports(&self) -> NativePortPublications {
+        NativePortPublications::from_document(self, SectionKind::Pod)
+    }
+
+    /// Returns ordered source-aware `Volume=` and `Mount=` directives from `[Container]`.
+    #[must_use]
+    pub fn container_mounts(&self) -> NativeMountSpecifications {
+        NativeMountSpecifications::from_document(self, SectionKind::Container)
+    }
+
+    /// Returns ordered source-aware native `Volume=` directives from `[Pod]`.
+    #[must_use]
+    pub fn pod_mounts(&self) -> NativeMountSpecifications {
+        NativeMountSpecifications::from_document(self, SectionKind::Pod)
+    }
+
+    /// Returns ordered source-aware `Exec=` and `Entrypoint=` directives from `[Container]`.
+    #[must_use]
+    pub fn container_commands(&self) -> NativeContainerCommands {
+        NativeContainerCommands::from_document(self)
+    }
+
     fn validate_shape(&self, source: &SourceText) -> Vec<Diagnostic> {
         let expected = self.unit_type.native_section();
         let mut diagnostics = Vec::new();
@@ -1866,7 +1918,7 @@ fn collect_continuations(
     Ok(values)
 }
 
-fn logical_authored_value(entry: &TypedEntry) -> Option<String> {
+pub(super) fn logical_authored_value(entry: &TypedEntry) -> Option<String> {
     let mut logical = String::new();
     let segments = std::iter::once(entry.value.primary())
         .chain(entry.value.continuations())
@@ -1903,7 +1955,7 @@ fn environment_diagnostic(
 /// This keeps values entirely in memory and deliberately returns no partial token on malformed
 /// quoting or escaping. Supported C-style escapes are `\\`, quote, whitespace, `\\s`, `\\t`,
 /// `\\n`, `\\r`, `\\xHH`, `\\uHHHH`, and `\\UHHHHHHHH`.
-fn systemd_environment_tokens(value: &str) -> Option<Vec<String>> {
+pub(super) fn systemd_environment_tokens(value: &str) -> Option<Vec<String>> {
     let mut tokens = Vec::new();
     let mut token = String::new();
     let mut quote = None;
@@ -1967,7 +2019,7 @@ fn read_escape_digits(characters: &mut std::iter::Peekable<std::str::Chars<'_>>,
     Some(result)
 }
 
-fn is_authored_environment_name(name: &str) -> bool {
+pub(super) fn is_authored_environment_name(name: &str) -> bool {
     let mut bytes = name.bytes();
     matches!(bytes.next(), Some(byte) if byte.is_ascii_alphabetic() || byte == b'_')
         && bytes.all(|byte| byte.is_ascii_alphanumeric() || byte == b'_')

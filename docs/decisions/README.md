@@ -9,6 +9,9 @@
 
 ## Index
 
+[ADR 0013](0013-bounded-native-value-decoding.md) defines bounded, source-aware
+ports, mounts, commands, and build environment views.
+
 ADR [0012](0012-caller-authorized-external-environment-resolution.md) accepts caller-authorized
 external environment resolution and reset-safe generated ordering.
 
