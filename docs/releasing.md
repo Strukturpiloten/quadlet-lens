@@ -38,7 +38,8 @@ continues to identify repository `quadlet-lens`, workflow `release.yml`, and env
 2. Review the release-plz pull request. It updates the Cargo version, lockfile, and root
    `CHANGELOG.md`. Normal CI must pass before merge.
 3. Merge the release-plz pull request. Only a merged pull request whose head starts with
-   `release-plz-` dispatches the protected `Release` workflow.
+   `release-plz-` dispatches the protected `Release` workflow. The dispatcher retries bounded
+   GitHub associated-pull-request metadata before concluding that a push is not a release merge.
 4. Approve the `release` environment deployment. The workflow revalidates the repository,
    publishes through trusted publishing, attaches the attested crate and checksum, and publishes
    the immutable GitHub release.
