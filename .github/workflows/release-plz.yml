@@ -55,7 +55,7 @@ jobs:
           exit 1
 
       - name: Create or update release pull request
-        uses: release-plz/action@2eb1d8bcb770b4c48ccfaad919734b38b51958c9 # v0.5.131
+        uses: release-plz/action@b5543c19b03be9bd48852d20ca89f478b7723260 # v0.5.132
         with:
           command: release-pr
           # renovate: datasource=crate depName=release-plz
@@ -82,11 +82,21 @@ jobs:
         run: |
           set -euo pipefail
 
-          associated_pull_requests="$(
-            gh api \
-              --header "X-GitHub-Api-Version: ${RELEASE_GITHUB_API_VERSION}" \
-              "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls"
-          )"
+          associated_pull_requests="[]"
+          for attempt in {1..8}; do
+            associated_pull_requests="$(
+              gh api \
+                --header "X-GitHub-Api-Version: ${RELEASE_GITHUB_API_VERSION}" \
+                "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls"
+            )"
+            if [[ "$(jq --raw-output 'length' <<< "${associated_pull_requests}")" != "0" ]]; then
+              break
+            fi
+            if [[ "${attempt}" != "8" ]]; then
+              echo "Associated pull-request metadata is not available for ${GITHUB_SHA}; retrying (${attempt}/8)."
+              sleep 3
+            fi
+          done
           release_pull_requests="$(
             jq --compact-output \
               --arg base "${DEFAULT_BRANCH}" \

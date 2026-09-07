@@ -653,11 +653,14 @@ fn validate_release_plz_contract(repository: &str) -> Result<(), String> {
         "command: release-pr",
         "renovate: datasource=crate depName=release-plz",
         "version: \"0.3.160\"",
-        "release-plz/action@2eb1d8bcb770b4c48ccfaad919734b38b51958c9 # v0.5.131",
+        "release-plz/action@b5543c19b03be9bd48852d20ca89f478b7723260 # v0.5.132",
         "actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0",
         "(.head.ref | startswith(\"release-plz-\"))",
         "actions/workflows/release.yml/dispatches",
         "actions: write",
+        "for attempt in {1..8}; do",
+        "Associated pull-request metadata is not available",
+        "sleep 3",
         "No release was dispatched.",
     ] {
         if !workflow.contains(required) {
