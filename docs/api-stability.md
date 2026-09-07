@@ -1,5 +1,9 @@
 # API stability policy
 
+The additive native value views on `QuadletDocument` are supported entry points. Their public
+results preserve ordered source evidence and recoverable deferred or malformed states; they do not
+promise target acceptance or portable conversion of every decoded native form.
+
 QuadletLens is pre-1.0, but version 0.2 establishes the current supported integration line for
 BoxFerry and independent tools that need native Quadlet parsing, modeling, document-set resolution,
 and evidence-backed Podman capability queries. This policy is recorded by

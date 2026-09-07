@@ -10,6 +10,7 @@ use quadlet_lens::model::{
     QuadletDocumentSet, QuadletKey, QuadletUnitType, SectionKind, SensitiveEnvironmentValue, SystemdUnitKey,
     TypedEntry, UnitReferenceKind, ValueKind, VolumeKey,
 };
+use quadlet_lens::model::{NativeCommandDirective, NativeMountDirective, NativePortPublication};
 use quadlet_lens::path::{PathForm, classify_path};
 use quadlet_lens::render::{
     ContainerEnvironmentDirective, ContainerEnvironmentPlan, EntryValue, EnvironmentAssignment,
@@ -17,6 +18,71 @@ use quadlet_lens::render::{
     PidsLimitError, QuadletDocumentBuilder, ShmSize, ShmSizeError,
 };
 use quadlet_lens::source::SourceId;
+
+#[test]
+fn source_aware_native_value_views_are_available_to_external_consumers() -> Result<(), Box<dyn std::error::Error>> {
+    let container = QuadletDocument::parse(
+        QuadletUnitType::Container,
+        SourceId::new(9_208),
+        concat!(
+            "[Container]\nImage=example.invalid/application\n",
+            "PublishPort=[::1]:18080:8080/tcp\n",
+            "Volume=cache.volume:/var/cache:z\n",
+            "Mount=type=tmpfs,target=/run/cache,unmodeled-option=retained\n",
+            "Exec=/usr/bin/app --serve\n",
+            "Entrypoint=[\"/usr/bin/app\",\"--foreground\"]\n",
+        ),
+    )?;
+    let document = container.document();
+    assert!(
+        matches!(document.container_ports().directives(), [NativePortPublication::Publication(port)] if port.host() == Some("[::1]") && port.container().start() == 8080)
+    );
+    assert!(
+        matches!(document.container_mounts().directives(), [NativeMountDirective::Mount(_), NativeMountDirective::Mount(mount)] if mount.is_long_form() && mount.destination() == Some("/run/cache"))
+    );
+    assert!(matches!(
+        document.container_commands().directives(),
+        [
+            NativeCommandDirective::Command { .. },
+            NativeCommandDirective::Command { .. }
+        ]
+    ));
+    Ok(())
+}
+
+#[test]
+fn native_value_decoding_is_separate_from_capability_version_boundaries() -> Result<(), Box<dyn std::error::Error>> {
+    let parsed = QuadletDocument::parse(
+        QuadletUnitType::Container,
+        SourceId::new(9_209),
+        "[Container]\nImage=example.invalid/application\nExec=/usr/bin/app before \"\" after\nMount=type=tmpfs,target=/run/cache\n",
+    )?;
+    let document = parsed.document();
+    assert!(matches!(
+        document.container_commands().directives(),
+        [NativeCommandDirective::Command { command, .. }]
+            if command.arguments() == ["/usr/bin/app", "before", "", "after"]
+    ));
+    assert!(matches!(
+        document.container_mounts().directives(),
+        [NativeMountDirective::Mount(mount)] if mount.destination() == Some("/run/cache")
+    ));
+
+    let catalogue = CapabilityCatalogue::supported_range()?;
+    for (version, expected) in [
+        (PodmanVersion::new(5, 3, 3), SupportClassification::Unknown),
+        (PodmanVersion::new(5, 4, 0), SupportClassification::Native),
+    ] {
+        let target = PodmanTarget::new(version, Some(version))?;
+        assert_eq!(
+            catalogue
+                .evaluate("quadlet.container.environment", target)
+                .classification(),
+            expected
+        );
+    }
+    Ok(())
+}
 
 #[test]
 fn container_literal_environment_assignment_has_a_public_typed_construction_path()

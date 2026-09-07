@@ -1,0 +1,18 @@
+schema = 1
+id = "native-value-decoding-supported-range"
+suite = "generators"
+description = "Records authored native port, mount, Exec, and Entrypoint forms used by the bounded source-aware decoding contract."
+secrets_reviewed = true
+files = ["native-values.container", "native-literal.container", "cache.volume", "expected-fragments.txt"]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "The generator harness mounts this fixture directory read-only and invokes only Podman's dry-run generator. It does not start a container, resolve a path, or expand manager specifiers."
+
+[expectations]
+summary = "The authored fixture keeps bracketed IPv6 publication, omitted host-port publication, short and long mounts, bounded lexical Exec argv, and JSON Entrypoint syntax as separate native evidence. The pinned generator harness records observed empty-argv trailing-argument truncation at 5.4.0 and 5.8.2, while reporting bounded observations for every other pinned release; no runtime behavior is claimed."

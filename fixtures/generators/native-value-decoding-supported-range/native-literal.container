@@ -1,0 +1,3 @@
+[Container]
+Image=registry.example.invalid/native-values:1
+Entrypoint=/usr/bin/app

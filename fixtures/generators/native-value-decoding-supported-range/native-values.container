@@ -1,0 +1,9 @@
+[Container]
+Image=registry.example.invalid/native-values:1
+PublishPort=[::1]:18080:8080/tcp
+PublishPort=127.0.0.1::9090
+Volume=cache.volume:/var/cache:z,Z
+Volume=cache.volume:/var/overlay:O
+Mount=type=tmpfs,target=/run/cache,tmpfs-size=64m,unknown-option=retained
+Exec=/usr/bin/app before "" after
+Entrypoint=["/usr/bin/app","--foreground"]
