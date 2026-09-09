@@ -1,0 +1,224 @@
+schema = 1
+target-version = "6.1.0"
+application = "nextcloud"
+units = [
+  "app.service",
+  "backend-network.service",
+  "cache.service",
+  "cron.service",
+  "db-data-volume.service",
+  "db.service",
+  "edge-network.service",
+  "edge-proxy.service",
+  "frontend.service",
+  "init.service",
+  "nextcloud-data-volume.service",
+  "redis-data-volume.service",
+  "second-app.service",
+]
+
+[[unit]]
+name = "backend-network.service"
+source = "backend.network"
+after = ["network-online.target"]
+internal = true
+exec = ["network", "create", "--ignore", "--internal", "systemd-backend"]
+
+[[unit]]
+name = "edge-network.service"
+source = "edge.network"
+after = ["network-online.target"]
+internal = false
+exec = ["network", "create", "--ignore", "--internal=false", "systemd-edge"]
+
+[[unit]]
+name = "db-data-volume.service"
+source = "db-data.volume"
+after = ["network-online.target"]
+exec = ["volume", "create", "--ignore", "systemd-db-data"]
+
+[[unit]]
+name = "nextcloud-data-volume.service"
+source = "nextcloud-data.volume"
+after = ["network-online.target"]
+exec = ["volume", "create", "--ignore", "systemd-nextcloud-data"]
+
+[[unit]]
+name = "redis-data-volume.service"
+source = "redis-data.volume"
+after = ["network-online.target"]
+exec = ["volume", "create", "--ignore", "systemd-redis-data"]
+
+[[unit]]
+name = "app.service"
+source = "app.container"
+exec-required = ["--health-cmd"]
+image = "docker.io/library/nextcloud@sha256:611669115cccef3f96aa8eb47bd07c4d57452d894ebcfc1d81f5e8ce368e7d2d"
+requires = [
+  "init.service",
+  "backend-network.service",
+  "nextcloud-data-volume.service",
+]
+after = [
+  "network-online.target",
+  "init.service",
+  "backend-network.service",
+  "nextcloud-data-volume.service",
+]
+environment = [
+  "POSTGRES_HOST=db",
+  "POSTGRES_PASSWORD=boxferry-test-db-password-not-secret",
+  "REDIS_HOST=cache",
+  "REDIS_PASSWORD=boxferry-test-cache-password-not-secret",
+]
+network = ["systemd-backend"]
+mount = ["systemd-nextcloud-data:/var/www/html"]
+
+[[unit]]
+name = "cache.service"
+source = "cache.container"
+exec-required = ["--health-cmd"]
+image = "docker.io/library/redis@sha256:987c376c727652f99625c7d205a1cba3cb2c53b92b0b62aade2bd48ee1593232"
+requires = ["backend-network.service", "redis-data-volume.service"]
+after = [
+  "network-online.target",
+  "backend-network.service",
+  "redis-data-volume.service",
+]
+environment = ["BOXFERRY_REDIS_TEST_PASSWORD=boxferry-test-cache-password-not-secret"]
+network = ["systemd-backend"]
+mount = ["systemd-redis-data:/data"]
+
+[[unit]]
+name = "cron.service"
+source = "cron.container"
+exec-forbidden = ["--health-cmd"]
+image = "docker.io/library/nextcloud@sha256:611669115cccef3f96aa8eb47bd07c4d57452d894ebcfc1d81f5e8ce368e7d2d"
+command = ["/cron.sh"]
+requires = [
+  "app.service",
+  "backend-network.service",
+  "nextcloud-data-volume.service",
+]
+after = [
+  "network-online.target",
+  "app.service",
+  "backend-network.service",
+  "nextcloud-data-volume.service",
+]
+environment = [
+  "POSTGRES_HOST=db",
+  "POSTGRES_PASSWORD=boxferry-test-db-password-not-secret",
+  "REDIS_HOST=cache",
+  "REDIS_PASSWORD=boxferry-test-cache-password-not-secret",
+]
+network = ["systemd-backend"]
+mount = ["systemd-nextcloud-data:/var/www/html"]
+
+[[unit]]
+name = "db.service"
+source = "db.container"
+exec-required = ["--health-cmd"]
+image = "docker.io/library/postgres@sha256:ef257d85f76e48da1c64832459b59fcaba1a4dac97bf5d7450c77753542eee94"
+requires = ["backend-network.service", "db-data-volume.service"]
+after = [
+  "network-online.target",
+  "backend-network.service",
+  "db-data-volume.service",
+]
+environment = [
+  "POSTGRES_DB=nextcloud_test",
+  "POSTGRES_PASSWORD=boxferry-test-db-password-not-secret",
+  "POSTGRES_USER=nextcloud_test",
+]
+network = ["systemd-backend"]
+mount = ["systemd-db-data:/var/lib/postgresql/data"]
+
+[[unit]]
+name = "edge-proxy.service"
+source = "edge-proxy.container"
+exec-required = ["--health-cmd"]
+image = "docker.io/library/nginx@sha256:42a516af16b852e33b7682d5ef8acbd5d13fe08fecadc7ed98605ba5e3b26ab8"
+requires = [
+  "frontend.service",
+  "second-app.service",
+  "edge-network.service",
+]
+after = [
+  "network-online.target",
+  "frontend.service",
+  "second-app.service",
+  "edge-network.service",
+]
+environment = ["BOXFERRY_EDGE_TEST_TOKEN=boxferry-test-edge-token-not-secret"]
+publish = ["127.0.0.1:18443:8443/tcp"]
+network = ["systemd-edge"]
+mount = [
+  "/srv/boxferry-fixture/nextcloud-application/edge-proxy.conf:/etc/nginx/conf.d/edge.conf:ro,Z",
+]
+
+[[unit]]
+name = "frontend.service"
+source = "frontend.container"
+exec-required = ["--health-cmd"]
+image = "docker.io/library/nginx@sha256:42a516af16b852e33b7682d5ef8acbd5d13fe08fecadc7ed98605ba5e3b26ab8"
+requires = [
+  "app.service",
+  "backend-network.service",
+  "edge-network.service",
+  "nextcloud-data-volume.service",
+]
+after = [
+  "network-online.target",
+  "app.service",
+  "backend-network.service",
+  "edge-network.service",
+  "nextcloud-data-volume.service",
+]
+network = ["systemd-backend", "systemd-edge"]
+mount = [
+  "systemd-nextcloud-data:/var/www/html:ro",
+  "/srv/boxferry-fixture/nextcloud-application/frontend.conf:/etc/nginx/conf.d/nextcloud.conf:ro,Z",
+]
+
+[[unit]]
+name = "init.service"
+source = "init.container"
+exec-forbidden = ["--health-cmd"]
+image = "docker.io/library/nextcloud@sha256:611669115cccef3f96aa8eb47bd07c4d57452d894ebcfc1d81f5e8ce368e7d2d"
+command = ["/opt/boxferry/init-nextcloud", "--non-interactive"]
+requires = [
+  "db.service",
+  "cache.service",
+  "backend-network.service",
+  "nextcloud-data-volume.service",
+]
+after = [
+  "network-online.target",
+  "db.service",
+  "cache.service",
+  "backend-network.service",
+  "nextcloud-data-volume.service",
+]
+environment = [
+  "NEXTCLOUD_ADMIN_PASSWORD=boxferry-test-admin-password-not-secret",
+  "NEXTCLOUD_ADMIN_USER=boxferry-test-admin",
+  "POSTGRES_HOST=db",
+  "POSTGRES_PASSWORD=boxferry-test-db-password-not-secret",
+  "REDIS_HOST=cache",
+  "REDIS_PASSWORD=boxferry-test-cache-password-not-secret",
+]
+network = ["systemd-backend"]
+mount = [
+  "systemd-nextcloud-data:/var/www/html",
+  "/srv/boxferry-fixture/nextcloud-application/nextcloud.config.php:/opt/boxferry/config.php:ro,Z",
+]
+
+[[unit]]
+name = "second-app.service"
+source = "second-app.container"
+exec-required = ["--health-cmd"]
+image = "docker.io/library/alpine@sha256:14358309a308569c32bdc37e2e0e9694be33a9d99e68afb0f5ff33cc1f695dce"
+requires = ["edge-network.service"]
+after = ["network-online.target", "edge-network.service"]
+network = ["systemd-edge"]

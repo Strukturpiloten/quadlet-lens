@@ -35,6 +35,8 @@ jobs:
         run: cargo fmt --all -- --check
       - name: Check all targets
         run: cargo ci-check
+      - name: Check real-application native contracts
+        run: cargo ci-application
       - name: Check repository policies
         run: cargo ci-policy
       - name: Run Clippy

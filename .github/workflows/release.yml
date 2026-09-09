@@ -92,12 +92,18 @@ jobs:
         run: cargo ci-catalogue
       - name: Check native model and document sets
         run: cargo ci-model
+      - name: Check real-application native contracts
+        run: cargo ci-application
       - name: Check repository policies
         run: cargo ci-policy
       - name: Run Clippy
         run: cargo ci-clippy
       - name: Run tests
         run: cargo ci-test
+      - name: Validate release-candidate application units with pinned Podman
+        env:
+          QUADLET_LENS_CONTAINER_ENGINE: docker
+        run: cargo ci-application-generators
       - name: Run documentation tests
         run: cargo ci-doctest
       - name: Build documentation

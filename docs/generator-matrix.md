@@ -25,7 +25,10 @@ For each selected release, the harness:
 2. sets `QUADLET_UNIT_DIRS` to that directory;
 3. runs the system generator in dry-run mode;
 4. checks success or expected rejection; and
-5. compares stable generated fragments with the fixture contract.
+5. compares fixture-defined generated fragments and, for application contracts, exact structured
+   dependency, image, command, and Podman argument values.
+
+The harness intentionally does not snapshot incidental whitespace or the complete generated output.
 
 It does not install units, invoke `systemctl`, execute generated Podman commands, pull application
 images, or start workloads. Runtime, privilege, cgroup, network, storage, and SELinux behavior
@@ -37,10 +40,27 @@ require a separate test with its own environment contract.
 cargo ci-generators
 QUADLET_LENS_GENERATOR_LANE=full cargo ci-generators
 QUADLET_LENS_GENERATOR_VERSION=5.6.2 cargo ci-generators
+cargo ci-application-generators
 ```
 
 The default smoke lane uses releases marked `smoke = true` in the matrix. The full lane runs every
 recorded release. A single-version run is useful while developing a boundary fixture.
+
+The application lane separately validates the repository-owned Nextcloud and Forgejo contracts
+with the exact tracked-current generator. BoxFerry can validate one actual exported unit set
+without supplying its own oracle:
+
+```console
+QUADLET_LENS_APPLICATION_UNIT_DIR=/absolute/path/to/units \
+QUADLET_LENS_APPLICATION_CONTRACT=forgejo \
+QUADLET_LENS_GENERATOR_VERSION=6.1.0 \
+cargo ci-application-generators
+```
+
+The supplied directory must contain only the byte-identical reviewed unit files. Relative paths,
+symlinks, extra files, changed hashes, unknown contracts, and generator versions other than the
+contract target are rejected. The scheduled matrix and release workflow run the built-in
+application contracts; neither dry run is runtime evidence.
 
 Podman is the default outer engine. Docker can run the harness when Podman is unavailable:
 

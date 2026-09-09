@@ -1,0 +1,36 @@
+schema = 1
+id = "boxferry-forgejo-application"
+suite = "generators"
+description = "Pins the reviewed native Forgejo application unit set authored by BoxFerry."
+secrets_reviewed = true
+files = [
+  "backend.network",
+  "db-data.volume",
+  "db.container",
+  "expected-systemd.toml",
+  "forgejo-data.volume",
+  "forgejo.container",
+]
+
+[provenance]
+source = "external"
+url = "https://github.com/Strukturpiloten/boxferry/tree/68e08b9a86bcb9ced34e8d831563e732176275a1/fixtures/scenarios/forgejo-application"
+revision = "68e08b9a86bcb9ced34e8d831563e732176275a1"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "Unit files copied byte-for-byte; expected-systemd.toml is an independent QuadletLens-authored oracle."
+
+[environment]
+description = "Offline tests parse files only; opt-in tests mount the directory read-only and run a pinned dry-run generator without starting units."
+
+[expectations]
+summary = "Independent checks cover native meaning, ordered values, exact relationships, generated names, external edge network retention, and absence of runtime claims."
+
+[extensions.application]
+source-repository = "https://github.com/Strukturpiloten/boxferry"
+source-license-sha256 = "3f3d9e0024b1921b067d6f7f88deb4a60cbe7a78e76c64e3f1d7fc3b779b9d04"
+backend-network-sha256 = "7be93bb54584d2477fd57fedcb00e123d1d00794ff143034f9930290430b480a"
+db-data-volume-sha256 = "e3e5d6e859dd60294fa3a971fb52111a346a3f6cd42faca1fc46388f3c2348b2"
+db-container-sha256 = "0efc85997ad786c5d301402088339f837be98ac4c7943fa98e6cfcda2335d40e"
+forgejo-data-volume-sha256 = "e3e5d6e859dd60294fa3a971fb52111a346a3f6cd42faca1fc46388f3c2348b2"
+forgejo-container-sha256 = "be810fcf9f32ef81fff1ca8a473de5c4fe8368dafa529ae4624dd17e4a2f962d"

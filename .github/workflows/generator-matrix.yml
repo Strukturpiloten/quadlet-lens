@@ -32,3 +32,5 @@ jobs:
         run: rustup show active-toolchain
       - name: Run every pinned supported generator
         run: cargo ci-generators
+      - name: Validate real-application generated semantics
+        run: cargo ci-application-generators

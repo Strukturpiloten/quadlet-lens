@@ -1,5 +1,8 @@
 //! Contract and opt-in execution tests for exact Podman Quadlet generators.
 
+#[path = "support/application.rs"]
+mod application;
+
 use std::collections::BTreeSet;
 use std::env;
 use std::fs;
@@ -9,6 +12,11 @@ use std::str::FromStr;
 
 use quadlet_lens::capability::PodmanVersion;
 use serde::Deserialize;
+
+use application::{
+    FORGEJO_ID, NEXTCLOUD_ID, application_contract_target, known_application_units, verify_generated_application,
+    verify_known_application_fixture, verify_supplied_application_directory,
+};
 
 const MATRIX: &str = include_str!("../tools/generator-matrix.toml");
 const CONTAINER_ENVIRONMENT_RESET_FIXTURE: &str =
@@ -1500,6 +1508,225 @@ fn supported_generators_match_the_first_conversion_fixture() -> Result<(), Strin
         verify_source_path_security_options(&engine, &matrix, source, &generator, &security_labels)?;
     }
     Ok(())
+}
+
+#[test]
+fn supplied_application_directory_rejects_relative_paths() -> Result<(), String> {
+    expect_supplied_application_rejection(
+        NEXTCLOUD_ID,
+        Path::new("relative/application-units"),
+        "must be absolute",
+    )
+}
+
+#[test]
+fn supplied_application_directory_rejects_unsafe_root_paths() -> Result<(), String> {
+    let fixture = TemporaryApplicationDirectory::new(NEXTCLOUD_ID, "unsafe,path")?;
+    expect_supplied_application_rejection(NEXTCLOUD_ID, fixture.path(), "may not contain")
+}
+
+#[cfg(unix)]
+#[test]
+fn supplied_application_directory_rejects_root_symlinks() -> Result<(), String> {
+    let fixture = TemporaryApplicationDirectory::new(NEXTCLOUD_ID, "symlink-target")?;
+    let link = TemporaryApplicationSymlink::new(fixture.path(), "root-symlink")?;
+    expect_supplied_application_rejection(NEXTCLOUD_ID, link.path(), "symlink")
+}
+
+#[test]
+fn supplied_application_directory_rejects_changed_unit_hashes() -> Result<(), String> {
+    let fixture = TemporaryApplicationDirectory::new(NEXTCLOUD_ID, "changed-hash")?;
+    let changed = fixture.path().join(known_application_units(NEXTCLOUD_ID)?[0].path);
+    let mut contents =
+        fs::read_to_string(&changed).map_err(|error| format!("failed to read {}: {error}", changed.display()))?;
+    contents.push('\n');
+    fs::write(&changed, contents).map_err(|error| format!("failed to change {}: {error}", changed.display()))?;
+
+    expect_supplied_application_rejection(NEXTCLOUD_ID, fixture.path(), "SHA-256")
+}
+
+#[test]
+fn supplied_application_directory_rejects_manifest_and_unreviewed_members() -> Result<(), String> {
+    let fixture = TemporaryApplicationDirectory::new(NEXTCLOUD_ID, "extra-members")?;
+    let manifest = fixture.path().join("fixture.toml");
+    fs::write(&manifest, "arbitrary = true\n")
+        .map_err(|error| format!("failed to write {}: {error}", manifest.display()))?;
+    expect_supplied_application_rejection(NEXTCLOUD_ID, fixture.path(), "directory members differ")?;
+
+    fs::remove_file(&manifest).map_err(|error| format!("failed to remove {}: {error}", manifest.display()))?;
+    let extra = fixture.path().join("unreviewed.container");
+    fs::write(&extra, "[Container]\nImage=example.invalid/unreviewed\n")
+        .map_err(|error| format!("failed to write {}: {error}", extra.display()))?;
+    expect_supplied_application_rejection(NEXTCLOUD_ID, fixture.path(), "directory members differ")
+}
+
+#[test]
+#[ignore = "runs the exact pinned Podman generator; use cargo ci-application-generators"]
+fn application_document_sets_match_pinned_generator_contracts() -> Result<(), String> {
+    let matrix = parse_matrix()?;
+    let requested = env::var("QUADLET_LENS_GENERATOR_VERSION").unwrap_or_else(|_| matrix.tracked_current.clone());
+    PodmanVersion::from_str(&requested)
+        .map_err(|error| format!("QUADLET_LENS_GENERATOR_VERSION must be exact major.minor.patch: {error}"))?;
+
+    let supplied = env::var("QUADLET_LENS_APPLICATION_UNIT_DIR").ok();
+    let selected_contract = env::var("QUADLET_LENS_APPLICATION_CONTRACT").ok();
+    if supplied.is_some() != selected_contract.is_some() {
+        return Err(
+            "QUADLET_LENS_APPLICATION_UNIT_DIR and QUADLET_LENS_APPLICATION_CONTRACT must be set together".to_owned(),
+        );
+    }
+
+    let mut applications = Vec::new();
+    if let (Some(directory), Some(contract)) = (supplied, selected_contract) {
+        let id = match contract.as_str() {
+            "nextcloud" => NEXTCLOUD_ID,
+            "forgejo" => FORGEJO_ID,
+            _ => {
+                return Err(format!(
+                    "unknown QUADLET_LENS_APPLICATION_CONTRACT `{contract}`; expected nextcloud or forgejo"
+                ));
+            }
+        };
+        let contract_root = verify_known_application_fixture(id)?;
+        let unit_root = verify_supplied_application_directory(id, Path::new(&directory))?;
+        applications.push((id, contract_root, unit_root));
+    } else {
+        for id in [NEXTCLOUD_ID, FORGEJO_ID] {
+            let root = verify_known_application_fixture(id)?;
+            applications.push((id, root.clone(), root));
+        }
+    }
+
+    let external_request = env::var_os("QUADLET_LENS_APPLICATION_UNIT_DIR").is_some();
+    for (id, contract_root, unit_root) in applications {
+        let target = application_contract_target(&contract_root)?;
+        if requested != target {
+            if external_request {
+                return Err(format!(
+                    "{id}: supplied application validation requires exact Podman {target}, requested {requested}"
+                ));
+            }
+            if requested == matrix.tracked_current {
+                return Err(format!(
+                    "{id}: built-in application contract must target generator matrix tracked_current {requested}, found {target}"
+                ));
+            }
+            eprintln!(
+                "Podman {requested}: application contracts explicitly target {target}; focused older-version generator run leaves that separate evidence tier unchanged"
+            );
+            continue;
+        }
+        let generated = run_application_generator(&matrix, &requested, &unit_root)?;
+        verify_generated_application(id, &contract_root, &requested, &generated)?;
+        eprintln!("Podman {requested}: {id} generated semantics match independent contract");
+    }
+    Ok(())
+}
+
+struct TemporaryApplicationDirectory {
+    path: PathBuf,
+}
+
+impl TemporaryApplicationDirectory {
+    fn new(id: &str, label: &str) -> Result<Self, String> {
+        let path = unique_application_test_path(label)?;
+        fs::create_dir(&path).map_err(|error| format!("failed to create {}: {error}", path.display()))?;
+        let temporary = Self { path };
+        let source = verify_known_application_fixture(id)?;
+        for unit in known_application_units(id)? {
+            let from = source.join(unit.path);
+            let to = temporary.path.join(unit.path);
+            fs::copy(&from, &to)
+                .map_err(|error| format!("failed to copy {} to {}: {error}", from.display(), to.display()))?;
+        }
+        Ok(temporary)
+    }
+
+    fn path(&self) -> &Path {
+        &self.path
+    }
+}
+
+impl Drop for TemporaryApplicationDirectory {
+    fn drop(&mut self) {
+        let _ = fs::remove_dir_all(&self.path);
+    }
+}
+
+#[cfg(unix)]
+struct TemporaryApplicationSymlink {
+    path: PathBuf,
+}
+
+#[cfg(unix)]
+impl TemporaryApplicationSymlink {
+    fn new(target: &Path, label: &str) -> Result<Self, String> {
+        use std::os::unix::fs::symlink;
+
+        let path = unique_application_test_path(label)?;
+        symlink(target, &path).map_err(|error| format!("failed to create {}: {error}", path.display()))?;
+        Ok(Self { path })
+    }
+
+    fn path(&self) -> &Path {
+        &self.path
+    }
+}
+
+#[cfg(unix)]
+impl Drop for TemporaryApplicationSymlink {
+    fn drop(&mut self) {
+        let _ = fs::remove_file(&self.path);
+    }
+}
+
+fn unique_application_test_path(label: &str) -> Result<PathBuf, String> {
+    let nonce = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_err(|error| format!("system clock before Unix epoch: {error}"))?
+        .as_nanos();
+    Ok(env::temp_dir().join(format!(
+        "quadlet-lens-application-{label}-{}-{nonce}",
+        std::process::id()
+    )))
+}
+
+fn expect_supplied_application_rejection(id: &str, root: &Path, expected: &str) -> Result<(), String> {
+    let error = match verify_supplied_application_directory(id, root) {
+        Ok(accepted) => {
+            return Err(format!(
+                "supplied application directory {} unexpectedly accepted as {}",
+                root.display(),
+                accepted.display()
+            ));
+        }
+        Err(error) => error,
+    };
+    if !error.contains(expected) {
+        return Err(format!(
+            "supplied application rejection `{error}` did not contain `{expected}`"
+        ));
+    }
+    Ok(())
+}
+
+fn run_application_generator(matrix: &GeneratorMatrix, version: &str, unit_root: &Path) -> Result<String, String> {
+    let engine = env::var("QUADLET_LENS_CONTAINER_ENGINE").unwrap_or_else(|_| "podman".to_owned());
+    let output = if let Some(image) = matrix.image.iter().find(|image| image.version == version) {
+        verify_image_version(&engine, image)?;
+        run_generator(&engine, image, unit_root)?
+    } else if let Some(source) = matrix.source.iter().find(|source| source.version == version) {
+        let generator = build_source_generator(&engine, matrix, source)?;
+        verify_source_version(&engine, &matrix.builder_reference, source, &generator)?;
+        run_source_generator(&engine, &matrix.builder_reference, source, &generator, unit_root)?
+    } else {
+        return Err(format!(
+            "Podman {version} is outside pinned generator matrix {} through {}",
+            matrix.support_minimum, matrix.tracked_current
+        ));
+    };
+    String::from_utf8(output.stdout)
+        .map_err(|error| format!("Podman {version} generator emitted non-UTF-8 output: {error}"))
 }
 
 fn validate_digest_pinned_reference(reference: &str, expected_prefix: &str) -> Result<(), String> {
@@ -4653,6 +4880,7 @@ fn build_source_generator(engine: &str, matrix: &GeneratorMatrix, source: &Gener
             "/usr/local/go/bin/go",
             &matrix.builder_reference,
             "build",
+            "-buildvcs=false",
             "-trimpath",
             "-o",
             "/out/quadlet",

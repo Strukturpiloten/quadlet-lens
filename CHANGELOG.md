@@ -5,6 +5,12 @@ Versioning for its documented pre-1.0 public API.
 
 ## [Unreleased]
 
+### Added
+
+- Add immutable Nextcloud and Forgejo Quadlet application contracts, deterministic native
+  conformance assertions, and a reusable exact-version Podman generator validator for supplied
+  document sets ([#98](https://github.com/Strukturpiloten/quadlet-lens/issues/98)).
+
 ## [0.2.3](https://github.com/Strukturpiloten/quadlet-lens/compare/v0.2.2...v0.2.3) - 2026-09-07
 
 ### Added
