@@ -307,6 +307,51 @@ fn local_developer_workflow_covers_deterministic_release_checks() -> Result<(), 
 }
 
 #[test]
+fn real_application_contracts_have_distinct_deterministic_and_generator_gates() -> Result<(), String> {
+    let cargo_aliases = read_repository_file(".cargo/config.toml")?;
+    for required in [
+        "ci-application = \"test --locked --test application_conformance\"",
+        "ci-application-generators = \"test --locked --test generators application_document_sets_match_pinned_generator_contracts -- --exact --ignored --nocapture\"",
+        "ci-generators = \"test --locked --test generators supported_generators_match_the_first_conversion_fixture -- --exact --ignored --nocapture\"",
+    ] {
+        if cargo_aliases.matches(required).count() != 1 {
+            return Err(format!("Cargo aliases must contain exactly one `{required}`"));
+        }
+    }
+
+    for path in [
+        "scripts/check-all.sh",
+        ".github/workflows/ci.yml",
+        ".github/workflows/release.yml",
+    ] {
+        let contents = read_repository_file(path)?;
+        if contents.matches("cargo ci-application\n").count() != 1 {
+            return Err(format!(
+                "{path} must run deterministic application contracts exactly once"
+            ));
+        }
+    }
+    for path in [
+        ".github/workflows/generator-matrix.yml",
+        ".github/workflows/release.yml",
+    ] {
+        let contents = read_repository_file(path)?;
+        if contents.matches("cargo ci-application-generators").count() != 1 {
+            return Err(format!("{path} must run pinned application generators exactly once"));
+        }
+    }
+
+    let manifest = read_repository_file("Cargo.toml")?;
+    let lockfile = read_repository_file("Cargo.lock")?;
+    if manifest.lines().any(|line| line.trim_start().starts_with("boxferry ="))
+        || lockfile.contains("name = \"boxferry\"")
+    {
+        return Err("QuadletLens production dependencies must not include BoxFerry".to_owned());
+    }
+    Ok(())
+}
+
+#[test]
 fn issue_to_pr_workflow_requires_primary_ownership_and_the_complete_local_gate() -> Result<(), String> {
     for (path, required) in [
         (

@@ -47,3 +47,18 @@ Every `files` entry is a relative path inside its fixture directory. Absolute pa
 `environment.description` states whether specifier expansion, working-directory assumptions, Podman or systemd versions, or runtime state affect the case. Additional structured fields may be added inside the table.
 
 `expectations.summary` explains the behavior protected by the fixture. Expected documents, diagnostics, generated services, exit states, and normalization rules belong in suite-specific fields or under `extensions`.
+
+## External application generator contracts
+
+The bounded `boxferry-*-application` fixtures use `[extensions.application]` for the immutable
+source repository, source-license hash, and one SHA-256 per copied unit. Their listed
+`expected-systemd.toml` is independently authored by QuadletLens and contains the exact target
+version and generated-unit inventory; exact structured dependency, image, command, environment,
+publication, network, mount, and internal-network values; and bounded ExecStart-scoped option
+rules.
+Generator expectations are not copied from BoxFerry and callers cannot replace them.
+
+These contracts prove exact structured semantics parsed from dry-run generator output, not
+byte-exact complete output. Environment-file loading,
+specifier expansion, systemd activation, SELinux behavior, container execution, and application
+semantics require separately named evidence.

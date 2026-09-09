@@ -1,0 +1,76 @@
+schema = 1
+application = "forgejo"
+target-version = "6.1.0"
+units = [
+  "backend-network.service",
+  "db-data-volume.service",
+  "db.service",
+  "forgejo-data-volume.service",
+  "forgejo.service",
+]
+
+[[unit]]
+name = "backend-network.service"
+source = "backend.network"
+after = ["network-online.target"]
+internal = true
+exec = ["network", "create", "--ignore", "--internal", "systemd-backend"]
+
+[[unit]]
+name = "db-data-volume.service"
+source = "db-data.volume"
+after = ["network-online.target"]
+exec = ["volume", "create", "--ignore", "systemd-db-data"]
+
+[[unit]]
+name = "forgejo-data-volume.service"
+source = "forgejo-data.volume"
+after = ["network-online.target"]
+exec = ["volume", "create", "--ignore", "systemd-forgejo-data"]
+
+[[unit]]
+name = "db.service"
+source = "db.container"
+image = "docker.io/library/postgres@sha256:ef257d85f76e48da1c64832459b59fcaba1a4dac97bf5d7450c77753542eee94"
+requires = ["backend-network.service", "db-data-volume.service"]
+after = [
+  "network-online.target",
+  "backend-network.service",
+  "db-data-volume.service",
+]
+environment = [
+  "POSTGRES_DB=forgejo",
+  "POSTGRES_PASSWORD=boxferry-public-db-password-canary",
+  "POSTGRES_USER=forgejo",
+]
+network = ["systemd-backend"]
+mount = ["systemd-db-data:/var/lib/postgresql/data"]
+
+[[unit]]
+name = "forgejo.service"
+source = "forgejo.container"
+exec-required = ["--user 1000:1000"]
+image = "codeberg.org/forgejo/forgejo@sha256:214f4ae63ee78be1e445e58573c88dc7215e72091210852e0df94eaac1a25685"
+requires = ["backend-network.service", "forgejo-data-volume.service"]
+after = [
+  "network-online.target",
+  "backend-network.service",
+  "forgejo-data-volume.service",
+]
+environment = [
+  "FORGEJO__database__DB_TYPE=postgres",
+  "FORGEJO__database__HOST=db:5432",
+  "FORGEJO__database__NAME=forgejo",
+  "FORGEJO__database__PASSWD=boxferry-public-db-password-canary",
+  "FORGEJO__database__SSL_MODE=disable",
+  "FORGEJO__database__USER=forgejo",
+  "FORGEJO__security__INSTALL_LOCK=true",
+  "FORGEJO__security__SECRET_KEY=boxferry-public-forgejo-secret-canary",
+  "FORGEJO__server__DOMAIN=127.0.0.1",
+  "FORGEJO__server__ROOT_URL=http://127.0.0.1:13000/",
+  "FORGEJO__server__SSH_DOMAIN=127.0.0.1",
+  "FORGEJO__server__SSH_PORT=12222",
+]
+publish = ["127.0.0.1:13000:3000", "127.0.0.1:12222:2222"]
+network = ["systemd-backend", "edge"]
+mount = ["systemd-forgejo-data:/var/lib/gitea"]

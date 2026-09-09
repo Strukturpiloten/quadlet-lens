@@ -1,10 +1,12 @@
 [alias]
 ci-check = "check --locked --workspace --all-targets --all-features"
+ci-application = "test --locked --test application_conformance"
+ci-application-generators = "test --locked --test generators application_document_sets_match_pinned_generator_contracts -- --exact --ignored --nocapture"
 ci-catalogue = "test --locked --test capabilities"
 ci-clippy = "clippy --locked --workspace --all-targets --all-features -- -D warnings"
 ci-doc = "doc --locked --workspace --all-features --no-deps"
 ci-doctest = "test --locked --doc --workspace --all-features"
-ci-generators = "test --locked --test generators -- --ignored --nocapture"
+ci-generators = "test --locked --test generators supported_generators_match_the_first_conversion_fixture -- --exact --ignored --nocapture"
 ci-model = "test --locked --test model --test document_sets --test render"
 ci-package = "package --locked"
 ci-policy = "test --locked --test repository_policy --test specification_inventory"

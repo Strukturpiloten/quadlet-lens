@@ -10,7 +10,7 @@ cd -- "${repository_root}"
 
 current_step="preflight"
 step=0
-readonly total_steps=23
+readonly total_steps=24
 
 fail() {
   printf 'QuadletLens local validation failed: %s\n' "$1" >&2
@@ -146,6 +146,7 @@ run_step "Audit GitHub Actions security" zizmor .github/workflows
 run_step "Check all workspace targets and features" cargo ci-check
 run_step "Check capability catalogue" cargo ci-catalogue
 run_step "Check native model and document sets" cargo ci-model
+run_step "Check real-application native contracts" cargo ci-application
 run_step "Check repository policies" cargo ci-policy
 run_step "Run Clippy with warnings denied" cargo ci-clippy
 run_step "Run workspace tests" cargo ci-test

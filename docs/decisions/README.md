@@ -15,6 +15,10 @@ ports, mounts, commands, and build environment views.
 ADR [0012](0012-caller-authorized-external-environment-resolution.md) accepts caller-authorized
 external environment resolution and reset-safe generated ordering.
 
+[ADR 0014](0014-independent-application-generator-conformance.md) separates immutable
+application inputs, independently authored native expectations, exact generator evidence, and
+runtime claims.
+
 | ADR                                                                | Status     | Decision                                                                               |
 | ------------------------------------------------------------------ | ---------- | -------------------------------------------------------------------------------------- |
 | [0001](0001-project-boundaries-and-origin.md)                      | accepted   | Independent Quadlet library, data-driven capabilities, and from-scratch implementation |
@@ -28,5 +32,6 @@ external environment resolution and reset-safe generated ordering.
 | [0009](0009-validated-programmatic-generation.md)                  | accepted   | Typed native keys, exact values, deterministic output, and parse-back validation       |
 | [0010](0010-consolidated-0.2-public-api.md)                        | accepted   | Consolidated 0.2.x model API without compatibility-only re-exports                     |
 | [0011](0011-authored-environment-and-systemd-target-boundaries.md) | accepted   | Separate authored environment semantics and opt-in systemd target context              |
+| [0014](0014-independent-application-generator-conformance.md)      | accepted   | Independent application contracts and exact pinned-generator validation                |
 
 Use the next four-digit number for new decisions. Include context, decision, consequences, and alternatives. Supersede accepted decisions with a new ADR rather than rewriting history.

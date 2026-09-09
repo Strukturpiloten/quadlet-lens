@@ -12,9 +12,13 @@ external generator or runtime evidence only when a lower layer cannot establish 
 | Generation        | Builder validation, deterministic output, and parse-back          | yes                        |
 | Capability        | Schema, ranges, evidence, and boundary evaluation                 | yes                        |
 | Repository policy | Fixtures, workflows, documentation, and release contracts         | yes                        |
-| Generator         | Exact Podman dry-run output                                       | opt-in or scheduled        |
+| Generator         | Version-pinned Podman dry-run semantics                           | opt-in or scheduled        |
 | Real-world corpus | Immutable external source ingestion                               | opt-in                     |
 | Runtime           | A named installed environment and behavior                        | only for an explicit claim |
+
+`application-conformance` is an ordinary deterministic layer for immutable application document
+sets and independent native semantic expectations. Actual Podman generation remains in the
+separate opt-in generator layer.
 
 Coverage floors are regression alarms, not substitutes for assertions. The project does not require
 100% coverage, a fuzzing program, or every host and privilege combination.
@@ -69,6 +73,7 @@ cargo fmt --all -- --check
 cargo ci-check
 cargo ci-catalogue
 cargo ci-model
+cargo ci-application
 cargo ci-policy
 cargo ci-clippy
 cargo ci-test
@@ -82,6 +87,7 @@ Opt-in evidence tiers are:
 ```console
 cargo ci-generators
 QUADLET_LENS_GENERATOR_LANE=full cargo ci-generators
+cargo ci-application-generators
 cargo ci-real-world-quadlet
 ```
 

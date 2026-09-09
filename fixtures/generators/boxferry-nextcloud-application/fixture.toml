@@ -1,0 +1,52 @@
+schema = 1
+id = "boxferry-nextcloud-application"
+suite = "generators"
+description = "Pins the reviewed native Nextcloud application unit set authored by BoxFerry."
+secrets_reviewed = true
+files = [
+  "app.container",
+  "backend.network",
+  "cache.container",
+  "cron.container",
+  "db-data.volume",
+  "db.container",
+  "edge-proxy.container",
+  "edge.network",
+  "expected-systemd.toml",
+  "frontend.container",
+  "init.container",
+  "nextcloud-data.volume",
+  "redis-data.volume",
+  "second-app.container",
+]
+
+[provenance]
+source = "external"
+url = "https://github.com/Strukturpiloten/boxferry/tree/18716257362932e7520d5aed68412ac7c8492e6d/fixtures/scenarios/nextcloud-application"
+revision = "18716257362932e7520d5aed68412ac7c8492e6d"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "Unit files copied byte-for-byte; expected-systemd.toml is an independent QuadletLens-authored oracle."
+
+[environment]
+description = "Offline tests parse files only; opt-in tests mount the directory read-only and run a pinned dry-run generator without starting units."
+
+[expectations]
+summary = "Independent checks cover application-sized native meaning, ordered values, exact relationships, generated names, and absence of runtime claims."
+
+[extensions.application]
+source-repository = "https://github.com/Strukturpiloten/boxferry"
+source-license-sha256 = "3f3d9e0024b1921b067d6f7f88deb4a60cbe7a78e76c64e3f1d7fc3b779b9d04"
+app-container-sha256 = "7cd2f0a4f7c49fca3380fc3001c927c6660e25556ca83245d977e1a270e11bc5"
+backend-network-sha256 = "7be93bb54584d2477fd57fedcb00e123d1d00794ff143034f9930290430b480a"
+cache-container-sha256 = "f21a58fb97f1f6874500a047b0b945d282bbe8b94fcf6b8cd1f03c008c84cece"
+cron-container-sha256 = "378e6f5d7e95c6ecc45f48143154e5055c312e042d618448eaa0e3f479419046"
+db-data-volume-sha256 = "e3e5d6e859dd60294fa3a971fb52111a346a3f6cd42faca1fc46388f3c2348b2"
+db-container-sha256 = "45e26e7b16a997615cfec93ec56d369a032abc6181b05a8b54d69122688dfca3"
+edge-proxy-container-sha256 = "3e487e00c12a414c42669aa0e84112cafd59fd08ae8a350b653f8b6603a98cef"
+edge-network-sha256 = "15c4fdbc7b62313d7d0d5bcf7689e03da9bb44376fbcecb149baf296a8bcd9bf"
+frontend-container-sha256 = "0e4603434a43675e6a118b3bd99659344b2230eedcce778b576d770acdc9ec7e"
+init-container-sha256 = "4fa8b5c2e142f56ef1547cadf50bf1e2702adc3b9aaf226dfd17bb4828673514"
+nextcloud-data-volume-sha256 = "e3e5d6e859dd60294fa3a971fb52111a346a3f6cd42faca1fc46388f3c2348b2"
+redis-data-volume-sha256 = "e3e5d6e859dd60294fa3a971fb52111a346a3f6cd42faca1fc46388f3c2348b2"
+second-app-container-sha256 = "519276edbda2848f3bfe5a0ad0af42ace597b6661ad71a2fccc26a1dfed289f9"
