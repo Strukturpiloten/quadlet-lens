@@ -1,7 +1,7 @@
 schema = 1
 support_minimum = "5.4.0"
 # renovate: datasource=github-releases depName=podman-container-tools/podman
-tracked_current = "6.1.0"
+tracked_current = "6.1.1"
 checked_on = "2026-08-17"
 official_image_maximum = "5.8.2"
 source_repository = "https://github.com/podman-container-tools/podman.git"
