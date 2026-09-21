@@ -29,11 +29,13 @@ trusted-publishing permissions.
 
 ## Runner isolation
 
-The GitHub-hosted Docker runner explicitly opts in to a privileged outer
+The GitHub-hosted Docker runner explicitly opts in to a privileged, AppArmor-unconfined outer
 container only while invoking a Podman generator dry run. Podman re-executes
-its native binary during that operation; the privilege supplies the isolation
-that re-exec requires. It is not available to source builds, version probes,
-or non-generator commands. The outer generator image may still be pulled and
+its native binary during that operation; the bounded outer runtime settings supply the isolation
+that re-exec requires. The exact image-version probe invokes Podman in that
+same image and receives the AppArmor exception, but never privilege. Neither
+exception is available to source builds, source-version probes, or other
+non-generator commands. The outer generator image may still be pulled and
 executed. The privilege does not authorize installation, systemd activation,
 generated-command execution, generated application-image pulls, or application
 runtime execution.
