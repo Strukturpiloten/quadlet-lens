@@ -1087,16 +1087,41 @@ fn validate_current_target_metadata(matrix: &GeneratorMatrix) -> Result<(), Stri
     Ok(())
 }
 
+fn replace_matrix_string_assignment(matrix: &str, key: &str, value: Option<&str>) -> Result<String, String> {
+    let mut matches = 0;
+    let mut lines = matrix
+        .lines()
+        .filter_map(|line| {
+            let is_target = line
+                .split_once('=')
+                .is_some_and(|(candidate, _)| candidate.trim() == key);
+            if !is_target {
+                return Some(line.to_owned());
+            }
+            matches += 1;
+            value.map(|value| format!("{key} = \"{value}\""))
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    if matrix.ends_with('\n') {
+        lines.push('\n');
+    }
+    if matches != 1 {
+        return Err(format!("expected one `{key}` assignment, found {matches}"));
+    }
+    Ok(lines)
+}
+
 #[test]
 fn generator_matrix_requires_a_discovery_signal_and_keeps_it_separate_from_reviewed_evidence() -> Result<(), String> {
-    let missing_discovery = MATRIX.replacen("latest_upstream = \"6.1.0\"\n", "", 1);
+    let missing_discovery = replace_matrix_string_assignment(MATRIX, "latest_upstream", None)?;
     assert!(parse_generator_matrix(&missing_discovery).is_err());
 
-    let stale_discovery = MATRIX.replacen("latest_upstream = \"6.1.0\"", "latest_upstream = \"5.4.0\"", 1);
+    let stale_discovery = replace_matrix_string_assignment(MATRIX, "latest_upstream", Some("5.4.0"))?;
     let stale = parse_generator_matrix(&stale_discovery)?;
     assert!(validate_current_target_metadata(&stale).is_err());
 
-    let discovered_update = MATRIX.replacen("latest_upstream = \"6.1.0\"", "latest_upstream = \"6.1.2\"", 1);
+    let discovered_update = replace_matrix_string_assignment(MATRIX, "latest_upstream", Some("999.0.0"))?;
     let discovered = parse_generator_matrix(&discovered_update)?;
     validate_current_target_metadata(&discovered)?;
     assert_eq!(discovered.tracked_current, "6.1.0");

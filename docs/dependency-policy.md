@@ -50,6 +50,13 @@ Their exact sources are:
 The Dev Container and CI run the same repository file checks. Renovate may propose version changes,
 but every update receives the normal tests and review.
 
+Renovate's global three-day minimum release age applies to direct dependency updates. Its synthetic
+lock-file maintenance updates cannot prove the release dates of every newly resolved package, so
+they use a zero-day Renovate override only after the shared, fail-closed lockfile release-age guard
+has checked every newly introduced registry package is at least 72 hours old and the required
+aggregate PR gate succeeds. Its immutable revision has one Renovate owner. Podman discovery, Dev
+Container, and checksum-pinned tool updates remain manual.
+
 ## Review checklist
 
 Before merging a dependency change:
