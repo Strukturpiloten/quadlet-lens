@@ -40,9 +40,21 @@ continues to identify repository `quadlet-lens`, workflow `release.yml`, and env
 3. Merge the release-plz pull request. Only a merged pull request whose head starts with
    `release-plz-` dispatches the protected `Release` workflow. The dispatcher retries bounded
    GitHub associated-pull-request metadata before concluding that a push is not a release merge.
-4. Approve the `release` environment deployment. The workflow revalidates the repository,
-   publishes through trusted publishing, attaches the attested crate and checksum, and publishes
-   the immutable GitHub release.
+
+4. Release first calls the complete deterministic CI workflow and the reusable native generator
+   workflow at the exact candidate SHA. The latter executes the full pinned generator matrix and
+   the existing tracked-current application-generator lane. It uploads current-run, task-labelled
+   evidence; a missing, failed, cancelled, timed-out, or unexpectedly skipped prerequisite blocks
+   the fail-closed release gate.
+
+5. A maintainer can dispatch Release with `validation_only` to run that identical gate without a
+   crate publication, tag, draft release, asset, or other release mutation. Only the final,
+   already-gated publication job receives release credentials.
+
+6. Approve the `release` environment deployment for a publication run. The final gated job builds
+   the package, publishes through trusted publishing, attaches the attested crate and checksum,
+   and publishes the immutable GitHub release; it does not repeat validation with release
+   credentials.
 
 GitHub uses the pull-request title as the squash commit title, so the title is the release
 classification contract. Release-plz creates or updates a release pull request only when at least
@@ -73,9 +85,9 @@ only that file from Prettier so generated wrapping cannot make a release pull re
 
 ## Recovery
 
-`workflow_dispatch` remains available for release-plz preparation and protected publication
-retries. Rerun `Release` from the same default-branch commit after a transient failure; the
-workflow verifies an existing tag, replaces only its own draft release, and skips a crate version
-already visible on crates.io. Never replace a published tag or release. If a corrected workflow
-needs a new commit after an unpublished tag was created, remove only that unpublished tag before
-retrying.
+`workflow_dispatch` remains available for release-plz preparation, validation-only evidence, and
+protected publication retries. Rerun `Release` from the same default-branch commit after a
+transient failure; the workflow verifies an existing tag, replaces only its own draft release, and
+skips a crate version already visible on crates.io. Never replace a published tag or release. If a
+corrected workflow needs a new commit after an unpublished tag was created, remove only that
+unpublished tag before retrying.

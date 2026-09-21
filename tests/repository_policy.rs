@@ -46,38 +46,37 @@ fn repository_supply_chain_has_single_sources_and_immutable_pins() -> Result<(),
 }
 
 #[test]
-fn public_api_compatibility_runs_in_ci_and_release() -> Result<(), String> {
+fn public_api_compatibility_runs_in_reusable_ci() -> Result<(), String> {
     const ACTION: &str = "obi1kenobi/cargo-semver-checks-action@6b69fcf40e9b5fb17adeb57e4b6ecd020649a239 # v2.9";
     const CONFIGURATION: &str = "package: quadlet-lens";
 
-    for workflow_name in ["ci.yml", "release.yml"] {
-        let workflow_path = repository_root().join(".github/workflows").join(workflow_name);
-        let workflow = fs::read_to_string(&workflow_path)
-            .map_err(|error| format!("failed to read {}: {error}", workflow_path.display()))?;
+    let workflow_name = "ci.yml";
+    let workflow_path = repository_root().join(".github/workflows").join(workflow_name);
+    let workflow = fs::read_to_string(&workflow_path)
+        .map_err(|error| format!("failed to read {}: {error}", workflow_path.display()))?;
 
-        let configured_action = format!("uses: {ACTION}\n        with:\n          {CONFIGURATION}");
-        if workflow.matches(ACTION).count() != 1
-            || workflow.matches(&configured_action).count() != 1
-            || workflow.contains("release-type:")
-        {
-            return Err(format!(
-                "{workflow_name} must contain one version-derived cargo-semver-checks action for quadlet-lens"
-            ));
-        }
+    let configured_action = format!("uses: {ACTION}\n        with:\n          {CONFIGURATION}");
+    if workflow.matches(ACTION).count() != 1
+        || workflow.matches(&configured_action).count() != 1
+        || workflow.contains("release-type:")
+    {
+        return Err(format!(
+            "{workflow_name} must contain one version-derived cargo-semver-checks action for quadlet-lens"
+        ));
     }
 
     Ok(())
 }
 
 #[test]
-fn coverage_ratchet_runs_in_ci_and_release() -> Result<(), String> {
+fn coverage_ratchet_runs_in_reusable_ci() -> Result<(), String> {
     const CLEAN: &str = "cargo llvm-cov clean --locked";
     const COMMAND: &str = "cargo llvm-cov --locked --no-clean --workspace --all-features --all-targets --summary-only\n          --fail-under-regions 91 --fail-under-functions 92 --fail-under-lines 92";
 
     let dockerfile = read_repository_file(".devcontainer/Dockerfile")?;
     let expected_version = pinned_cargo_llvm_cov_version(&dockerfile, ".devcontainer/Dockerfile")?;
 
-    for workflow_name in ["ci.yml", "release.yml"] {
+    for workflow_name in ["ci.yml"] {
         let workflow_path = repository_root().join(".github/workflows").join(workflow_name);
         let workflow = fs::read_to_string(&workflow_path)
             .map_err(|error| format!("failed to read {}: {error}", workflow_path.display()))?;
@@ -240,15 +239,8 @@ fn ci_workflow_enforces_portability_and_an_actionable_pr_gate() -> Result<(), St
 #[test]
 fn release_workflow_rechecks_the_msrv() -> Result<(), String> {
     let workflow = read_repository_file(".github/workflows/release.yml")?;
-    for required in [
-        "- name: Read the workspace MSRV",
-        "rustup toolchain install \"${RUST_MSRV}\" --profile minimal",
-        "cargo \"+${RUST_MSRV}\" ci-check",
-        "cargo \"+${RUST_MSRV}\" ci-policy",
-    ] {
-        if !workflow.contains(required) {
-            return Err(format!("release workflow is missing MSRV guard `{required}`"));
-        }
+    if !workflow.contains("uses: ./.github/workflows/ci.yml") {
+        return Err("Release must reuse CI's MSRV validation".to_owned());
     }
     Ok(())
 }
@@ -364,11 +356,7 @@ fn real_application_contracts_have_distinct_deterministic_and_generator_gates() 
         }
     }
 
-    for path in [
-        "scripts/check-all.sh",
-        ".github/workflows/ci.yml",
-        ".github/workflows/release.yml",
-    ] {
+    for path in ["scripts/check-all.sh", ".github/workflows/ci.yml"] {
         let contents = read_repository_file(path)?;
         if contents.matches("cargo ci-application\n").count() != 1 {
             return Err(format!(
@@ -376,14 +364,16 @@ fn real_application_contracts_have_distinct_deterministic_and_generator_gates() 
             ));
         }
     }
-    for path in [
-        ".github/workflows/generator-matrix.yml",
-        ".github/workflows/release.yml",
-    ] {
-        let contents = read_repository_file(path)?;
-        if contents.matches("cargo ci-application-generators").count() != 1 {
-            return Err(format!("{path} must run pinned application generators exactly once"));
-        }
+    let path = ".github/workflows/generator-matrix.yml";
+    let contents = read_repository_file(path)?;
+    if contents.matches("cargo ci-application-generators").count() != 1 {
+        return Err(format!("{path} must run pinned application generators exactly once"));
+    }
+    let release = read_repository_file(".github/workflows/release.yml")?;
+    if !release.contains("uses: ./.github/workflows/ci.yml")
+        || !release.contains("uses: ./.github/workflows/generator-matrix.yml")
+    {
+        return Err("Release must reuse deterministic and native generator validation".to_owned());
     }
 
     let manifest = read_repository_file("Cargo.toml")?;
@@ -510,7 +500,7 @@ fn non_rust_file_quality_is_locked_and_required() -> Result<(), String> {
         }
     }
 
-    for workflow_name in ["ci.yml", "release.yml"] {
+    for workflow_name in ["ci.yml"] {
         let workflow = read_repository_file(&format!(".github/workflows/{workflow_name}"))?;
         for required in [
             "npm ci --ignore-scripts",
@@ -1065,7 +1055,7 @@ fn renovate_tracks_every_directly_pinned_development_tool() -> Result<(), String
         );
     }
 
-    for workflow_name in ["ci.yml", "release.yml"] {
+    for workflow_name in ["ci.yml"] {
         let workflow = read_repository_file(&format!(".github/workflows/{workflow_name}"))?;
         for required in [
             "renovate: datasource=crate depName=cargo-llvm-cov",
