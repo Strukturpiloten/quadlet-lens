@@ -71,11 +71,13 @@ QUADLET_LENS_CONTAINER_ENGINE=docker cargo ci-generators
 ```
 
 On GitHub-hosted Docker runners, the Podman system generator re-executes its
-native binary and requires a privileged _outer_ container. The scheduled,
+native binary and requires a privileged, explicitly AppArmor-unconfined _outer_ container. The scheduled,
 manual, and Release reusable workflow sets
-`QUADLET_LENS_DOCKER_PRIVILEGED_GENERATORS=true` only for those generator dry
-runs. It does not apply to image-version probes, source builds, or any
-non-generator command. The outer generator image may still be pulled and
+`QUADLET_LENS_DOCKER_PRIVILEGED_GENERATORS=true` for generator dry runs and
+the exact image-version probe that invokes Podman in the same image. Privilege
+remains limited to generator dry runs; the image-version probe receives only
+the AppArmor exception. The setting does not apply to source builds,
+source-version probes, or any other non-generator command. The outer generator image may still be pulled and
 executed; the dry-run boundary means no generated unit or Podman command is
 executed, and no generated application image is pulled or workload started.
 

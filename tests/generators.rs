@@ -4896,9 +4896,12 @@ fn run_generator_raw(engine: &str, image: &GeneratorImage, fixture: &Path) -> Re
 /// Returns the outer-container command for a generator dry run.
 ///
 /// Podman re-executes itself while running its system generator. GitHub-hosted
-/// Docker needs the explicitly opted-in privileged outer container for that
-/// operation. The flag is deliberately unavailable to source builds, version
-/// probes, and every non-generator command.
+/// Docker needs an explicitly opted-in privileged, AppArmor-unconfined outer
+/// container for that operation. The image version probe also needs the
+/// `AppArmor` exception because it invokes Podman in the same image, but never
+/// receives privilege. The opt-in is deliberately unavailable to source
+/// builds, source version probes, and every non-generator command other than
+/// the image version probe.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum ContainerOperation {
     ImageVersionProbe,
@@ -4911,6 +4914,13 @@ enum ContainerOperation {
 impl ContainerOperation {
     const fn is_generator(self) -> bool {
         matches!(self, Self::ImageGenerator | Self::SourceGenerator)
+    }
+
+    const fn needs_docker_apparmor_unconfined(self) -> bool {
+        matches!(
+            self,
+            Self::ImageVersionProbe | Self::ImageGenerator | Self::SourceGenerator
+        )
     }
 }
 
@@ -4930,27 +4940,40 @@ fn generator_container_command(engine: &str, operation: ContainerOperation) -> C
 
 fn container_run_prefix(engine: &str, operation: ContainerOperation, docker_privileged: bool) -> Vec<&'static str> {
     let mut arguments = vec!["run"];
-    if operation.is_generator()
-        && Path::new(engine).file_name().and_then(|name| name.to_str()) == Some("docker")
-        && docker_privileged
-    {
+    let opted_in_docker =
+        Path::new(engine).file_name().and_then(|name| name.to_str()) == Some("docker") && docker_privileged;
+    if opted_in_docker && operation.is_generator() {
         arguments.push("--privileged");
+    }
+    if opted_in_docker && operation.needs_docker_apparmor_unconfined() {
+        arguments.extend(["--security-opt", "apparmor=unconfined"]);
     }
     arguments
 }
 
 #[test]
-fn privileged_outer_container_is_limited_to_an_explicit_docker_generator_opt_in() {
+fn docker_outer_runtime_exceptions_are_limited_to_the_explicit_opt_in_boundaries() {
     for operation in [ContainerOperation::ImageGenerator, ContainerOperation::SourceGenerator] {
-        assert_eq!(container_run_prefix("docker", operation, true), ["run", "--privileged"]);
+        assert_eq!(
+            container_run_prefix("docker", operation, true),
+            ["run", "--privileged", "--security-opt", "apparmor=unconfined"]
+        );
         assert_eq!(container_run_prefix("docker", operation, false), ["run"]);
         assert_eq!(container_run_prefix("podman", operation, true), ["run"]);
     }
-    for operation in [
-        ContainerOperation::ImageVersionProbe,
-        ContainerOperation::SourceBuild,
-        ContainerOperation::SourceVersionProbe,
-    ] {
+    assert_eq!(
+        container_run_prefix("docker", ContainerOperation::ImageVersionProbe, true),
+        ["run", "--security-opt", "apparmor=unconfined"]
+    );
+    assert_eq!(
+        container_run_prefix("docker", ContainerOperation::ImageVersionProbe, false),
+        ["run"]
+    );
+    assert_eq!(
+        container_run_prefix("podman", ContainerOperation::ImageVersionProbe, true),
+        ["run"]
+    );
+    for operation in [ContainerOperation::SourceBuild, ContainerOperation::SourceVersionProbe] {
         assert_eq!(container_run_prefix("docker", operation, true), ["run"]);
         assert_eq!(container_run_prefix("podman", operation, true), ["run"]);
     }
