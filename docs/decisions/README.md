@@ -33,5 +33,6 @@ runtime claims.
 | [0010](0010-consolidated-0.2-public-api.md)                        | accepted   | Consolidated 0.2.x model API without compatibility-only re-exports                     |
 | [0011](0011-authored-environment-and-systemd-target-boundaries.md) | accepted   | Separate authored environment semantics and opt-in systemd target context              |
 | [0014](0014-independent-application-generator-conformance.md)      | accepted   | Independent application contracts and exact pinned-generator validation                |
+| [0015](0015-separate-generator-discovery-from-reviewed-target.md)  | accepted   | Renovate discovery is separate from reviewed generator evidence                        |
 
 Use the next four-digit number for new decisions. Include context, decision, consequences, and alternatives. Supersede accepted decisions with a new ADR rather than rewriting history.

@@ -815,6 +815,7 @@ const PRIVILEGED_ALTERNATE_FORMS: &[&str] = &[
 struct GeneratorMatrix {
     schema: u32,
     support_minimum: String,
+    latest_upstream: String,
     tracked_current: String,
     checked_on: String,
     official_image_maximum: String,
@@ -994,8 +995,7 @@ fn generator_matrix_is_exact_complete_and_digest_pinned() -> Result<(), String> 
     let matrix = parse_matrix()?;
     assert_eq!(matrix.schema, 1);
     assert_eq!(matrix.support_minimum, "5.4.0");
-    assert_eq!(matrix.tracked_current, "6.1.0");
-    assert_eq!(matrix.checked_on, "2026-08-17");
+    validate_current_target_metadata(&matrix)?;
     assert_eq!(matrix.official_image_maximum, "5.8.2");
 
     assert_eq!(
@@ -1063,6 +1063,68 @@ fn generator_matrix_is_exact_complete_and_digest_pinned() -> Result<(), String> 
         .filter(|version| PodmanVersion::from_str(version).is_ok_and(|version| version >= PodmanVersion::new(5, 5, 0)))
         .count();
     assert_eq!(memory_versions, 19);
+    Ok(())
+}
+
+fn validate_current_target_metadata(matrix: &GeneratorMatrix) -> Result<(), String> {
+    let latest_upstream = PodmanVersion::from_str(&matrix.latest_upstream)
+        .map_err(|error| format!("latest_upstream must be a Podman release: {error}"))?;
+    let tracked_current = PodmanVersion::from_str(&matrix.tracked_current)
+        .map_err(|error| format!("tracked_current must be a reviewed Podman release: {error}"))?;
+    if latest_upstream < tracked_current {
+        return Err(format!(
+            "latest_upstream {} must not precede reviewed tracked_current {}",
+            matrix.latest_upstream, matrix.tracked_current
+        ));
+    }
+    if matrix.checked_on.len() != 10
+        || !matrix.checked_on.bytes().enumerate().all(|(index, byte)| {
+            (matches!(index, 4 | 7) && byte == b'-') || (!matches!(index, 4 | 7) && byte.is_ascii_digit())
+        })
+    {
+        return Err("checked_on must be a reviewed ISO-8601 calendar date".to_owned());
+    }
+    Ok(())
+}
+
+fn replace_matrix_string_assignment(matrix: &str, key: &str, value: Option<&str>) -> Result<String, String> {
+    let mut matches = 0;
+    let mut lines = matrix
+        .lines()
+        .filter_map(|line| {
+            let is_target = line
+                .split_once('=')
+                .is_some_and(|(candidate, _)| candidate.trim() == key);
+            if !is_target {
+                return Some(line.to_owned());
+            }
+            matches += 1;
+            value.map(|value| format!("{key} = \"{value}\""))
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    if matrix.ends_with('\n') {
+        lines.push('\n');
+    }
+    if matches != 1 {
+        return Err(format!("expected one `{key}` assignment, found {matches}"));
+    }
+    Ok(lines)
+}
+
+#[test]
+fn generator_matrix_requires_a_discovery_signal_and_keeps_it_separate_from_reviewed_evidence() -> Result<(), String> {
+    let missing_discovery = replace_matrix_string_assignment(MATRIX, "latest_upstream", None)?;
+    assert!(parse_generator_matrix(&missing_discovery).is_err());
+
+    let stale_discovery = replace_matrix_string_assignment(MATRIX, "latest_upstream", Some("5.4.0"))?;
+    let stale = parse_generator_matrix(&stale_discovery)?;
+    assert!(validate_current_target_metadata(&stale).is_err());
+
+    let discovered_update = replace_matrix_string_assignment(MATRIX, "latest_upstream", Some("999.0.0"))?;
+    let discovered = parse_generator_matrix(&discovered_update)?;
+    validate_current_target_metadata(&discovered)?;
+    assert_eq!(discovered.tracked_current, "6.1.0");
     Ok(())
 }
 
@@ -1755,7 +1817,11 @@ fn selected(version: &str, smoke: bool, lane: &str, version_filter: Option<&str>
 }
 
 fn parse_matrix() -> Result<GeneratorMatrix, String> {
-    toml::from_str(MATRIX).map_err(|error| format!("invalid generator matrix: {error}"))
+    parse_generator_matrix(MATRIX)
+}
+
+fn parse_generator_matrix(matrix: &str) -> Result<GeneratorMatrix, String> {
+    toml::from_str(matrix).map_err(|error| format!("invalid generator matrix: {error}"))
 }
 
 fn fixture_directory() -> Result<PathBuf, String> {

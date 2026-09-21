@@ -148,7 +148,15 @@ fn ci_workflow_enforces_portability_and_an_actionable_pr_gate() -> Result<(), St
         "run: cargo ci-check",
         "run: cargo ci-test",
         "  pr-gate:\n    name: PR gate\n    if: always()",
-        "needs: [rust, msrv, dependencies, api, documentation, coverage, portability]",
+        "  lockfile-release-age:\n    name: Lockfile release age",
+        "needs:\n      [rust, msrv, dependencies, api, documentation, coverage, portability, lockfile-release-age]",
+        "repository: Strukturpiloten/.github",
+        "ref: ${{ github.event.pull_request.head.sha }}",
+        "--repository-root \"${GITHUB_WORKSPACE}\"",
+        "--base \"${BASE_SHA}\"",
+        "--head \"${HEAD_SHA}\"",
+        "--minimum-age-hours 72",
+        "if: github.event_name != 'pull_request'",
     ] {
         if !workflow.contains(required) {
             return Err(format!("CI workflow is missing contract `{required}`"));
@@ -163,11 +171,37 @@ fn ci_workflow_enforces_portability_and_an_actionable_pr_gate() -> Result<(), St
         ("Documentation", "DOCUMENTATION_RESULT", "documentation"),
         ("Coverage ratchet", "COVERAGE_RESULT", "coverage"),
         ("macOS portability", "PORTABILITY_RESULT", "portability"),
+        (
+            "Lockfile release age",
+            "LOCKFILE_RELEASE_AGE_RESULT",
+            "lockfile-release-age",
+        ),
     ] {
         let required = format!("{result_variable}: ${{{{ needs.{needs_job}.result }}}}");
         if !workflow.contains(&required) {
             return Err(format!("PR gate does not expose a result variable for `{job_name}`"));
         }
+    }
+    let marker = "# renovate: datasource=github-digest depName=Strukturpiloten/.github currentValue=main";
+    let lines = workflow.lines().collect::<Vec<_>>();
+    let marker_line = lines
+        .iter()
+        .position(|line| line.trim() == marker)
+        .ok_or_else(|| "CI shared-policy Renovate marker is missing".to_owned())?;
+    let shared_ref = lines
+        .get(marker_line + 1)
+        .and_then(|line| line.trim().strip_prefix("ref: "))
+        .ok_or_else(|| "CI shared-policy marker must be adjacent to its ref".to_owned())?;
+    if workflow.matches(marker).count() != 1
+        || shared_ref.len() != 40
+        || !shared_ref
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+        || workflow.contains("continue-on-error: true")
+    {
+        return Err(
+            "the shared lockfile guard must have one immutable Renovate-owned SHA without softened failures".to_owned(),
+        );
     }
 
     for required in [
@@ -187,6 +221,17 @@ fn ci_workflow_enforces_portability_and_an_actionable_pr_gate() -> Result<(), St
     }
     if workflow.contains("windows-") {
         return Err("CI must not claim unsupported native Windows portability".to_owned());
+    }
+    let lock_job = workflow
+        .split_once("\n  lockfile-release-age:\n")
+        .and_then(|(_, remainder)| remainder.split_once("\n  pr-gate:\n"))
+        .map(|(job, _)| job)
+        .ok_or_else(|| "CI lockfile release-age job boundary is missing".to_owned())?;
+    let before_steps = lock_job
+        .split_once("\n    steps:\n")
+        .map_or(lock_job, |(prefix, _)| prefix);
+    if before_steps.lines().any(|line| line.trim_start().starts_with("if:")) {
+        return Err("CI lockfile release-age job must not be skipped on main pushes".to_owned());
     }
 
     Ok(())
@@ -698,8 +743,6 @@ fn validate_release_plz_contract(repository: &str) -> Result<(), String> {
         "command: release-pr",
         "renovate: datasource=crate depName=release-plz",
         "version: \"0.3.160\"",
-        "release-plz/action@b5543c19b03be9bd48852d20ca89f478b7723260 # v0.5.132",
-        "actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0",
         "(.head.ref | startswith(\"release-plz-\"))",
         "actions/workflows/release.yml/dispatches",
         "actions: write",
@@ -725,11 +768,91 @@ fn validate_release_plz_contract(repository: &str) -> Result<(), String> {
         }
     }
 
+    if workflow
+        .matches("renovate: datasource=crate depName=release-plz")
+        .count()
+        != 1
+    {
+        return Err("release-plz workflow must have exactly one canonical Renovate marker".to_owned());
+    }
+    for action in ["release-plz/action", "actions/create-github-app-token"] {
+        validate_renovate_owned_action_pin(&workflow, action)?;
+    }
+
     let release = read_repository_file(".github/workflows/release.yml")?;
     if release.contains("docs/releases/${version}.md") || !release.contains("bash scripts/extract-release-notes.sh") {
         return Err("protected publication must derive release notes from CHANGELOG.md".to_owned());
     }
     Ok(())
+}
+
+/// Check the action's immutable identity without copying its Renovate-owned revision.
+///
+/// Renovate updates both the SHA and annotated tag comment.  The repository policy owns
+/// the security properties of that pair, not a second, stale copy of the revision.
+fn validate_renovate_owned_action_pin(workflow: &str, expected_action: &str) -> Result<(), String> {
+    let pins = workflow
+        .lines()
+        .filter_map(|line| line.trim().strip_prefix("uses:"))
+        .map(str::trim)
+        .filter_map(|reference| {
+            let (action, pin) = reference.split_once('@')?;
+            (action == expected_action).then_some(pin)
+        })
+        .collect::<Vec<_>>();
+    let [pin] = pins.as_slice() else {
+        return Err(format!("release-plz workflow must use {expected_action} exactly once"));
+    };
+    let (sha, comment) = pin
+        .split_once('#')
+        .ok_or_else(|| format!("{expected_action} pin must have an exact release-tag comment"))?;
+    let sha = sha.trim();
+    if sha.len() != 40
+        || !sha
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || matches!(byte, b'a'..=b'f'))
+    {
+        return Err(format!("{expected_action} must be pinned to a full immutable SHA"));
+    }
+    let tag = comment.trim();
+    let version = tag
+        .strip_prefix('v')
+        .ok_or_else(|| format!("{expected_action} pin comment must be an exact vX.Y.Z tag"))?;
+    if version.split('.').count() != 3
+        || version
+            .split('.')
+            .any(|component| component.is_empty() || !component.bytes().all(|byte| byte.is_ascii_digit()))
+    {
+        return Err(format!("{expected_action} pin comment must be an exact vX.Y.Z tag"));
+    }
+    Ok(())
+}
+
+#[test]
+fn release_plz_action_pin_accepts_renovate_owned_replacements_and_rejects_weakened_forms() {
+    assert!(
+        validate_renovate_owned_action_pin(
+            "uses: release-plz/action@0123456789abcdef0123456789abcdef01234567 # v0.5.999\n",
+            "release-plz/action",
+        )
+        .is_ok(),
+        "a full SHA with an exact tag comment must remain valid after a Renovate update"
+    );
+
+    for invalid in [
+        "uses: release-plz/action@0123456789abcdef0123456789abcdef01234567\n",
+        "uses: release-plz/action@v0.5.999 # v0.5.999\n",
+        "uses: release-plz/action@0123456789abcdef # v0.5.999\n",
+        "uses: release-plz/action@0123456789abcdef0123456789abcdef0123456g # v0.5.999\n",
+        "uses: release-plz/action@0123456789abcdef0123456789abcdef01234567 # latest\n",
+        "uses: actions/checkout@0123456789abcdef0123456789abcdef01234567 # v4.2.2\n",
+        "uses: release-plz/action@0123456789abcdef0123456789abcdef01234567\nuses: release-plz/action@fedcba9876543210fedcba9876543210fedcba98 # v0.5.999\n",
+    ] {
+        assert!(
+            validate_renovate_owned_action_pin(invalid, "release-plz/action").is_err(),
+            "weakened release-plz action contract unexpectedly accepted: {invalid}"
+        );
+    }
 }
 
 fn validate_release_plz_changelog(config: &toml::Value) -> Result<(), String> {
@@ -778,9 +901,133 @@ fn validate_release_plz_changelog(config: &toml::Value) -> Result<(), String> {
     Ok(())
 }
 
+fn reextract_shared_policy_marker<'a>(
+    manager_pattern: &str,
+    candidate: &'a str,
+) -> Option<(&'a str, &'a str, &'a str)> {
+    let expected_pattern = "(?<indentation>[ \\t]*)# renovate: datasource=github-digest depName=(?<depName>Strukturpiloten/\\.github) currentValue=(?<currentValue>main)\\n[ \\t]*ref:\\s*(?<currentDigest>[a-f0-9]{40})";
+    if manager_pattern != expected_pattern {
+        return None;
+    }
+    let (marker_line, ref_line) = candidate.split_once('\n')?;
+    let (indentation, marker) = marker_line.split_once('#')?;
+    if !indentation.bytes().all(|byte| matches!(byte, b' ' | b'\t')) {
+        return None;
+    }
+    let marker = marker.strip_prefix(" renovate: datasource=github-digest depName=")?;
+    let (dep_name, current_value) = marker.split_once(" currentValue=")?;
+    if dep_name != "Strukturpiloten/.github" || current_value != "main" {
+        return None;
+    }
+    let ref_line = ref_line.strip_prefix(indentation)?.strip_prefix("ref: ")?;
+    if ref_line.len() != 40
+        || !ref_line
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || matches!(byte, b'a'..=b'f'))
+    {
+        return None;
+    }
+    Some((dep_name, current_value, ref_line))
+}
+
+fn validate_renovate_lockfile_policy(renovate: &serde_json::Value) -> Result<(), String> {
+    if renovate["minimumReleaseAge"] != "3 days" {
+        return Err("Renovate must retain the three-day minimum release age".to_owned());
+    }
+    let rules = renovate["packageRules"]
+        .as_array()
+        .ok_or_else(|| "Renovate packageRules must be an array".to_owned())?;
+    let generic_index = rules
+        .iter()
+        .position(|rule| rule["description"] == "Automerge tested non-major dependency updates")
+        .ok_or_else(|| "Renovate generic non-major automerge rule is missing".to_owned())?;
+    let generic_rule = &rules[generic_index];
+    if generic_rule["matchUpdateTypes"] != serde_json::json!(["minor", "patch", "pin", "digest", "pinDigest"])
+        || generic_rule["automerge"] != true
+        || generic_rule["automergeType"] != "pr"
+        || generic_rule["platformAutomerge"] != false
+    {
+        return Err("Renovate generic non-major automerge categories must remain exact".to_owned());
+    }
+    let lock_matches = rules
+        .iter()
+        .enumerate()
+        .filter(|(_, rule)| rule["description"] == "Automerge green-gated lock-file maintenance")
+        .collect::<Vec<_>>();
+    if lock_matches.len() != 1 {
+        return Err("Renovate must define exactly one lock-file maintenance rule".to_owned());
+    }
+    let (lock_index, lock_rule) = lock_matches[0];
+    if lock_rule["matchUpdateTypes"] != serde_json::json!(["lockFileMaintenance"])
+        || lock_rule["minimumReleaseAge"] != "0 days"
+        || lock_rule["automerge"] != true
+        || lock_rule["automergeType"] != "pr"
+        || lock_rule["platformAutomerge"] != false
+        || lock_index <= generic_index
+    {
+        return Err("Renovate lock-file maintenance must follow generic automerge and remain green-gated".to_owned());
+    }
+    for description in [
+        "Keep Podman release discovery visible and separate from reviewed support",
+        "Keep Dev Container feature versions current; the lock file owns digests",
+        "Require checksum review for downloaded file-quality tools",
+    ] {
+        let (index, rule) = rules
+            .iter()
+            .enumerate()
+            .find(|(_, rule)| rule["description"] == description)
+            .ok_or_else(|| format!("Renovate manual-review rule `{description}` is missing"))?;
+        if index <= generic_index || index <= lock_index || rule["automerge"] != false {
+            return Err(format!(
+                "Renovate manual-review rule `{description}` must follow both automerge rules and stay manual"
+            ));
+        }
+    }
+    validate_shared_policy_manager(renovate)
+}
+
+fn validate_shared_policy_manager(renovate: &serde_json::Value) -> Result<(), String> {
+    let managers = renovate["customManagers"]
+        .as_array()
+        .ok_or_else(|| "Renovate customManagers must be an array".to_owned())?
+        .iter()
+        .filter(|manager| manager["description"] == "Track the immutable Strukturpiloten shared-policy commit")
+        .collect::<Vec<_>>();
+    if managers.len() != 1
+        || managers[0]["customType"] != "regex"
+        || managers[0]["managerFilePatterns"] != serde_json::json!([r"/^\.github/workflows/.*\.ya?ml$/"])
+    {
+        return Err("Renovate must have exactly one owner for the shared lockfile guard pin".to_owned());
+    }
+    let pattern = managers[0]["matchStrings"]
+        .as_array()
+        .and_then(|patterns| patterns.first())
+        .and_then(serde_json::Value::as_str)
+        .ok_or_else(|| "Renovate shared lockfile guard manager must define one regex".to_owned())?;
+    let template = managers[0]["autoReplaceStringTemplate"]
+        .as_str()
+        .ok_or_else(|| "Renovate shared lockfile guard manager must define a replacement template".to_owned())?;
+    if !template.contains('\n') || template.contains(r"\n") {
+        return Err("Renovate shared lockfile guard replacement must use a real newline".to_owned());
+    }
+    let new_digest = "0123456789abcdef0123456789abcdef01234567";
+    let rewritten = template
+        .replace("{{{indentation}}}", "      ")
+        .replace("{{{depName}}}", "Strukturpiloten/.github")
+        .replace("{{{newValue}}}", "main")
+        .replace("{{{newDigest}}}", new_digest);
+    if reextract_shared_policy_marker(pattern, &rewritten) != Some(("Strukturpiloten/.github", "main", new_digest)) {
+        return Err("Renovate shared lockfile guard regex must re-extract the rewritten main digest".to_owned());
+    }
+    Ok(())
+}
+
 #[test]
 fn renovate_tracks_every_directly_pinned_development_tool() -> Result<(), String> {
     let renovate = read_repository_file(".github/renovate.json")?;
+    let renovate_value: serde_json::Value =
+        serde_json::from_str(&renovate).map_err(|error| format!("failed to parse Renovate configuration: {error}"))?;
+    validate_renovate_lockfile_policy(&renovate_value)?;
     for required in [
         "Update versioned Dev Container tools",
         "Signal updates for checksum-pinned file-quality tools",
@@ -794,6 +1041,12 @@ fn renovate_tracks_every_directly_pinned_development_tool() -> Result<(), String
         r#""matchManagers": ["rust-toolchain"]"#,
         "Automerge tested non-major dependency updates",
         "Do not delay BoxFerry and Lens releases",
+        "Keep Podman release discovery visible and separate from reviewed support",
+        r#""matchManagers": ["custom.regex"]"#,
+        r#""matchPackageNames": ["podman-container-tools/podman"]"#,
+        r#""matchFileNames": ["tools/generator-matrix.toml"]"#,
+        r#""groupName": "Podman release discovery""#,
+        "This updates latest_upstream discovery only",
         r#""minimumReleaseAge": "0 days""#,
         r#""platformAutomerge": false"#,
         r#""boxferry-model""#,
@@ -806,8 +1059,10 @@ fn renovate_tracks_every_directly_pinned_development_tool() -> Result<(), String
         }
     }
 
-    if renovate.matches(r#""automerge": false"#).count() != 2 {
-        return Err("Renovate must keep Dev Container features and checksum-pinned tools manual".to_owned());
+    if renovate.matches(r#""automerge": false"#).count() != 3 {
+        return Err(
+            "Renovate must keep Podman discovery, Dev Container features, and checksum-pinned tools manual".to_owned(),
+        );
     }
 
     for workflow_name in ["ci.yml", "release.yml"] {
