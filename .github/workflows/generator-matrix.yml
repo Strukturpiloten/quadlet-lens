@@ -32,6 +32,10 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
   QUADLET_LENS_CONTAINER_ENGINE: docker
+  # Podman's generator re-execs its native binary. GitHub-hosted Docker needs
+  # this bounded outer-container privilege; the harness uses it only for
+  # generator dry runs and never starts generated units or workloads.
+  QUADLET_LENS_DOCKER_PRIVILEGED_GENERATORS: "true"
   QUADLET_LENS_GENERATOR_LANE: full
 
 jobs:
