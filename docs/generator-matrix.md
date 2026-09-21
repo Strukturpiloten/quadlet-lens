@@ -94,7 +94,11 @@ Do not duplicate every expected fragment in prose. The fixture manifest and Rust
 reviewable contract.
 
 Pull requests keep generator execution opt-in because container availability and source builds are
-environment-dependent. The scheduled/manual workflow runs the complete recorded matrix.
+environment-dependent. The scheduled/manual workflow runs the complete recorded matrix. The same
+reusable workflow is the Release native-validation lane: it checks out the exact candidate SHA,
+runs both the full pinned generator matrix and tracked-current application contracts, and records
+current-run, task-labelled evidence. This remains dry-run generator evidence: it does not install,
+enable, start, or otherwise execute systemd units or workloads.
 
 See [Testing](testing.md) for tier selection and [Capability model](capability-model.md) for the
 claim admitted from generator evidence.

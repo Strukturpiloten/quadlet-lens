@@ -15,6 +15,9 @@ ports, mounts, commands, and build environment views.
 ADR [0012](0012-caller-authorized-external-environment-resolution.md) accepts caller-authorized
 external environment resolution and reset-safe generated ordering.
 
+[ADR 0016](0016-release-native-generator-evidence.md) makes full native generator conformance a
+fail-closed, exact-candidate Release prerequisite.
+
 [ADR 0014](0014-independent-application-generator-conformance.md) separates immutable
 application inputs, independently authored native expectations, exact generator evidence, and
 runtime claims.

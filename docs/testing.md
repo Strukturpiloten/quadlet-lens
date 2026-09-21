@@ -23,6 +23,11 @@ separate opt-in generator layer.
 Coverage floors are regression alarms, not substitutes for assertions. The project does not require
 100% coverage, a fuzzing program, or every host and privilege combination.
 
+Every Release automatically and fail-closed invokes the reusable full pinned generator matrix and
+the tracked-current application-generator lane for its exact candidate SHA. `validation_only`
+runs the identical gate without publication. This remains dry-run evidence: it does not install,
+enable, start, or otherwise execute systemd units, generated Podman commands, or workloads.
+
 ## Where tests live
 
 Cargo integration entry points live in [`tests/`](../tests/README.md). Private helpers remain in

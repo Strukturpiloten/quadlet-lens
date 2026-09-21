@@ -72,7 +72,11 @@ cargo deny check
 ```
 
 The `ci-*` aliases use locked resolution and all workspace features and targets where applicable.
-Generator execution and the real-world corpus are opt-in tiers.
+Local generator execution and the real-world corpus are opt-in tiers. Every Release automatically
+and fail-closed runs the reusable full pinned generator matrix plus the tracked-current
+application-generator lane; `validation_only` runs the identical gate. This is dry-run generator
+evidence only: it never installs, enables, starts, or otherwise executes systemd units or
+workloads.
 
 ## GitHub issue-to-PR workflow
 

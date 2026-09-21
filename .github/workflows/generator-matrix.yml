@@ -2,6 +2,22 @@
 name: Podman generator matrix
 
 on:
+  workflow_call:
+    inputs:
+      candidate_sha:
+        description: Exact revision whose native generator evidence is required.
+        required: false
+        type: string
+        default: ""
+      task:
+        description: Stable evidence task identifier for this invocation.
+        required: false
+        type: string
+        default: scheduled-generator-matrix
+    outputs:
+      evidence_artifact:
+        description: Immutable-name native generator evidence artifact for this run.
+        value: ${{ jobs.supported-generators.outputs.evidence_artifact }}
   schedule:
     - cron: "17 3 * * 1"
   workflow_dispatch:
@@ -23,10 +39,13 @@ jobs:
     name: Podman 5.4.0 through rolling current
     runs-on: ubuntu-24.04
     timeout-minutes: 45
+    outputs:
+      evidence_artifact: ${{ steps.evidence.outputs.artifact }}
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.candidate_sha || github.sha }}
           persist-credentials: false
       - name: Install configured Rust toolchain
         run: rustup show active-toolchain
@@ -34,3 +53,32 @@ jobs:
         run: cargo ci-generators
       - name: Validate real-application generated semantics
         run: cargo ci-application-generators
+      - name: Record exact native-generator evidence
+        id: evidence
+        shell: bash
+        env:
+          CANDIDATE_SHA: ${{ inputs.candidate_sha || github.sha }}
+          EVIDENCE_TASK: ${{ inputs.task || 'scheduled-generator-matrix' }}
+        run: |
+          set -euo pipefail
+          artifact="quadlet-generator-evidence-${GITHUB_RUN_ID}-${EVIDENCE_TASK}"
+          mkdir -p target/release-evidence
+          jq --null-input \
+            --arg revision "${CANDIDATE_SHA}" \
+            --arg run_id "${GITHUB_RUN_ID}" \
+            --arg task "${EVIDENCE_TASK}" \
+            --arg workflow "${GITHUB_WORKFLOW}" \
+            --arg generated_at "$(date --utc +%Y-%m-%dT%H:%M:%SZ)" \
+            '{schema: 1, revision: $revision, run_id: $run_id, task: $task,
+              workflow: $workflow, generated_at: $generated_at,
+              result: "success", generator_lane: "full", application_lane: "tracked-current"}' \
+            > target/release-evidence/native-generator-v1.json
+          printf 'artifact=%s\n' "${artifact}" >> "${GITHUB_OUTPUT}"
+      - name: Upload exact native-generator evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ steps.evidence.outputs.artifact }}
+          path: target/release-evidence/native-generator-v1.json
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 90

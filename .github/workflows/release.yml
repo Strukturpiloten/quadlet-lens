@@ -3,6 +3,12 @@ name: Release
 
 on:
   workflow_dispatch:
+    inputs:
+      validation_only:
+        description: Run the complete release validation without publishing a crate, tag, or release.
+        required: false
+        default: false
+        type: boolean
 
 permissions: {}
 
@@ -11,9 +17,128 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  deterministic:
+    name: Complete deterministic validation
+    if: github.repository == 'Strukturpiloten/quadlet-lens'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ci.yml
+
+  native-generator-validation:
+    name: Complete pinned native generator validation
+    if: github.repository == 'Strukturpiloten/quadlet-lens'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/generator-matrix.yml
+    with:
+      candidate_sha: ${{ github.sha }}
+      task: release-native-generator
+
+  release-metadata:
+    name: Validate release metadata
+    if: github.repository == 'Strukturpiloten/quadlet-lens'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Check out exact release revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Install configured Rust toolchain
+        run: rustup show active-toolchain
+      - name: Validate release branch, version, and notes
+        shell: bash
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_REF}" != "refs/heads/${DEFAULT_BRANCH}" ]]; then
+            echo "Run releases from the default branch (${DEFAULT_BRANCH})." >&2
+            exit 1
+          fi
+          version="$(
+            cargo metadata --locked --no-deps --format-version 1 |
+              jq -er '.packages[] | select(.name == "quadlet-lens") | .version'
+          )"
+          bash scripts/extract-release-notes.sh "${version}" >/dev/null
+
+  native-generator-evidence:
+    name: Exact-SHA native generator evidence
+    needs: native-generator-validation
+    if: always() && github.repository == 'Strukturpiloten/quadlet-lens'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Download current-run native-generator evidence
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ needs.native-generator-validation.outputs.evidence_artifact }}
+          path: target/release-evidence
+      - name: Require successful exact candidate evidence
+        shell: bash
+        env:
+          EXPECTED_TASK: release-native-generator
+        run: |
+          set -euo pipefail
+          evidence=target/release-evidence/native-generator-v1.json
+          jq --exit-status \
+            --arg revision "${GITHUB_SHA}" \
+            --arg run_id "${GITHUB_RUN_ID}" \
+            --arg task "${EXPECTED_TASK}" \
+            '.schema == 1 and .revision == $revision and .run_id == $run_id and
+             .task == $task and .result == "success" and .generator_lane == "full" and
+             .application_lane == "tracked-current"' \
+            "${evidence}" >/dev/null
+      - name: Retain release native-generator evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-native-generator-evidence-${{ github.sha }}-${{ github.run_id }}
+          path: target/release-evidence/native-generator-v1.json
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 90
+
+  release-gate:
+    name: Fail-closed release validation gate
+    needs: [deterministic, native-generator-validation, native-generator-evidence, release-metadata]
+    if: always() && github.repository == 'Strukturpiloten/quadlet-lens'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions: {}
+    env:
+      DETERMINISTIC_RESULT: ${{ needs.deterministic.result }}
+      GENERATOR_RESULT: ${{ needs.native-generator-validation.result }}
+      EVIDENCE_RESULT: ${{ needs.native-generator-evidence.result }}
+      METADATA_RESULT: ${{ needs.release-metadata.result }}
+    steps:
+      - name: Block publication unless every required validation succeeded
+        shell: bash
+        run: |
+          set -euo pipefail
+          for result in "${DETERMINISTIC_RESULT}" "${GENERATOR_RESULT}" "${EVIDENCE_RESULT}" "${METADATA_RESULT}"; do
+            if [[ "${result}" != success ]]; then
+              printf 'Release validation prerequisite did not succeed: %s\n' "${result}" >&2
+              exit 1
+            fi
+          done
+
   release:
     name: Publish QuadletLens
-    if: github.repository == 'Strukturpiloten/quadlet-lens'
+    needs:
+      [
+        deterministic,
+        native-generator-validation,
+        native-generator-evidence,
+        release-metadata,
+        release-gate,
+      ]
+    if: github.repository == 'Strukturpiloten/quadlet-lens' && !inputs.validation_only
     environment: release
     runs-on: ubuntu-24.04
     timeout-minutes: 45
@@ -34,35 +159,11 @@ jobs:
       - name: Install configured Rust toolchain
         run: rustup show active-toolchain
 
-      - name: Install pinned Node.js toolchain
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          # renovate: datasource=node-version depName=node
-          node-version: 24.21.0
-          cache: npm
-          cache-dependency-path: package-lock.json
-
-      - name: Install locked Node file-quality tools
-        run: |
-          npm ci --ignore-scripts
-          printf '%s\n' "${GITHUB_WORKSPACE}/node_modules/.bin" >> "${GITHUB_PATH}"
-      - name: Install checksum-pinned native file-quality tools
-        run: sudo bash scripts/install-file-tools.sh /usr/local/bin
-      - name: Check non-Rust file formatting and lint
-        run: bash scripts/check-files.sh --check
-
-      - name: Derive and validate release metadata
+      - name: Derive release publication metadata
         id: metadata
         shell: bash
-        env:
-          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           set -euo pipefail
-
-          if [[ "${GITHUB_REF}" != "refs/heads/${DEFAULT_BRANCH}" ]]; then
-            echo "Run releases from the default branch (${DEFAULT_BRANCH})." >&2
-            exit 1
-          fi
 
           version="$(
             cargo metadata --locked --no-deps --format-version 1 |
@@ -83,74 +184,6 @@ jobs:
             printf 'notes=%s\n' "${notes}"
             printf 'crate=%s\n' "${crate}"
           } >> "${GITHUB_OUTPUT}"
-
-      - name: Check formatting
-        run: cargo fmt --all -- --check
-      - name: Check all targets
-        run: cargo ci-check
-      - name: Check capability catalogue
-        run: cargo ci-catalogue
-      - name: Check native model and document sets
-        run: cargo ci-model
-      - name: Check real-application native contracts
-        run: cargo ci-application
-      - name: Check repository policies
-        run: cargo ci-policy
-      - name: Run Clippy
-        run: cargo ci-clippy
-      - name: Run tests
-        run: cargo ci-test
-      - name: Validate release-candidate application units with pinned Podman
-        env:
-          QUADLET_LENS_CONTAINER_ENGINE: docker
-        run: cargo ci-application-generators
-      - name: Run documentation tests
-        run: cargo ci-doctest
-      - name: Build documentation
-        env:
-          RUSTDOCFLAGS: -D warnings
-        run: cargo ci-doc
-      - name: Install LLVM coverage tools
-        run: rustup component add llvm-tools-preview
-      - name: Install pinned cargo-llvm-cov
-        # renovate: datasource=crate depName=cargo-llvm-cov
-        run: cargo install --locked --version 0.9.0 cargo-llvm-cov
-      - name: Clean coverage artifacts
-        run: cargo llvm-cov clean --locked
-      - name: Measure and enforce coarse coverage ratchet
-        run: >-
-          cargo llvm-cov --locked --no-clean --workspace --all-features --all-targets --summary-only
-          --fail-under-regions 91 --fail-under-functions 92 --fail-under-lines 92
-      - name: Read the workspace MSRV
-        id: msrv
-        shell: bash
-        run: |
-          msrv="$(
-            cargo metadata --locked --no-deps --format-version 1 |
-              jq -er '[.packages[].rust_version] | unique | if length == 1 and .[0] != null then .[0] else error("workspace packages must declare one common rust-version") end'
-          )"
-          printf 'version=%s\n' "${msrv}" >> "${GITHUB_OUTPUT}"
-      - name: Install minimum supported Rust
-        env:
-          RUST_MSRV: ${{ steps.msrv.outputs.version }}
-        run: rustup toolchain install "${RUST_MSRV}" --profile minimal
-      - name: Check all targets with the MSRV
-        env:
-          RUST_MSRV: ${{ steps.msrv.outputs.version }}
-        run: cargo "+${RUST_MSRV}" ci-check
-      - name: Check repository policies with the MSRV
-        env:
-          RUST_MSRV: ${{ steps.msrv.outputs.version }}
-        run: cargo "+${RUST_MSRV}" ci-policy
-      - name: Audit dependencies, licenses, bans, and sources
-        uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2.1.1
-        with:
-          command: check
-          arguments: --all-features
-      - name: Check public API compatibility
-        uses: obi1kenobi/cargo-semver-checks-action@6b69fcf40e9b5fb17adeb57e4b6ecd020649a239 # v2.9
-        with:
-          package: quadlet-lens
 
       - name: Check crates.io publication state
         id: registry
