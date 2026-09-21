@@ -4847,9 +4847,8 @@ fn expected_fragments(fixture: &Path) -> Result<Vec<String>, String> {
 }
 
 fn verify_image_version(engine: &str, image: &GeneratorImage) -> Result<(), String> {
-    let output = Command::new(engine)
+    let output = container_command(engine, ContainerOperation::ImageVersionProbe)
         .args([
-            "run",
             "--rm",
             "--pull=missing",
             "--entrypoint",
@@ -4877,13 +4876,8 @@ fn run_generator(engine: &str, image: &GeneratorImage, fixture: &Path) -> Result
 
 fn run_generator_raw(engine: &str, image: &GeneratorImage, fixture: &Path) -> Result<Output, String> {
     let mount = format!("type=bind,src={},dst=/fixtures,ro", fixture.display());
-    let output = Command::new(engine)
+    let output = generator_container_command(engine, ContainerOperation::ImageGenerator)
         .args([
-            "run",
-            "--rm",
-            "--pull=missing",
-            "--security-opt",
-            "label=disable",
             "--mount",
             &mount,
             "-e",
@@ -4897,6 +4891,69 @@ fn run_generator_raw(engine: &str, image: &GeneratorImage, fixture: &Path) -> Re
         .output()
         .map_err(|error| format!("cannot execute `{engine}`: {error}"))?;
     Ok(output)
+}
+
+/// Returns the outer-container command for a generator dry run.
+///
+/// Podman re-executes itself while running its system generator. GitHub-hosted
+/// Docker needs the explicitly opted-in privileged outer container for that
+/// operation. The flag is deliberately unavailable to source builds, version
+/// probes, and every non-generator command.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum ContainerOperation {
+    ImageVersionProbe,
+    ImageGenerator,
+    SourceBuild,
+    SourceVersionProbe,
+    SourceGenerator,
+}
+
+impl ContainerOperation {
+    const fn is_generator(self) -> bool {
+        matches!(self, Self::ImageGenerator | Self::SourceGenerator)
+    }
+}
+
+fn container_command(engine: &str, operation: ContainerOperation) -> Command {
+    let docker_privileged = env::var("QUADLET_LENS_DOCKER_PRIVILEGED_GENERATORS").is_ok_and(|value| value == "true");
+    let mut command = Command::new(engine);
+    command.args(container_run_prefix(engine, operation, docker_privileged));
+    command
+}
+
+fn generator_container_command(engine: &str, operation: ContainerOperation) -> Command {
+    debug_assert!(operation.is_generator());
+    let mut command = container_command(engine, operation);
+    command.args(["--rm", "--pull=missing", "--security-opt", "label=disable"]);
+    command
+}
+
+fn container_run_prefix(engine: &str, operation: ContainerOperation, docker_privileged: bool) -> Vec<&'static str> {
+    let mut arguments = vec!["run"];
+    if operation.is_generator()
+        && Path::new(engine).file_name().and_then(|name| name.to_str()) == Some("docker")
+        && docker_privileged
+    {
+        arguments.push("--privileged");
+    }
+    arguments
+}
+
+#[test]
+fn privileged_outer_container_is_limited_to_an_explicit_docker_generator_opt_in() {
+    for operation in [ContainerOperation::ImageGenerator, ContainerOperation::SourceGenerator] {
+        assert_eq!(container_run_prefix("docker", operation, true), ["run", "--privileged"]);
+        assert_eq!(container_run_prefix("docker", operation, false), ["run"]);
+        assert_eq!(container_run_prefix("podman", operation, true), ["run"]);
+    }
+    for operation in [
+        ContainerOperation::ImageVersionProbe,
+        ContainerOperation::SourceBuild,
+        ContainerOperation::SourceVersionProbe,
+    ] {
+        assert_eq!(container_run_prefix("docker", operation, true), ["run"]);
+        assert_eq!(container_run_prefix("podman", operation, true), ["run"]);
+    }
 }
 
 fn build_source_generator(engine: &str, matrix: &GeneratorMatrix, source: &GeneratorSource) -> Result<PathBuf, String> {
@@ -4915,9 +4972,8 @@ fn build_source_generator(engine: &str, matrix: &GeneratorMatrix, source: &Gener
     let module_cache_mount = bind_mount(&module_cache, "/cache/mod", false)?;
     let build_cache_mount = bind_mount(&build_cache, "/cache/build", false)?;
     let user = container_user(engine)?;
-    let output = Command::new(engine)
+    let output = container_command(engine, ContainerOperation::SourceBuild)
         .args([
-            "run",
             "--rm",
             "--pull=missing",
             "--security-opt",
@@ -5060,9 +5116,8 @@ fn verify_source_version(
         .parent()
         .ok_or_else(|| format!("generator {} has no parent directory", generator.display()))?;
     let output_mount = bind_mount(output_directory, "/out", true)?;
-    let output = Command::new(engine)
+    let output = container_command(engine, ContainerOperation::SourceVersionProbe)
         .args([
-            "run",
             "--rm",
             "--pull=missing",
             "--security-opt",
@@ -5111,13 +5166,8 @@ fn run_source_generator_raw(
         .ok_or_else(|| format!("generator {} has no parent directory", generator.display()))?;
     let output_mount = bind_mount(output_directory, "/out", true)?;
     let fixture_mount = bind_mount(fixture, "/fixtures", true)?;
-    let output = Command::new(engine)
+    let output = generator_container_command(engine, ContainerOperation::SourceGenerator)
         .args([
-            "run",
-            "--rm",
-            "--pull=missing",
-            "--security-opt",
-            "label=disable",
             "--mount",
             &output_mount,
             "--mount",

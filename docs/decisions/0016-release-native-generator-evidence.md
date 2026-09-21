@@ -27,6 +27,17 @@ missing evidence and blocks publication. `validation_only` runs precisely these 
 does not schedule the publication job. The final gated job alone has tag, release, attestation, or
 trusted-publishing permissions.
 
+## Runner isolation
+
+The GitHub-hosted Docker runner explicitly opts in to a privileged outer
+container only while invoking a Podman generator dry run. Podman re-executes
+its native binary during that operation; the privilege supplies the isolation
+that re-exec requires. It is not available to source builds, version probes,
+or non-generator commands. The outer generator image may still be pulled and
+executed. The privilege does not authorize installation, systemd activation,
+generated-command execution, generated application-image pulls, or application
+runtime execution.
+
 ## Consequences
 
 Release validation is slower than ordinary CI by design, but it records complete dry-run generator

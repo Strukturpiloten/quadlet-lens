@@ -70,6 +70,15 @@ Podman is the default outer engine. Docker can run the harness when Podman is un
 QUADLET_LENS_CONTAINER_ENGINE=docker cargo ci-generators
 ```
 
+On GitHub-hosted Docker runners, the Podman system generator re-executes its
+native binary and requires a privileged _outer_ container. The scheduled,
+manual, and Release reusable workflow sets
+`QUADLET_LENS_DOCKER_PRIVILEGED_GENERATORS=true` only for those generator dry
+runs. It does not apply to image-version probes, source builds, or any
+non-generator command. The outer generator image may still be pulled and
+executed; the dry-run boundary means no generated unit or Podman command is
+executed, and no generated application image is pulled or workload started.
+
 Source-backed releases also require Git. Go runs inside the pinned builder.
 
 ## Add a release

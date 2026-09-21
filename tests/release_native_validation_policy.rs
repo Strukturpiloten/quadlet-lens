@@ -71,6 +71,8 @@ fn release_reuses_complete_native_generator_validation_fail_closed() -> Result<(
         "ref: ${{ inputs.candidate_sha || github.sha }}",
         "run: cargo ci-generators",
         "run: cargo ci-application-generators",
+        "QUADLET_LENS_CONTAINER_ENGINE: docker",
+        "QUADLET_LENS_DOCKER_PRIVILEGED_GENERATORS: \"true\"",
         "quadlet-generator-evidence-${GITHUB_RUN_ID}-${EVIDENCE_TASK}",
         "overwrite: true",
         "retention-days: 90",
