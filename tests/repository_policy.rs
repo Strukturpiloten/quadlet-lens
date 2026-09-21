@@ -872,6 +872,12 @@ fn renovate_tracks_every_directly_pinned_development_tool() -> Result<(), String
         r#""matchManagers": ["rust-toolchain"]"#,
         "Automerge tested non-major dependency updates",
         "Do not delay BoxFerry and Lens releases",
+        "Keep Podman release discovery visible and separate from reviewed support",
+        r#""matchManagers": ["custom.regex"]"#,
+        r#""matchPackageNames": ["podman-container-tools/podman"]"#,
+        r#""matchFileNames": ["tools/generator-matrix.toml"]"#,
+        r#""groupName": "Podman release discovery""#,
+        "This updates latest_upstream discovery only",
         r#""minimumReleaseAge": "0 days""#,
         r#""platformAutomerge": false"#,
         r#""boxferry-model""#,
@@ -884,8 +890,10 @@ fn renovate_tracks_every_directly_pinned_development_tool() -> Result<(), String
         }
     }
 
-    if renovate.matches(r#""automerge": false"#).count() != 2 {
-        return Err("Renovate must keep Dev Container features and checksum-pinned tools manual".to_owned());
+    if renovate.matches(r#""automerge": false"#).count() != 3 {
+        return Err(
+            "Renovate must keep Podman discovery, Dev Container features, and checksum-pinned tools manual".to_owned(),
+        );
     }
 
     for workflow_name in ["ci.yml", "release.yml"] {

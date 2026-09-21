@@ -1,6 +1,9 @@
 schema = 1
 support_minimum = "5.4.0"
+# Renovate records discovery only. Advancing the reviewed target requires exact source,
+# application-contract, and generator-evidence changes in one human-reviewed change.
 # renovate: datasource=github-releases depName=podman-container-tools/podman
+latest_upstream = "6.1.0"
 tracked_current = "6.1.0"
 checked_on = "2026-08-17"
 official_image_maximum = "5.8.2"

@@ -1,5 +1,7 @@
 # Podman generator matrix
 
+`latest_upstream` in the [generator matrix](../tools/generator-matrix.toml) is Renovate's discovery signal only. `tracked_current`, its exact source evidence, `checked_on` date, and the Nextcloud and Forgejo application contracts advance together only after review and generator validation; discovery never implies support.
+
 The generator matrix verifies selected Quadlet files against exact released Podman generators. It
 is stronger than documentation evidence and narrower than runtime testing.
 
