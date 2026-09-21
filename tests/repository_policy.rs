@@ -698,8 +698,6 @@ fn validate_release_plz_contract(repository: &str) -> Result<(), String> {
         "command: release-pr",
         "renovate: datasource=crate depName=release-plz",
         "version: \"0.3.160\"",
-        "release-plz/action@b5543c19b03be9bd48852d20ca89f478b7723260 # v0.5.132",
-        "actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0",
         "(.head.ref | startswith(\"release-plz-\"))",
         "actions/workflows/release.yml/dispatches",
         "actions: write",
@@ -725,11 +723,91 @@ fn validate_release_plz_contract(repository: &str) -> Result<(), String> {
         }
     }
 
+    if workflow
+        .matches("renovate: datasource=crate depName=release-plz")
+        .count()
+        != 1
+    {
+        return Err("release-plz workflow must have exactly one canonical Renovate marker".to_owned());
+    }
+    for action in ["release-plz/action", "actions/create-github-app-token"] {
+        validate_renovate_owned_action_pin(&workflow, action)?;
+    }
+
     let release = read_repository_file(".github/workflows/release.yml")?;
     if release.contains("docs/releases/${version}.md") || !release.contains("bash scripts/extract-release-notes.sh") {
         return Err("protected publication must derive release notes from CHANGELOG.md".to_owned());
     }
     Ok(())
+}
+
+/// Check the action's immutable identity without copying its Renovate-owned revision.
+///
+/// Renovate updates both the SHA and annotated tag comment.  The repository policy owns
+/// the security properties of that pair, not a second, stale copy of the revision.
+fn validate_renovate_owned_action_pin(workflow: &str, expected_action: &str) -> Result<(), String> {
+    let pins = workflow
+        .lines()
+        .filter_map(|line| line.trim().strip_prefix("uses:"))
+        .map(str::trim)
+        .filter_map(|reference| {
+            let (action, pin) = reference.split_once('@')?;
+            (action == expected_action).then_some(pin)
+        })
+        .collect::<Vec<_>>();
+    let [pin] = pins.as_slice() else {
+        return Err(format!("release-plz workflow must use {expected_action} exactly once"));
+    };
+    let (sha, comment) = pin
+        .split_once('#')
+        .ok_or_else(|| format!("{expected_action} pin must have an exact release-tag comment"))?;
+    let sha = sha.trim();
+    if sha.len() != 40
+        || !sha
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || matches!(byte, b'a'..=b'f'))
+    {
+        return Err(format!("{expected_action} must be pinned to a full immutable SHA"));
+    }
+    let tag = comment.trim();
+    let version = tag
+        .strip_prefix('v')
+        .ok_or_else(|| format!("{expected_action} pin comment must be an exact vX.Y.Z tag"))?;
+    if version.split('.').count() != 3
+        || version
+            .split('.')
+            .any(|component| component.is_empty() || !component.bytes().all(|byte| byte.is_ascii_digit()))
+    {
+        return Err(format!("{expected_action} pin comment must be an exact vX.Y.Z tag"));
+    }
+    Ok(())
+}
+
+#[test]
+fn release_plz_action_pin_accepts_renovate_owned_replacements_and_rejects_weakened_forms() {
+    assert!(
+        validate_renovate_owned_action_pin(
+            "uses: release-plz/action@0123456789abcdef0123456789abcdef01234567 # v0.5.999\n",
+            "release-plz/action",
+        )
+        .is_ok(),
+        "a full SHA with an exact tag comment must remain valid after a Renovate update"
+    );
+
+    for invalid in [
+        "uses: release-plz/action@0123456789abcdef0123456789abcdef01234567\n",
+        "uses: release-plz/action@v0.5.999 # v0.5.999\n",
+        "uses: release-plz/action@0123456789abcdef # v0.5.999\n",
+        "uses: release-plz/action@0123456789abcdef0123456789abcdef0123456g # v0.5.999\n",
+        "uses: release-plz/action@0123456789abcdef0123456789abcdef01234567 # latest\n",
+        "uses: actions/checkout@0123456789abcdef0123456789abcdef01234567 # v4.2.2\n",
+        "uses: release-plz/action@0123456789abcdef0123456789abcdef01234567\nuses: release-plz/action@fedcba9876543210fedcba9876543210fedcba98 # v0.5.999\n",
+    ] {
+        assert!(
+            validate_renovate_owned_action_pin(invalid, "release-plz/action").is_err(),
+            "weakened release-plz action contract unexpectedly accepted: {invalid}"
+        );
+    }
 }
 
 fn validate_release_plz_changelog(config: &toml::Value) -> Result<(), String> {
