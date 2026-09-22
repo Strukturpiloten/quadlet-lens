@@ -989,6 +989,9 @@ fn validate_shared_policy_manager(renovate: &serde_json::Value) -> Result<(), St
     {
         return Err("Renovate must have exactly one owner for the shared lockfile guard pin".to_owned());
     }
+    if managers[0]["datasourceTemplate"] != "github-digest" {
+        return Err("shared-policy Renovate manager must declare the github-digest datasource".to_owned());
+    }
     let pattern = managers[0]["matchStrings"]
         .as_array()
         .and_then(|patterns| patterns.first())
