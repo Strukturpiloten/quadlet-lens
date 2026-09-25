@@ -395,8 +395,7 @@ fn issue_to_pr_workflow_requires_primary_ownership_and_the_complete_local_gate()
                 "## GitHub issue-to-PR workflow",
                 "Run `./scripts/check-all.sh`",
                 "hard gate against commit, push",
-                "primary agent runs this workflow",
-                "high reasoning effort",
+                "primary agent owns Git and GitHub writes",
                 "Worker subagents",
                 "never execute the Git or GitHub",
                 "remains the primary agent's responsibility",
@@ -408,7 +407,7 @@ fn issue_to_pr_workflow_requires_primary_ownership_and_the_complete_local_gate()
                 "## Issue-to-PR contribution workflow",
                 "./scripts/check-all.sh",
                 "All steps must pass before the change is committed, pushed, or submitted",
-                "primary agent uses high reasoning effort",
+                "primary agent uses `gpt-6-astra` with `xhigh` reasoning",
                 "Worker agents",
                 "never perform Git or GitHub writes",
                 "the primary agent's final responsibility",
@@ -423,6 +422,55 @@ fn issue_to_pr_workflow_requires_primary_ownership_and_the_complete_local_gate()
         }
     }
 
+    Ok(())
+}
+
+#[test]
+fn standing_github_authorization_has_exact_workspace_and_merge_boundaries() -> Result<(), String> {
+    let instructions = read_repository_file("AGENTS.md")?;
+    let scope = instructions
+        .split_once("## Workspace scope and standing GitHub authorization")
+        .ok_or("AGENTS.md is missing standing authorization")?
+        .1
+        .split("\n## ")
+        .next()
+        .ok_or("AGENTS.md has no authorization section")?;
+    let allowed_repositories: Vec<_> = scope.lines().filter(|line| line.starts_with("- ")).collect();
+    assert_eq!(
+        allowed_repositories,
+        [
+            "- `Strukturpiloten/boxferry`",
+            "- `Strukturpiloten/compose-lens`",
+            "- `Strukturpiloten/podman-lens`",
+            "- `Strukturpiloten/quadlet-lens`",
+            "- `Strukturpiloten/boxferry-website`",
+            "- `Strukturpiloten/docker-lens`",
+        ]
+    );
+    for required in [
+        "task-related Git and GitHub work only in these",
+        "Do not work on or modify any repository outside this explicit allowlist",
+        "A newly discovered checkout is not implicitly",
+        "For user-requested work within this scope",
+        "merge verified task-related pull requests without asking for renewed",
+        "independently reviewed, and has every required check successful",
+        "never bypass branch protection or use an administrator",
+        "does not authorize releases, publication, deployment operations",
+        "merging release/publication/deployment pull requests",
+        "Subagents remain within their assigned task and",
+    ] {
+        if !scope.contains(required) {
+            return Err(format!("AGENTS.md authorization is missing `{required}`"));
+        }
+    }
+    for stale in [
+        "Merge only when the user explicitly authorizes",
+        "Opening and reading back the ready pull request is the default stopping point",
+    ] {
+        if instructions.contains(stale) {
+            return Err(format!("AGENTS.md retains obsolete approval text `{stale}`"));
+        }
+    }
     Ok(())
 }
 
@@ -1445,19 +1493,19 @@ fn agent_roles_are_explicit() -> Result<(), Box<dyn std::error::Error>> {
     let root = repository_root();
     let config = fs::read_to_string(root.join(".codex/config.toml"))?;
     for required in [
-        "model = \"gpt-5.6-sol\"",
+        "model = \"gpt-6-astra\"",
         "model_reasoning_effort = \"xhigh\"",
-        "max_concurrent_threads_per_session = 3",
-        "default_subagent_model = \"gpt-5.6-terra\"",
+        "max_concurrent_threads_per_session = 9",
+        "default_subagent_model = \"gpt-6-sol\"",
         "default_subagent_reasoning_effort = \"medium\"",
     ] {
         assert!(config.contains(required), "missing agent default: {required}");
     }
     for (role, model, effort, sandbox) in [
-        ("implementation-worker", "gpt-5.6-terra", "high", "workspace-write"),
-        ("specification-researcher", "gpt-5.6-terra", "high", "read-only"),
-        ("reviewer", "gpt-5.6-sol", "high", "read-only"),
-        ("verifier", "gpt-5.6-terra", "medium", "workspace-write"),
+        ("implementation-worker", "gpt-6-sol", "high", "workspace-write"),
+        ("specification-researcher", "gpt-6-sol", "high", "read-only"),
+        ("reviewer", "gpt-6-sol", "high", "read-only"),
+        ("verifier", "gpt-6-luna", "high", "workspace-write"),
     ] {
         let text = fs::read_to_string(root.join(format!(".codex/agents/{role}.toml")))?;
         for (key, value) in [
@@ -1477,8 +1525,23 @@ fn agent_roles_are_explicit() -> Result<(), Box<dyn std::error::Error>> {
     let verifier = fs::read_to_string(root.join(".codex/agents/verifier.toml"))?;
     assert!(verifier.contains("./scripts/check-all.sh --check"));
     assert!(verifier.contains("never run the default formatting gate"));
+    assert!(verifier.contains("Escalate complex failure diagnosis to the primary agent"));
+    assert!(verifier.contains("remain check-only and do not edit tracked files"));
     let instructions = fs::read_to_string(root.join("AGENTS.md"))?;
-    assert!(!instructions.contains("Sol") && !instructions.contains("Terra") && !instructions.contains("Astra"));
+    for required in [
+        "The primary manager always uses",
+        "`gpt-6-astra` with `xhigh` reasoning",
+        "use `gpt-6-sol` with `high` reasoning",
+        "check-only verification uses `gpt-6-luna` with `high`",
+        "up to nine concurrent subagents plus the primary manager",
+        "Nine is a ceiling, not a target",
+        "Never run two writers in one checkout",
+        "Run at most one complete gate or heavy runtime suite at a time",
+    ] {
+        assert!(instructions.contains(required), "missing agent policy: {required}");
+    }
+    assert!(!instructions.contains("at most three subagents"));
+    assert!(!instructions.contains("high-effort primary"));
     Ok(())
 }
 

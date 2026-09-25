@@ -60,10 +60,10 @@ use the same essential gate: start from synchronized `main`, keep one focused ch
 All steps must pass before the change is committed, pushed, or submitted as a pull request. A file
 change after a successful complete gate requires running the gate again.
 
-The primary agent uses high reasoning effort and owns integration, Git and GitHub writes, and
-the final complete gate. Worker agents may perform bounded implementation, research, review, or
-non-mutating verification, but they never perform Git or GitHub writes. Formatting can change
-repository files, so the complete check remains the primary agent's final responsibility.
+The primary agent uses `gpt-6-astra` with `xhigh` reasoning and owns integration, Git and GitHub
+writes, and the final complete gate. Worker agents may perform bounded implementation, research,
+review, or non-mutating verification, but they never perform Git or GitHub writes. Formatting can
+change repository files, so the complete check remains the primary agent's final responsibility.
 
 ## Update the container
 
@@ -86,12 +86,14 @@ and cleanup before treating its result as evidence.
 
 Repository model defaults and role overrides live in [`.codex/`](../.codex/); permissions and
 workflow ownership remain defined in [`AGENTS.md`](../AGENTS.md). Reload or start a new trusted
-project session after updating configuration; an explicit session override can take precedence.
+project session after updating configuration; the primary manager must use `gpt-6-astra` with
+`xhigh` reasoning. Keep any explicit primary-session override aligned with Astra/xhigh.
 
 Use `./scripts/check-all.sh --check` to run the complete gate without formatting repository-owned
 files. The default command (or `--fix`) still formats first. Both modes run the same validation;
 ignored caches and build artifacts may change. Verifiers report failures without fixing files,
-and the primary agent owns the final complete gate and any explicitly authorized merge.
+and the primary agent owns the final complete gate and task-related merges within the standing
+authorization in [`AGENTS.md`](../AGENTS.md).
 
 The shell-runner regression tests target the Linux Dev Container gate. Agent-configuration checks
 remain platform-independent; the macOS portability lane does not require Linux validation tools.

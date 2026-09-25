@@ -78,9 +78,44 @@ application-generator lane; `validation_only` runs the identical gate. This is d
 evidence only: it never installs, enables, starts, or otherwise executes systemd units or
 workloads.
 
+## Workspace scope and standing GitHub authorization
+
+The maintainer grants standing authorization for task-related Git and GitHub work only in these
+workspace repositories:
+
+- `Strukturpiloten/boxferry`
+- `Strukturpiloten/compose-lens`
+- `Strukturpiloten/podman-lens`
+- `Strukturpiloten/quadlet-lens`
+- `Strukturpiloten/boxferry-website`
+- `Strukturpiloten/docker-lens`
+
+Do not work on or modify any repository outside this explicit allowlist, including its issues,
+pull requests, branches, settings, or workflows. An upstream documentation reference is not
+permission to operate on that upstream repository. A newly discovered checkout is not implicitly
+in scope.
+
+For user-requested work within this scope, the primary agent may create issues, branches, commits,
+pushes, and pull requests and merge verified task-related pull requests without asking for renewed
+approval. This permission does not authorize unrelated backlog work, implementation of
+discussion-only proposals, or expansion of the requested product scope. A later user instruction
+may narrow or revoke this permission.
+
+Immediately before merging, read back the exact head commit and verify that the pull request is
+ready, mergeable, independently reviewed, and has every required check successful. Use the normal
+merge method with an exact-head safeguard; never bypass branch protection or use an administrator
+override. Read back the merged state and merge commit, synchronize local `main` with `origin/main`,
+and remove the task's recorded worktrees and verified merged local branches while preserving
+unrelated work.
+
+This standing permission does not authorize releases, publication, deployment operations, or
+merging release/publication/deployment pull requests; those require a separate explicit request.
+The primary agent owns all Git and GitHub writes. Subagents remain within their assigned task and
+checkout and must not perform those writes.
+
 ## GitHub issue-to-PR workflow
 
-When the user authorizes issue, branch, commit, push, and pull-request writes:
+For user-requested work within the authorized workspace scope:
 
 1. Inspect status and the complete diff; preserve unrelated changes.
 2. Search for a duplicate issue and create one focused issue if needed.
@@ -95,20 +130,8 @@ When the user authorizes issue, branch, commit, push, and pull-request writes:
    `ci`, `build`, `style`, or `chore` for maintenance so release-plz ignores it.
 9. Read the pull request back and report the issue, branch, commit, validation, URL, and checks.
 
-Opening and reading back the ready pull request is the default stopping point. Authorization to run
-the Git workflow or perform GitHub writes does not authorize a merge.
-
-Merge only when the user explicitly authorizes merging the specific pull request or the scoped set
-of pull requests in the current request. Immediately before merging, read back the exact head
-commit and verify that the pull request is ready, mergeable, and has every required check
-successful. Never bypass branch protection, use an administrator override, or infer authority for
-an out-of-scope release, publication, or deployment pull request.
-
-Use the repository's normal merge method with an exact-head safeguard, then read back and report
-the merged state and merge commit.
-
-The primary agent runs this workflow with high reasoning effort. The primary agent owns Git and GitHub
-writes, integration review, the final complete gate, staging, and pull-request readback.
+The primary agent owns Git and GitHub writes, integration review, the final complete gate, staging,
+and pull-request readback.
 
 Worker subagents never execute the Git or GitHub write steps. They may perform bounded research,
 implementation, review, or non-mutating verification. The final formatting and complete gate
@@ -124,18 +147,25 @@ remains the primary agent's responsibility. Subagents never commit, push, publis
 ## Agent roles and verification
 
 Model defaults belong in [`.codex/config.toml`](.codex/config.toml); task-specific models and
-reasoning belong in [`.codex/agents/`](.codex/agents/). Use the repository's high-effort primary
-default for normal work; explicitly request `xhigh` for unusually difficult architecture or
-migration analysis. These are defaults, not permission grants.
+reasoning belong in [`.codex/agents/`](.codex/agents/). The primary manager always uses
+`gpt-6-astra` with `xhigh` reasoning. Implementation, specification research, and independent review
+use `gpt-6-sol` with `high` reasoning; check-only verification uses `gpt-6-luna` with `high`
+reasoning. Use Luna for bounded read-only exploration and Sol for difficult failure diagnosis.
+These model settings do not expand the workspace scope or grant additional permissions.
 
-- Delegate only when the user or applicable instructions request it, and assign a bounded task.
-- Use at most three subagents. Define the shared contract and file ownership before delegation.
-- Never run two writers in one checkout. Research and review remain read-only.
+- Delegate bounded tasks when independent work can usefully proceed in parallel. Define the shared
+  contract and explicit repository, checkout, and file ownership before delegation.
+- Use up to nine concurrent subagents plus the primary manager, subject to the session's actual
+  runtime limit. Nine is a ceiling, not a target or nine distinct roles: several subagents may use
+  the same role for independent tasks. Do not create nested agents to evade the limit.
+- Never run two writers in one checkout. Use separate assigned repositories or worktrees for
+  concurrent implementation. Research and review remain read-only.
 - The reviewer checks the original requirements and independent expected results, not just agreement
   between the implementation and its tests.
 - After writing finishes, the verifier runs `./scripts/check-all.sh --check`. It reports failures
   without formatting or editing tracked files; ignored build artifacts and caches are allowed.
-- Avoid concurrent full gates or heavy runtime tests. The primary agent owns integration, the final
+- Run at most one complete gate or heavy runtime suite at a time across this workspace. Agent
+  concurrency is not permission for competing builds. The primary owns integration, the final
   complete gate, and every authorized Git or GitHub write.
 
 The default `./scripts/check-all.sh` still formats before checking. `--check` runs the same
