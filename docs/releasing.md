@@ -47,6 +47,10 @@ continues to identify repository `quadlet-lens`, workflow `release.yml`, and env
    evidence; a missing, failed, cancelled, timed-out, or unexpectedly skipped prerequisite blocks
    the fail-closed release gate.
 
+   The change-aware PR classifier is not used to reduce release validation: reusable CI always
+   selects every deterministic job for the exact candidate, and the full native lanes remain
+   separate mandatory prerequisites.
+
 5. A maintainer can dispatch Release with `validation_only` to run that identical gate without a
    crate publication, tag, draft release, asset, or other release mutation. Only the final,
    already-gated publication job receives release credentials.

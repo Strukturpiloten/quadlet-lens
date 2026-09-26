@@ -10,12 +10,22 @@ cd -- "${repository_root}"
 
 current_step="preflight"
 step=0
-readonly total_steps=24
+readonly total_steps=25
 
 fail() {
   printf 'QuadletLens local validation failed: %s\n' "$1" >&2
   exit 2
 }
+
+# A shared Cargo target can retain test binaries embedding paths from removed issue worktrees.
+if [[ -n "${CARGO_TARGET_DIR:-}" ]]; then
+  command -v realpath > /dev/null 2>&1 || fail "realpath is required to validate CARGO_TARGET_DIR"
+  resolved_target="$(realpath -m -- "${CARGO_TARGET_DIR}")"
+  case "${resolved_target}" in
+    "${repository_root}/"*) ;;
+    *) fail "CARGO_TARGET_DIR must be inside this worktree: ${resolved_target}" ;;
+  esac
+fi
 
 report_failure() {
   local status=$?
@@ -61,6 +71,7 @@ required_tools=(
   lychee
   markdownlint-cli2
   prettier
+  python3
   rustup
   shellcheck
   shfmt
@@ -142,6 +153,7 @@ else
 fi
 run_step "Check whitespace errors" git --no-pager diff --check
 run_step "Lint GitHub Actions syntax" actionlint
+run_step "Test validation-plan regressions" env PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-validation-plan.py
 run_step "Audit GitHub Actions security" zizmor .github/workflows
 run_step "Check all workspace targets and features" cargo ci-check
 run_step "Check capability catalogue" cargo ci-catalogue

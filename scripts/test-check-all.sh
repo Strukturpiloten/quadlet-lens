@@ -34,7 +34,7 @@ esac
 MOCK
 chmod +x "${test_root}/bin/mock"
 for tool in actionlint bash cargo cargo-deny cargo-llvm-cov cargo-semver-checks cspell curl git \
-  hadolint jq lychee markdownlint-cli2 npm prettier rustup shellcheck shfmt tombi uv zizmor; do
+  hadolint jq lychee markdownlint-cli2 npm prettier python3 rustup shellcheck shfmt tombi uv zizmor; do
   ln -s mock "${test_root}/bin/${tool}"
 done
 
@@ -44,7 +44,7 @@ run_gate() {
   : > "${test_root}/${label}.commands"
   PATH="${test_root}/bin:${PATH}" \
     CHECK_ALL_TEST_LOG="${test_root}/${label}.commands" \
-    CARGO_TARGET_DIR="${test_root}/target" \
+    CARGO_TARGET_DIR="${CHECK_ALL_TEST_TARGET_OVERRIDE:-${test_root}/repository/target}" \
     BOXFERRY_SEMVER_RELEASE_TYPE="" PODMAN_LENS_SEMVER_CHECK=0 \
     BOXFERRY_WEBSITE_SOURCE_MODE=local \
     "${bash_executable}" "${test_root}/repository/scripts/check-all.sh" "$@" \
@@ -65,6 +65,7 @@ run_gate check --check
 diff -u "${test_root}/default.commands" "${test_root}/fix.commands"
 assert_contains fix "bash scripts/check-files.sh --fix"
 assert_contains check "bash scripts/check-files.sh --check"
+assert_contains check "python3 scripts/test-validation-plan.py"
 if grep -q '^cargo fmt' "${test_root}/fix.commands"; then
   assert_contains fix "cargo fmt --all"
   assert_contains check "cargo fmt --all -- --check"
@@ -86,6 +87,15 @@ for mode in fix check; do
     "${test_root}/${mode}.commands" > "${test_root}/${mode}.validation"
 done
 diff -u "${test_root}/fix.validation" "${test_root}/check.validation"
+
+CHECK_ALL_TEST_TARGET_OVERRIDE="${test_root}/former-worktree/target" run_gate relocated_target --check && {
+  printf 'Relocated-worktree CARGO_TARGET_DIR was unexpectedly accepted.\n' >&2
+  exit 1
+}
+if ! grep -q 'CARGO_TARGET_DIR must be inside this worktree' "${test_root}/relocated_target.output"; then
+  printf 'Relocated target rejection did not explain the worktree boundary.\n' >&2
+  exit 1
+fi
 
 for invalid in --unknown --checks; do
   status=0

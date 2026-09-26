@@ -7,11 +7,11 @@ external generator or runtime evidence only when a lower layer cannot establish 
 
 | Layer             | Protects                                                          | Normal pull request        |
 | ----------------- | ----------------------------------------------------------------- | -------------------------- |
-| Syntax            | Physical parsing, recovery, preservation, and canonical rendering | yes                        |
-| Typed model       | Native keys, cardinality, values, diagnostics, and document sets  | yes                        |
-| Generation        | Builder validation, deterministic output, and parse-back          | yes                        |
-| Capability        | Schema, ranges, evidence, and boundary evaluation                 | yes                        |
-| Repository policy | Fixtures, workflows, documentation, and release contracts         | yes                        |
+| Syntax            | Physical parsing, recovery, preservation, and canonical rendering | full or executable docs    |
+| Typed model       | Native keys, cardinality, values, diagnostics, and document sets  | full or executable docs    |
+| Generation        | Builder validation, deterministic output, and parse-back          | full or executable docs    |
+| Capability        | Schema, ranges, evidence, and boundary evaluation                 | full or executable docs    |
+| Repository policy | Fixtures, workflows, documentation, and release contracts         | selected by trusted plan   |
 | Generator         | Version-pinned Podman dry-run semantics                           | opt-in or scheduled        |
 | Real-world corpus | Immutable external source ingestion                               | opt-in                     |
 | Runtime           | A named installed environment and behavior                        | only for an explicit claim |
@@ -19,6 +19,15 @@ external generator or runtime evidence only when a lower layer cannot establish 
 `application-conformance` is an ordinary deterministic layer for immutable application document
 sets and independent native semantic expectations. Actual Podman generation remains in the
 separate opt-in generator layer.
+
+Pull-request CI uses the trusted base revision of `scripts/validation-plan.py` and
+`scripts/validation-policy.json` to classify the exact candidate. Only public prose without code
+fences or inline code may skip the Rust, coverage, API and dependency lanes. Pages containing
+executable-looking examples conservatively retain complete validation until a focused independent
+example test exists. Unknown, mixed, malformed and first-rollout comparisons also run the complete
+suite. Main pushes, manual runs, and reusable workflow calls always select all deterministic jobs;
+the stable `PR gate` checks each selection fail-closed. Linux is the validated CI platform. macOS
+client compatibility is intended but is not supported by a macOS CI evidence lane.
 
 Coverage floors are regression alarms, not substitutes for assertions. The project does not require
 100% coverage, a fuzzing program, or every host and privilege combination.
