@@ -1,0 +1,7 @@
+schema = 1
+status = "prospective"
+application = "forgejo"
+target-version = "6.1.2"
+baseline-expectations-sha256 = "07317c5e2361e1e51b93c17175148b30b1f3ede2fdfa6e82f31f03a46f18d1fa"
+authorship = "QuadletLens-authored invariant expectation, independent of Podman 6.1.2 output"
+decision = "The reviewed Forgejo unit inventory, dependency graph, image and command values, environment, ports, networks, mounts, and ordered fragments should retain their 6.1.0 meaning on the same authored units. Any observed difference requires independent review before replacing this expectation."

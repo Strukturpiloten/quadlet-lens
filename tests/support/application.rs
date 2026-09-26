@@ -19,8 +19,13 @@ pub(crate) const FORGEJO_ID: &str = "boxferry-forgejo-application";
 
 const NEXTCLOUD_REVISION: &str = "18716257362932e7520d5aed68412ac7c8492e6d";
 const FORGEJO_REVISION: &str = "68e08b9a86bcb9ced34e8d831563e732176275a1";
-const NEXTCLOUD_EXPECTATIONS_SHA256: &str = "24fa67a440a23b1de9b200ae354741237f030d203fe0ecca31c4d5f3d5397d2b";
-const FORGEJO_EXPECTATIONS_SHA256: &str = "07317c5e2361e1e51b93c17175148b30b1f3ede2fdfa6e82f31f03a46f18d1fa";
+const NEXTCLOUD_EXPECTATIONS_SHA256: &str = "fb06b0b9cc249b541101a08f130e5ef3e5d825c32f0a636fe7c35d85c62dd571";
+const FORGEJO_EXPECTATIONS_SHA256: &str = "97e1b6d491f54a8fe6075b1674ac65598fd871e751ca842183b9ab74b1d5d630";
+const NEXTCLOUD_PRE_ADMISSION_SHA256: &str = "24fa67a440a23b1de9b200ae354741237f030d203fe0ecca31c4d5f3d5397d2b";
+const FORGEJO_PRE_ADMISSION_SHA256: &str = "07317c5e2361e1e51b93c17175148b30b1f3ede2fdfa6e82f31f03a46f18d1fa";
+const NEXTCLOUD_PROSPECTIVE_SHA256: &str = "40bb25271c2cf846866deea2e92e14a8a7503853da316bd2b1e8a624c1bac088";
+const FORGEJO_PROSPECTIVE_SHA256: &str = "0430a18d37996d2b2d5d5b2fad5239806dc6ebbc144430799cf6b9b091a80103";
+pub(crate) const PROSPECTIVE_VERSION: &str = "6.1.2";
 const PODMAN_RUN_FLAGS: &[&str] = &["--replace", "--rm", "-d"];
 const PODMAN_RUN_VALUE_OPTIONS: &[&str] = &[
     "--name",
@@ -152,6 +157,59 @@ pub(crate) fn known_application_units(id: &str) -> Result<&'static [CopiedUnit<'
         FORGEJO_ID => Ok(FORGEJO_UNITS),
         _ => Err(format!("unknown application contract `{id}`")),
     }
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+struct ProspectiveApplicationContract {
+    schema: u32,
+    status: String,
+    application: String,
+    target_version: String,
+    baseline_expectations_sha256: String,
+    authorship: String,
+    decision: String,
+}
+
+pub(crate) fn verify_prospective_application_fixture(id: &str, version: &str) -> Result<PathBuf, String> {
+    if version != PROSPECTIVE_VERSION {
+        return Err(format!("unsupported prospective Podman version `{version}`"));
+    }
+    let (name, baseline_hash, prospective_hash) = match id {
+        NEXTCLOUD_ID => (
+            "nextcloud",
+            NEXTCLOUD_PRE_ADMISSION_SHA256,
+            NEXTCLOUD_PROSPECTIVE_SHA256,
+        ),
+        FORGEJO_ID => ("forgejo", FORGEJO_PRE_ADMISSION_SHA256, FORGEJO_PROSPECTIVE_SHA256),
+        _ => return Err(format!("unknown application contract `{id}`")),
+    };
+    let root = verify_known_application_fixture(id)?;
+    let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("fixtures/application-prospective")
+        .join(format!("podman-{version}/{name}.toml"));
+    let actual_hash = sha256_file(&path)?;
+    if actual_hash != prospective_hash {
+        return Err(format!(
+            "{id}: prospective manifest SHA-256 is {actual_hash}, expected {prospective_hash}"
+        ));
+    }
+    let text = fs::read_to_string(&path).map_err(|error| format!("failed to read {}: {error}", path.display()))?;
+    let contract: ProspectiveApplicationContract =
+        toml::from_str(&text).map_err(|error| format!("invalid {}: {error}", path.display()))?;
+    if contract.schema != 1
+        || contract.status != "prospective"
+        || contract.application != name
+        || contract.target_version != version
+        || contract.baseline_expectations_sha256 != baseline_hash
+        || contract.authorship != "QuadletLens-authored invariant expectation, independent of Podman 6.1.2 output"
+        || contract.decision.is_empty()
+    {
+        return Err(format!(
+            "{id}: prospective manifest does not match the independently authored contract"
+        ));
+    }
+    Ok(root)
 }
 
 pub(crate) fn verify_application_fixture(
@@ -307,14 +365,38 @@ pub(crate) fn application_contract_target(root: &Path) -> Result<String, String>
     Ok(load_generated_contract(root)?.target_version)
 }
 
-#[expect(
-    clippy::too_many_lines,
-    reason = "One ordered verifier keeps the complete independent application contract auditable."
-)]
 pub(crate) fn verify_generated_application(
     id: &str,
     root: &Path,
     version: &str,
+    generated: &str,
+) -> Result<(), String> {
+    verify_generated_application_against_baseline(id, root, version, generated)
+}
+
+pub(crate) fn verify_generated_prospective_application(
+    id: &str,
+    root: &Path,
+    version: &str,
+    generated: &str,
+) -> Result<(), String> {
+    let reviewed_root = verify_prospective_application_fixture(id, version)?;
+    if root != reviewed_root {
+        return Err(format!(
+            "{id}: prospective contract must use the reviewed built-in unit set"
+        ));
+    }
+    verify_generated_application_against_baseline(id, root, "6.1.0", generated)
+}
+
+#[expect(
+    clippy::too_many_lines,
+    reason = "One ordered verifier keeps the complete independent application contract auditable."
+)]
+fn verify_generated_application_against_baseline(
+    id: &str,
+    root: &Path,
+    baseline_version: &str,
     generated: &str,
 ) -> Result<(), String> {
     let contract = load_generated_contract(root)?;
@@ -331,9 +413,9 @@ pub(crate) fn verify_generated_application(
             contract.application
         ));
     }
-    if contract.target_version != version {
+    if contract.target_version != baseline_version {
         return Err(format!(
-            "{id}: generator version `{version}` is unsupported; contract requires exact {}",
+            "{id}: generator contract baseline `{baseline_version}` is unsupported; contract requires exact {}",
             contract.target_version
         ));
     }

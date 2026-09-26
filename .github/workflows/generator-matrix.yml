@@ -38,6 +38,7 @@ env:
   # units or workloads.
   QUADLET_LENS_DOCKER_PRIVILEGED_GENERATORS: "true"
   QUADLET_LENS_GENERATOR_LANE: full
+  QUADLET_LENS_GENERATOR_RUN_ID: generator-${{ github.run_id }}-${{ github.run_attempt }}
 
 jobs:
   supported-generators:
@@ -55,9 +56,15 @@ jobs:
       - name: Install configured Rust toolchain
         run: rustup show active-toolchain
       - name: Run every pinned supported generator
+        timeout-minutes: 35
         run: cargo ci-generators
       - name: Validate real-application generated semantics
+        timeout-minutes: 5
         run: cargo ci-application-generators
+      - name: Remove only this run's outer generator containers
+        if: ${{ always() }}
+        timeout-minutes: 2
+        run: bash ./scripts/cleanup-generator-containers.sh
       - name: Record exact native-generator evidence
         id: evidence
         shell: bash

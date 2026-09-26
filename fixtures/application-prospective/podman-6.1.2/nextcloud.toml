@@ -1,0 +1,7 @@
+schema = 1
+status = "prospective"
+application = "nextcloud"
+target-version = "6.1.2"
+baseline-expectations-sha256 = "24fa67a440a23b1de9b200ae354741237f030d203fe0ecca31c4d5f3d5397d2b"
+authorship = "QuadletLens-authored invariant expectation, independent of Podman 6.1.2 output"
+decision = "The reviewed Nextcloud unit inventory, dependency graph, image and command values, environment, ports, networks, mounts, and ordered fragments should retain their 6.1.0 meaning on the same authored units. Any observed difference requires independent review before replacing this expectation."

@@ -1,6 +1,6 @@
 # ADR 0015: Separate generator discovery from the reviewed target
 
-Status: accepted
+Status: superseded by [ADR 0018](0018-active-generator-patches-and-historical-evidence.md)
 
 Date: 2026-09-21
 

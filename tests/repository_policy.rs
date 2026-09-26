@@ -986,7 +986,7 @@ fn validate_renovate_lockfile_policy(renovate: &serde_json::Value) -> Result<(),
         return Err("Renovate lock-file maintenance must follow generic automerge and remain green-gated".to_owned());
     }
     for description in [
-        "Keep Podman release discovery visible and separate from reviewed support",
+        "Keep newest-upstream and maintained-minor Podman discovery separate from reviewed support",
         "Keep Dev Container feature versions current; the lock file owns digests",
         "Require checksum review for downloaded file-quality tools",
     ] {
@@ -1043,12 +1043,167 @@ fn validate_shared_policy_manager(renovate: &serde_json::Value) -> Result<(), St
     Ok(())
 }
 
+#[expect(
+    clippy::too_many_lines,
+    reason = "One policy verifier must audit all discovery owners and their exact matrix markers together."
+)]
+fn validate_podman_patch_discovery(renovate: &serde_json::Value, matrix: &str) -> Result<(), String> {
+    let managers = renovate["customManagers"]
+        .as_array()
+        .ok_or_else(|| "Renovate customManagers must be an array".to_owned())?;
+    let upstream = managers
+        .iter()
+        .filter(|manager| manager["description"] == "Discover the newest stable Podman release across minor lines")
+        .collect::<Vec<_>>();
+    if upstream.len() != 1
+        || upstream[0]["customType"] != "regex"
+        || upstream[0]["managerFilePatterns"] != serde_json::json!([r"/^tools/generator-matrix\.toml$/"])
+        || upstream[0]["matchStrings"]
+            != serde_json::json!([
+                r#"# renovate: datasource=(?<datasource>[^\s]+) packageName=(?<packageName>[^\s]+) depName=(?<depName>podman-upstream)\nlatest_upstream = \"(?<currentValue>[^\"]+)\""#
+            ])
+        || upstream[0]["extractVersionTemplate"] != r"^v?(?<version>.*)$"
+    {
+        return Err("Renovate must uniquely extract the overall newest Podman release".to_owned());
+    }
+    if matrix
+        .matches("# renovate: datasource=github-releases packageName=podman-container-tools/podman depName=podman-upstream\nlatest_upstream = \"6.1.2\"")
+        .count()
+        != 1
+    {
+        return Err("Podman matrix must have one overall newest-release discovery owner".to_owned());
+    }
+    let discovery = managers
+        .iter()
+        .filter(|manager| {
+            manager["description"]
+                == "Discover the newest stable Podman patch independently for each maintained minor line"
+        })
+        .collect::<Vec<_>>();
+    if discovery.len() != 1 {
+        return Err("Renovate must have exactly one maintained-minor Podman discovery manager".to_owned());
+    }
+    let discovery = discovery[0];
+    if discovery["customType"] != "regex"
+        || discovery["managerFilePatterns"] != serde_json::json!([r"/^tools/generator-matrix\.toml$/"])
+        || discovery["matchStrings"]
+            != serde_json::json!([
+                r#"# renovate: datasource=(?<datasource>[^\s]+) packageName=(?<packageName>[^\s]+) depName=(?<depName>podman-[0-9]+\.[0-9]+)\nlatest_[0-9]+_[0-9]+ = \"(?<currentValue>[^\"]+)\""#
+            ])
+        || discovery["extractVersionTemplate"] != r"^v?(?<version>.*)$"
+    {
+        return Err("Podman discovery must extract only the seven canonical per-minor markers".to_owned());
+    }
+    let rules = renovate["packageRules"]
+        .as_array()
+        .ok_or_else(|| "Renovate packageRules must be an array".to_owned())?;
+    let upstream_rules = rules
+        .iter()
+        .filter(|rule| {
+            rule["matchManagers"] == serde_json::json!(["custom.regex"])
+                && rule["matchDepNames"] == serde_json::json!(["podman-upstream"])
+        })
+        .collect::<Vec<_>>();
+    if upstream_rules.len() != 1 || upstream_rules[0]["allowedVersions"] != r"/^[0-9]+\.[0-9]+\.[0-9]+$/" {
+        return Err("Podman newest-release discovery must admit stable version candidates only".to_owned());
+    }
+    for (major, minor, patch) in [
+        (5, 4, 2),
+        (5, 5, 2),
+        (5, 6, 2),
+        (5, 7, 1),
+        (5, 8, 7),
+        (6, 0, 2),
+        (6, 1, 2),
+    ] {
+        let marker = format!(
+            "# renovate: datasource=github-releases packageName=podman-container-tools/podman depName=podman-{major}.{minor}\nlatest_{major}_{minor} = \"{major}.{minor}.{patch}\""
+        );
+        if matrix.matches(&marker).count() != 1 {
+            return Err(format!(
+                "Podman {major}.{minor} discovery marker must occur exactly once"
+            ));
+        }
+        let name = format!("podman-{major}.{minor}");
+        let version_pattern = format!(r"/^{major}\.{minor}\.[0-9]+$/");
+        let owners = rules
+            .iter()
+            .filter(|rule| {
+                rule["matchManagers"] == serde_json::json!(["custom.regex"])
+                    && rule["matchDepNames"] == serde_json::json!([name])
+            })
+            .collect::<Vec<_>>();
+        if owners.len() != 1 || owners[0]["allowedVersions"] != version_pattern {
+            return Err(format!(
+                "Podman {major}.{minor} must have one patch-only discovery rule"
+            ));
+        }
+    }
+    let discovery_prefix =
+        "# renovate: datasource=github-releases packageName=podman-container-tools/podman depName=podman-";
+    if matrix
+        .lines()
+        .filter(|line| line.starts_with(discovery_prefix) && !line.ends_with("podman-upstream"))
+        .count()
+        != 7
+    {
+        return Err("Podman matrix must have exactly seven maintained-minor discovery owners".to_owned());
+    }
+    Ok(())
+}
+
+#[test]
+fn podman_patch_discovery_rejects_missing_or_ambiguous_owners() -> Result<(), String> {
+    let renovate: serde_json::Value =
+        serde_json::from_str(&read_repository_file(".github/renovate.json")?).map_err(|error| error.to_string())?;
+    let matrix = read_repository_file("tools/generator-matrix.toml")?;
+    validate_podman_patch_discovery(&renovate, &matrix)?;
+    let file_checks = read_repository_file("scripts/check-files.sh")?;
+    if !file_checks.contains("run node scripts/check-renovate-discovery.mjs") {
+        return Err("file checks must execute the real Podman Renovate extraction fixture".to_owned());
+    }
+
+    let missing_upstream = matrix.replace("latest_upstream = \"6.1.2\"", "latest_upstream = \"6.1.1\"");
+    assert!(validate_podman_patch_discovery(&renovate, &missing_upstream).is_err());
+
+    let missing_line = matrix.replace("latest_5_8 = \"5.8.7\"", "latest_5_8 = \"5.8.6\"");
+    assert!(validate_podman_patch_discovery(&renovate, &missing_line).is_err());
+
+    let mut wrong_range = renovate.clone();
+    let rules = wrong_range["packageRules"]
+        .as_array_mut()
+        .ok_or_else(|| "Renovate packageRules must be an array".to_owned())?;
+    let minor = rules
+        .iter_mut()
+        .find(|rule| rule["matchDepNames"] == serde_json::json!(["podman-5.8"]))
+        .ok_or_else(|| "missing Podman 5.8 rule".to_owned())?;
+    minor["allowedVersions"] = serde_json::json!(r"/^5\.[0-9]+\.[0-9]+$/");
+    assert!(validate_podman_patch_discovery(&wrong_range, &matrix).is_err());
+
+    let mut duplicate = renovate.clone();
+    let managers = duplicate["customManagers"]
+        .as_array_mut()
+        .ok_or_else(|| "Renovate customManagers must be an array".to_owned())?;
+    let owner = managers
+        .iter()
+        .find(|manager| {
+            manager["description"]
+                == "Discover the newest stable Podman patch independently for each maintained minor line"
+        })
+        .ok_or_else(|| "missing Podman discovery manager".to_owned())?
+        .clone();
+    managers.push(owner);
+    assert!(validate_podman_patch_discovery(&duplicate, &matrix).is_err());
+    Ok(())
+}
+
 #[test]
 fn renovate_tracks_every_directly_pinned_development_tool() -> Result<(), String> {
     let renovate = read_repository_file(".github/renovate.json")?;
     let renovate_value: serde_json::Value =
         serde_json::from_str(&renovate).map_err(|error| format!("failed to parse Renovate configuration: {error}"))?;
     validate_renovate_lockfile_policy(&renovate_value)?;
+    validate_podman_patch_discovery(&renovate_value, &read_repository_file("tools/generator-matrix.toml")?)?;
     for required in [
         "Update versioned Dev Container tools",
         "Signal updates for checksum-pinned file-quality tools",
@@ -1062,12 +1217,11 @@ fn renovate_tracks_every_directly_pinned_development_tool() -> Result<(), String
         r#""matchManagers": ["rust-toolchain"]"#,
         "Automerge tested non-major dependency updates",
         "Do not delay BoxFerry and Lens releases",
-        "Keep Podman release discovery visible and separate from reviewed support",
+        "Keep newest-upstream and maintained-minor Podman discovery separate from reviewed support",
         r#""matchManagers": ["custom.regex"]"#,
         r#""matchPackageNames": ["podman-container-tools/podman"]"#,
         r#""matchFileNames": ["tools/generator-matrix.toml"]"#,
-        r#""groupName": "Podman release discovery""#,
-        "This updates latest_upstream discovery only",
+        "This updates a Podman discovery signal only",
         r#""minimumReleaseAge": "0 days""#,
         r#""platformAutomerge": false"#,
         r#""boxferry-model""#,
@@ -1260,6 +1414,7 @@ fn maintainer_documentation_is_task_oriented_and_bounded() -> Result<(), String>
         "environment-and-secrets.md",
         "fixture-format.md",
         "generation.md",
+        "generator-maintenance.md",
         "generator-matrix.md",
         "real-world-quadlet-corpus.md",
         "releasing.md",
@@ -1441,7 +1596,7 @@ fn public_documentation_is_bounded_and_website_owned() -> Result<(), String> {
     }
 
     let catalogue = read_repository_file("catalogue/v1/podman-supported-range.toml")?;
-    for required in ["schema = 1", "minimum = \"5.4.0\"", "maximum = \"6.1.0\""] {
+    for required in ["schema = 1", "minimum = \"5.4.0\"", "maximum = \"6.1.2\""] {
         if !catalogue.contains(required) {
             return Err(format!("public capability catalogue is missing `{required}`"));
         }

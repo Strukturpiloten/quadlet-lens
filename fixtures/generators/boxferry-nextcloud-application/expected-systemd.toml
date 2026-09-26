@@ -1,5 +1,5 @@
 schema = 1
-target-version = "6.1.0"
+target-version = "6.1.2"
 application = "nextcloud"
 units = [
   "app.service",
