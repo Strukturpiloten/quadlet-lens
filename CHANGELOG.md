@@ -5,6 +5,8 @@ Versioning for its documented pre-1.0 public API.
 
 ## [Unreleased]
 
+## [0.2.4](https://github.com/Strukturpiloten/quadlet-lens/compare/v0.2.3...v0.2.4) - 2026-09-26
+
 ### Added
 
 - Add immutable Nextcloud and Forgejo Quadlet application contracts, deterministic native
