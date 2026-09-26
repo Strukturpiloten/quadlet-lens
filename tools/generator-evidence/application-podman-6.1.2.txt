@@ -1,0 +1,14 @@
+# Exact dry-run application-generator evidence; no units or workloads were started.
+version=6.1.2
+result=passed
+executed_at=2026-09-26T15:11:06Z
+command=QUADLET_LENS_GENERATOR_VERSION=6.1.2 cargo ci-application-generators
+harness_revision=825d551574641640a34a8ebb5def64ca8ec18c0c2428743a2be2702d0b28775c
+nextcloud_expectations_sha256=fb06b0b9cc249b541101a08f130e5ef3e5d825c32f0a636fe7c35d85c62dd571
+forgejo_expectations_sha256=97e1b6d491f54a8fe6075b1674ac65598fd871e751ca842183b9ab74b1d5d630
+nextcloud_result=generated semantics match independent contract
+forgejo_result=generated semantics match independent contract
+test result: ok.
+test_summary=test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 27 filtered out; finished in 9.47s
+run_label=io.github.strukturpiloten.quadlet-lens.generator-run=quadlet139-admit-app-6_1_2
+post_run_containers_with_exact_label=0

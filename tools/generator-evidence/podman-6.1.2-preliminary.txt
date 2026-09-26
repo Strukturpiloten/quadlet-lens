@@ -1,0 +1,29 @@
+# Preliminary exact one-version dry-run; executed harness has no retrievable source snapshot.
+version=6.1.2
+result=preliminary-passed
+executed_at=2026-09-26T10:48:52Z
+command=QUADLET_LENS_GENERATOR_HISTORY_VERSION=6.1.2 QUADLET_LENS_GENERATOR_VERSION=6.1.2 cargo ci-generators
+harness_revision=6c0810b53a46839a24e33381627ad5a2a905fac7d4df5f037a30d726fe0a5014
+fixture_revision=227c29db07bd23041096a1c76734f07af5038ebcf11a3114fc262a79d9a9623e
+test result: ok.
+test_summary=test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 23 filtered out; finished in 39.41s
+source_repository=https://github.com/podman-container-tools/podman.git
+source_tag=v6.1.2
+source_tag_object=b3f4e073dc6641ca8efc0bf261b35e35835e633d
+source_commit=04f3aa430e6df81bea059978bc5bafbc846ba3e7
+source_license=Apache-2.0
+source_license_sha256=62fb8a3a9621dc2388174caaabe9c2317b694bb9a1d46c98bcf5655b68f51be3
+builder_reference=docker.io/library/golang:1.27.1-bookworm@sha256:648f440f42a0958804efb24df176f806f9d353b41f1c0627f666428e40310f6b
+outer_engine=podman
+run_label=io.github.strukturpiloten.quadlet-lens.generator-run=quadlet139-20260926T104827Z-61_2
+timeout=20m; kill_grace=30s; exact-label EXIT cleanup
+post_run_containers_with_exact_label=0
+captured_log_sha256=e61366f621a5ade0ef6604c4cbcbf7f4afdc65ba3208c8ee799503005d23b88e
+captured_log_bytes=12054
+harness_revision_method=SHA-256 of tests/generators.rs
+fixture_revision_method=SHA-256 of sorted relative-path SHA-256 listing for fixtures/generators
+cargo_alias_sha256=e2c17f93da977ec0a3da60bea403334f4f150f9ba0b803a5d6a1e01841c0cd16
+cleanup_script_sha256=84b2cfb1a4e21a82776a5715f360f3246cbe1e8aac5d0a66fa82835b2e11a43c
+# The captured full log is private local diagnostic data, not a published fixture.
+# This observation is not durable admission evidence. Preserve it; rerun the final reviewed harness.
+# The 6.1.1 bridge and independent real-application contracts also remain required.

@@ -11,6 +11,12 @@ Versioning for its documented pre-1.0 public API.
   conformance assertions, and a reusable exact-version Podman generator validator for supplied
   document sets ([#98](https://github.com/Strukturpiloten/quadlet-lens/issues/98)).
 
+### Changed
+
+- Advance reviewed Podman generator and application contracts through 6.1.2, retain exact
+  historical patch evidence, and discover newer patches separately for each maintained minor line
+  ([#139](https://github.com/Strukturpiloten/quadlet-lens/issues/139)).
+
 ## [0.2.3](https://github.com/Strukturpiloten/quadlet-lens/compare/v0.2.2...v0.2.3) - 2026-09-07
 
 ### Added

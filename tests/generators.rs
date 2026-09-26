@@ -3,31 +3,38 @@
 #[path = "support/application.rs"]
 mod application;
 
+use std::cell::RefCell;
 use std::collections::BTreeSet;
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 use std::str::FromStr;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use quadlet_lens::capability::PodmanVersion;
 use serde::Deserialize;
 
 use application::{
-    FORGEJO_ID, NEXTCLOUD_ID, application_contract_target, known_application_units, verify_generated_application,
-    verify_known_application_fixture, verify_supplied_application_directory,
+    FORGEJO_ID, NEXTCLOUD_ID, PROSPECTIVE_VERSION, application_contract_target, known_application_units,
+    verify_generated_application, verify_generated_prospective_application, verify_known_application_fixture,
+    verify_prospective_application_fixture, verify_supplied_application_directory,
 };
 
 const MATRIX: &str = include_str!("../tools/generator-matrix.toml");
+const HISTORY: &str = include_str!("../tools/generator-history.toml");
+const GENERATOR_RUN_LABEL: &str = "io.github.strukturpiloten.quadlet-lens.generator-run";
+static GENERATOR_RUN_COUNTER: AtomicU64 = AtomicU64::new(0);
+thread_local! {
+    static GENERATOR_RUN_ID: RefCell<Option<String>> = const { RefCell::new(None) };
+}
 const CONTAINER_ENVIRONMENT_RESET_FIXTURE: &str =
     include_str!("../fixtures/generators/container-environment-reset-supported-range/environment-reset.container");
 const NATIVE_VALUE_DECODING_FIXTURE: &str =
     include_str!("../fixtures/generators/native-value-decoding-supported-range/native-values.container");
-const EXPECTED_IMAGE_VERSIONS: &[&str] = &[
-    "5.4.0", "5.4.1", "5.4.2", "5.5.0", "5.5.1", "5.5.2", "5.6.0", "5.6.1", "5.6.2", "5.7.0", "5.7.1", "5.8.0",
-    "5.8.1", "5.8.2",
-];
-const EXPECTED_SOURCE_VERSIONS: &[&str] = &["5.8.3", "5.8.4", "5.8.5", "5.8.6", "6.0.0", "6.0.1", "6.0.2", "6.1.0"];
+const EXPECTED_IMAGE_VERSIONS: &[&str] = &["5.4.0", "5.4.2", "5.5.2", "5.6.2", "5.7.1"];
+const EXPECTED_SOURCE_VERSIONS: &[&str] = &["5.8.7", "6.0.2", "6.1.2"];
 const QUOTED_LABEL_LITERAL_SPACE: &str =
     r#"--label "io.github.strukturpiloten.quadlet-lens.metadata={\"channel\": \"stable\"}""#;
 const QUOTED_LABEL_HEX_SPACE: &str =
@@ -816,6 +823,13 @@ struct GeneratorMatrix {
     schema: u32,
     support_minimum: String,
     latest_upstream: String,
+    latest_5_4: String,
+    latest_5_5: String,
+    latest_5_6: String,
+    latest_5_7: String,
+    latest_5_8: String,
+    latest_6_0: String,
+    latest_6_1: String,
     tracked_current: String,
     checked_on: String,
     official_image_maximum: String,
@@ -841,6 +855,201 @@ struct GeneratorSource {
     commit: String,
     #[serde(default)]
     smoke: bool,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct GeneratorHistory {
+    schema: u32,
+    source_repository: String,
+    builder_reference: String,
+    source_license: String,
+    source_license_sha256: String,
+    suite: String,
+    command_template: String,
+    reviewed_on: String,
+    image: Vec<HistoricalGeneratorImage>,
+    source: Vec<HistoricalGeneratorSource>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct HistoricalGeneratorImage {
+    version: String,
+    reference: String,
+    reason: String,
+    result: String,
+    executed_at: Option<String>,
+    command: Option<String>,
+    harness_revision: Option<String>,
+    fixture_revision: Option<String>,
+    evidence_file: Option<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct HistoricalGeneratorSource {
+    version: String,
+    tag: String,
+    tag_object: Option<String>,
+    commit: String,
+    reason: String,
+    result: String,
+    executed_at: Option<String>,
+    command: Option<String>,
+    harness_revision: Option<String>,
+    fixture_revision: Option<String>,
+    evidence_file: Option<String>,
+}
+
+fn validate_history_result(version: &str, result: &str, fields: &[(&str, Option<&str>); 5]) -> Result<(), String> {
+    let [
+        (_, executed_at),
+        (_, command),
+        (_, harness_revision),
+        (_, fixture_revision),
+        (_, evidence_file),
+    ] = *fields;
+    if result == "pending-fresh-evidence" {
+        if fields.iter().any(|(_, value)| value.is_some()) {
+            return Err(format!(
+                "pending Podman {version} must not carry fabricated execution evidence"
+            ));
+        }
+        return Ok(());
+    }
+    if !matches!(result, "passed" | "preliminary-passed") {
+        return Err(format!("Podman {version} has unknown historical result `{result}`"));
+    }
+    let executed_at = executed_at.ok_or_else(|| format!("Podman {version} needs an exact execution time"))?;
+    if executed_at.len() != 20
+        || !executed_at.bytes().enumerate().all(|(index, byte)| match index {
+            4 | 7 => byte == b'-',
+            10 => byte == b'T',
+            13 | 16 => byte == b':',
+            19 => byte == b'Z',
+            _ => byte.is_ascii_digit(),
+        })
+    {
+        return Err(format!("Podman {version} needs an exact UTC execution timestamp"));
+    }
+    let recorded_command = validate_recorded_generator_command(version, command)?;
+    for (name, revision) in [
+        ("harness_revision", harness_revision),
+        ("fixture_revision", fixture_revision),
+    ] {
+        let revision = revision.ok_or_else(|| format!("Podman {version} needs {name}"))?;
+        if revision.len() != 64
+            || !revision
+                .bytes()
+                .all(|byte| byte.is_ascii_digit() || matches!(byte, b'a'..=b'f'))
+        {
+            return Err(format!("Podman {version} needs a full SHA-256 {name}"));
+        }
+    }
+    let suffix = if result == "preliminary-passed" {
+        "-preliminary"
+    } else {
+        ""
+    };
+    let expected_file = format!("tools/generator-evidence/podman-{version}{suffix}.txt");
+    if evidence_file != Some(expected_file.as_str()) {
+        return Err(format!(
+            "Podman {version} needs its own durable repository result artifact"
+        ));
+    }
+    let evidence = fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join(&expected_file))
+        .map_err(|error| format!("cannot read Podman {version} evidence artifact: {error}"))?;
+    for required in [
+        format!("version={version}"),
+        format!("result={result}"),
+        format!("executed_at={executed_at}"),
+        format!("command={recorded_command}"),
+        format!("harness_revision={}", harness_revision.unwrap_or_default()),
+        format!("fixture_revision={}", fixture_revision.unwrap_or_default()),
+        "test result: ok.".to_owned(),
+    ] {
+        if !evidence.lines().any(|line| line == required) {
+            return Err(format!("Podman {version} evidence artifact is missing `{required}`"));
+        }
+    }
+    Ok(())
+}
+
+fn validate_recorded_generator_command<'a>(version: &str, command: Option<&'a str>) -> Result<&'a str, String> {
+    let active_command = format!("QUADLET_LENS_GENERATOR_VERSION={version} cargo ci-generators");
+    let historical_command = format!(
+        "QUADLET_LENS_GENERATOR_HISTORY_VERSION={version} QUADLET_LENS_GENERATOR_VERSION={version} cargo ci-generators"
+    );
+    match command {
+        Some(recorded) if recorded == active_command || recorded == historical_command => Ok(recorded),
+        _ => Err(format!(
+            "Podman {version} needs its exact recorded version-specific generator command"
+        )),
+    }
+}
+
+fn require_passed_retirement(version: &str, active: bool, result: &str) -> Result<(), String> {
+    if !active && result != "passed" {
+        return Err(format!(
+            "retired Podman {version} needs durable passed generator evidence before leaving the active matrix"
+        ));
+    }
+    Ok(())
+}
+
+#[test]
+fn retired_generator_requires_a_durable_pass_even_when_a_probe_passed() {
+    assert!(require_passed_retirement("5.8.6", false, "pending-fresh-evidence").is_err());
+    assert!(require_passed_retirement("5.8.6", false, "preliminary-passed").is_err());
+    assert!(require_passed_retirement("5.8.6", false, "passed").is_ok());
+    assert!(require_passed_retirement("5.8.7", true, "preliminary-passed").is_ok());
+}
+
+#[test]
+fn generator_evidence_command_remains_valid_when_a_lane_is_retired_or_promoted() {
+    let active = "QUADLET_LENS_GENERATOR_VERSION=5.8.6 cargo ci-generators";
+    let historical =
+        "QUADLET_LENS_GENERATOR_HISTORY_VERSION=5.8.6 QUADLET_LENS_GENERATOR_VERSION=5.8.6 cargo ci-generators";
+    assert_eq!(validate_recorded_generator_command("5.8.6", Some(active)), Ok(active));
+    assert_eq!(
+        validate_recorded_generator_command("5.8.6", Some(historical)),
+        Ok(historical)
+    );
+    assert!(validate_recorded_generator_command("5.8.6", None).is_err());
+    assert!(
+        validate_recorded_generator_command(
+            "5.8.6",
+            Some("QUADLET_LENS_GENERATOR_VERSION=6.1.2 cargo ci-generators")
+        )
+        .is_err()
+    );
+    assert!(
+        validate_recorded_generator_command(
+            "5.8.6",
+            Some("QUADLET_LENS_GENERATOR_VERSION=5.8.6 cargo ci-generators --ignored")
+        )
+        .is_err()
+    );
+}
+
+#[test]
+fn a_passed_historical_result_without_per_version_provenance_is_rejected() {
+    let empty = [("executed_at", None); 5];
+    assert!(validate_history_result("6.1.1", "passed", &empty).is_err());
+    assert!(validate_history_result("6.1.1", "preliminary-passed", &empty).is_err());
+    let partial = [
+        ("executed_at", Some("2026-09-26T07:00:00Z")),
+        (
+            "command",
+            Some("QUADLET_LENS_GENERATOR_VERSION=6.1.1 cargo ci-generators"),
+        ),
+        ("harness_revision", None),
+        ("fixture_revision", None),
+        ("evidence_file", None),
+    ];
+    assert!(validate_history_result("6.1.1", "passed", &partial).is_err());
+    assert!(validate_history_result("6.1.1", "pending-fresh-evidence", &partial).is_err());
 }
 
 struct SecurityLabelFixtures {
@@ -1006,9 +1215,8 @@ fn generator_matrix_is_exact_complete_and_digest_pinned() -> Result<(), String> 
 
     let image_versions: Vec<_> = matrix.image.iter().map(|image| image.version.as_str()).collect();
     assert_eq!(image_versions, EXPECTED_IMAGE_VERSIONS);
-    assert_eq!(matrix.image.iter().filter(|image| image.smoke).count(), 2);
+    assert_eq!(matrix.image.iter().filter(|image| image.smoke).count(), 1);
     assert!(matrix.image.first().is_some_and(|image| image.smoke));
-    assert!(matrix.image.last().is_some_and(|image| image.smoke));
 
     let mut unique_references = BTreeSet::new();
     for image in &matrix.image {
@@ -1022,7 +1230,7 @@ fn generator_matrix_is_exact_complete_and_digest_pinned() -> Result<(), String> 
 
     let source_versions: Vec<_> = matrix.source.iter().map(|source| source.version.as_str()).collect();
     assert_eq!(source_versions, EXPECTED_SOURCE_VERSIONS);
-    assert_eq!(matrix.source.iter().filter(|source| source.smoke).count(), 1);
+    assert_eq!(matrix.source.iter().filter(|source| source.smoke).count(), 2);
     assert!(matrix.source.last().is_some_and(|source| source.smoke));
     for source in &matrix.source {
         PodmanVersion::from_str(&source.version).map_err(|error| error.to_string())?;
@@ -1043,39 +1251,222 @@ fn generator_matrix_is_exact_complete_and_digest_pinned() -> Result<(), String> 
         matrix.image.first().map(|image| image.version.as_str()),
         Some(matrix.support_minimum.as_str())
     );
-    assert_eq!(
-        matrix.image.last().map(|image| image.version.as_str()),
-        Some(matrix.official_image_maximum.as_str())
+    assert!(
+        PodmanVersion::from_str(&matrix.official_image_maximum).map_err(|error| error.to_string())?
+            >= PodmanVersion::from_str(&matrix.image.last().ok_or("no image lanes")?.version)
+                .map_err(|error| error.to_string())?
     );
     assert_eq!(
         matrix.source.first().map(|source| source.version.as_str()),
-        Some("5.8.3")
+        Some("5.8.7")
     );
     assert_eq!(
         matrix.source.last().map(|source| source.version.as_str()),
         Some(matrix.tracked_current.as_str())
     );
-    let memory_versions = matrix
+    let active_versions = matrix
         .image
         .iter()
         .map(|image| image.version.as_str())
-        .chain(matrix.source.iter().map(|source| source.version.as_str()))
-        .filter(|version| PodmanVersion::from_str(version).is_ok_and(|version| version >= PodmanVersion::new(5, 5, 0)))
-        .count();
-    assert_eq!(memory_versions, 19);
+        .chain(matrix.source.iter().map(|source| source.version.as_str()));
+    let mut active_minor_lines = BTreeSet::new();
+    for version in active_versions {
+        let parsed = PodmanVersion::from_str(version).map_err(|error| error.to_string())?;
+        let line = (parsed.major(), parsed.minor());
+        active_minor_lines.insert(line);
+    }
+    assert_eq!(
+        active_minor_lines,
+        BTreeSet::from([(5, 4), (5, 5), (5, 6), (5, 7), (5, 8), (6, 0), (6, 1)])
+    );
+    Ok(())
+}
+
+#[test]
+fn generator_retirement_pins_preserve_active_coverage_and_require_run_evidence() -> Result<(), String> {
+    let matrix = parse_matrix()?;
+    let history: GeneratorHistory =
+        toml::from_str(HISTORY).map_err(|error| format!("invalid historical generator evidence: {error}"))?;
+    assert_eq!(history.schema, 1);
+    assert_eq!(history.source_repository, matrix.source_repository);
+    validate_digest_pinned_reference(&history.builder_reference, "docker.io/library/golang:")?;
+    assert_eq!(history.source_license, "Apache-2.0");
+    assert_eq!(
+        history.source_license_sha256,
+        "62fb8a3a9621dc2388174caaabe9c2317b694bb9a1d46c98bcf5655b68f51be3"
+    );
+    assert_eq!(
+        history.suite,
+        "generators::supported_generators_match_the_first_conversion_fixture"
+    );
+    assert_eq!(
+        history.command_template,
+        "QUADLET_LENS_GENERATOR_HISTORY_VERSION=<version> QUADLET_LENS_GENERATOR_VERSION=<version> cargo ci-generators"
+    );
+    assert_eq!(history.reviewed_on, "2026-09-26");
+
+    validate_historical_image_pins(&matrix, &history)?;
+    validate_historical_source_pins(&matrix, &history)?;
+    Ok(())
+}
+
+fn validate_historical_image_pins(matrix: &GeneratorMatrix, history: &GeneratorHistory) -> Result<(), String> {
+    let expected_images = [
+        "5.4.1", "5.5.0", "5.5.1", "5.6.0", "5.6.1", "5.7.0", "5.8.0", "5.8.1", "5.8.2",
+    ];
+    assert_eq!(history.image.len(), expected_images.len());
+    for (image, version) in history.image.iter().zip(expected_images) {
+        assert_eq!(image.version, version);
+        validate_digest_pinned_reference(&image.reference, &format!("quay.io/podman/stable:v{version}-immutable"))?;
+        assert!(!image.reason.is_empty());
+        let active = matrix.image.iter().find(|active| active.version == image.version);
+        if let Some(active) = active {
+            assert_eq!(active.reference, image.reference);
+        }
+        require_passed_retirement(version, active.is_some(), &image.result)?;
+        validate_history_result(
+            version,
+            &image.result,
+            &[
+                ("executed_at", image.executed_at.as_deref()),
+                ("command", image.command.as_deref()),
+                ("harness_revision", image.harness_revision.as_deref()),
+                ("fixture_revision", image.fixture_revision.as_deref()),
+                ("evidence_file", image.evidence_file.as_deref()),
+            ],
+        )?;
+    }
+
+    Ok(())
+}
+
+fn validate_historical_source_pins(matrix: &GeneratorMatrix, history: &GeneratorHistory) -> Result<(), String> {
+    let expected_sources = [
+        (
+            "5.8.3",
+            Some("3a2e1c7e9c15a218768206af59ab2974271ebf4f"),
+            "93dbfd0d86ee57f8f91801f61ce57dd880a4725f",
+        ),
+        (
+            "5.8.4",
+            Some("30467ddb4bf8ae0baa8062383307ea3584d403c6"),
+            "5431df23c742e5edea35bef34eed696f4db0106b",
+        ),
+        (
+            "5.8.5",
+            Some("d81be03193fd5e9eb519b58d636502614c814130"),
+            "6d48b6f12f793176f3f6bc808b5a440984c14eb2",
+        ),
+        (
+            "5.8.6",
+            Some("e4558c1a1bbb6270d09a3b201b9292e43cf4b355"),
+            "a859fc66702c23e869c282c63e92d9b6cd264229",
+        ),
+        (
+            "5.8.7",
+            Some("29368ab643df027a9c33703273e50ff1ba11b21c"),
+            "c593b672bf3db1173aebea565ebf1a724ea196dc",
+        ),
+        (
+            "6.0.0",
+            Some("5514d63a7dd7d62bfb0c48ef3d392c04edc8dcd4"),
+            "a8ed4b6dd12992decf659cadfdfb3d0cb1937748",
+        ),
+        (
+            "6.0.1",
+            Some("a0375a259daa6adf619e36a567f733e147e73363"),
+            "4cabbe61fa3a27fafc4a3ee1226e38ae1664ae57",
+        ),
+        (
+            "6.1.0",
+            Some("3070f607ac34891ead088fc3589f767af3574ca6"),
+            "cade97a52ebdf9dbf9e81de8009015776837a074",
+        ),
+        (
+            "6.1.1",
+            Some("e0977ecff66d0b8feb3901df03b037e8716dd090"),
+            "8303f2e25b675ea7f82099d615c60969aec15870",
+        ),
+        (
+            "6.1.2",
+            Some("b3f4e073dc6641ca8efc0bf261b35e35835e633d"),
+            "04f3aa430e6df81bea059978bc5bafbc846ba3e7",
+        ),
+    ];
+    assert_eq!(history.source.len(), expected_sources.len());
+    for (source, (version, tag_object, commit)) in history.source.iter().zip(expected_sources) {
+        assert_eq!(source.version, version);
+        assert_eq!(source.tag, format!("v{version}"));
+        assert_eq!(source.tag_object.as_deref(), tag_object);
+        assert_eq!(source.commit, commit);
+        assert!(!source.reason.is_empty());
+        let active = matrix.source.iter().find(|active| active.version == source.version);
+        if let Some(active) = active {
+            assert_eq!(active.commit, source.commit);
+        }
+        require_passed_retirement(version, active.is_some(), &source.result)?;
+        if matches!(source.result.as_str(), "passed" | "preliminary-passed") && source.tag_object.is_none() {
+            return Err(format!("executed Podman {version} needs its peeled release tag object"));
+        }
+        validate_history_result(
+            version,
+            &source.result,
+            &[
+                ("executed_at", source.executed_at.as_deref()),
+                ("command", source.command.as_deref()),
+                ("harness_revision", source.harness_revision.as_deref()),
+                ("fixture_revision", source.fixture_revision.as_deref()),
+                ("evidence_file", source.evidence_file.as_deref()),
+            ],
+        )?;
+    }
     Ok(())
 }
 
 fn validate_current_target_metadata(matrix: &GeneratorMatrix) -> Result<(), String> {
-    let latest_upstream = PodmanVersion::from_str(&matrix.latest_upstream)
-        .map_err(|error| format!("latest_upstream must be a Podman release: {error}"))?;
     let tracked_current = PodmanVersion::from_str(&matrix.tracked_current)
         .map_err(|error| format!("tracked_current must be a reviewed Podman release: {error}"))?;
-    if latest_upstream < tracked_current {
-        return Err(format!(
-            "latest_upstream {} must not precede reviewed tracked_current {}",
-            matrix.latest_upstream, matrix.tracked_current
-        ));
+    let upstream = PodmanVersion::from_str(&matrix.latest_upstream)
+        .map_err(|error| format!("latest_upstream must be a stable Podman release: {error}"))?;
+    let newest_maintained = PodmanVersion::from_str(&matrix.latest_6_1)
+        .map_err(|error| format!("latest_6_1 must be a stable Podman release: {error}"))?;
+    if upstream < newest_maintained {
+        return Err("latest_upstream must not precede the newest maintained minor patch".to_owned());
+    }
+    for (major, minor, discovery) in [
+        (5, 4, &matrix.latest_5_4),
+        (5, 5, &matrix.latest_5_5),
+        (5, 6, &matrix.latest_5_6),
+        (5, 7, &matrix.latest_5_7),
+        (5, 8, &matrix.latest_5_8),
+        (6, 0, &matrix.latest_6_0),
+        (6, 1, &matrix.latest_6_1),
+    ] {
+        let latest = PodmanVersion::from_str(discovery)
+            .map_err(|error| format!("latest_{major}_{minor} must be a Podman release: {error}"))?;
+        if (latest.major(), latest.minor()) != (major, minor) {
+            return Err(format!("latest_{major}_{minor} must stay on Podman {major}.{minor}.x"));
+        }
+        let active = matrix
+            .image
+            .iter()
+            .map(|image| image.version.as_str())
+            .chain(matrix.source.iter().map(|source| source.version.as_str()))
+            .filter_map(|version| PodmanVersion::from_str(version).ok())
+            .filter(|version| (version.major(), version.minor()) == (major, minor))
+            .max()
+            .ok_or_else(|| format!("missing active Podman {major}.{minor}.x lane"))?;
+        if latest < active {
+            return Err(format!(
+                "latest_{major}_{minor} {discovery} must not precede reviewed active {active}"
+            ));
+        }
+    }
+    if tracked_current
+        != PodmanVersion::from_str(&matrix.source.last().ok_or("no source lanes")?.version)
+            .map_err(|error| error.to_string())?
+    {
+        return Err("tracked_current must equal the newest reviewed active generator".to_owned());
     }
     if matrix.checked_on.len() != 10
         || !matrix.checked_on.bytes().enumerate().all(|(index, byte)| {
@@ -1114,17 +1505,35 @@ fn replace_matrix_string_assignment(matrix: &str, key: &str, value: Option<&str>
 
 #[test]
 fn generator_matrix_requires_a_discovery_signal_and_keeps_it_separate_from_reviewed_evidence() -> Result<(), String> {
-    let missing_discovery = replace_matrix_string_assignment(MATRIX, "latest_upstream", None)?;
+    let missing_upstream = replace_matrix_string_assignment(MATRIX, "latest_upstream", None)?;
+    assert!(parse_generator_matrix(&missing_upstream).is_err());
+
+    let stale_upstream = replace_matrix_string_assignment(MATRIX, "latest_upstream", Some("6.1.1"))?;
+    let stale = parse_generator_matrix(&stale_upstream)?;
+    assert!(validate_current_target_metadata(&stale).is_err());
+
+    let missing_discovery = replace_matrix_string_assignment(MATRIX, "latest_5_8", None)?;
     assert!(parse_generator_matrix(&missing_discovery).is_err());
 
-    let stale_discovery = replace_matrix_string_assignment(MATRIX, "latest_upstream", Some("5.4.0"))?;
+    let stale_discovery = replace_matrix_string_assignment(MATRIX, "latest_5_8", Some("5.8.0"))?;
     let stale = parse_generator_matrix(&stale_discovery)?;
     assert!(validate_current_target_metadata(&stale).is_err());
 
-    let discovered_update = replace_matrix_string_assignment(MATRIX, "latest_upstream", Some("999.0.0"))?;
+    let wrong_minor = replace_matrix_string_assignment(MATRIX, "latest_5_8", Some("6.1.2"))?;
+    let wrong_minor = parse_generator_matrix(&wrong_minor)?;
+    assert!(validate_current_target_metadata(&wrong_minor).is_err());
+
+    let discovered_update = replace_matrix_string_assignment(MATRIX, "latest_5_8", Some("5.8.8"))?;
     let discovered = parse_generator_matrix(&discovered_update)?;
     validate_current_target_metadata(&discovered)?;
-    assert_eq!(discovered.tracked_current, "6.1.0");
+    assert_eq!(discovered.tracked_current, "6.1.2");
+    assert_eq!(discovered.latest_upstream, "6.1.2");
+
+    let new_minor = replace_matrix_string_assignment(MATRIX, "latest_upstream", Some("6.2.0"))?;
+    let discovered = parse_generator_matrix(&new_minor)?;
+    validate_current_target_metadata(&discovered)?;
+    assert_eq!(discovered.latest_6_1, "6.1.2");
+    assert_eq!(discovered.tracked_current, "6.1.2");
     Ok(())
 }
 
@@ -1392,8 +1801,9 @@ fn verify_systemd_unit_missing_reference_generator_output(version: &str, output:
 #[ignore = "pulls or builds exact Podman releases and executes their Quadlet generators"]
 #[allow(clippy::too_many_lines)] // Ordered full-matrix fixture contract.
 fn supported_generators_match_the_first_conversion_fixture() -> Result<(), String> {
-    let matrix = parse_matrix()?;
+    let matrix = parse_execution_matrix()?;
     let engine = env::var("QUADLET_LENS_CONTAINER_ENGINE").unwrap_or_else(|_| "podman".to_owned());
+    let owned_containers = RunOwnedContainers::new(&engine)?;
     let lane = env::var("QUADLET_LENS_GENERATOR_LANE").unwrap_or_else(|_| "smoke".to_owned());
     if lane != "smoke" && lane != "full" {
         return Err(format!("unknown generator lane `{lane}`; expected `smoke` or `full`"));
@@ -1569,7 +1979,7 @@ fn supported_generators_match_the_first_conversion_fixture() -> Result<(), Strin
         verify_source_security_label_type(&engine, &matrix, source, &generator, &security_labels.process_type)?;
         verify_source_path_security_options(&engine, &matrix, source, &generator, &security_labels)?;
     }
-    Ok(())
+    owned_containers.finish()
 }
 
 #[test]
@@ -1625,13 +2035,23 @@ fn supplied_application_directory_rejects_manifest_and_unreviewed_members() -> R
 #[test]
 #[ignore = "runs the exact pinned Podman generator; use cargo ci-application-generators"]
 fn application_document_sets_match_pinned_generator_contracts() -> Result<(), String> {
-    let matrix = parse_matrix()?;
+    let mut matrix = parse_matrix()?;
     let requested = env::var("QUADLET_LENS_GENERATOR_VERSION").unwrap_or_else(|_| matrix.tracked_current.clone());
     PodmanVersion::from_str(&requested)
         .map_err(|error| format!("QUADLET_LENS_GENERATOR_VERSION must be exact major.minor.patch: {error}"))?;
 
     let supplied = env::var("QUADLET_LENS_APPLICATION_UNIT_DIR").ok();
     let selected_contract = env::var("QUADLET_LENS_APPLICATION_CONTRACT").ok();
+    let prospective = env::var("QUADLET_LENS_APPLICATION_PROSPECTIVE_VERSION").ok();
+    if let Some(version) = prospective.as_deref() {
+        matrix = prepare_prospective_application_matrix(
+            matrix,
+            &requested,
+            version,
+            supplied.is_some(),
+            selected_contract.is_some(),
+        )?;
+    }
     if supplied.is_some() != selected_contract.is_some() {
         return Err(
             "QUADLET_LENS_APPLICATION_UNIT_DIR and QUADLET_LENS_APPLICATION_CONTRACT must be set together".to_owned(),
@@ -1639,7 +2059,12 @@ fn application_document_sets_match_pinned_generator_contracts() -> Result<(), St
     }
 
     let mut applications = Vec::new();
-    if let (Some(directory), Some(contract)) = (supplied, selected_contract) {
+    if prospective.is_some() {
+        for id in [NEXTCLOUD_ID, FORGEJO_ID] {
+            let root = verify_prospective_application_fixture(id, &requested)?;
+            applications.push((id, root.clone(), root));
+        }
+    } else if let (Some(directory), Some(contract)) = (supplied, selected_contract) {
         let id = match contract.as_str() {
             "nextcloud" => NEXTCLOUD_ID,
             "forgejo" => FORGEJO_ID,
@@ -1659,10 +2084,12 @@ fn application_document_sets_match_pinned_generator_contracts() -> Result<(), St
         }
     }
 
+    let engine = env::var("QUADLET_LENS_CONTAINER_ENGINE").unwrap_or_else(|_| "podman".to_owned());
+    let owned_containers = RunOwnedContainers::new(&engine)?;
     let external_request = env::var_os("QUADLET_LENS_APPLICATION_UNIT_DIR").is_some();
     for (id, contract_root, unit_root) in applications {
         let target = application_contract_target(&contract_root)?;
-        if requested != target {
+        if prospective.is_none() && requested != target {
             if external_request {
                 return Err(format!(
                     "{id}: supplied application validation requires exact Podman {target}, requested {requested}"
@@ -1679,8 +2106,69 @@ fn application_document_sets_match_pinned_generator_contracts() -> Result<(), St
             continue;
         }
         let generated = run_application_generator(&matrix, &requested, &unit_root)?;
-        verify_generated_application(id, &contract_root, &requested, &generated)?;
+        if prospective.is_some() {
+            verify_generated_prospective_application(id, &contract_root, &requested, &generated)?;
+        } else {
+            verify_generated_application(id, &contract_root, &requested, &generated)?;
+        }
         eprintln!("Podman {requested}: {id} generated semantics match independent contract");
+    }
+    owned_containers.finish()
+}
+
+fn prepare_prospective_application_matrix(
+    matrix: GeneratorMatrix,
+    requested: &str,
+    version: &str,
+    supplied: bool,
+    selected_contract: bool,
+) -> Result<GeneratorMatrix, String> {
+    if version != PROSPECTIVE_VERSION || requested != version {
+        return Err(format!(
+            "prospective application contracts require QUADLET_LENS_APPLICATION_PROSPECTIVE_VERSION and QUADLET_LENS_GENERATOR_VERSION both set to {PROSPECTIVE_VERSION}"
+        ));
+    }
+    if supplied || selected_contract {
+        return Err("prospective application contracts require both built-in unit sets; external units and one-contract selection are unsupported".to_owned());
+    }
+    if matrix.tracked_current == version {
+        return Err(format!(
+            "Podman {version} is the reviewed application target; use the ordinary application lane"
+        ));
+    }
+    let history: GeneratorHistory =
+        toml::from_str(HISTORY).map_err(|error| format!("invalid historical generator evidence: {error}"))?;
+    if !history.source.iter().any(|source| source.version == version) {
+        return Err(format!("Podman {version} has no prospective historical source pin"));
+    }
+    add_historical_generator(matrix, &history, version)
+}
+
+#[test]
+fn prospective_application_selection_requires_both_contracts_and_exact_historical_source() -> Result<(), String> {
+    let matrix = parse_matrix()?;
+    assert!(
+        prepare_prospective_application_matrix(matrix, PROSPECTIVE_VERSION, PROSPECTIVE_VERSION, false, false).is_err(),
+        "a reviewed application target must not remain in the prospective lane"
+    );
+    for id in [NEXTCLOUD_ID, FORGEJO_ID] {
+        let root = verify_prospective_application_fixture(id, PROSPECTIVE_VERSION)?;
+        assert_eq!(application_contract_target(&root)?, PROSPECTIVE_VERSION);
+        assert!(
+            verify_generated_prospective_application(id, Path::new("/unreviewed"), PROSPECTIVE_VERSION, "").is_err()
+        );
+        assert!(verify_prospective_application_fixture(id, "6.1.1").is_err());
+    }
+    for (requested, prospective, supplied, contract) in [
+        ("6.1.0", PROSPECTIVE_VERSION, false, false),
+        (PROSPECTIVE_VERSION, "6.1.1", false, false),
+        (PROSPECTIVE_VERSION, PROSPECTIVE_VERSION, true, false),
+        (PROSPECTIVE_VERSION, PROSPECTIVE_VERSION, false, true),
+    ] {
+        assert!(
+            prepare_prospective_application_matrix(parse_matrix()?, requested, prospective, supplied, contract)
+                .is_err()
+        );
     }
     Ok(())
 }
@@ -1743,8 +2231,8 @@ impl Drop for TemporaryApplicationSymlink {
 }
 
 fn unique_application_test_path(label: &str) -> Result<PathBuf, String> {
-    let nonce = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
+    let nonce = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
         .map_err(|error| format!("system clock before Unix epoch: {error}"))?
         .as_nanos();
     Ok(env::temp_dir().join(format!(
@@ -1818,6 +2306,70 @@ fn selected(version: &str, smoke: bool, lane: &str, version_filter: Option<&str>
 
 fn parse_matrix() -> Result<GeneratorMatrix, String> {
     parse_generator_matrix(MATRIX)
+}
+
+fn parse_execution_matrix() -> Result<GeneratorMatrix, String> {
+    let matrix = parse_matrix()?;
+    let Ok(history_version) = env::var("QUADLET_LENS_GENERATOR_HISTORY_VERSION") else {
+        return Ok(matrix);
+    };
+    if env::var("QUADLET_LENS_GENERATOR_VERSION").ok().as_deref() != Some(history_version.as_str()) {
+        return Err("historical generator execution requires matching QUADLET_LENS_GENERATOR_VERSION".to_owned());
+    }
+    let history: GeneratorHistory =
+        toml::from_str(HISTORY).map_err(|error| format!("invalid historical generator evidence: {error}"))?;
+    add_historical_generator(matrix, &history, &history_version)
+}
+
+fn add_historical_generator(
+    mut matrix: GeneratorMatrix,
+    history: &GeneratorHistory,
+    history_version: &str,
+) -> Result<GeneratorMatrix, String> {
+    if matrix.image.iter().any(|image| image.version == history_version)
+        || matrix.source.iter().any(|source| source.version == history_version)
+    {
+        return Err(format!(
+            "Podman {history_version} is an active lane, not historical evidence"
+        ));
+    }
+    if let Some(image) = history.image.iter().find(|image| image.version == history_version) {
+        matrix.image.push(GeneratorImage {
+            version: image.version.clone(),
+            reference: image.reference.clone(),
+            smoke: false,
+        });
+    } else if let Some(source) = history.source.iter().find(|source| source.version == history_version) {
+        matrix.source.push(GeneratorSource {
+            version: source.version.clone(),
+            commit: source.commit.clone(),
+            smoke: false,
+        });
+        matrix.source_repository.clone_from(&history.source_repository);
+        matrix.builder_reference.clone_from(&history.builder_reference);
+    } else {
+        return Err(format!("Podman {history_version} has no historical source pin"));
+    }
+    Ok(matrix)
+}
+
+#[test]
+fn historical_generator_selection_is_explicit_and_excludes_active_lanes() -> Result<(), String> {
+    let history: GeneratorHistory =
+        toml::from_str(HISTORY).map_err(|error| format!("invalid historical generator evidence: {error}"))?;
+    let baseline = parse_matrix()?;
+    let selected_image = add_historical_generator(parse_matrix()?, &history, "5.4.1")?;
+    assert_eq!(selected_image.image.len(), baseline.image.len() + 1);
+    assert_eq!(selected_image.source.len(), baseline.source.len());
+    assert!(selected_image.image.iter().any(|image| image.version == "5.4.1"));
+    let selected_source = add_historical_generator(parse_matrix()?, &history, "6.1.1")?;
+    assert_eq!(selected_source.image.len(), baseline.image.len());
+    assert_eq!(selected_source.source.len(), baseline.source.len() + 1);
+    assert!(selected_source.source.iter().any(|source| source.version == "6.1.1"));
+    assert!(add_historical_generator(parse_matrix()?, &history, "6.1.0").is_ok());
+    assert!(add_historical_generator(parse_matrix()?, &history, "6.1.2").is_err());
+    assert!(add_historical_generator(parse_matrix()?, &history, "7.0.0").is_err());
+    Ok(())
 }
 
 fn parse_generator_matrix(matrix: &str) -> Result<GeneratorMatrix, String> {
@@ -4847,7 +5399,7 @@ fn expected_fragments(fixture: &Path) -> Result<Vec<String>, String> {
 }
 
 fn verify_image_version(engine: &str, image: &GeneratorImage) -> Result<(), String> {
-    let output = container_command(engine, ContainerOperation::ImageVersionProbe)
+    let output = container_command(engine, ContainerOperation::ImageVersionProbe)?
         .args([
             "--rm",
             "--pull=missing",
@@ -4876,7 +5428,7 @@ fn run_generator(engine: &str, image: &GeneratorImage, fixture: &Path) -> Result
 
 fn run_generator_raw(engine: &str, image: &GeneratorImage, fixture: &Path) -> Result<Output, String> {
     let mount = format!("type=bind,src={},dst=/fixtures,ro", fixture.display());
-    let output = generator_container_command(engine, ContainerOperation::ImageGenerator)
+    let output = generator_container_command(engine, ContainerOperation::ImageGenerator)?
         .args([
             "--mount",
             &mount,
@@ -4923,18 +5475,363 @@ impl ContainerOperation {
     }
 }
 
-fn container_command(engine: &str, operation: ContainerOperation) -> Command {
+// Normal completion and Rust unwinding remove only this invocation's labelled outer containers.
+// The individual `run --rm` calls remain the cancellation fallback; SIGKILL cannot run Drop.
+struct RunOwnedContainers {
+    engine: String,
+    run_id: String,
+    cleaned: bool,
+}
+
+impl RunOwnedContainers {
+    fn new(engine: &str) -> Result<Self, String> {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_err(|error| format!("cannot create generator run identity: {error}"))?
+            .as_nanos();
+        let sequence = GENERATOR_RUN_COUNTER.fetch_add(1, Ordering::Relaxed);
+        let generated = format!("p{}-n{nonce}-s{sequence}", std::process::id());
+        let run_id = match env::var("QUADLET_LENS_GENERATOR_RUN_ID") {
+            Ok(value) => value,
+            Err(env::VarError::NotPresent) => generated,
+            Err(env::VarError::NotUnicode(_)) => return Err("generator run ID must be UTF-8".to_owned()),
+        };
+        if !valid_generator_run_id(&run_id) {
+            return Err(
+                "QUADLET_LENS_GENERATOR_RUN_ID must contain 1-80 ASCII letters, digits, `_`, or `-`".to_owned(),
+            );
+        }
+        GENERATOR_RUN_ID.with(|slot| {
+            let mut current = slot.borrow_mut();
+            if current.is_some() {
+                return Err("nested generator container run is not supported".to_owned());
+            }
+            *current = Some(run_id.clone());
+            Ok(())
+        })?;
+        eprintln!("generator outer-container run label: {GENERATOR_RUN_LABEL}={run_id}");
+        Ok(Self {
+            engine: engine.to_owned(),
+            run_id,
+            cleaned: false,
+        })
+    }
+
+    fn cleanup(&self) -> Result<(), String> {
+        let filter = format!("label={GENERATOR_RUN_LABEL}={}", self.run_id);
+        let listed = bounded_generator_engine_command(
+            &self.engine,
+            "20s",
+            &["ps", "--all", "--quiet", "--no-trunc", "--filter", &filter],
+        )
+        .map_err(|error| format!("cannot list this generator run's containers: {error}"))?;
+        if !listed.status.success() {
+            return Err(format!(
+                "cannot list this generator run's containers ({}): {}",
+                listed.status,
+                String::from_utf8_lossy(&listed.stderr).trim()
+            ));
+        }
+        let ids = parse_owned_container_ids(&listed.stdout)?;
+        let mut failures = Vec::new();
+        for id in ids {
+            let label_template = format!("{{{{ index .Config.Labels \"{GENERATOR_RUN_LABEL}\" }}}}");
+            let inspected =
+                bounded_generator_engine_command(&self.engine, "10s", &["inspect", "--format", &label_template, &id]);
+            let Ok(inspected) = inspected else {
+                failures.push(format!("cannot inspect generator container {id}"));
+                continue;
+            };
+            if !inspected.status.success() {
+                failures.push(format!("cannot inspect generator container {id}: {}", inspected.status));
+                continue;
+            }
+            if String::from_utf8_lossy(&inspected.stdout).trim() != self.run_id {
+                failures.push(format!(
+                    "generator container {id} does not have the exact run-owned label"
+                ));
+                continue;
+            }
+            let removed = bounded_generator_engine_command(&self.engine, "10s", &["rm", "--force", &id]);
+            match removed {
+                Ok(output) if output.status.success() => {}
+                Ok(output) => failures.push(format!(
+                    "cannot remove run-owned generator container {id} ({}): {}",
+                    output.status,
+                    String::from_utf8_lossy(&output.stderr).trim()
+                )),
+                Err(error) => failures.push(format!("cannot remove run-owned generator container {id}: {error}")),
+            }
+        }
+        if failures.is_empty() {
+            Ok(())
+        } else {
+            Err(failures.join("; "))
+        }
+    }
+
+    fn finish(mut self) -> Result<(), String> {
+        self.cleanup()?;
+        self.cleaned = true;
+        Ok(())
+    }
+}
+
+// GNU timeout is available in the Linux-only native test environment. A stalled
+// engine must not block Rust Drop forever or consume the hosted cleanup budget.
+fn bounded_generator_engine_command(engine: &str, deadline: &str, args: &[&str]) -> Result<Output, String> {
+    Command::new("timeout")
+        .args(["--kill-after=2s", deadline, engine])
+        .args(args)
+        .output()
+        .map_err(|error| format!("cannot execute bounded generator cleanup command: {error}"))
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+fn stalled_generator_engine_cleanup_commands_have_deadlines() -> Result<(), String> {
+    use std::os::unix::fs::PermissionsExt;
+
+    struct TemporaryMockEngine(PathBuf);
+    impl Drop for TemporaryMockEngine {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.0);
+        }
+    }
+
+    let nonce = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|error| error.to_string())?
+        .as_nanos();
+    let root = env::temp_dir().join(format!(
+        "quadlet-generator-stalled-engine-{}-{nonce}",
+        std::process::id()
+    ));
+    fs::create_dir(&root).map_err(|error| format!("cannot create stalled mock directory: {error}"))?;
+    let _temporary = TemporaryMockEngine(root.clone());
+    let engine = root.join("podman");
+    fs::write(&engine, "#!/usr/bin/env bash\nexec sleep 30\n")
+        .map_err(|error| format!("cannot create stalled mock engine: {error}"))?;
+    fs::set_permissions(&engine, fs::Permissions::from_mode(0o700))
+        .map_err(|error| format!("cannot make stalled mock engine executable: {error}"))?;
+    for operation in ["ps", "inspect", "rm"] {
+        let started = std::time::Instant::now();
+        let output = bounded_generator_engine_command(
+            engine.to_str().ok_or("mock engine path is not UTF-8")?,
+            "1s",
+            &[operation],
+        )?;
+        assert_eq!(output.status.code(), Some(124), "{operation} did not time out");
+        assert!(
+            started.elapsed() < std::time::Duration::from_secs(5),
+            "{operation} was not bounded"
+        );
+    }
+    Ok(())
+}
+
+fn valid_generator_run_id(run_id: &str) -> bool {
+    (1..=80).contains(&run_id.len())
+        && run_id
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-'))
+}
+
+#[test]
+fn generator_run_id_rejects_unbounded_or_filter_metacharacters() {
+    assert!(valid_generator_run_id("generator-123_4"));
+    assert!(!valid_generator_run_id(""));
+    assert!(!valid_generator_run_id("bad=value"));
+    assert!(!valid_generator_run_id("a".repeat(81).as_str()));
+}
+
+impl Drop for RunOwnedContainers {
+    fn drop(&mut self) {
+        if !self.cleaned {
+            if let Err(error) = self.cleanup() {
+                eprintln!("generator run cleanup could not complete: {error}");
+            }
+        }
+        GENERATOR_RUN_ID.with(|slot| *slot.borrow_mut() = None);
+    }
+}
+
+fn parse_owned_container_ids(output: &[u8]) -> Result<BTreeSet<String>, String> {
+    let text = std::str::from_utf8(output).map_err(|error| format!("container IDs are not UTF-8: {error}"))?;
+    let mut ids = BTreeSet::new();
+    for id in text.lines().map(str::trim).filter(|id| !id.is_empty()) {
+        if id.len() != 64
+            || !id
+                .bytes()
+                .all(|byte| byte.is_ascii_digit() || matches!(byte, b'a'..=b'f'))
+        {
+            return Err("generator cleanup received a non-full container ID; refusing removal".to_owned());
+        }
+        ids.insert(id.to_owned());
+        if ids.len() > 64 {
+            return Err("generator cleanup found more than 64 run-owned containers; refusing removal".to_owned());
+        }
+    }
+    Ok(ids)
+}
+
+#[test]
+fn generator_cleanup_accepts_only_full_container_ids() {
+    use std::fmt::Write as _;
+
+    let id = "a".repeat(64);
+    assert_eq!(
+        parse_owned_container_ids(format!("{id}\n").as_bytes()),
+        Ok(BTreeSet::from([id]))
+    );
+    assert!(parse_owned_container_ids(b"abcd\n").is_err());
+    assert!(parse_owned_container_ids(format!("{}\n", "g".repeat(64)).as_bytes()).is_err());
+    assert!(parse_owned_container_ids(&[0xff]).is_err());
+    let mut too_many = String::new();
+    for index in 0..65 {
+        assert!(writeln!(&mut too_many, "{index:064x}").is_ok());
+    }
+    assert!(parse_owned_container_ids(too_many.as_bytes()).is_err());
+}
+
+#[test]
+fn every_generator_container_launch_requires_the_exact_run_label() -> Result<(), String> {
+    struct ResetRunId;
+    impl Drop for ResetRunId {
+        fn drop(&mut self) {
+            GENERATOR_RUN_ID.with(|slot| *slot.borrow_mut() = None);
+        }
+    }
+    assert!(container_command("podman", ContainerOperation::ImageVersionProbe).is_err());
+    GENERATOR_RUN_ID.with(|slot| *slot.borrow_mut() = Some("known-generator-run".to_owned()));
+    let _reset = ResetRunId;
+    for operation in [
+        ContainerOperation::ImageVersionProbe,
+        ContainerOperation::ImageGenerator,
+        ContainerOperation::SourceBuild,
+        ContainerOperation::SourceVersionProbe,
+        ContainerOperation::SourceGenerator,
+    ] {
+        let command = container_command("podman", operation)?;
+        let args = command
+            .get_args()
+            .map(|arg| arg.to_string_lossy().into_owned())
+            .collect::<Vec<_>>();
+        assert!(args.windows(2).any(|pair| {
+            pair[0] == "--label"
+                && pair[1] == "io.github.strukturpiloten.quadlet-lens.generator-run=known-generator-run"
+        }));
+    }
+    Ok(())
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+fn cancelled_generator_job_cleanup_removes_only_exact_run_owned_ids() -> Result<(), String> {
+    use std::os::unix::fs::PermissionsExt;
+
+    struct TemporaryMockEngine(PathBuf);
+    impl Drop for TemporaryMockEngine {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.0);
+        }
+    }
+
+    let nonce = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|error| error.to_string())?
+        .as_nanos();
+    let root = env::temp_dir().join(format!("quadlet-generator-cleanup-{}-{nonce}", std::process::id()));
+    fs::create_dir(&root).map_err(|error| format!("cannot create mock engine directory: {error}"))?;
+    let _temporary = TemporaryMockEngine(root.clone());
+    let engine = root.join("docker");
+    fs::write(
+        &engine,
+        r#"#!/usr/bin/env bash
+set -euo pipefail
+case "$1" in
+  ps)
+    printf '%s\n' "$MOCK_OWNED_ID"
+    if [[ -n "${MOCK_UNRELATED_ID:-}" ]]; then printf '%s\n' "$MOCK_UNRELATED_ID"; fi
+    ;;
+  inspect)
+    id="${@: -1}"
+    if [[ "$id" == "$MOCK_OWNED_ID" ]]; then
+      printf '%s\n' "$QUADLET_LENS_GENERATOR_RUN_ID"
+    else
+      printf '%s\n' unrelated
+    fi
+    ;;
+  rm) printf '%s\n' "${@: -1}" >> "$MOCK_REMOVALS" ;;
+  *) exit 2 ;;
+esac
+"#,
+    )
+    .map_err(|error| format!("cannot create mock engine: {error}"))?;
+    fs::set_permissions(&engine, fs::Permissions::from_mode(0o700))
+        .map_err(|error| format!("cannot make mock engine executable: {error}"))?;
+    let owned = "a".repeat(64);
+    let unrelated = "b".repeat(64);
+    let removals = root.join("removed.txt");
+    let cleanup = Path::new(env!("CARGO_MANIFEST_DIR")).join("scripts/cleanup-generator-containers.sh");
+    let invoke = |unrelated_id: &str| {
+        Command::new("bash")
+            .arg(&cleanup)
+            .env("QUADLET_LENS_GENERATOR_RUN_ID", "cancelled-run-123")
+            .env("QUADLET_LENS_CONTAINER_ENGINE", &engine)
+            .env("MOCK_OWNED_ID", &owned)
+            .env("MOCK_UNRELATED_ID", unrelated_id)
+            .env("MOCK_REMOVALS", &removals)
+            .output()
+            .map_err(|error| format!("cannot run cleanup regression: {error}"))
+    };
+    let success = invoke("")?;
+    assert!(success.status.success(), "{}", String::from_utf8_lossy(&success.stderr));
+    assert_eq!(
+        fs::read_to_string(&removals).map_err(|error| error.to_string())?,
+        format!("{owned}\n")
+    );
+    let rejected = invoke(&unrelated)?;
+    assert!(!rejected.status.success());
+    assert_eq!(
+        fs::read_to_string(&removals).map_err(|error| error.to_string())?,
+        format!("{owned}\n{owned}\n")
+    );
+
+    let workflow =
+        fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join(".github/workflows/generator-matrix.yml"))
+            .map_err(|error| error.to_string())?;
+    assert!(
+        workflow.contains("QUADLET_LENS_GENERATOR_RUN_ID: generator-${{ github.run_id }}-${{ github.run_attempt }}")
+    );
+    assert!(workflow.contains(
+        "- name: Run every pinned supported generator\n        timeout-minutes: 35\n        run: cargo ci-generators"
+    ));
+    assert!(workflow.contains(
+        "- name: Validate real-application generated semantics\n        timeout-minutes: 5\n        run: cargo ci-application-generators"
+    ));
+    assert!(workflow.contains(
+        "if: ${{ always() }}\n        timeout-minutes: 2\n        run: bash ./scripts/cleanup-generator-containers.sh"
+    ));
+    Ok(())
+}
+
+fn container_command(engine: &str, operation: ContainerOperation) -> Result<Command, String> {
+    let run_id = GENERATOR_RUN_ID
+        .with(|slot| slot.borrow().clone())
+        .ok_or_else(|| "generator container launch requires a run-owned identity".to_owned())?;
     let docker_privileged = env::var("QUADLET_LENS_DOCKER_PRIVILEGED_GENERATORS").is_ok_and(|value| value == "true");
     let mut command = Command::new(engine);
     command.args(container_run_prefix(engine, operation, docker_privileged));
-    command
+    command.args(["--label", &format!("{GENERATOR_RUN_LABEL}={run_id}")]);
+    Ok(command)
 }
 
-fn generator_container_command(engine: &str, operation: ContainerOperation) -> Command {
+fn generator_container_command(engine: &str, operation: ContainerOperation) -> Result<Command, String> {
     debug_assert!(operation.is_generator());
-    let mut command = container_command(engine, operation);
+    let mut command = container_command(engine, operation)?;
     command.args(["--rm", "--pull=missing", "--security-opt", "label=disable"]);
-    command
+    Ok(command)
 }
 
 fn container_run_prefix(engine: &str, operation: ContainerOperation, docker_privileged: bool) -> Vec<&'static str> {
@@ -4991,7 +5888,7 @@ fn build_source_generator(engine: &str, matrix: &GeneratorMatrix, source: &Gener
     let module_cache_mount = bind_mount(&module_cache, "/cache/mod", false)?;
     let build_cache_mount = bind_mount(&build_cache, "/cache/build", false)?;
     let user = container_user(engine)?;
-    let output = container_command(engine, ContainerOperation::SourceBuild)
+    let output = container_command(engine, ContainerOperation::SourceBuild)?
         .args([
             "--rm",
             "--pull=missing",
@@ -5135,7 +6032,7 @@ fn verify_source_version(
         .parent()
         .ok_or_else(|| format!("generator {} has no parent directory", generator.display()))?;
     let output_mount = bind_mount(output_directory, "/out", true)?;
-    let output = container_command(engine, ContainerOperation::SourceVersionProbe)
+    let output = container_command(engine, ContainerOperation::SourceVersionProbe)?
         .args([
             "--rm",
             "--pull=missing",
@@ -5185,7 +6082,7 @@ fn run_source_generator_raw(
         .ok_or_else(|| format!("generator {} has no parent directory", generator.display()))?;
     let output_mount = bind_mount(output_directory, "/out", true)?;
     let fixture_mount = bind_mount(fixture, "/fixtures", true)?;
-    let output = generator_container_command(engine, ContainerOperation::SourceGenerator)
+    let output = generator_container_command(engine, ContainerOperation::SourceGenerator)?
         .args([
             "--mount",
             &output_mount,

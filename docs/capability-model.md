@@ -17,7 +17,7 @@ use quadlet_lens::capability::{
 let catalogue = CapabilityCatalogue::supported_range()?;
 let target = PodmanTarget::new(
     PodmanVersion::new(5, 4, 0),
-    Some(PodmanVersion::new(6, 1, 0)),
+    Some(PodmanVersion::new(6, 1, 2)),
 )?;
 let result = catalogue.evaluate("quadlet.container.image", target);
 
@@ -93,4 +93,7 @@ backport case, explicit caller selection, visible evidence, and an architectural
 
 The version policy is recorded in
 [ADR 0006](decisions/0006-rolling-support-window-and-generator-evidence.md). The
+[active versus historical generator evidence policy](decisions/0018-active-generator-patches-and-historical-evidence.md)
+keeps retired patches out of the ongoing release matrix without inferring untested range coverage.
+The
 [generator guide](generator-matrix.md) explains exact execution.

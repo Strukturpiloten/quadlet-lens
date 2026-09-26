@@ -15,7 +15,7 @@ if [[ "${mode}" != "--check" && "${mode}" != "--fix" ]]; then
 fi
 readonly mode
 
-required_tools=(git hadolint markdownlint-cli2 prettier shellcheck shfmt tombi)
+required_tools=(git hadolint markdownlint-cli2 node prettier shellcheck shfmt tombi)
 missing_tools=()
 for tool in "${required_tools[@]}"; do
   if ! command -v "${tool}" > /dev/null 2>&1; then
@@ -148,5 +148,8 @@ if ((${#dockerfiles[@]} != 0)); then
   printf '\nLint Dockerfiles\n'
   run hadolint "${dockerfiles[@]}"
 fi
+
+printf '\nCheck Podman Renovate discovery extraction\n'
+run node scripts/check-renovate-discovery.mjs
 
 printf '\nQuadletLens non-Rust file checks passed in %s mode.\n' "${mode#--}"

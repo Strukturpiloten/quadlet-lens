@@ -1,6 +1,6 @@
 schema = 1
 application = "forgejo"
-target-version = "6.1.0"
+target-version = "6.1.2"
 units = [
   "backend-network.service",
   "db-data-volume.service",

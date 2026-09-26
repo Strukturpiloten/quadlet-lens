@@ -19,10 +19,19 @@
   "customManagers": [
     {
       "customType": "regex",
-      "description": "Discover the newest stable Podman release without advancing reviewed generator evidence",
+      "description": "Discover the newest stable Podman release across minor lines",
       "managerFilePatterns": ["/^tools/generator-matrix\\.toml$/"],
       "matchStrings": [
-        "# renovate: datasource=(?<datasource>[^\\s]+) depName=(?<depName>[^\\s]+)\\nlatest_upstream = \\\"(?<currentValue>[^\\\"]+)\\\""
+        "# renovate: datasource=(?<datasource>[^\\s]+) packageName=(?<packageName>[^\\s]+) depName=(?<depName>podman-upstream)\\nlatest_upstream = \\\"(?<currentValue>[^\\\"]+)\\\""
+      ],
+      "extractVersionTemplate": "^v?(?<version>.*)$"
+    },
+    {
+      "customType": "regex",
+      "description": "Discover the newest stable Podman patch independently for each maintained minor line",
+      "managerFilePatterns": ["/^tools/generator-matrix\\.toml$/"],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>[^\\s]+) packageName=(?<packageName>[^\\s]+) depName=(?<depName>podman-[0-9]+\\.[0-9]+)\\nlatest_[0-9]+_[0-9]+ = \\\"(?<currentValue>[^\\\"]+)\\\""
       ],
       "extractVersionTemplate": "^v?(?<version>.*)$"
     },
@@ -154,15 +163,54 @@
       "minimumReleaseAge": "0 days"
     },
     {
-      "description": "Keep Podman release discovery visible and separate from reviewed support",
+      "description": "Keep newest-upstream and maintained-minor Podman discovery separate from reviewed support",
       "matchManagers": ["custom.regex"],
       "matchPackageNames": ["podman-container-tools/podman"],
       "matchFileNames": ["tools/generator-matrix.toml"],
-      "groupName": "Podman release discovery",
       "automerge": false,
       "prBodyNotes": [
-        "This updates latest_upstream discovery only. Advancing tracked_current requires reviewed source, application-contract, and generator evidence."
+        "This updates a Podman discovery signal only. Advancing an active generator pin, tracked_current, catalogue or application contract requires reviewed source and generator evidence."
       ]
+    },
+    {
+      "matchManagers": ["custom.regex"],
+      "matchDepNames": ["podman-upstream"],
+      "allowedVersions": "/^[0-9]+\\.[0-9]+\\.[0-9]+$/"
+    },
+    {
+      "matchManagers": ["custom.regex"],
+      "matchDepNames": ["podman-5.4"],
+      "allowedVersions": "/^5\\.4\\.[0-9]+$/"
+    },
+    {
+      "matchManagers": ["custom.regex"],
+      "matchDepNames": ["podman-5.5"],
+      "allowedVersions": "/^5\\.5\\.[0-9]+$/"
+    },
+    {
+      "matchManagers": ["custom.regex"],
+      "matchDepNames": ["podman-5.6"],
+      "allowedVersions": "/^5\\.6\\.[0-9]+$/"
+    },
+    {
+      "matchManagers": ["custom.regex"],
+      "matchDepNames": ["podman-5.7"],
+      "allowedVersions": "/^5\\.7\\.[0-9]+$/"
+    },
+    {
+      "matchManagers": ["custom.regex"],
+      "matchDepNames": ["podman-5.8"],
+      "allowedVersions": "/^5\\.8\\.[0-9]+$/"
+    },
+    {
+      "matchManagers": ["custom.regex"],
+      "matchDepNames": ["podman-6.0"],
+      "allowedVersions": "/^6\\.0\\.[0-9]+$/"
+    },
+    {
+      "matchManagers": ["custom.regex"],
+      "matchDepNames": ["podman-6.1"],
+      "allowedVersions": "/^6\\.1\\.[0-9]+$/"
     },
     {
       "description": "Keep Dev Container feature versions current; the lock file owns digests",
