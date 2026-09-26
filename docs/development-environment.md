@@ -42,6 +42,12 @@ cargo ci-doc
 The VS Code task **QuadletLens: Format, lint, and test all** runs the complete gate. Other tasks
 match the focused Cargo aliases.
 
+Use **QuadletLens: Validation plan** to inspect the change classification, **QuadletLens: Change-aware
+checks** for fast local feedback, and **QuadletLens: Prose-only checks** only for a
+verified public-prose change. They do not replace the complete pre-publication gate. The planner
+requires a target directory inside this worktree when `CARGO_TARGET_DIR` is set, avoiding binaries
+with paths retained from deleted worktrees.
+
 Generator containers and the downloaded real-world corpus remain explicit opt-in tiers:
 
 ```console
@@ -60,7 +66,7 @@ use the same essential gate: start from synchronized `main`, keep one focused ch
 All steps must pass before the change is committed, pushed, or submitted as a pull request. A file
 change after a successful complete gate requires running the gate again.
 
-The primary agent uses `gpt-6-astra` with `xhigh` reasoning and owns integration, Git and GitHub
+The primary agent uses `gpt-6-sol` with `xhigh` reasoning and owns integration, Git and GitHub
 writes, and the final complete gate. Worker agents may perform bounded implementation, research,
 review, or non-mutating verification, but they never perform Git or GitHub writes. Formatting can
 change repository files, so the complete check remains the primary agent's final responsibility.
@@ -86,8 +92,8 @@ and cleanup before treating its result as evidence.
 
 Repository model defaults and role overrides live in [`.codex/`](../.codex/); permissions and
 workflow ownership remain defined in [`AGENTS.md`](../AGENTS.md). Reload or start a new trusted
-project session after updating configuration; the primary manager must use `gpt-6-astra` with
-`xhigh` reasoning. Keep any explicit primary-session override aligned with Astra/xhigh.
+project session after updating configuration; the primary manager must use `gpt-6-sol` with
+`xhigh` reasoning. Keep any explicit primary-session override aligned with Sol/xhigh.
 
 Use `./scripts/check-all.sh --check` to run the complete gate without formatting repository-owned
 files. The default command (or `--fix`) still formats first. Both modes run the same validation;
@@ -96,4 +102,4 @@ and the primary agent owns the final complete gate and task-related merges withi
 authorization in [`AGENTS.md`](../AGENTS.md).
 
 The shell-runner regression tests target the Linux Dev Container gate. Agent-configuration checks
-remain platform-independent; the macOS portability lane does not require Linux validation tools.
+remain platform-independent; macOS client compatibility is intended but has no CI validation lane.

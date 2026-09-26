@@ -12,6 +12,27 @@
       }
     },
     {
+      "label": "QuadletLens: Validation plan",
+      "type": "process",
+      "command": "python3",
+      "args": ["${workspaceFolder}/scripts/validation-plan.py", "plan", "--event", "local"],
+      "problemMatcher": []
+    },
+    {
+      "label": "QuadletLens: Change-aware checks",
+      "type": "process",
+      "command": "python3",
+      "args": ["${workspaceFolder}/scripts/validation-plan.py", "run-local"],
+      "problemMatcher": []
+    },
+    {
+      "label": "QuadletLens: Prose-only checks",
+      "type": "process",
+      "command": "python3",
+      "args": ["${workspaceFolder}/scripts/validation-plan.py", "run-local", "--docs-only"],
+      "problemMatcher": []
+    },
+    {
       "label": "QuadletLens: Format non-Rust files",
       "type": "process",
       "command": "${workspaceFolder}/scripts/check-files.sh",

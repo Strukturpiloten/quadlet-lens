@@ -138,48 +138,59 @@ fn pinned_cargo_llvm_cov_version(document: &str, source: &str) -> Result<String,
 }
 
 #[test]
-fn ci_workflow_enforces_portability_and_an_actionable_pr_gate() -> Result<(), String> {
+fn ci_workflow_uses_trusted_change_plan_and_fail_closed_gate() -> Result<(), String> {
     let workflow = read_repository_file(".github/workflows/ci.yml")?;
-
     for required in [
-        "  portability:\n    name: Portability (macOS)",
-        "runs-on: macos-14",
-        "run: cargo ci-check",
-        "run: cargo ci-test",
+        "  validation-plan:\n    name: Validation plan",
+        "ref: ${{ github.event.pull_request.base.sha }}",
+        "python3 .validation-base/scripts/validation-plan.py plan",
+        "trusted base has no classifier",
+        "if: needs.validation-plan.outputs.select_rust == 'true'",
+        "if: needs.validation-plan.outputs.select_documentation == 'true'",
         "  pr-gate:\n    name: PR gate\n    if: always()",
-        "  lockfile-release-age:\n    name: Lockfile release age",
-        "needs:\n      [rust, msrv, dependencies, api, documentation, coverage, portability, lockfile-release-age]",
+        "python3 \"${verifier}\" gate",
+        "set(needs) != {\"validation-plan\", *jobs}",
         "repository: Strukturpiloten/.github",
         "ref: ${{ github.event.pull_request.head.sha }}",
         "--repository-root \"${GITHUB_WORKSPACE}\"",
         "--base \"${BASE_SHA}\"",
         "--head \"${HEAD_SHA}\"",
         "--minimum-age-hours 72",
-        "if: github.event_name != 'pull_request'",
     ] {
         if !workflow.contains(required) {
             return Err(format!("CI workflow is missing contract `{required}`"));
         }
     }
-
-    for (job_name, result_variable, needs_job) in [
-        ("Rust quality", "RUST_RESULT", "rust"),
-        ("MSRV", "MSRV_RESULT", "msrv"),
-        ("Dependency and license policy", "DEPENDENCIES_RESULT", "dependencies"),
-        ("Public API compatibility", "API_RESULT", "api"),
-        ("Documentation", "DOCUMENTATION_RESULT", "documentation"),
-        ("Coverage ratchet", "COVERAGE_RESULT", "coverage"),
-        ("macOS portability", "PORTABILITY_RESULT", "portability"),
-        (
-            "Lockfile release age",
-            "LOCKFILE_RELEASE_AGE_RESULT",
-            "lockfile-release-age",
-        ),
-    ] {
-        let required = format!("{result_variable}: ${{{{ needs.{needs_job}.result }}}}");
-        if !workflow.contains(&required) {
-            return Err(format!("PR gate does not expose a result variable for `{job_name}`"));
-        }
+    let pr_gate = workflow
+        .split_once("  pr-gate:\n")
+        .ok_or("CI workflow is missing the PR gate")?
+        .1;
+    let needs = pr_gate
+        .split_once("needs:")
+        .ok_or("PR gate is missing needs")?
+        .1
+        .trim_start()
+        .strip_prefix('[')
+        .ok_or("PR gate needs must use a bounded flow list")?;
+    let (needs, _) = needs.split_once(']').ok_or("PR gate needs list is not closed")?;
+    let needs = needs.trim();
+    let needs = needs.strip_suffix(',').unwrap_or(needs);
+    let actual_needs = needs.split(',').map(str::trim).collect::<Vec<_>>();
+    let expected_needs = [
+        "validation-plan",
+        "rust",
+        "coverage",
+        "msrv",
+        "dependencies",
+        "api",
+        "documentation",
+        "lockfile-release-age",
+    ];
+    if actual_needs != expected_needs {
+        return Err(format!("PR gate dependencies changed: {actual_needs:?}"));
+    }
+    if workflow.contains("runs-on: macos-") || workflow.contains("runs-on: windows-") {
+        return Err("CI must only claim evidenced Linux validation".to_owned());
     }
     let marker = "# renovate: datasource=github-digest depName=Strukturpiloten/.github currentValue=main";
     let lines = workflow.lines().collect::<Vec<_>>();
@@ -199,40 +210,9 @@ fn ci_workflow_enforces_portability_and_an_actionable_pr_gate() -> Result<(), St
         || workflow.contains("continue-on-error: true")
     {
         return Err(
-            "the shared lockfile guard must have one immutable Renovate-owned SHA without softened failures".to_owned(),
+            "shared lockfile guard must have one immutable Renovate-owned SHA without softened failures".to_owned(),
         );
     }
-
-    for required in [
-        "printf '| Job | Result |\\n'",
-        "printf \"| %s | \\`%s\\` |\\n\" \"${name}\" \"${result}\" >> \"${GITHUB_STEP_SUMMARY}\"",
-        "::error title=Required PR job did not succeed::${name} concluded ${result}.",
-        "Required PR job did not succeed: ${name} concluded ${result}.",
-        "if (( failures != 0 )); then",
-        "One or more required PR jobs did not succeed; see the result table and annotations above.",
-    ] {
-        if !workflow.contains(required) {
-            return Err(format!("PR gate is missing actionable failure diagnostic `{required}`"));
-        }
-    }
-    if workflow.contains("test \"${{ needs.") {
-        return Err("PR gate must not use opaque success test predicates".to_owned());
-    }
-    if workflow.contains("windows-") {
-        return Err("CI must not claim unsupported native Windows portability".to_owned());
-    }
-    let lock_job = workflow
-        .split_once("\n  lockfile-release-age:\n")
-        .and_then(|(_, remainder)| remainder.split_once("\n  pr-gate:\n"))
-        .map(|(job, _)| job)
-        .ok_or_else(|| "CI lockfile release-age job boundary is missing".to_owned())?;
-    let before_steps = lock_job
-        .split_once("\n    steps:\n")
-        .map_or(lock_job, |(prefix, _)| prefix);
-    if before_steps.lines().any(|line| line.trim_start().starts_with("if:")) {
-        return Err("CI lockfile release-age job must not be skipped on main pushes".to_owned());
-    }
-
     Ok(())
 }
 
@@ -407,7 +387,7 @@ fn issue_to_pr_workflow_requires_primary_ownership_and_the_complete_local_gate()
                 "## Issue-to-PR contribution workflow",
                 "./scripts/check-all.sh",
                 "All steps must pass before the change is committed, pushed, or submitted",
-                "primary agent uses `gpt-6-astra` with `xhigh` reasoning",
+                "primary agent uses `gpt-6-sol` with `xhigh` reasoning",
                 "Worker agents",
                 "never perform Git or GitHub writes",
                 "the primary agent's final responsibility",
@@ -1493,7 +1473,7 @@ fn agent_roles_are_explicit() -> Result<(), Box<dyn std::error::Error>> {
     let root = repository_root();
     let config = fs::read_to_string(root.join(".codex/config.toml"))?;
     for required in [
-        "model = \"gpt-6-astra\"",
+        "model = \"gpt-6-sol\"",
         "model_reasoning_effort = \"xhigh\"",
         "max_concurrent_threads_per_session = 9",
         "default_subagent_model = \"gpt-6-sol\"",
@@ -1530,7 +1510,7 @@ fn agent_roles_are_explicit() -> Result<(), Box<dyn std::error::Error>> {
     let instructions = fs::read_to_string(root.join("AGENTS.md"))?;
     for required in [
         "The primary manager always uses",
-        "`gpt-6-astra` with `xhigh` reasoning",
+        "`gpt-6-sol` with `xhigh` reasoning",
         "use `gpt-6-sol` with `high` reasoning",
         "check-only verification uses `gpt-6-luna` with `high`",
         "up to nine concurrent subagents plus the primary manager",
@@ -1545,7 +1525,7 @@ fn agent_roles_are_explicit() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-// The full shell gate targets the Linux Dev Container, not the macOS portability lane.
+// The full shell gate targets the Linux Dev Container; macOS has no CI validation lane.
 // Keep configuration assertions above platform-independent.
 #[cfg(target_os = "linux")]
 #[test]

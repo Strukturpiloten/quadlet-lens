@@ -9,6 +9,9 @@
 
 ## Index
 
+[ADR 0017](0017-change-aware-validation-and-linux-evidence.md) defines trusted-base PR selection,
+complete release validation, and Linux-only validation evidence.
+
 [ADR 0013](0013-bounded-native-value-decoding.md) defines bounded, source-aware
 ports, mounts, commands, and build environment views.
 
