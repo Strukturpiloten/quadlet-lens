@@ -50,12 +50,22 @@ Their exact sources are:
 The Dev Container and CI run the same repository file checks. Renovate may propose version changes,
 but every update receives the normal tests and review.
 
-Renovate's global three-day minimum release age applies to direct dependency updates. Its synthetic
-lock-file maintenance updates cannot prove the release dates of every newly resolved package, so
-they use a zero-day Renovate override only after the shared, fail-closed lockfile release-age guard
-has checked every newly introduced registry package is at least 72 hours old and the required
-aggregate PR gate succeeds. Its immutable revision has one Renovate owner. Podman discovery, Dev
-Container, and checksum-pinned tool updates remain manual.
+Renovate's global three-day minimum release age applies to dependency updates. The exact-name
+BoxFerry and Lens exception preserves the existing BoxFerry package names and includes
+`compose-lens`, `podman-lens`, `quadlet-lens`, and `docker-lens`; it applies only to the Cargo manager
+and crates.io (`crate`) datasource. It waives elapsed release age without changing approvals,
+grouping, or automerge rules. Other ecosystems and similarly named packages retain the global delay.
+
+Synthetic lock-file maintenance also uses a zero-day Renovate override. Both exceptions remain
+subject to the shared, fail-closed lockfile release-age guard and the required aggregate PR gate.
+For Cargo's canonical crates.io registry source, the guard's fixed in-house allowlist contains only
+`compose-lens`, `podman-lens`, `quadlet-lens`, and `docker-lens`. It waives elapsed age only after a
+bounded registry lookup returns a valid publication timestamp; a future timestamp still fails.
+Unavailable or malformed registry evidence fails closed. Newly introduced third-party packages,
+including transitive dependencies and BoxFerry packages outside that guard allowlist, still require
+at least 72 hours. The guard has no CLI or environment override for its allowlist. Its immutable
+shared-policy revision retains one Renovate owner. Podman discovery, Dev Container, and
+checksum-pinned tool updates remain manual.
 
 ## Review checklist
 

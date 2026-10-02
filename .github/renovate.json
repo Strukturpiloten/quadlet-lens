@@ -149,6 +149,8 @@
     },
     {
       "description": "Do not delay BoxFerry and Lens releases",
+      "matchManagers": ["cargo"],
+      "matchDatasources": ["crate"],
       "matchPackageNames": [
         "boxferry",
         "boxferry-model",
@@ -158,7 +160,8 @@
         "boxferry-quadlet",
         "compose-lens",
         "podman-lens",
-        "quadlet-lens"
+        "quadlet-lens",
+        "docker-lens"
       ],
       "minimumReleaseAge": "0 days"
     },
