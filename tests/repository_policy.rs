@@ -949,6 +949,7 @@ fn reextract_shared_policy_marker<'a>(
 }
 
 fn validate_renovate_lockfile_policy(renovate: &serde_json::Value) -> Result<(), String> {
+    validate_in_house_release_age_policy(renovate)?;
     if renovate["minimumReleaseAge"] != "3 days" {
         return Err("Renovate must retain the three-day minimum release age".to_owned());
     }
@@ -1002,6 +1003,163 @@ fn validate_renovate_lockfile_policy(renovate: &serde_json::Value) -> Result<(),
         }
     }
     validate_shared_policy_manager(renovate)
+}
+
+fn validate_in_house_release_age_policy(renovate: &serde_json::Value) -> Result<(), String> {
+    if renovate["minimumReleaseAge"] != "3 days" {
+        return Err("Renovate must retain the three-day minimum release age".to_owned());
+    }
+    let rules = renovate["packageRules"]
+        .as_array()
+        .ok_or_else(|| "Renovate packageRules must be an array".to_owned())?;
+    let description = "Do not delay BoxFerry and Lens releases";
+    let exceptions = rules
+        .iter()
+        .filter(|rule| rule["description"] == description)
+        .collect::<Vec<_>>();
+    let expected = serde_json::json!({
+        "description": description,
+        "matchManagers": ["cargo"],
+        "matchDatasources": ["crate"],
+        "matchPackageNames": [
+            "boxferry", "boxferry-model", "boxferry-engine", "boxferry-compose",
+            "boxferry-podman", "boxferry-quadlet", "compose-lens", "podman-lens",
+            "quadlet-lens", "docker-lens",
+        ],
+        "minimumReleaseAge": "0 days",
+    });
+    if exceptions.len() != 1 || *exceptions[0] != expected {
+        return Err("in-house release-age exception must retain exact Cargo/crate names and waive only age".to_owned());
+    }
+    if rules.iter().any(|rule| {
+        rule.get("minimumReleaseAge").is_some()
+            && rule["description"] != description
+            && rule["description"] != "Automerge green-gated lock-file maintenance"
+    }) {
+        return Err(
+            "only in-house Cargo releases and guarded lock-file maintenance may override release age".to_owned(),
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn renovate_in_house_age_exception_rejects_broadened_scope_and_weakened_gates() -> Result<(), String> {
+    let renovate: serde_json::Value =
+        serde_json::from_str(&read_repository_file(".github/renovate.json")?).map_err(|error| error.to_string())?;
+    validate_renovate_lockfile_policy(&renovate)?;
+    let rules = renovate["packageRules"]
+        .as_array()
+        .ok_or("Renovate rules must be an array")?;
+    let exception_index = rules
+        .iter()
+        .position(|rule| rule["description"] == "Do not delay BoxFerry and Lens releases")
+        .ok_or("in-house exception is missing")?;
+
+    for (field, replacement) in [
+        ("matchManagers", serde_json::json!(["npm"])),
+        ("matchManagers", serde_json::json!(["cargo", "npm", "custom.regex"])),
+        ("matchDatasources", serde_json::json!(["github-releases"])),
+        ("matchDatasources", serde_json::json!(["crate", "npm"])),
+        ("minimumReleaseAge", serde_json::json!("1 day")),
+        ("automerge", serde_json::json!(true)),
+        ("dependencyDashboardApproval", serde_json::json!(false)),
+    ] {
+        let mut mutated = renovate.clone();
+        mutated["packageRules"][exception_index][field] = replacement;
+        assert!(
+            validate_renovate_lockfile_policy(&mutated).is_err(),
+            "accepted mutation of {field}"
+        );
+    }
+    for field in ["matchManagers", "matchDatasources", "matchPackageNames"] {
+        let mut mutated = renovate.clone();
+        mutated["packageRules"][exception_index]
+            .as_object_mut()
+            .ok_or("in-house exception must be an object")?
+            .remove(field);
+        assert!(
+            validate_renovate_lockfile_policy(&mutated).is_err(),
+            "accepted missing {field}"
+        );
+    }
+    let names = rules[exception_index]["matchPackageNames"]
+        .as_array()
+        .ok_or("in-house package names must be an array")?;
+    for index in 0..names.len() {
+        let mut mutated = renovate.clone();
+        mutated["packageRules"][exception_index]["matchPackageNames"]
+            .as_array_mut()
+            .ok_or("in-house package names must be an array")?
+            .remove(index);
+        assert!(
+            validate_renovate_lockfile_policy(&mutated).is_err(),
+            "accepted missing package {index}"
+        );
+    }
+    for added in ["serde", "docker-lens-extra", "*", "docker-lens"] {
+        let mut mutated = renovate.clone();
+        mutated["packageRules"][exception_index]["matchPackageNames"]
+            .as_array_mut()
+            .ok_or("in-house package names must be an array")?
+            .push(serde_json::json!(added));
+        assert!(
+            validate_renovate_lockfile_policy(&mutated).is_err(),
+            "accepted added package {added}"
+        );
+    }
+    let mut younger_global_age = renovate.clone();
+    younger_global_age["minimumReleaseAge"] = serde_json::json!("0 days");
+    assert!(validate_renovate_lockfile_policy(&younger_global_age).is_err());
+    for additional_rule in [
+        rules[exception_index].clone(),
+        serde_json::json!({"matchPackageNames": ["serde"], "minimumReleaseAge": "0 days"}),
+    ] {
+        let mut mutated = renovate.clone();
+        mutated["packageRules"]
+            .as_array_mut()
+            .ok_or("Renovate rules must be an array")?
+            .push(additional_rule);
+        assert!(
+            validate_renovate_lockfile_policy(&mutated).is_err(),
+            "accepted additional age exception"
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn renovate_shared_guard_keeps_one_owner_and_digest_reextraction() -> Result<(), String> {
+    let renovate: serde_json::Value =
+        serde_json::from_str(&read_repository_file(".github/renovate.json")?).map_err(|error| error.to_string())?;
+    validate_shared_policy_manager(&renovate)?;
+    let managers = renovate["customManagers"]
+        .as_array()
+        .ok_or("Renovate managers must be an array")?;
+    let owner_index = managers
+        .iter()
+        .position(|manager| manager["description"] == "Track the immutable Strukturpiloten shared-policy commit")
+        .ok_or("shared-policy owner is missing")?;
+    for (field, replacement) in [
+        ("datasourceTemplate", serde_json::json!("github-releases")),
+        ("managerFilePatterns", serde_json::json!([r"/^Cargo\.toml$/"])),
+        ("matchStrings", serde_json::json!(["ref: (?<currentDigest>.+)"])),
+        ("autoReplaceStringTemplate", serde_json::json!("ref: {{{newDigest}}}")),
+    ] {
+        let mut mutated = renovate.clone();
+        mutated["customManagers"][owner_index][field] = replacement;
+        assert!(
+            validate_shared_policy_manager(&mutated).is_err(),
+            "accepted shared-policy mutation of {field}"
+        );
+    }
+    let mut duplicate = renovate.clone();
+    duplicate["customManagers"]
+        .as_array_mut()
+        .ok_or("Renovate managers must be an array")?
+        .push(managers[owner_index].clone());
+    assert!(validate_shared_policy_manager(&duplicate).is_err());
+    Ok(())
 }
 
 fn validate_shared_policy_manager(renovate: &serde_json::Value) -> Result<(), String> {
