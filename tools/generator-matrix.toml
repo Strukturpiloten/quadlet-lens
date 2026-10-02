@@ -18,7 +18,7 @@ latest_5_8 = "5.8.7"
 # renovate: datasource=github-releases packageName=podman-container-tools/podman depName=podman-6.0
 latest_6_0 = "6.0.2"
 # renovate: datasource=github-releases packageName=podman-container-tools/podman depName=podman-6.1
-latest_6_1 = "6.1.2"
+latest_6_1 = "6.1.3"
 tracked_current = "6.1.2"
 checked_on = "2026-09-26"
 official_image_maximum = "5.8.2"
