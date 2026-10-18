@@ -1,5 +1,8 @@
 # Architecture decision records
 
+[ADR 0019](0019-rust-baseline.md) raises the Rust minimum to 1.98.1 and keeps compiler consumers
+aligned with the manifest.
+
 [ADR 0018](0018-active-generator-patches-and-historical-evidence.md) separates actively rerun
 Podman patch targets from version-controlled historical generator evidence.
 
@@ -44,5 +47,6 @@ runtime claims.
 | [0014](0014-independent-application-generator-conformance.md)      | accepted   | Independent application contracts and exact pinned-generator validation                |
 | [0015](0015-separate-generator-discovery-from-reviewed-target.md)  | superseded | Renovate discovery is separate from reviewed generator evidence                        |
 | [0018](0018-active-generator-patches-and-historical-evidence.md)   | accepted   | Per-minor discovery, active latest patches, and retained historical generator evidence |
+| [0019](0019-rust-baseline.md)                                      | accepted   | Rust 1.98.1 minimum with manifest-derived validation and aligned Clippy configuration  |
 
 Use the next four-digit number for new decisions. Include context, decision, consequences, and alternatives. Supersede accepted decisions with a new ADR rather than rewriting history.

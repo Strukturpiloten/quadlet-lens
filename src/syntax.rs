@@ -420,15 +420,13 @@ fn parse_lines(source: &SourceText) -> (Vec<SyntaxLine>, Vec<Diagnostic>) {
         });
     }
 
-    if continuing {
-        if let Some(span) = continuation_origin {
-            diagnostics.push(Diagnostic::new(
-                DANGLING_CONTINUATION,
-                Severity::Error,
-                "continued configuration entry reaches the end of the file",
-                Label::new(span, "expected another physical value line"),
-            ));
-        }
+    if continuing && let Some(span) = continuation_origin {
+        diagnostics.push(Diagnostic::new(
+            DANGLING_CONTINUATION,
+            Severity::Error,
+            "continued configuration entry reaches the end of the file",
+            Label::new(span, "expected another physical value line"),
+        ));
     }
 
     (lines, diagnostics)

@@ -7,6 +7,8 @@
 > Amended by [ADR 0006](0006-rolling-support-window-and-generator-evidence.md): Podman 5.4.0 is the
 > fixed support minimum, while finite catalogue and generator evidence can expand toward rolling
 > current. The single-version clauses below describe the initial bootstrap catalogue.
+>
+> The Rust minimum in decision 2 is superseded by [ADR 0019](0019-rust-baseline.md).
 
 ## Context
 

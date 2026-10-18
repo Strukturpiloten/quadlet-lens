@@ -66,8 +66,8 @@ cargo ci-clippy
 cargo ci-test
 cargo ci-doctest
 RUSTDOCFLAGS="-D warnings" cargo ci-doc
-cargo +1.85.0 ci-check
-cargo +1.85.0 ci-policy
+cargo +1.98.1 ci-check
+cargo +1.98.1 ci-policy
 cargo deny check
 ```
 

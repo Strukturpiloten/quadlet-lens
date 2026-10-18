@@ -200,12 +200,12 @@ fn validate_files(subject: &str, project: &Table, repository: Option<&str>, stat
                     .errors
                     .push(format!("{file_subject}: `path` must name a supported Quadlet unit")),
             }
-            if let Some(basename) = Path::new(path).file_name().and_then(|value| value.to_str()) {
-                if !basenames.insert(basename.to_owned()) {
-                    state
-                        .errors
-                        .push(format!("{file_subject}: duplicate unit-file basename `{basename}`"));
-                }
+            if let Some(basename) = Path::new(path).file_name().and_then(|value| value.to_str())
+                && !basenames.insert(basename.to_owned())
+            {
+                state
+                    .errors
+                    .push(format!("{file_subject}: duplicate unit-file basename `{basename}`"));
             }
             if let Some(repository) = repository {
                 let source = (repository.to_owned(), path.to_owned());

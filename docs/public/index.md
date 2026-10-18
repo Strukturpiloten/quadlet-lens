@@ -21,4 +21,4 @@ QuadletLens does not install units, reload systemd, run Podman, inspect the host
 - [Compatibility](compatibility/) explains targets and the downloadable capability catalogue.
 - [Rust API](https://boxferry.dev/docs/api/quadlet-lens/) lists every public item.
 
-Add the library with `quadlet-lens = "0.2"`. Rust 1.85.0 or newer is required.
+Add the library with `quadlet-lens = "0.2"`. Rust 1.98.1 or newer is required.

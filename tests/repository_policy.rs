@@ -46,6 +46,70 @@ fn repository_supply_chain_has_single_sources_and_immutable_pins() -> Result<(),
 }
 
 #[test]
+fn rust_minimum_matches_clippy_and_public_claims() -> Result<(), String> {
+    let parse = |path| {
+        toml::from_str::<toml::Value>(&read_repository_file(path)?)
+            .map_err(|error| format!("invalid TOML in {path}: {error}"))
+    };
+    let manifest = parse("Cargo.toml")?;
+    let minimum = manifest["workspace"]["package"]["rust-version"]
+        .as_str()
+        .ok_or("workspace package must declare rust-version")?;
+    if manifest["package"]["rust-version"]["workspace"].as_bool() != Some(true) {
+        return Err("published package must inherit the workspace Rust minimum".to_owned());
+    }
+    if exact_rust_release(minimum)? < [1, 98, 1] {
+        return Err("Rust minimum must retain the approved 1.98.1 baseline".to_owned());
+    }
+    let clippy = parse("clippy.toml")?;
+    if clippy["msrv"].as_str() != Some(minimum) {
+        return Err("Clippy MSRV must match the workspace Rust minimum".to_owned());
+    }
+    let toolchain = parse("rust-toolchain.toml")?;
+    let channel = toolchain["toolchain"]["channel"]
+        .as_str()
+        .ok_or("normal Rust toolchain must declare its channel")?;
+    if exact_rust_release(channel)? < exact_rust_release(minimum)? {
+        return Err("normal Rust toolchain must support the workspace Rust minimum".to_owned());
+    }
+    for path in ["README.md", "docs/api-stability.md", "docs/public/index.md"] {
+        if !read_repository_file(path)?.contains(&format!("Rust {minimum} or newer")) {
+            return Err(format!("{path} must document the workspace Rust minimum"));
+        }
+    }
+    let guidance = read_repository_file("AGENTS.md")?;
+    for alias in ["ci-check", "ci-policy"] {
+        if !guidance.contains(&format!("cargo +{minimum} {alias}")) {
+            return Err(format!("AGENTS.md must use the workspace Rust minimum for {alias}"));
+        }
+    }
+    Ok(())
+}
+
+fn exact_rust_release(version: &str) -> Result<[u32; 3], String> {
+    version
+        .split('.')
+        .map(str::parse::<u32>)
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|error| format!("Rust release {version:?} must be exact: {error}"))?
+        .try_into()
+        .map_err(|_| format!("Rust release {version:?} must contain major.minor.patch"))
+}
+
+#[test]
+fn rust_release_comparison_preserves_patch_and_minor_boundaries() -> Result<(), String> {
+    let baseline = exact_rust_release("1.98.1")?;
+    assert!(exact_rust_release("1.98.0")? < baseline);
+    assert!(exact_rust_release("1.98.2")? > baseline);
+    assert!(exact_rust_release("1.99.0")? > baseline);
+    assert!(exact_rust_release("1.100.0")? > baseline);
+    for unsupported in ["stable", "1.98", "1.98.1.0", "1.98.1-nightly"] {
+        assert!(exact_rust_release(unsupported).is_err());
+    }
+    Ok(())
+}
+
+#[test]
 fn public_api_compatibility_runs_in_reusable_ci() -> Result<(), String> {
     const ACTION: &str = "obi1kenobi/cargo-semver-checks-action@6b69fcf40e9b5fb17adeb57e4b6ecd020649a239 # v2.9";
     const CONFIGURATION: &str = "package: quadlet-lens";

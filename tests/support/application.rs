@@ -705,11 +705,12 @@ fn podman_image_index(id: &str, unit_name: &str, tokens: &[&str], image: &str) -
             index += 2;
             continue;
         }
-        if let Some((option, value)) = token.split_once('=') {
-            if PODMAN_RUN_VALUE_OPTIONS.contains(&option) && !value.is_empty() {
-                index += 1;
-                continue;
-            }
+        if let Some((option, value)) = token.split_once('=')
+            && PODMAN_RUN_VALUE_OPTIONS.contains(&option)
+            && !value.is_empty()
+        {
+            index += 1;
+            continue;
         }
         return Err(format!(
             "{id}: {unit_name} has unreviewed Podman argument `{token}` before its image"
@@ -1233,9 +1234,9 @@ fn sha256(input: &[u8]) -> String {
     padded.extend_from_slice(&bit_length.to_be_bytes());
 
     let mut state = INITIAL;
-    for block in padded.chunks_exact(64) {
+    for block in padded.as_chunks::<64>().0 {
         let mut words = [0_u32; 64];
-        for (index, bytes) in block.chunks_exact(4).enumerate() {
+        for (index, bytes) in block.as_chunks::<4>().0.iter().enumerate() {
             words[index] = u32::from_be_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]);
         }
         for index in 16..64 {

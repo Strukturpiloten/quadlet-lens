@@ -1682,15 +1682,15 @@ impl QuadletDocument {
             .filter(|entry| entry.kind == EntryKind::Image(ImageKey::Image))
             .collect();
         let mut diagnostics = Vec::new();
-        if images.is_empty() {
-            if let Some(section) = image_section {
-                diagnostics.push(Diagnostic::new(
-                    MISSING_IMAGE_SOURCE,
-                    Severity::Error,
-                    "image unit is missing its required image source",
-                    Label::new(section.name.span(), "add `Image=` to this Image section"),
-                ));
-            }
+        if images.is_empty()
+            && let Some(section) = image_section
+        {
+            diagnostics.push(Diagnostic::new(
+                MISSING_IMAGE_SOURCE,
+                Severity::Error,
+                "image unit is missing its required image source",
+                Label::new(section.name.span(), "add `Image=` to this Image section"),
+            ));
         }
         diagnostics.extend(
             images
@@ -1727,29 +1727,29 @@ impl QuadletDocument {
             .filter(|entry| entry.kind == EntryKind::Kube(KubeKey::Yaml))
             .collect();
         let mut diagnostics = Vec::new();
-        if yaml_entries.is_empty() {
-            if let Some(section) = kube_section {
-                diagnostics.push(Diagnostic::new(
-                    MISSING_KUBE_YAML,
-                    Severity::Error,
-                    "kube unit is missing its required YAML source",
-                    Label::new(section.name.span(), "add `Yaml=` to this Kube section"),
-                ));
-            }
+        if yaml_entries.is_empty()
+            && let Some(section) = kube_section
+        {
+            diagnostics.push(Diagnostic::new(
+                MISSING_KUBE_YAML,
+                Severity::Error,
+                "kube unit is missing its required YAML source",
+                Label::new(section.name.span(), "add `Yaml=` to this Kube section"),
+            ));
         }
         let effective_yaml_entries = reset_aware_entries(&yaml_entries);
-        if effective_yaml_entries.is_empty() {
-            if let Some(entry) = yaml_entries.last() {
-                diagnostics.push(Diagnostic::new(
-                    EMPTY_KUBE_YAML,
-                    Severity::Error,
-                    "kube unit has no effective YAML source after reset processing",
-                    Label::new(
-                        entry.value.primary.span(),
-                        "provide a Kubernetes YAML source path after this reset",
-                    ),
-                ));
-            }
+        if effective_yaml_entries.is_empty()
+            && let Some(entry) = yaml_entries.last()
+        {
+            diagnostics.push(Diagnostic::new(
+                EMPTY_KUBE_YAML,
+                Severity::Error,
+                "kube unit has no effective YAML source after reset processing",
+                Label::new(
+                    entry.value.primary.span(),
+                    "provide a Kubernetes YAML source path after this reset",
+                ),
+            ));
         }
         let working_directories: Vec<_> = self
             .sections
@@ -1762,20 +1762,19 @@ impl QuadletDocument {
             .iter()
             .map(|entry| lookup_all_strv_count(entry.value.primary.text()))
             .sum();
-        if yaml_source_count > 1 {
-            if let Some(working_directory) = effective_singleton(&working_directories) {
-                if systemd_lookup_value(working_directory.value.primary.text()).eq_ignore_ascii_case("yaml") {
-                    diagnostics.push(Diagnostic::new(
-                        MULTIPLE_KUBE_YAML_WITH_YAML_WORKING_DIRECTORY,
-                        Severity::Error,
-                        "multiple kube YAML sources conflict with SetWorkingDirectory=yaml",
-                        Label::new(
-                            working_directory.value.primary.span(),
-                            "choose one Yaml= source or use SetWorkingDirectory=unit",
-                        ),
-                    ));
-                }
-            }
+        if yaml_source_count > 1
+            && let Some(working_directory) = effective_singleton(&working_directories)
+            && systemd_lookup_value(working_directory.value.primary.text()).eq_ignore_ascii_case("yaml")
+        {
+            diagnostics.push(Diagnostic::new(
+                MULTIPLE_KUBE_YAML_WITH_YAML_WORKING_DIRECTORY,
+                Severity::Error,
+                "multiple kube YAML sources conflict with SetWorkingDirectory=yaml",
+                Label::new(
+                    working_directory.value.primary.span(),
+                    "choose one Yaml= source or use SetWorkingDirectory=unit",
+                ),
+            ));
         }
         let user_namespaces: Vec<_> = self
             .sections
@@ -2039,18 +2038,19 @@ fn validate_container_workload_sources(
     root_filesystems: &[&TypedEntry],
 ) -> Vec<Diagnostic> {
     let mut diagnostics = Vec::new();
-    if images.is_empty() && root_filesystems.is_empty() {
-        if let Some(section) = container_section {
-            diagnostics.push(Diagnostic::new(
-                MISSING_IMAGE,
-                Severity::Error,
-                "container unit is missing its required image or root filesystem",
-                Label::new(
-                    section.name.span(),
-                    "add either `Image=` or `Rootfs=` to this Container section",
-                ),
-            ));
-        }
+    if images.is_empty()
+        && root_filesystems.is_empty()
+        && let Some(section) = container_section
+    {
+        diagnostics.push(Diagnostic::new(
+            MISSING_IMAGE,
+            Severity::Error,
+            "container unit is missing its required image or root filesystem",
+            Label::new(
+                section.name.span(),
+                "add either `Image=` or `Rootfs=` to this Container section",
+            ),
+        ));
     }
     if !images.is_empty() && !root_filesystems.is_empty() {
         diagnostics.push(Diagnostic::new(
@@ -2162,71 +2162,71 @@ fn validate_container_relationships(entries: &[&TypedEntry]) -> Vec<Diagnostic> 
         active_direct_maps.iter().any(|maps| !maps.is_empty()) || active_subordinate_maps.iter().any(Option::is_some);
     let mut diagnostics = Vec::new();
 
-    if let Some((entry, true)) = effective_boolean(&relationships.start_with_pod) {
-        if active_pod.is_none() {
-            diagnostics.push(container_relationship_diagnostic(
-                START_WITH_POD_WITHOUT_POD,
-                Severity::Warning,
-                "container StartWithPod entry has no Pod entry",
-                entry,
-                "add Pod= or remove StartWithPod=",
-            ));
-        }
+    if let Some((entry, true)) = effective_boolean(&relationships.start_with_pod)
+        && active_pod.is_none()
+    {
+        diagnostics.push(container_relationship_diagnostic(
+            START_WITH_POD_WITHOUT_POD,
+            Severity::Warning,
+            "container StartWithPod entry has no Pod entry",
+            entry,
+            "add Pod= or remove StartWithPod=",
+        ));
     }
-    if let Some((entry, true)) = effective_boolean(&relationships.read_only_tmpfs) {
-        if !matches!(effective_boolean(&relationships.read_only), Some((_, true))) {
-            diagnostics.push(container_relationship_diagnostic(
-                READ_ONLY_TMPFS_WITHOUT_READ_ONLY,
-                Severity::Warning,
-                "container ReadOnlyTmpfs entry has no ReadOnly entry",
-                entry,
-                "add ReadOnly= or remove ReadOnlyTmpfs=",
-            ));
-        }
+    if let Some((entry, true)) = effective_boolean(&relationships.read_only_tmpfs)
+        && !matches!(effective_boolean(&relationships.read_only), Some((_, true)))
+    {
+        diagnostics.push(container_relationship_diagnostic(
+            READ_ONLY_TMPFS_WITHOUT_READ_ONLY,
+            Severity::Warning,
+            "container ReadOnlyTmpfs entry has no ReadOnly entry",
+            entry,
+            "add ReadOnly= or remove ReadOnlyTmpfs=",
+        ));
     }
-    if let Some(user_namespace) = effective_singleton(&relationships.user_namespace) {
-        if has_active_mappings {
-            diagnostics.push(container_relationship_diagnostic(
-                CONFLICTING_USERNS_MAPPING,
-                Severity::Error,
-                "container UserNS and explicit user mappings conflict",
-                user_namespace,
-                "remove UserNS= or the explicit mapping entries",
-            ));
-        }
+    if let Some(user_namespace) = effective_singleton(&relationships.user_namespace)
+        && has_active_mappings
+    {
+        diagnostics.push(container_relationship_diagnostic(
+            CONFLICTING_USERNS_MAPPING,
+            Severity::Error,
+            "container UserNS and explicit user mappings conflict",
+            user_namespace,
+            "remove UserNS= or the explicit mapping entries",
+        ));
     }
-    if let Some(subordinate_user) = active_subordinate_maps[0] {
-        if !active_direct_maps[0].is_empty() {
-            diagnostics.push(container_relationship_diagnostic(
-                CONFLICTING_UID_MAPPING,
-                Severity::Error,
-                "container UIDMap and SubUIDMap entries conflict",
-                subordinate_user,
-                "remove UIDMap= or SubUIDMap=",
-            ));
-        }
+    if let Some(subordinate_user) = active_subordinate_maps[0]
+        && !active_direct_maps[0].is_empty()
+    {
+        diagnostics.push(container_relationship_diagnostic(
+            CONFLICTING_UID_MAPPING,
+            Severity::Error,
+            "container UIDMap and SubUIDMap entries conflict",
+            subordinate_user,
+            "remove UIDMap= or SubUIDMap=",
+        ));
     }
-    if let Some(subordinate_group) = active_subordinate_maps[1] {
-        if !active_direct_maps[1].is_empty() {
-            diagnostics.push(container_relationship_diagnostic(
-                CONFLICTING_GID_MAPPING,
-                Severity::Error,
-                "container GIDMap and SubGIDMap entries conflict",
-                subordinate_group,
-                "remove GIDMap= or SubGIDMap=",
-            ));
-        }
+    if let Some(subordinate_group) = active_subordinate_maps[1]
+        && !active_direct_maps[1].is_empty()
+    {
+        diagnostics.push(container_relationship_diagnostic(
+            CONFLICTING_GID_MAPPING,
+            Severity::Error,
+            "container GIDMap and SubGIDMap entries conflict",
+            subordinate_group,
+            "remove GIDMap= or SubGIDMap=",
+        ));
     }
-    if let Some(pod) = active_pod {
-        if has_active_mappings {
-            diagnostics.push(container_relationship_diagnostic(
-                MAPPING_WITH_POD,
-                Severity::Error,
-                "container explicit user mappings conflict with Pod membership",
-                pod,
-                "move namespace mapping policy to the Pod or remove Pod=",
-            ));
-        }
+    if let Some(pod) = active_pod
+        && has_active_mappings
+    {
+        diagnostics.push(container_relationship_diagnostic(
+            MAPPING_WITH_POD,
+            Severity::Error,
+            "container explicit user mappings conflict with Pod membership",
+            pod,
+            "move namespace mapping policy to the Pod or remove Pod=",
+        ));
     }
     diagnostics
 }
@@ -2250,38 +2250,38 @@ fn validate_pod_relationships(entries: &[&TypedEntry]) -> Vec<Diagnostic> {
         || subordinate_user.is_some()
         || subordinate_group.is_some();
     let mut diagnostics = Vec::new();
-    if let Some(entry) = effective_singleton(&user_namespace) {
-        if has_mappings {
-            diagnostics.push(container_relationship_diagnostic(
-                CONFLICTING_USERNS_MAPPING,
-                Severity::Error,
-                "pod UserNS and explicit user mappings conflict",
-                entry,
-                "remove UserNS= or the explicit mapping entries",
-            ));
-        }
+    if let Some(entry) = effective_singleton(&user_namespace)
+        && has_mappings
+    {
+        diagnostics.push(container_relationship_diagnostic(
+            CONFLICTING_USERNS_MAPPING,
+            Severity::Error,
+            "pod UserNS and explicit user mappings conflict",
+            entry,
+            "remove UserNS= or the explicit mapping entries",
+        ));
     }
-    if let Some(entry) = subordinate_user {
-        if !direct_user.is_empty() {
-            diagnostics.push(container_relationship_diagnostic(
-                CONFLICTING_UID_MAPPING,
-                Severity::Error,
-                "pod UIDMap and SubUIDMap entries conflict",
-                entry,
-                "remove UIDMap= or SubUIDMap=",
-            ));
-        }
+    if let Some(entry) = subordinate_user
+        && !direct_user.is_empty()
+    {
+        diagnostics.push(container_relationship_diagnostic(
+            CONFLICTING_UID_MAPPING,
+            Severity::Error,
+            "pod UIDMap and SubUIDMap entries conflict",
+            entry,
+            "remove UIDMap= or SubUIDMap=",
+        ));
     }
-    if let Some(entry) = subordinate_group {
-        if !direct_group.is_empty() {
-            diagnostics.push(container_relationship_diagnostic(
-                CONFLICTING_GID_MAPPING,
-                Severity::Error,
-                "pod GIDMap and SubGIDMap entries conflict",
-                entry,
-                "remove GIDMap= or SubGIDMap=",
-            ));
-        }
+    if let Some(entry) = subordinate_group
+        && !direct_group.is_empty()
+    {
+        diagnostics.push(container_relationship_diagnostic(
+            CONFLICTING_GID_MAPPING,
+            Severity::Error,
+            "pod GIDMap and SubGIDMap entries conflict",
+            entry,
+            "remove GIDMap= or SubGIDMap=",
+        ));
     }
     diagnostics
 }
