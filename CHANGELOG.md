@@ -5,6 +5,11 @@ Versioning for its documented pre-1.0 public API.
 
 ## [Unreleased]
 
+### Changed
+
+- Raise the minimum supported Rust version to 1.98.1; consumers using an older compiler must
+  upgrade before updating QuadletLens. See [the Rust baseline decision](docs/decisions/0019-rust-baseline.md).
+
 ## [0.2.4](https://github.com/Strukturpiloten/quadlet-lens/compare/v0.2.3...v0.2.4) - 2026-09-26
 
 ### Added

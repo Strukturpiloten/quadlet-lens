@@ -10,6 +10,9 @@ trap 'rm -r -- "${test_root}"' EXIT
 mkdir -p "${test_root}/repository/scripts" "${test_root}/repository/site" "${test_root}/bin"
 cp -- "${script_directory}/check-all.sh" "${test_root}/repository/scripts/check-all.sh"
 cp -- "${script_directory}/../README.md" "${test_root}/repository/README.md"
+export CHECK_ALL_TEST_MSRV
+CHECK_ALL_TEST_MSRV="$(sed -n 's/^rust-version = "\(.*\)"$/\1/p' "${script_directory}/../Cargo.toml")"
+[[ -n "${CHECK_ALL_TEST_MSRV}" ]]
 
 # These mock commands record exactly what the unmodified gate requests.
 cat > "${test_root}/bin/mock" << 'MOCK'
@@ -29,7 +32,7 @@ if [[ "${CHECK_ALL_TEST_FAIL:-}" == "${command_name}" ]]; then
 fi
 case "${command_name}:$*" in
   git:ls-files*) printf 'README.md\0' ;;
-  jq:*) printf '1.85.0\n' ;;
+  jq:*) printf '%s\n' "${CHECK_ALL_TEST_MSRV}" ;;
 esac
 MOCK
 chmod +x "${test_root}/bin/mock"
@@ -66,6 +69,11 @@ diff -u "${test_root}/default.commands" "${test_root}/fix.commands"
 assert_contains fix "bash scripts/check-files.sh --fix"
 assert_contains check "bash scripts/check-files.sh --check"
 assert_contains check "python3 scripts/test-validation-plan.py"
+assert_contains check "cargo +${CHECK_ALL_TEST_MSRV} ci-check"
+assert_contains check "cargo +${CHECK_ALL_TEST_MSRV} ci-policy"
+CHECK_ALL_TEST_MSRV=1.99.0 run_gate newer_msrv --check
+assert_contains newer_msrv "cargo +1.99.0 ci-check"
+assert_contains newer_msrv "cargo +1.99.0 ci-policy"
 if grep -q '^cargo fmt' "${test_root}/fix.commands"; then
   assert_contains fix "cargo fmt --all"
   assert_contains check "cargo fmt --all -- --check"

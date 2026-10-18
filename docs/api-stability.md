@@ -21,7 +21,8 @@ Within the 0.2.x line:
   deterministic for the same valid input;
 - parsing, modeling, document-set resolution, capability evaluation, and rendering perform no
   filesystem discovery, process execution, unit installation, or runtime mutation; and
-- all supported public APIs compile on Rust 1.85.0 or newer.
+- all supported public APIs compile on Rust 1.98.1 or newer, as recorded in
+  [ADR 0019](decisions/0019-rust-baseline.md).
 
 Bug fixes may change a result that contradicted these contracts or retained conformance evidence.
 Such a change needs a regression test and changelog entry. A patch release must not silently drop

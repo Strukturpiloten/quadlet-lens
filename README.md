@@ -14,7 +14,7 @@ decisions explicit.
 cargo add quadlet-lens
 ```
 
-QuadletLens requires Rust 1.85.0 or newer.
+QuadletLens requires Rust 1.98.1 or newer.
 
 ## Parse a document
 

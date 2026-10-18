@@ -5647,10 +5647,10 @@ fn generator_run_id_rejects_unbounded_or_filter_metacharacters() {
 
 impl Drop for RunOwnedContainers {
     fn drop(&mut self) {
-        if !self.cleaned {
-            if let Err(error) = self.cleanup() {
-                eprintln!("generator run cleanup could not complete: {error}");
-            }
+        if !self.cleaned
+            && let Err(error) = self.cleanup()
+        {
+            eprintln!("generator run cleanup could not complete: {error}");
         }
         GENERATOR_RUN_ID.with(|slot| *slot.borrow_mut() = None);
     }
@@ -6267,12 +6267,12 @@ fn verify_native_value_decoding_generator_output(
                 "Podman {version} must retain its recorded empty-argv trailing-argument truncation gap\n{command}"
             ));
         }
-    } else if let Some(after) = after {
-        if after <= before {
-            return Err(format!(
-                "Podman {version} native Exec arguments are not ordered around empty argv\n{command}"
-            ));
-        }
+    } else if let Some(after) = after
+        && after <= before
+    {
+        return Err(format!(
+            "Podman {version} native Exec arguments are not ordered around empty argv\n{command}"
+        ));
     }
     let empty_argv_observation = if after.is_some() {
         "retains the trailing argument"

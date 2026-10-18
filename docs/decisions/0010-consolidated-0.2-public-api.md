@@ -4,6 +4,8 @@
 - Date: 2026-08-14
 - Supersedes: [ADR 0008](0008-versioned-public-api-and-release-contract.md)
 
+> The Rust minimum below is superseded by [ADR 0019](0019-rust-baseline.md).
+
 ## Context
 
 The 0.1.x line established the Quadlet syntax, model, document-set, rendering, and capability
