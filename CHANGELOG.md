@@ -5,6 +5,8 @@ Versioning for its documented pre-1.0 public API.
 
 ## [Unreleased]
 
+## [0.3.0](https://github.com/Strukturpiloten/quadlet-lens/compare/v0.2.4...v0.3.0) - 2026-10-21
+
 ### Changed
 
 - Raise the minimum supported Rust version to 1.98.1; consumers using an older compiler must
