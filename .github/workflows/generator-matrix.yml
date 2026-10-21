@@ -31,12 +31,10 @@ concurrency:
 
 env:
   CARGO_TERM_COLOR: always
-  QUADLET_LENS_CONTAINER_ENGINE: docker
-  # Podman can re-exec its native binary. GitHub-hosted Docker needs this
-  # bounded outer-container runtime setting; the harness uses it only for
-  # generator dry runs and the image-version probe, and never starts generated
-  # units or workloads.
-  QUADLET_LENS_DOCKER_PRIVILEGED_GENERATORS: "true"
+  QUADLET_LENS_CONTAINER_ENGINE: ${{ github.workspace }}/scripts/hosted-generator-podman.py
+  # Only nested generator re-exec and the exact image-version probe receive
+  # privileged outer Podman containers, never source builds or workloads.
+  QUADLET_LENS_PODMAN_PRIVILEGED_GENERATORS: "true"
   QUADLET_LENS_GENERATOR_LANE: full
   QUADLET_LENS_GENERATOR_RUN_ID: generator-${{ github.run_id }}-${{ github.run_attempt }}
 
@@ -55,11 +53,16 @@ jobs:
           persist-credentials: false
       - name: Install configured Rust toolchain
         run: rustup show active-toolchain
+      - name: Prepare and record rootful outer Podman
+        timeout-minutes: 2
+        run: python3 scripts/hosted-generator-podman.py prepare target/release-evidence/outer-podman.json
       - name: Run every pinned supported generator
-        timeout-minutes: 35
+        timeout-minutes: 33
         run: cargo ci-generators
       - name: Validate real-application generated semantics
         timeout-minutes: 5
+        env:
+          QUADLET_LENS_ENGINE_RUN_TIMEOUT_SECONDS: "240"
         run: cargo ci-application-generators
       - name: Remove only this run's outer generator containers
         if: ${{ always() }}
@@ -81,9 +84,11 @@ jobs:
             --arg task "${EVIDENCE_TASK}" \
             --arg workflow "${GITHUB_WORKFLOW}" \
             --arg generated_at "$(date --utc +%Y-%m-%dT%H:%M:%SZ)" \
+            --slurpfile outer_runtime target/release-evidence/outer-podman.json \
             '{schema: 1, revision: $revision, run_id: $run_id, task: $task,
               workflow: $workflow, generated_at: $generated_at,
-              result: "success", generator_lane: "full", application_lane: "tracked-current"}' \
+              result: "success", generator_lane: "full", application_lane: "tracked-current",
+              outer_runtime: $outer_runtime[0]}' \
             > target/release-evidence/native-generator-v1.json
           printf 'artifact=%s\n' "${artifact}" >> "${GITHUB_OUTPUT}"
       - name: Upload exact native-generator evidence

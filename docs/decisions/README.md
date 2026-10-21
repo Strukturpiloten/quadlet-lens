@@ -1,5 +1,8 @@
 # Architecture decision records
 
+[ADR 0020](0020-podman-only-generator-outer-engine.md) replaces ADR 0016's hosted Docker
+runner-isolation choice with explicit hosted rootful Podman and local Podman-only execution.
+
 [ADR 0019](0019-rust-baseline.md) raises the Rust minimum to 1.98.1 and keeps compiler consumers
 aligned with the manifest.
 

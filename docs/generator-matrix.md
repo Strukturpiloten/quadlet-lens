@@ -48,9 +48,10 @@ that step; the printed run label supports explicit, reviewed manual recovery. No
 unrelated image, volume, network, or container cleanup is authorized.
 
 Rust cleanup bounds engine `ps` to 20 seconds and each `inspect` or `rm` to 10 seconds, with a
-two-second forced-kill grace. The hosted 45-minute native job limits the generator step to 35
-minutes and the application step to five, reserving time for its two-minute `always()` cleanup
-and evidence handling. A runner killed without a final step still needs exact-label inspection.
+two-second forced-kill grace. The hosted 45-minute native job allocates two minutes for prerequisite
+setup, 33 for full generation, five for application generation, two for `always()` cleanup and
+three for checkout/toolchain/evidence handling. A runner killed without a final step still needs
+exact-label inspection.
 
 It does not install units, invoke `systemctl`, execute generated Podman commands, pull application
 images, or start workloads. Runtime, privilege, cgroup, network, storage, and SELinux behavior
@@ -107,22 +108,38 @@ symlinks, extra files, changed hashes, unknown contracts, and generator versions
 contract target are rejected. The scheduled matrix and release workflow run the built-in
 application contracts; neither dry run is runtime evidence.
 
-Podman is the default outer engine. Docker can run the harness when Podman is unavailable:
+## Outer Podman prerequisite
 
-```console
-QUADLET_LENS_CONTAINER_ENGINE=docker cargo ci-generators
-```
+Local execution uses Podman only. The default is `podman`; an explicit path to a Podman launcher
+is supported, but Docker selection and automatic fallback are rejected. Local checks do not
+require sudo or the hosted setup script.
 
-On GitHub-hosted Docker runners, the Podman system generator re-executes its
-native binary and requires a privileged, explicitly AppArmor-unconfined _outer_ container. The scheduled,
-manual, and Release reusable workflow sets
-`QUADLET_LENS_DOCKER_PRIVILEGED_GENERATORS=true` for generator dry runs and
-the exact image-version probe that invokes Podman in the same image. Both
-operations receive the bounded privilege and AppArmor exception because either
-may need Podman to re-exec. The setting does not apply to source builds,
-source-version probes, or any other non-generator command. The outer generator image may still be pulled and
-executed; the dry-run boundary means no generated unit or Podman command is
-executed, and no generated application image is pulled or workload started.
+Scheduled, manual and Release runs share the rootful hosted launcher in
+[`scripts/hosted-generator-podman.py`](../scripts/hosted-generator-podman.py). It checks the reviewed
+Ubuntu runner, installs missing Podman only from its signed distribution APT archive, verifies
+local rootful engine facts and records the actual engine, package and OCI runtime versions.
+The host package is a documented prerequisite exception, not a pinned inner Podman release;
+see [dependency policy](dependency-policy.md). Missing or contradictory prerequisites fail,
+never skip or switch to Docker. The same launcher handles exact-label cleanup.
+
+The launcher explicitly disables remote mode. Timeouts run under sudo with the Podman client:
+16 seconds for listing, six for inspection/removal, eight for metadata, and two seconds of kill
+grace. Listing/removal also reserve two seconds of launcher overhead inside the existing
+20/10-second cleanup bounds. Container operations are capped at 30 minutes
+in the generator step and four minutes in the application step; overall job/step limits remain
+authoritative. Source builds use the calling host UID/GID with rootful outer Podman so their
+output and caches remain caller-owned. Local rootless Podman retains its user-namespace mapping.
+
+Nested Podman re-exec during generator dry runs and the exact image-version probe receives
+`QUADLET_LENS_PODMAN_PRIVILEGED_GENERATORS=true` in the hosted workflow. Only those operations
+receive privileged outer containers; Podman's privileged mode disables AppArmor/seccomp confinement.
+Source builds and source-version probes remain unprivileged. This is not a new inner rootful/rootless
+runtime matrix. No generated unit or command executes, no generated application image is pulled,
+and no workload starts. A successful source/configuration review is not a passing hosted run.
+
+Hosted setup must pass its fixed root timeout self-control before writing evidence; failure,
+cancellation or residual state refuses it. Ordinary tests mock sudo. See
+[ADR 0020](decisions/0020-podman-only-generator-outer-engine.md) for clock, custody and cleanup.
 
 Source-backed releases also require Git. Go runs inside the pinned builder.
 

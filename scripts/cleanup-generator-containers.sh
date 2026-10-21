@@ -9,8 +9,12 @@ if [[ ! "${run_id}" =~ ^[a-zA-Z0-9_-]{1,80}$ ]]; then
   printf 'Invalid generator run ID; refusing container cleanup.\n' >&2
   exit 1
 fi
+hosted_engine="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)/hosted-generator-podman.py"
 case "${engine##*/}" in
-  podman | docker) ;;
+  podman) ;;
+  hosted-generator-podman.py)
+    [[ ${engine} == "${hosted_engine}" ]] || exit 1
+    ;;
   *)
     printf 'Unsupported generator container engine; refusing cleanup.\n' >&2
     exit 1
