@@ -1802,7 +1802,7 @@ fn verify_systemd_unit_missing_reference_generator_output(version: &str, output:
 #[allow(clippy::too_many_lines)] // Ordered full-matrix fixture contract.
 fn supported_generators_match_the_first_conversion_fixture() -> Result<(), String> {
     let matrix = parse_execution_matrix()?;
-    let engine = env::var("QUADLET_LENS_CONTAINER_ENGINE").unwrap_or_else(|_| "podman".to_owned());
+    let engine = generator_engine()?;
     let owned_containers = RunOwnedContainers::new(&engine)?;
     let lane = env::var("QUADLET_LENS_GENERATOR_LANE").unwrap_or_else(|_| "smoke".to_owned());
     if lane != "smoke" && lane != "full" {
@@ -2084,7 +2084,7 @@ fn application_document_sets_match_pinned_generator_contracts() -> Result<(), St
         }
     }
 
-    let engine = env::var("QUADLET_LENS_CONTAINER_ENGINE").unwrap_or_else(|_| "podman".to_owned());
+    let engine = generator_engine()?;
     let owned_containers = RunOwnedContainers::new(&engine)?;
     let external_request = env::var_os("QUADLET_LENS_APPLICATION_UNIT_DIR").is_some();
     for (id, contract_root, unit_root) in applications {
@@ -2261,7 +2261,7 @@ fn expect_supplied_application_rejection(id: &str, root: &Path, expected: &str) 
 }
 
 fn run_application_generator(matrix: &GeneratorMatrix, version: &str, unit_root: &Path) -> Result<String, String> {
-    let engine = env::var("QUADLET_LENS_CONTAINER_ENGINE").unwrap_or_else(|_| "podman".to_owned());
+    let engine = generator_engine()?;
     let output = if let Some(image) = matrix.image.iter().find(|image| image.version == version) {
         verify_image_version(&engine, image)?;
         run_generator(&engine, image, unit_root)?
@@ -5447,10 +5447,10 @@ fn run_generator_raw(engine: &str, image: &GeneratorImage, fixture: &Path) -> Re
 
 /// Returns the outer-container command for a generator dry run.
 ///
-/// Podman re-executes itself while running its system generator. GitHub-hosted
-/// Docker needs an explicitly opted-in privileged, AppArmor-unconfined outer
-/// container for that operation. The image version probe invokes Podman in the
-/// same image and needs the same bounded outer runtime settings to re-exec.
+/// Podman re-executes itself while running its system generator. The hosted
+/// rootful Podman lane explicitly opts in to privileged outer containers for
+/// that operation and the exact image version probe. Podman's privileged mode
+/// disables AppArmor/seccomp confinement for these nested re-exec operations.
 /// The opt-in is deliberately unavailable to source builds, source version
 /// probes, and every other non-generator command.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -5467,7 +5467,7 @@ impl ContainerOperation {
         matches!(self, Self::ImageGenerator | Self::SourceGenerator)
     }
 
-    const fn needs_hosted_docker_reexec_support(self) -> bool {
+    const fn needs_nested_reexec_support(self) -> bool {
         matches!(
             self,
             Self::ImageVersionProbe | Self::ImageGenerator | Self::SourceGenerator
@@ -5744,7 +5744,7 @@ fn cancelled_generator_job_cleanup_removes_only_exact_run_owned_ids() -> Result<
     let root = env::temp_dir().join(format!("quadlet-generator-cleanup-{}-{nonce}", std::process::id()));
     fs::create_dir(&root).map_err(|error| format!("cannot create mock engine directory: {error}"))?;
     let _temporary = TemporaryMockEngine(root.clone());
-    let engine = root.join("docker");
+    let engine = root.join("podman");
     fs::write(
         &engine,
         r#"#!/usr/bin/env bash
@@ -5805,24 +5805,58 @@ esac
         workflow.contains("QUADLET_LENS_GENERATOR_RUN_ID: generator-${{ github.run_id }}-${{ github.run_attempt }}")
     );
     assert!(workflow.contains(
-        "- name: Run every pinned supported generator\n        timeout-minutes: 35\n        run: cargo ci-generators"
+        "- name: Run every pinned supported generator\n        timeout-minutes: 33\n        run: cargo ci-generators"
     ));
-    assert!(workflow.contains(
-        "- name: Validate real-application generated semantics\n        timeout-minutes: 5\n        run: cargo ci-application-generators"
-    ));
+    assert!(
+        workflow
+            .contains("QUADLET_LENS_ENGINE_RUN_TIMEOUT_SECONDS: \"240\"\n        run: cargo ci-application-generators")
+    );
     assert!(workflow.contains(
         "if: ${{ always() }}\n        timeout-minutes: 2\n        run: bash ./scripts/cleanup-generator-containers.sh"
     ));
     Ok(())
 }
 
+fn checked_generator_engine(engine: &str) -> Result<(), String> {
+    let hosted = Path::new(env!("CARGO_MANIFEST_DIR")).join("scripts/hosted-generator-podman.py");
+    if Path::new(engine).file_name().and_then(|name| name.to_str()) == Some("podman") || Path::new(engine) == hosted {
+        Ok(())
+    } else {
+        Err("generator execution requires Podman; Docker and automatic fallback are not supported".to_owned())
+    }
+}
+
+fn generator_engine() -> Result<String, String> {
+    let engine = env::var("QUADLET_LENS_CONTAINER_ENGINE").unwrap_or_else(|_| "podman".to_owned());
+    checked_generator_engine(&engine)?;
+    Ok(engine)
+}
+
+#[test]
+fn generator_engine_requires_podman_without_docker_fallback() {
+    assert!(checked_generator_engine("podman").is_ok());
+    assert!(checked_generator_engine("/authored/mock/podman").is_ok());
+    let hosted = Path::new(env!("CARGO_MANIFEST_DIR")).join("scripts/hosted-generator-podman.py");
+    assert!(checked_generator_engine(&hosted.to_string_lossy()).is_ok());
+    for rejected in [
+        "docker",
+        "/usr/bin/docker",
+        "sudo podman",
+        "unknown",
+        "/tmp/hosted-generator-podman.py",
+    ] {
+        assert!(checked_generator_engine(rejected).is_err());
+    }
+}
+
 fn container_command(engine: &str, operation: ContainerOperation) -> Result<Command, String> {
+    checked_generator_engine(engine)?;
     let run_id = GENERATOR_RUN_ID
         .with(|slot| slot.borrow().clone())
         .ok_or_else(|| "generator container launch requires a run-owned identity".to_owned())?;
-    let docker_privileged = env::var("QUADLET_LENS_DOCKER_PRIVILEGED_GENERATORS").is_ok_and(|value| value == "true");
+    let podman_privileged = env::var("QUADLET_LENS_PODMAN_PRIVILEGED_GENERATORS").is_ok_and(|value| value == "true");
     let mut command = Command::new(engine);
-    command.args(container_run_prefix(engine, operation, docker_privileged));
+    command.args(container_run_prefix(operation, podman_privileged));
     command.args(["--label", &format!("{GENERATOR_RUN_LABEL}={run_id}")]);
     Ok(command)
 }
@@ -5834,41 +5868,27 @@ fn generator_container_command(engine: &str, operation: ContainerOperation) -> R
     Ok(command)
 }
 
-fn container_run_prefix(engine: &str, operation: ContainerOperation, docker_privileged: bool) -> Vec<&'static str> {
+fn container_run_prefix(operation: ContainerOperation, podman_privileged: bool) -> Vec<&'static str> {
     let mut arguments = vec!["run"];
-    let opted_in_docker =
-        Path::new(engine).file_name().and_then(|name| name.to_str()) == Some("docker") && docker_privileged;
-    if opted_in_docker && operation.needs_hosted_docker_reexec_support() {
-        arguments.extend(["--privileged", "--security-opt", "apparmor=unconfined"]);
+    if podman_privileged && operation.needs_nested_reexec_support() {
+        arguments.push("--privileged");
     }
     arguments
 }
 
 #[test]
-fn docker_outer_runtime_exceptions_are_limited_to_the_explicit_opt_in_boundaries() {
-    for operation in [ContainerOperation::ImageGenerator, ContainerOperation::SourceGenerator] {
-        assert_eq!(
-            container_run_prefix("docker", operation, true),
-            ["run", "--privileged", "--security-opt", "apparmor=unconfined"]
-        );
-        assert_eq!(container_run_prefix("docker", operation, false), ["run"]);
-        assert_eq!(container_run_prefix("podman", operation, true), ["run"]);
+fn podman_outer_runtime_exceptions_are_limited_to_the_explicit_opt_in_boundaries() {
+    for operation in [
+        ContainerOperation::ImageGenerator,
+        ContainerOperation::SourceGenerator,
+        ContainerOperation::ImageVersionProbe,
+    ] {
+        assert_eq!(container_run_prefix(operation, true), ["run", "--privileged"]);
+        assert_eq!(container_run_prefix(operation, false), ["run"]);
     }
-    assert_eq!(
-        container_run_prefix("docker", ContainerOperation::ImageVersionProbe, true),
-        ["run", "--privileged", "--security-opt", "apparmor=unconfined"]
-    );
-    assert_eq!(
-        container_run_prefix("docker", ContainerOperation::ImageVersionProbe, false),
-        ["run"]
-    );
-    assert_eq!(
-        container_run_prefix("podman", ContainerOperation::ImageVersionProbe, true),
-        ["run"]
-    );
     for operation in [ContainerOperation::SourceBuild, ContainerOperation::SourceVersionProbe] {
-        assert_eq!(container_run_prefix("docker", operation, true), ["run"]);
-        assert_eq!(container_run_prefix("podman", operation, true), ["run"]);
+        assert_eq!(container_run_prefix(operation, true), ["run"]);
+        assert_eq!(container_run_prefix(operation, false), ["run"]);
     }
 }
 

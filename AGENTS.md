@@ -78,6 +78,11 @@ application-generator lane; `validation_only` runs the identical gate. This is d
 evidence only: it never installs, enables, starts, or otherwise executes systemd units or
 workloads.
 
+Local generator checks use Podman only, without automatic Docker fallback or required sudo.
+Hosted generator checks use the explicit rootful Podman launcher and the same launcher for
+exact-run cleanup. Read `docs/generator-matrix.md` for the signed Ubuntu APT prerequisite exception,
+recorded outer runtime identity, scoped nested-generator privilege and unchanged inner pins.
+
 ## Workspace scope and standing GitHub authorization
 
 The maintainer grants standing authorization for task-related Git and GitHub work only in these

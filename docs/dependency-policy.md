@@ -69,6 +69,34 @@ checksum-pinned tool updates remain manual.
 
 ## Review checklist
 
+### Hosted outer Podman prerequisite exception
+
+The hosted generator workflow uses Ubuntu 24.04's signed distribution Podman package, installing
+it only when absent. Its package revision is not independently pinned or checksum-downloaded:
+Ubuntu APT's signed metadata/package hashes and runner maintenance own that host prerequisite.
+The launcher fails unless actual engine facts are local/rootful and records the actual package,
+engine and OCI runtime versions plus the actual root timeout self-control result in current-run
+generator evidence. The self-control uses repository-owned Python standard-library code, not
+a downloaded tool or host configuration change. This exception never replaces
+the eight reviewed inner image/source pins or the digest-pinned Go builder.
+
+Renovate assessment for #157: no version/digest declaration changes. Existing GitHub Actions
+ownership covers unchanged action pins; existing custom managers continue to own discovery and
+the builder in `tools/generator-matrix.toml`. The new prerequisite script has no manager-extractable
+version pin: Ubuntu package refresh is explicitly manual/runner-owned, not a duplicate Podman
+discovery manager. No approval, grouping or automerge rule changes. Runtime behavior still needs
+fresh admitted generator evidence after this source change.
+
+The canonical reusable workflow is consumed by scheduled/manual validation and Release, including
+`validation_only`; all inherit the same launcher, setup, full matrix, application lane and cleanup.
+BoxFerry's downstream application-generator interface remains unchanged; it still supplies exact
+reviewed units/contracts to QuadletLens rather than acquiring a BoxFerry dependency. ComposeLens
+provider checks and the website do not consume this launcher. DockerLens and PodmanLens own their
+separate runtime harnesses and coordinated engine-policy changes, not this reusable workflow.
+No other repository's passing gate establishes this change's completion.
+
+### Review a dependency change
+
 Before merging a dependency change:
 
 1. confirm the package and feature set are necessary;

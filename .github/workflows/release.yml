@@ -93,7 +93,13 @@ jobs:
             --arg task "${EXPECTED_TASK}" \
             '.schema == 1 and .revision == $revision and .run_id == $run_id and
              .task == $task and .result == "success" and .generator_lane == "full" and
-             .application_lane == "tracked-current"' \
+             .application_lane == "tracked-current" and .outer_runtime.schema == 1 and
+             .outer_runtime.engine == "podman" and .outer_runtime.rootless == false and
+             .outer_runtime.remote == false and .outer_runtime.timeout_self_control.result == "passed" and
+             .outer_runtime.timeout_self_control.uid == 0 and
+             .outer_runtime.timeout_self_control.descendants == "sigkill-reaped" and
+             (.outer_runtime.version | type) == "string" and
+             (.outer_runtime.package | type) == "string"' \
             "${evidence}" >/dev/null
       - name: Retain release native-generator evidence
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

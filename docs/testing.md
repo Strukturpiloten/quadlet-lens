@@ -26,7 +26,7 @@ fences or inline code may skip the Rust, coverage, API and dependency lanes. Pag
 executable-looking examples conservatively retain complete validation until a focused independent
 example test exists. Unknown, mixed, malformed and first-rollout comparisons also run the complete
 suite. Main pushes, manual runs, and reusable workflow calls always select all deterministic jobs;
-the stable `PR gate` checks each selection fail-closed. Linux is the validated CI platform. macOS
+the stable `Required CI` checks each selection fail-closed. Linux is the validated CI platform. macOS
 client compatibility is intended but is not supported by a macOS CI evidence lane.
 
 Coverage floors are regression alarms, not substitutes for assertions. The project does not require

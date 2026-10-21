@@ -23,7 +23,7 @@ only component allowed to publish the crate, create a tag, or create a GitHub re
 5. Keep the protected `release` environment, required reviewer, default-branch restriction,
    crates.io trusted publisher, tag ruleset, and immutable-release setting unchanged.
 
-6. Require the stable `PR gate` status check in default-branch protection instead of enumerating
+6. Require the stable `Required CI` status check in default-branch protection instead of enumerating
    its implementation jobs individually.
 
 The release-plz configuration disables Cargo publication, Git tags, and GitHub releases. Its only
