@@ -204,6 +204,9 @@ fn pinned_cargo_llvm_cov_version(document: &str, source: &str) -> Result<String,
 #[test]
 fn ci_workflow_uses_trusted_change_plan_and_fail_closed_gate() -> Result<(), String> {
     let workflow = read_repository_file(".github/workflows/ci.yml")?;
+    if workflow.matches("    name: Required CI\n").count() != 1 {
+        return Err("CI workflow must expose exactly one Required CI aggregate".to_owned());
+    }
     for required in [
         "  validation-plan:\n    name: Validation plan",
         "ref: ${{ github.event.pull_request.base.sha }}",
@@ -211,7 +214,7 @@ fn ci_workflow_uses_trusted_change_plan_and_fail_closed_gate() -> Result<(), Str
         "trusted base has no classifier",
         "if: needs.validation-plan.outputs.select_rust == 'true'",
         "if: needs.validation-plan.outputs.select_documentation == 'true'",
-        "  pr-gate:\n    name: PR gate\n    if: always()",
+        "  pr-gate:\n    name: Required CI\n    if: always()",
         "python3 \"${verifier}\" gate",
         "set(needs) != {\"validation-plan\", *jobs}",
         "repository: Strukturpiloten/.github",
