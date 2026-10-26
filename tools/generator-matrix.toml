@@ -14,7 +14,7 @@ latest_5_6 = "5.6.2"
 # renovate: datasource=github-releases packageName=podman-container-tools/podman depName=podman-5.7
 latest_5_7 = "5.7.1"
 # renovate: datasource=github-releases packageName=podman-container-tools/podman depName=podman-5.8
-latest_5_8 = "5.8.7"
+latest_5_8 = "5.8.9"
 # renovate: datasource=github-releases packageName=podman-container-tools/podman depName=podman-6.0
 latest_6_0 = "6.0.2"
 # renovate: datasource=github-releases packageName=podman-container-tools/podman depName=podman-6.1
