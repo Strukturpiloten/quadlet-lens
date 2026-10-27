@@ -57,7 +57,9 @@ The builder accepts typed native keys and open-ended generic systemd directives,
 rules, emits deterministic text, and reparses the result. Dedicated protected extension values
 and validated `X-*` section names add inert vendor syntax without interpreting its contents.
 All parsed X-section payloads are conservatively redacted in Debug, including syntax source. Callers remain responsible for choosing
-an evidenced native value representation.
+an evidenced native value representation. Typed deferred words and literal service providers
+add focused context-specific native quoting without shell evaluation, runtime lookup, or file
+acquisition. Container and service environment scopes stay separate; see [ADR 0022](decisions/0022-typed-deferred-service-environment.md).
 
 ## Module ownership
 

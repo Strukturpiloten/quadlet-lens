@@ -1,0 +1,6 @@
+---deferred.service---
+SourcePath=/fixtures/deferred.container
+Environment="PROVIDER=literal $DOLLAR %%percent"
+Environment="EMPTY_PROVIDER="
+EnvironmentFile="/run/quadlet-lens-first.env"
+EnvironmentFile="/run/quadlet-lens-second.env"

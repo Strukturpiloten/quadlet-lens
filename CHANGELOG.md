@@ -7,10 +7,20 @@ Versioning for its documented pre-1.0 public API.
 
 ### Added
 
+- Add protected typed deferred service references for native container assignments and bind
+  sources, plus literal service inline/file providers without provider acquisition. See
+  [the generation guide](docs/generation.md#defer-explicitly-selected-service-references).
+
 - Add protected inert `X-*` section generation with repeated ordered entries, injection-safe
   values, and redacted parsed/generated Debug output. See [the generation guide](docs/generation.md).
 
 ### Changed
+
+- Interpret `Volume=` as raw field text; authored quotes and backslashes remain path bytes rather
+  than systemd word delimiters. See [native value decoding](docs/typed-model.md).
+
+- Preserve nonexact service-expansion evidence in native environment/mount views; decode
+  literal dollar/percent pairs once while retaining authored source and separate service scopes.
 
 - Raise the minimum supported Rust version to 1.98.1; consumers using an older compiler must
   upgrade before updating QuadletLens. See [the Rust baseline decision](docs/decisions/0019-rust-baseline.md).

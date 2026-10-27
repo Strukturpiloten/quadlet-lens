@@ -328,7 +328,7 @@ pub enum NativeMountDirective {
         /// Primary physical source-value segment span.
         span: SourceSpan,
     },
-    /// The authored value contains a systemd specifier requiring target context.
+    /// The authored value needs systemd specifier or service-environment context.
     Deferred {
         /// Primary physical source-value segment span.
         span: SourceSpan,
@@ -365,21 +365,27 @@ impl NativeMountSpecifications {
         for entry in entries(document, section, NativeKey::Mount) {
             let span = entry.value().primary().span();
             let long_form = matches!(entry.kind(), EntryKind::Container(ContainerKey::Mount));
-            match native_single_value(entry) {
+            // Volume is raw field text; Mount separately uses native word parsing before CSV.
+            let value = if long_form {
+                native_single_value(entry)
+            } else {
+                logical_authored_value(entry).ok_or(())
+            };
+            match value {
                 Ok(value) if value.is_empty() => directives.push(NativeMountDirective::Reset { span }),
-                Ok(value) if literal_specifier_value(&value).is_none() => {
+                Ok(value) if literal_exec_value(&value, !long_form).is_none() => {
                     diagnostics.push(diagnostic(
                         DEFERRED_MOUNT,
                         span,
-                        "native mount value contains a systemd specifier",
-                        "expand the specifier in the target manager before resolving the mount",
+                        "native mount value needs systemd specifier or service-environment expansion",
+                        "resolve the deferred manager expression before treating this mount as literal",
                     ));
                     directives.push(NativeMountDirective::Deferred { span });
                 }
                 Ok(value) => match if long_form {
-                    parse_long_mount(&literal_specifier_value(&value).unwrap_or_default(), span)
+                    parse_long_mount(&literal_exec_value(&value, !long_form).unwrap_or_default(), span)
                 } else {
-                    parse_short_mount(&literal_specifier_value(&value).unwrap_or_default(), span)
+                    parse_short_mount(&literal_exec_value(&value, !long_form).unwrap_or_default(), span)
                 } {
                     Ok(value) => directives.push(NativeMountDirective::Mount(value)),
                     Err(message) => {
@@ -396,8 +402,8 @@ impl NativeMountSpecifications {
                     diagnostics.push(diagnostic(
                         MALFORMED_MOUNT,
                         span,
-                        "native mount value has incomplete quoting, escaping, or continuation syntax",
-                        "use one complete systemd word",
+                        "native mount value has incomplete word or continuation syntax",
+                        "use raw Volume field text or one complete native Mount word",
                     ));
                     directives.push(NativeMountDirective::Unmodeled { span });
                 }
@@ -670,6 +676,37 @@ fn literal_specifier_value(value: &str) -> Option<String> {
         match characters.next() {
             Some('%') => decoded.push('%'),
             _ => return None,
+        }
+    }
+    Some(decoded)
+}
+
+/// Decodes only context-independent literal escapes; never evaluates service references.
+/// A source-leading single dollar in short Volume syntax selects whole-word environment lookup.
+pub(super) fn literal_exec_value(value: &str, short_volume: bool) -> Option<String> {
+    if short_volume && value.starts_with('$') && !value.starts_with("$$") {
+        return None;
+    }
+    let mut decoded = String::with_capacity(value.len());
+    let mut characters = value.chars().peekable();
+    while let Some(character) = characters.next() {
+        match character {
+            '%' => {
+                if characters.next() == Some('%') {
+                    decoded.push('%');
+                } else {
+                    return None;
+                }
+            }
+            '$' => match characters.peek() {
+                Some('$') => {
+                    characters.next();
+                    decoded.push('$');
+                }
+                Some('{') => return None,
+                _ => decoded.push('$'),
+            },
+            _ => decoded.push(character),
         }
     }
     Some(decoded)

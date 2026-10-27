@@ -127,9 +127,18 @@ For exact item signatures and supported key enums, use the
 [Rust API](https://boxferry.dev/docs/api/quadlet-lens/). For target support, evaluate the
 [capability catalogue](capability-model.md) separately.
 
-Decoded views also protect copied source strings: complete port specifications, environment-secret references, and
-unit-reference names inherit entry sensitivity. Mount option strings and authored environment
-names/lookup literals are conservatively redacted in Debug even for ordinary source because their
-public enum shapes carry no sensitivity metadata. Explicit accessors and enum fields retain the
-original contents. Native command arguments, mount paths, and environment-file paths are always
-redacted in Debug.
+Decoded views inherit entry sensitivity for complete ports, secret references, and unit names.
+Mount option strings and authored environment names/lookup literals always redact in Debug because
+public enum shapes carry no sensitivity metadata; explicit access retains original bytes.
+Command arguments, mount paths, and environment-file paths are always redacted.
+
+Physical `Environment`, `EnvironmentFile`, `Volume`, or `Mount` candidates conservatively protect
+source values without service headers or X metadata, including malformed/consumed syntax.
+Environment/mount views decode dollar/percent pairs once and retain unescaped braced references
+as nonexact `Deferred` evidence. Short Volume words starting with a single unescaped dollar also
+remain deferred; embedded unbraced dollars in assignments/long Mount stay literal.
+
+Volume preserves raw logical spaces/quotes/backslashes without word unquoting/C-decoding; Mount
+retains its distinct word-then-CSV boundary. Re-export decoded dollar literals through the dedicated
+typed renderer. Service/caller-decoded provider values and lexical command views keep their scopes.
+See [ADR 0022](decisions/0022-typed-deferred-service-environment.md) for precise native limitations.

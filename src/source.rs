@@ -95,11 +95,11 @@ pub struct SourceText {
 
 impl fmt::Debug for SourceText {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // Protect even freshly parsed or invalid extension source, independently of the
+        // Protect freshly parsed or invalid extension/provider source, independently of the
         // typed model. Explicit source and rendering APIs retain the original bytes.
-        let protected = self.has_extension_header_candidate();
+        let protected = self.has_protected_value_candidate();
         let text: &dyn fmt::Debug = if protected {
-            &"<redacted extension source>"
+            &"<redacted protected source>"
         } else {
             &self.text
         };
@@ -113,8 +113,13 @@ impl fmt::Debug for SourceText {
 }
 
 impl SourceText {
-    pub(crate) fn has_extension_header_candidate(&self) -> bool {
-        self.text.lines().any(|line| line.trim_start().starts_with("[X-"))
+    pub(crate) fn has_protected_value_candidate(&self) -> bool {
+        self.text.lines().any(|line| {
+            line.trim_start().starts_with("[X-")
+                || line.split_once('=').is_some_and(|(key, _)| {
+                    matches!(key.trim(), "Environment" | "EnvironmentFile" | "Volume" | "Mount")
+                })
+        })
     }
 
     pub(crate) fn new(id: SourceId, text: String) -> Self {

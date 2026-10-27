@@ -1,0 +1,13 @@
+[Container]
+Image=example.invalid/deferred:1
+Environment="COMBINED=prefix $$LITERAL %%literal ${PROVIDER} suffix"
+Environment="EMPTY="
+Environment="NC_davstorage.request_timeout=30"
+Environment="literal$$KEY%%key=literal $$value %%value"
+Volume=${ROOT}/path with $$LITERAL %%literal "quote" \backslash.image:/target with $$LITERAL %%literal:ro,Z
+
+[Service]
+Environment="PROVIDER=literal $DOLLAR %%percent"
+Environment="EMPTY_PROVIDER="
+EnvironmentFile="/run/quadlet-lens-first.env"
+EnvironmentFile="/run/quadlet-lens-second.env"

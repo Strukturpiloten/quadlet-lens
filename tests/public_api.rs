@@ -2288,3 +2288,46 @@ fn protected_extension_generation_is_available_to_external_consumers() -> Result
     assert!(generated.text().contains("[X-Consumer]\nPayload=opaque\n"));
     Ok(())
 }
+
+#[test]
+fn protected_deferred_native_construction_is_available_to_consumers() -> Result<(), Box<dyn std::error::Error>> {
+    use quadlet_lens::render::{
+        DeferredWord, DeferredWordPart, ServiceEnvironmentAssignment, ServiceEnvironmentFile, ServiceEnvironmentName,
+    };
+    let mut builder = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    builder.push_container(ContainerKey::Image, EntryValue::new("example.invalid/app:1")?)?;
+    builder.push_container_environment_deferred(
+        ServiceEnvironmentName::new("TARGET")?,
+        DeferredWord::new([DeferredWordPart::Reference(ServiceEnvironmentName::new("PROVIDER")?)])?,
+    )?;
+    builder.push_service_environment_literal(ServiceEnvironmentAssignment::new(
+        ServiceEnvironmentName::new("PROVIDER")?,
+        "literal $value %value",
+    )?)?;
+    builder.push_service_environment_file(ServiceEnvironmentFile::new("/run/external-provider.env")?)?;
+    assert!(
+        builder
+            .build(SourceId::new(163_001))?
+            .text()
+            .contains("TARGET=${PROVIDER}")
+    );
+    Ok(())
+}
+
+#[test]
+fn container_literal_keys_have_a_distinct_native_construction_type() -> Result<(), Box<dyn std::error::Error>> {
+    use quadlet_lens::render::{ContainerEnvironmentName, DeferredWord, DeferredWordPart};
+    let mut builder = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    builder.push_container(ContainerKey::Image, EntryValue::new("example.invalid/app:1")?)?;
+    builder.push_container_environment_deferred(
+        ContainerEnvironmentName::new("NC_davstorage.request_timeout")?,
+        DeferredWord::new([DeferredWordPart::Literal("30".to_owned())])?,
+    )?;
+    assert!(
+        builder
+            .build(SourceId::new(163_002))?
+            .text()
+            .contains("NC_davstorage.request_timeout=30")
+    );
+    Ok(())
+}

@@ -5929,6 +5929,24 @@ claim = "The exact Podman 6.1.0 generator rejects no ImageVolume key, selects th
 test = "generators::supported_generators_match_the_first_conversion_fixture"
 gap = "The fixture invokes only the dry-run generator. It does not pull an image, start a container, inspect image volumes, or establish runtime storage behavior."
 
+[[evidence]]
+id = "podman-5-4-0-deferred-service-environment-generator"
+verification = "generator"
+url = "https://github.com/Strukturpiloten/quadlet-lens/tree/main/fixtures/generators/deferred-service-environment"
+target = "5.4.0"
+claim = "The exact Podman 5.4.0 dry-run generator preserves the deferred-service-environment fixture's intentional braced references and literal dollar/percent spellings within single environment and raw Volume arguments, including dotted/literal-dollar-percent container keys and a reference-leading source with spaces, quotes, and backslashes; it retains empty assignments and literal Service Environment/EnvironmentFile declarations in provider-file order."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Observed only at this exact endpoint. Other active versions are configured to run the fixture but are not established by this record. No service reference expansion, provider-file acquisition or availability, inferred dependency behavior for rejected source shapes, systemd activation, or workload execution is claimed."
+
+[[evidence]]
+id = "podman-6-1-2-deferred-service-environment-generator"
+verification = "generator"
+url = "https://github.com/Strukturpiloten/quadlet-lens/tree/main/fixtures/generators/deferred-service-environment"
+target = "6.1.2"
+claim = "The exact Podman 6.1.2 dry-run generator preserves the deferred-service-environment fixture's intentional braced references and literal dollar/percent spellings within single environment and raw Volume arguments, including dotted/literal-dollar-percent container keys and a reference-leading source with spaces, quotes, and backslashes; it retains empty assignments and literal Service Environment/EnvironmentFile declarations in provider-file order."
+test = "generators::supported_generators_match_the_first_conversion_fixture"
+gap = "Observed only at this exact endpoint. Other active versions are configured to run the fixture but are not established by this record. No service reference expansion, provider-file acquisition or availability, inferred dependency behavior for rejected source shapes, systemd activation, or workload execution is claimed."
+
 [[capability]]
 id = "systemd.section.pass-through"
 description = "Ordinary systemd sections pass through the Quadlet generator."
@@ -5937,7 +5955,7 @@ sections = ["Unit", "Service", "Install"]
 repeatable = true
 value_forms = ["systemd-unit-syntax"]
 native = { minimum = "5.4.0", maximum = "6.1.2" }
-evidence = ["podman-5-4-general", "podman-5-4-through-current-first-conversion-generators"]
+evidence = ["podman-5-4-general", "podman-5-4-through-current-first-conversion-generators", "podman-5-4-0-deferred-service-environment-generator", "podman-6-1-2-deferred-service-environment-generator"]
 
 [[capability]]
 id = "quadlet.image.image"
@@ -7618,7 +7636,7 @@ sections = ["Container"]
 repeatable = true
 value_forms = ["systemd-environment-assignment-list", "literal-ascii-name-single-line-unicode-value", "non-empty-grouped-literal-ascii-name-single-line-unicode-values", "empty-reset-directive"]
 native = { minimum = "5.4.0", maximum = "6.1.2" }
-evidence = ["podman-5-4-container", "podman-5-4-through-current-first-conversion-generators", "podman-5-4-container-environment-reset-source", "podman-6-0-2-container-environment-reset-source", "podman-5-4-through-current-container-environment-reset-generators"]
+evidence = ["podman-5-4-container", "podman-5-4-through-current-first-conversion-generators", "podman-5-4-container-environment-reset-source", "podman-6-0-2-container-environment-reset-source", "podman-5-4-through-current-container-environment-reset-generators", "podman-5-4-0-deferred-service-environment-generator", "podman-6-1-2-deferred-service-environment-generator"]
 
 [[capability]]
 id = "quadlet.container.environment-file"
@@ -7668,7 +7686,7 @@ sections = ["Container"]
 repeatable = true
 value_forms = ["podman-volume", "unit-relative-path", "volume-unit-reference"]
 native = { minimum = "5.4.0", maximum = "6.1.2" }
-evidence = ["podman-5-4-container-paths", "podman-5-4-through-current-first-conversion-generators"]
+evidence = ["podman-5-4-container-paths", "podman-5-4-through-current-first-conversion-generators", "podman-5-4-0-deferred-service-environment-generator", "podman-6-1-2-deferred-service-environment-generator"]
 
 [[capability]]
 id = "quadlet.container.network"

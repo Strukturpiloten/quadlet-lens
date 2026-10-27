@@ -5,6 +5,12 @@
 //! values: callers are responsible for key-specific semantic validity, while future focused value
 //! encoders can provide stronger construction APIs without changing the document builder.
 
+mod deferred;
+pub use deferred::{
+    ContainerEnvironmentName, DeferredValueError, DeferredWord, DeferredWordPart, ServiceEnvironmentAssignment,
+    ServiceEnvironmentFile, ServiceEnvironmentName,
+};
+
 use std::{collections::BTreeSet, error::Error, fmt};
 
 use crate::{
@@ -787,11 +793,38 @@ impl SystemdSection {
 }
 
 #[derive(Clone, Eq, PartialEq)]
+enum GeneratedValue {
+    Native(EntryValue),
+    Protected(String),
+}
+impl GeneratedValue {
+    fn as_str(&self) -> &str {
+        match self {
+            Self::Native(value) => value.as_str(),
+            Self::Protected(value) => value,
+        }
+    }
+}
+impl fmt::Debug for GeneratedValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Native(value) => value.fmt(f),
+            Self::Protected(_) => f.write_str("<redacted protected value>"),
+        }
+    }
+}
+impl From<EntryValue> for GeneratedValue {
+    fn from(value: EntryValue) -> Self {
+        Self::Native(value)
+    }
+}
+
+#[derive(Clone, Eq, PartialEq)]
 struct GeneratedEntry {
     section: SectionKind,
     kind: EntryKind,
     key: String,
-    value: EntryValue,
+    value: GeneratedValue,
 }
 
 impl fmt::Debug for GeneratedEntry {
@@ -801,7 +834,9 @@ impl fmt::Debug for GeneratedEntry {
             .field("section", &self.section)
             .field("kind", &self.kind)
             .field("key", &self.key);
-        if self.kind.has_sensitive_value() {
+        if self.kind.has_sensitive_value()
+            || (self.section == SectionKind::Service && matches!(self.key.as_str(), "Environment" | "EnvironmentFile"))
+        {
             debug.field("value", &"<redacted sensitive value>")
         } else {
             debug.field("value", &self.value)
@@ -1140,7 +1175,7 @@ impl QuadletDocumentBuilder {
             section: section.kind(),
             kind: EntryKind::GenericSystemd,
             key,
-            value,
+            value: value.into(),
         });
         Ok(())
     }
@@ -1164,18 +1199,28 @@ impl QuadletDocumentBuilder {
     ///
     /// Returns [`RenderError::InvalidExtensionContext`] when native or systemd values
     /// end in continuation backslashes while extension sections are present.
+    /// Returns [`RenderError::DeferredValue`] when an authored continuation could consume
+    /// a protected deferred/provider boundary.
     /// Returns [`RenderError::InvalidDocument`] when native shape validation fails, or
     /// [`RenderError::TypedModel`] for an internal source-span consistency failure.
     pub fn build(&self, source_id: SourceId) -> Result<GeneratedQuadletDocument, RenderError> {
         // Existing exact native values permit authored continuation syntax. Do not
-        // let that syntax consume an extension header and activate its payload.
-        if !self.extension_entries.is_empty()
+        // let that syntax consume a protected boundary and activate or reclassify its payload.
+        if (!self.extension_entries.is_empty()
+            || self
+                .entries
+                .iter()
+                .any(|entry| matches!(entry.value, GeneratedValue::Protected(_))))
             && self
                 .entries
                 .iter()
                 .any(|entry| entry.value.as_str().trim_end().ends_with('\\'))
         {
-            return Err(RenderError::InvalidExtensionContext);
+            return Err(if self.extension_entries.is_empty() {
+                DeferredValueError::UnsafeContinuation.into()
+            } else {
+                RenderError::InvalidExtensionContext
+            });
         }
         let text = self.render_text();
         let parsed = QuadletDocument::parse(self.unit_type, source_id, text).map_err(RenderError::TypedModel)?;
@@ -1218,7 +1263,7 @@ impl QuadletDocumentBuilder {
             section,
             kind,
             key: key.to_owned(),
-            value,
+            value: value.into(),
         });
         Ok(())
     }
@@ -1306,6 +1351,8 @@ impl GeneratedQuadletDocument {
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[non_exhaustive]
 pub enum RenderError {
+    /// A focused protected native value failed validation, without retaining input.
+    DeferredValue(DeferredValueError),
     /// An extension section name did not satisfy the safe ASCII `X-*` grammar.
     InvalidExtensionSection,
     /// An extension key was empty or not ASCII alphanumeric.
@@ -1354,6 +1401,7 @@ impl RenderError {
 impl fmt::Display for RenderError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::DeferredValue(error) => error.fmt(formatter),
             Self::InvalidExtensionContext => formatter.write_str(
                 "extension sections require native and systemd values without final continuation backslashes",
             ),
@@ -1383,6 +1431,12 @@ impl fmt::Display for RenderError {
             }
             Self::TypedModel(error) => write!(formatter, "generated Quadlet model is inconsistent: {error}"),
         }
+    }
+}
+
+impl From<DeferredValueError> for RenderError {
+    fn from(error: DeferredValueError) -> Self {
+        Self::DeferredValue(error)
     }
 }
 

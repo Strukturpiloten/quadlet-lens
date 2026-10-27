@@ -1005,7 +1005,7 @@ pub enum AuthoredContainerEnvironmentDirective {
         /// Span of the physical `Environment=` value.
         span: SourceSpan,
     },
-    /// A syntactically recognizable name whose value contains an unexpanded systemd specifier.
+    /// A recognizable name whose value needs systemd specifier or service-environment expansion.
     Deferred {
         /// ASCII environment name.
         name: String,
@@ -1163,23 +1163,25 @@ impl AuthoredContainerEnvironment {
                         "use an ASCII name matching [A-Za-z_][A-Za-z0-9_]*",
                     ));
                     directives.push(AuthoredContainerEnvironmentDirective::Unmodeled { span });
-                } else if value.is_some_and(|value| value.contains('%')) {
-                    diagnostics.push(environment_diagnostic(
-                        DEFERRED_CONTAINER_ENVIRONMENT,
-                        span,
-                        "container Environment assignment contains an unexpanded systemd specifier",
-                        "resolve the specifier in the target manager context before relying on a literal value",
-                    ));
-                    directives.push(AuthoredContainerEnvironmentDirective::Deferred {
-                        name: name.to_owned(),
-                        span,
-                    });
                 } else if let Some(value) = value {
-                    directives.push(AuthoredContainerEnvironmentDirective::Assignment {
-                        name: name.to_owned(),
-                        value: value.to_owned(),
-                        span,
-                    });
+                    if let Some(value) = native_values::literal_exec_value(value, false) {
+                        directives.push(AuthoredContainerEnvironmentDirective::Assignment {
+                            name: name.to_owned(),
+                            value,
+                            span,
+                        });
+                    } else {
+                        diagnostics.push(environment_diagnostic(
+                            DEFERRED_CONTAINER_ENVIRONMENT,
+                            span,
+                            "container Environment assignment needs systemd specifier or service-environment expansion",
+                            "resolve the deferred manager expression before treating this assignment as literal",
+                        ));
+                        directives.push(AuthoredContainerEnvironmentDirective::Deferred {
+                            name: name.to_owned(),
+                            span,
+                        });
+                    }
                 } else {
                     directives.push(AuthoredContainerEnvironmentDirective::BareName {
                         name: name.to_owned(),
@@ -1305,8 +1307,8 @@ impl TypedEntry {
     ///
     /// This is currently true for recognized `[Image]`/`[Artifact]` `Creds=` and
     /// `DecryptionKey=` entries plus `[Container]` and `[Build]` `Environment=` entries.
-    /// Values throughout source containing a physical `X-*` header candidate are
-    /// conservatively protected, including malformed or continuation-consumed headers.
+    /// Source with physical environment, environment-file, mount, volume, or `X-*` header
+    /// candidates is conservatively protected, including malformed or consumed syntax.
     /// Rendering and [`Self::value`] retain the exact authored text, so callers must avoid
     /// exposing that text.
     #[must_use]
@@ -1425,7 +1427,7 @@ impl QuadletDocument {
     ) -> Result<(Self, Vec<Diagnostic>), TypedModelError> {
         // Display-only protection also covers malformed or continuation-consumed
         // extension headers, without adding a second semantic parser.
-        let protect_extension_source = syntax.source().has_extension_header_candidate();
+        let protect_extension_source = syntax.source().has_protected_value_candidate();
         let mut sections: Vec<TypedSection> = Vec::new();
         let mut current_section = None;
 
