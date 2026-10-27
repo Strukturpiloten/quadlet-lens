@@ -1077,6 +1077,7 @@ struct GeneratorFixtures {
     container_environment_reset: (PathBuf, Vec<String>),
     native_value_decoding: (PathBuf, Vec<String>),
     x_sections: (PathBuf, Vec<String>),
+    deferred_service: (PathBuf, Vec<String>),
     container_image_volume: (PathBuf, Vec<String>),
     memory: (PathBuf, Vec<String>),
     build_retry: (PathBuf, Vec<String>),
@@ -3164,6 +3165,7 @@ fn load_generator_fixtures() -> Result<GeneratorFixtures, String> {
         container_environment_reset: load_named_container_fixture("container-environment-reset-supported-range")?,
         native_value_decoding: load_named_container_fixture("native-value-decoding-supported-range")?,
         x_sections: load_named_container_fixture("x-sections-inert")?,
+        deferred_service: load_named_container_fixture("deferred-service-environment")?,
         container_image_volume: load_named_container_fixture("container-image-volume-supported-range")?,
         memory: load_memory_fixture()?,
         build_retry: load_build_retry_fixture()?,
@@ -3616,6 +3618,11 @@ fn verify_image_isolated_fixtures(
         &image.version,
         &fixtures.container_environment_reset.1,
         &run_generator_raw(engine, image, &fixtures.container_environment_reset.0)?,
+    )?;
+    verify_deferred_service_generator_output(
+        &image.version,
+        &fixtures.deferred_service.1,
+        &run_generator_raw(engine, image, &fixtures.deferred_service.0)?,
     )?;
     verify_x_sections_generator_output(
         &image.version,
@@ -4638,6 +4645,17 @@ fn verify_source_isolated_fixtures(
             source,
             generator,
             &fixtures.container_environment_reset.0,
+        )?,
+    )?;
+    verify_deferred_service_generator_output(
+        &source.version,
+        &fixtures.deferred_service.1,
+        &run_source_generator_raw(
+            engine,
+            &matrix.builder_reference,
+            source,
+            generator,
+            &fixtures.deferred_service.0,
         )?,
     )?;
     verify_x_sections_generator_output(
@@ -12867,5 +12885,153 @@ fn x_section_generator_expectations_reject_active_payloads_and_lost_repetition()
         ))
         .is_err()
     );
+    Ok(())
+}
+
+fn verify_deferred_service_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    ensure_success(version, "deferred service environment generator", output)?;
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| error.to_string())?;
+    if expected.iter().any(|fragment| !generated.contains(fragment)) {
+        return Err(format!("Podman {version} omitted deferred provider declarations"));
+    }
+    let unit = generated_unit(version, &generated, "deferred.service", output)?;
+    verify_deferred_service_command(unit)
+        .map_err(|error| format!("{error}\nAuthored deferred fixture output (no acquired values):\n{unit}"))?;
+    let first = unit
+        .find("EnvironmentFile=\"/run/quadlet-lens-first.env\"")
+        .ok_or("missing first provider file")?;
+    let second = unit
+        .find("EnvironmentFile=\"/run/quadlet-lens-second.env\"")
+        .ok_or("missing second provider file")?;
+    if first >= second {
+        return Err("provider file order changed".to_owned());
+    }
+    eprintln!("Podman {version}: deferred native words preserve argument boundaries and literal provider declarations");
+    Ok(())
+}
+
+fn verify_deferred_service_command(unit: &str) -> Result<(), String> {
+    let command = unit
+        .lines()
+        .find_map(|line| line.strip_prefix("ExecStart="))
+        .ok_or("missing generated command")?;
+    // Preserve dollars/specifiers verbatim. Ordinary generated %t/%N fields need manager
+    // context, so the semantic native command view is intentionally unsuitable as a lexer.
+    let arguments = lexical_deferred_command_words(command)?;
+    for (flag, value) in [
+        ("--env", "COMBINED=prefix $$LITERAL %%literal ${PROVIDER} suffix"),
+        ("--env", "EMPTY="),
+        ("--env", "NC_davstorage.request_timeout=30"),
+        ("--env", "literal$$KEY%%key=literal $$value %%value"),
+        (
+            "-v",
+            "${ROOT}/path with $$LITERAL %%literal \"quote\" \\backslash.image:/target with $$LITERAL %%literal:ro,Z",
+        ),
+    ] {
+        if arguments
+            .windows(2)
+            .filter(|pair| pair[0] == flag && pair[1] == value)
+            .count()
+            != 1
+        {
+            return Err("deferred value or generated argument boundary changed".to_owned());
+        }
+    }
+    Ok(())
+}
+
+/// Independent bounded test-only lexical word decoder; no manager/environment evaluation.
+fn lexical_deferred_command_words(command: &str) -> Result<Vec<String>, String> {
+    let mut words = Vec::new();
+    let mut word = String::new();
+    let mut quote = None;
+    let mut started = false;
+    let mut characters = command.chars();
+    while let Some(character) = characters.next() {
+        if character == '\\' {
+            started = true;
+            let escaped = characters.next().ok_or("dangling generated escape")?;
+            let decoded = match escaped {
+                '\\' | '\"' | '\'' => escaped,
+                's' => ' ',
+                'n' => '\n',
+                'r' => '\r',
+                't' => '\t',
+                'a' => '\u{7}',
+                'b' => '\u{8}',
+                'f' => '\u{c}',
+                'v' => '\u{b}',
+                'x' | 'u' | 'U' => {
+                    let width = match escaped {
+                        'x' => 2,
+                        'u' => 4,
+                        _ => 8,
+                    };
+                    let digits: String = characters.by_ref().take(width).collect();
+                    if digits.len() != width {
+                        return Err("incomplete generated hex escape".to_owned());
+                    }
+                    let code = u32::from_str_radix(&digits, 16).map_err(|_| "invalid generated hex escape")?;
+                    char::from_u32(code).ok_or("invalid generated Unicode scalar")?
+                }
+                _ => return Err("unsupported generated escape".to_owned()),
+            };
+            word.push(decoded);
+        } else if let Some(delimiter) = quote {
+            if character == delimiter {
+                quote = None;
+            } else {
+                word.push(character);
+            }
+        } else if matches!(character, '\'' | '\"') {
+            quote = Some(character);
+            started = true;
+        } else if character.is_ascii_whitespace() {
+            if started {
+                words.push(std::mem::take(&mut word));
+                started = false;
+            }
+        } else {
+            word.push(character);
+            started = true;
+        }
+    }
+    if quote.is_some() {
+        return Err("unclosed generated quote".to_owned());
+    }
+    if started {
+        words.push(word);
+    }
+    Ok(words)
+}
+
+#[test]
+fn deferred_native_expectations_reject_split_or_literalized_references() -> Result<(), String> {
+    let command = r#"ExecStart=/usr/bin/podman run --cidfile=%t/%N.cid --name systemd-%N --env "COMBINED=prefix $$LITERAL %%literal ${PROVIDER} suffix" --env EMPTY= --env NC_davstorage.request_timeout=30 --env "literal$$KEY%%key=literal $$value %%value" -v "${ROOT}/path with $$LITERAL %%literal \"quote\" \\backslash.image:/target with $$LITERAL %%literal:ro,Z" example.invalid/deferred:1"#;
+    verify_deferred_service_command(command)?;
+    assert!(verify_deferred_service_command(&command.replace("${PROVIDER}", "$${PROVIDER}")).is_err());
+    assert!(
+        verify_deferred_service_command(&command.replace("COMBINED=prefix $$LITERAL", "COMBINED=prefix $LITERAL"))
+            .is_err()
+    );
+    assert!(
+        verify_deferred_service_command(
+            &command
+                .replace("\"COMBINED=prefix", "COMBINED=prefix")
+                .replace("suffix\"", "suffix")
+        )
+        .is_err()
+    );
+    Ok(())
+}
+
+#[test]
+fn deferred_fixture_lexer_preserves_manager_syntax_without_evaluation() -> Result<(), String> {
+    assert_eq!(
+        lexical_deferred_command_words(r#"run "" "space\x20value" "${ROOT}/$$literal/%%percent" %t/%N.cid"#)?,
+        ["run", "", "space value", "${ROOT}/$$literal/%%percent", "%t/%N.cid"]
+    );
+    assert!(lexical_deferred_command_words("unterminated\\").is_err());
+    assert!(lexical_deferred_command_words("\"unterminated").is_err());
     Ok(())
 }

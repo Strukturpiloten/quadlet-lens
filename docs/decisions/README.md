@@ -56,3 +56,6 @@ Use the next four-digit number for new decisions. Include context, decision, con
 
 [ADR 0021](0021-protected-inert-extension-sections.md) extends validated generation with
 protected inert X-sections and conservative parsed-source Debug redaction.
+
+[ADR 0022](0022-typed-deferred-service-environment.md) defines protected typed deferred words,
+literal service providers, and native quoting without evaluation or provider acquisition.

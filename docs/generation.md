@@ -1,120 +1,120 @@
 # Programmatic generation
 
-`QuadletDocumentBuilder` constructs native Quadlet documents without requiring callers to assemble
-section names or complete files as strings.
+`QuadletDocumentBuilder` constructs native Quadlet documents, validates their structure, and
+reparses the generated text before returning the complete syntax/model result.
 
 ## Build a document
 
 ```rust
 use quadlet_lens::{
     model::{ContainerKey, QuadletUnitType},
-    render::{EntryValue, QuadletDocumentBuilder},
+    render::{EntryValue, EnvironmentAssignment, QuadletDocumentBuilder},
     source::SourceId,
 };
 
 let mut builder = QuadletDocumentBuilder::new(QuadletUnitType::Container);
-builder.push_container(
-    ContainerKey::Image,
-    EntryValue::new("example.invalid/web:1")?,
-)?;
-builder.push_container(
-    ContainerKey::Environment,
-    EntryValue::new("APP_ENV=production")?,
-)?;
-
+builder.push_container(ContainerKey::Image, EntryValue::new("example.invalid/web:1")?)?;
+builder.push_container_environment(EnvironmentAssignment::new("APP_ENV", "production")?)?;
 let generated = builder.build(SourceId::new(1))?;
 assert!(generated.text().contains("Image=example.invalid/web:1"));
 # Ok::<(), Box<dyn std::error::Error>>(())
 ```
 
-Successful output includes the generated text and its complete parsed result.
-
 ## Builder contract
 
-The builder:
+The builder enforces native section ownership and singleton cardinality, preserves repeatable-entry
+order, emits deterministic sections, and accepts generic systemd directives. Physical-line values
+reject NUL and line endings. Protected generated boundaries reject preceding continuations.
 
-- places typed keys only in their owning native section;
-- keeps repeatable entries in insertion order;
-- rejects duplicate singleton keys;
-- emits sections in deterministic order;
-- accepts open-ended generic systemd directives;
-- rejects NUL bytes and physical line endings in one-line values; and
-- reparses generated text and rejects syntax or native-model errors.
-
-It does not quote, split, expand, normalize, or validate every Podman and systemd value grammar.
-`EntryValue` represents exact physical-line-safe text chosen by the caller.
+`EntryValue` is exact caller-selected spelling; it does not validate every native value grammar.
+Generation never expands expressions, acquires runtime values, or applies output.
 
 ## Focused values
 
-Dedicated helpers provide stronger construction only where the project has an evidenced boundary.
-Examples include process limits, shared-memory sizes, container memory, literal environment
-assignments, assignment groups, and explicit environment resets.
-
-These helpers are additive. Raw parsed values and raw `EntryValue` construction remain available,
-and a helper does not imply runtime enforcement or cross-format equivalence.
+Dedicated helpers strengthen construction for evidenced representations such as resource limits,
+environment assignments, groups, and resets. Raw source and `EntryValue` remain available; helper
+acceptance does not imply runtime enforcement, target compatibility, or cross-format equivalence.
 
 ## Environment plans
 
-`ContainerEnvironmentPlan` preserves assignment, group, and reset directive order. It can answer
-explicit per-name literal lookup where later assignments win and resets clear earlier values.
+`ContainerEnvironmentPlan` preserves assignments, groups, and resets in order. Explicit per-name
+lookup applies later assignments and resets without loading files, secrets, or a host environment.
+Debug redacts values. The plan renders its original directives rather than a host-derived map.
 
-The plan renders its original directives. It does not expose a host-derived environment map, load
-files or secrets, expand specifiers, or evaluate runtime state. Debug output redacts values.
-
-For newly generated literal assignments, `ContainerEnvironmentPlan::sorted_by_name()` returns an
-opt-in stable key order. It preserves reset boundaries and duplicate same-name order while expanding
-groups into individual directives. Default generation and every parsed rendering keep authored
-insertion order. See [environment and secret values](environment-and-secrets.md).
+`sorted_by_name()` optionally orders newly generated literals while preserving reset boundaries
+and duplicate-name order. Default generation and parsed rendering preserve insertion order. See
+[environment and secret values](environment-and-secrets.md).
 
 ## Multiple files
 
-Build each file independently with a distinct `SourceId`. Pair successful documents with validated
-basenames and create a document set to verify exact references and dependency edges.
-
-Generation does not select a Podman target. When output must support a version range, evaluate each
-used representation through the [capability model](capability-model.md). BoxFerry owns
-cross-format selection and loss policy.
-
-The complete key and method surface belongs to the
-[Rust API](https://boxferry.dev/docs/api/quadlet-lens/); exact compatibility claims belong to the
-[catalogue](../catalogue/v1/podman-supported-range.toml).
+Build files with distinct `SourceId` values, then pair their documents with validated basenames
+and use a document set to check exact references. Evaluate the [capability catalogue](capability-model.md)
+separately for target ranges. BoxFerry owns cross-format selection and loss policy.
 
 ## Protected inert extension sections
 
-Use `render::XSectionName`, `render::ExtensionValue`, and
-`QuadletDocumentBuilder::push_extension_entry` for native vendor sections. A section name starts
-with ASCII `X-`, followed by an ASCII alphanumeric byte and then only ASCII alphanumeric bytes,
-dots, underscores, or hyphens. Keys use nonempty ASCII alphanumeric names.
+Use `XSectionName`, `ExtensionValue`, and `push_extension_entry` for opaque native vendor metadata.
+Section names use ASCII `X-` followed by an alphanumeric byte and then alphanumeric/dot/underscore/
+hyphen bytes; keys are nonempty ASCII alphanumeric names. Values reject NUL, CR, LF, and final
+backslashes, including before trailing whitespace. Errors never retain attempted input.
 
-Extension values remain opaque. They reject NUL, CR, LF, and a final backslash, including a
-backslash before trailing whitespace, so they cannot introduce another directive or accidentally
-continue into another physical line. Validation errors contain no attempted input. This dedicated
-protected type never routes payloads through the publicly printable `EntryValue` type.
+Extension sections follow standard sections in lexical name order, retaining repeated-entry order.
+Protected storage avoids printable `EntryValue` conversions. JSON/vendor semantics remain outside
+QuadletLens. See [ADR 0021](decisions/0021-protected-inert-extension-sections.md) and the
+[inert-section fixture](../fixtures/generators/x-sections-inert/fixture.toml).
 
-The builder emits extension sections after its standard sections in lexical section-name order,
-with repeated keys and insertion order preserved within each section. It reparses the complete
-output before success. When extension entries are present, build also rejects final backslashes
-in native or systemd values, preventing an earlier continuation from consuming an X-section header.
-JSON framing, vendor schemas, and cross-format meaning belong to callers.
+## Defer explicitly selected service references
 
-All parsed values in source containing any physical `X-*` header candidate are conservatively
-sensitive, including unknown keys and continued values. This display-only over-redaction protects
-malformed headers and headers consumed by a preceding continuation, without changing semantic
-parsing or explicit access. Ordinary source without X-header candidates retains its existing
-Debug behavior. Debug output protects generated values, builders, typed values, parse results, syntax,
-and their source objects. Source Debug omits the whole raw text when it contains an X-section
-header, including malformed source. Explicit `as_str`, source/value access, and rendering still
-return original bytes and require caller-controlled disclosure.
+Use `DeferredWord` with ordered `DeferredWordPart::{Literal, Reference}` parts. Empty words produce
+empty assignment values. Service references/providers use strict ASCII `ServiceEnvironmentName`.
+Literal container keys use protected `ContainerEnvironmentName`: nonempty, without equals,
+controls/NUL, or leading whitespace. Dotted and literal dollar/percent keys are supported for
+construction; broader reverse names remain `Unmodeled` with diagnostics.
 
-The authored [generator fixture](../fixtures/generators/x-sections-inert/fixture.toml) checks
-pass-through, repetition, and absence of payloads in active generated directives. Passing native
-dry-run runs establish generator behavior only; they do not establish systemd runtime behavior.
-See [ADR 0021](decisions/0021-protected-inert-extension-sections.md).
+`push_container_environment_deferred` escapes literal key/value dollars and percents and quotes
+the assignment word. Only reference parts emit canonical `${NAME}` syntax. `Volume=` instead uses
+raw field text: its quotes/backslashes are literal bytes, and the generator owns argv quoting.
+No shell, defaults, commands, recursive expansion, or provider evaluation is introduced.
 
-Decoded native views preserve this display protection: complete port specifications, environment-secret references,
-and document-set reference names retain their originating entry's sensitivity. Their ordinary
-Debug behavior remains available for unprotected source. Mount option names/values and authored
-environment directive names/lookup literals are always redacted because their public enum variants
-cannot carry source sensitivity without changing the API. Explicit fields, accessors, and rendered
-source retain their original contents. Command arguments, mount paths, and environment-file paths
-already use protected Debug representations. Diagnostics contain no copied payload text.
+`push_container_bind_source_deferred` accepts an absolute literal target and native option tokens.
+The source must be pure absolute literals or one direct leading reference followed only by literals.
+It rejects source/target colons, option delimiter injection, and authored `.volume`/`.artifact`
+source suffixes that generators could rewrite before expansion; `.image` remains supported.
+
+Pure absolute literal sources reject dollars, whitespace, quotes, and backslashes because older
+inferred mount dependencies cannot preserve them. Reference-leading suffixes support those literal
+bytes without inferred source dependencies. Targets reject trailing whitespace/backslashes to
+avoid raw-line loss. Runtime providers must yield nonempty absolute paths without colons, NUL,
+or controls; QuadletLens never acquires or validates those runtime values.
+
+Use `ServiceEnvironmentAssignment` with `push_service_environment_literal` for protected literal
+service providers: dollars stay literal and percents are escaped. `ServiceEnvironmentFile` with
+`push_service_environment_file` declares ordered absolute literal paths without globs, mandatory
+by default; `.with_optional(true)` explicitly permits missing files. Files override inline service
+assignments, with later files overriding earlier files. Container/service scopes and empty values
+remain distinct. No provider file is read, created, or resolved.
+
+## Source evidence and privacy
+
+Environment/mount views decode paired dollars/percents once; unescaped braced references stay
+nonexact `Deferred` evidence. Short Volume words starting with an unescaped single dollar are also
+deferred; embedded unbraced dollars stay literal in assignments and long Mount syntax. Raw Volume
+bytes are not word-unquoted/C-decoded; long Mount retains its separate word-then-CSV boundary.
+
+Re-export decoded dollar-bearing literals through `DeferredWordPart::Literal`. Historical literal
+construction APIs keep their spelling behavior; service inline/caller-decoded provider values are
+never exec-decoded. No reverse provider policy is reconstructed.
+
+Debug protects helpers, generated storage, syntax, typed values, and derived views. Physical
+`Environment`, `EnvironmentFile`, `Volume`, `Mount`, or X-header candidates conservatively protect
+source values even in malformed/consumed syntax. Explicit access and rendering retain bytes.
+Detailed redaction rules and native limitations live in
+[ADR 0022](decisions/0022-typed-deferred-service-environment.md).
+
+The [deferred fixture](../fixtures/generators/deferred-service-environment/fixture.toml) records
+passing exact Podman 5.4.0/6.1.2 endpoints and runs in every selected active generator lane.
+Endpoint acceptance proves native text/argument preservation, not full-matrix observations,
+provider availability, manager expansion, or runtime behavior. Native tests never execute units.
+
+See the [Rust API](https://boxferry.dev/docs/api/quadlet-lens/) for item signatures and the
+[machine catalogue](../catalogue/v1/podman-supported-range.toml) for exact capability evidence.

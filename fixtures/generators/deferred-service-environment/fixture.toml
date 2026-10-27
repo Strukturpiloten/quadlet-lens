@@ -1,0 +1,31 @@
+schema = 1
+id = "deferred-service-environment"
+suite = "generators"
+description = "Checks protected typed deferred native words and literal external service providers across selected active generator targets."
+secrets_reviewed = true
+files = ["deferred.container", "expected-fragments.txt", "evidence.md"]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "Exact pinned active Podman dry-run generators; initial endpoint evidence uses 5.4.0 and 6.1.2. Provider files are external declarations and are never read or created by QuadletLens. No units or workloads are executed."
+
+[expectations]
+summary = "Literal dollars/percents remain literal ExecStart syntax, intentional braced references stay in one argument with spaces, empty values survive, and service provider declarations retain order. The pinned 5.4.0 and 6.1.2 dry-run endpoints passed on 2026-10-27; other configured active versions have no observed result recorded by this fixture note."
+
+[extensions.oracle]
+implementation = "Podman Quadlet generator"
+versions = ["5.4.0", "6.1.2"]
+commands = ["QUADLET_LENS_GENERATOR_VERSION=5.4.0 cargo ci-generators", "QUADLET_LENS_GENERATOR_VERSION=6.1.2 cargo ci-generators", "QUADLET_LENS_GENERATOR_LANE=full cargo ci-generators"]
+license = "Apache-2.0"
+redistribution = "Oracle source/binaries are not redistributed in this authored fixture; pins and source provenance remain in tools/generator-matrix.toml."
+
+[extensions.observed]
+checked_on = "2026-10-27"
+versions = ["5.4.0", "6.1.2"]
+result = "passed exact pinned endpoint dry-run generator assertions"
+limitations = "No full-matrix result, runtime provider availability or expansion, provider-file acquisition, unit activation, or workload execution is claimed."

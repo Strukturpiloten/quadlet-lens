@@ -78,3 +78,16 @@ promoted into BoxFerry's neutral model, written to Compose, or emitted as Quadle
 3. avoid placing protected payloads in diagnostics or support bundles;
 4. apply its own loss and promotion policy before cross-format output;
 5. request sorted generation explicitly rather than changing source-preserving rendering.
+
+## Declare service providers without acquiring them
+
+`ServiceEnvironmentAssignment` and `ServiceEnvironmentFile` declare literal service environment
+providers for typed deferred words. These providers are separate from container environment
+sources and caller-authorized decoded container file/secret resolution. Service provider files
+remain external: QuadletLens never reads, creates, or resolves them. They override inline service
+assignments, and later files override earlier files. Mandatory absolute literal paths are the
+default; optional missing files require explicit selection.
+
+Service inline dollars are literal; deferred references belong only to explicitly constructed
+`DeferredWordPart::Reference` values. The native renderer handles context-specific quoting and
+literal dollar/percent preservation. See the [generation contract](generation.md#defer-explicitly-selected-service-references).

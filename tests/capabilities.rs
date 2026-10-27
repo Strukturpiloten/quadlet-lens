@@ -26,7 +26,7 @@ fn supported_range_has_the_reviewed_first_conversion_surface() -> Result<(), Str
     let expected: BTreeSet<_> = EXPECTED_CAPABILITIES.lines().filter(|line| !line.is_empty()).collect();
     assert_eq!(actual, expected);
     assert_eq!(catalogue.capabilities().len(), 258);
-    assert_eq!(catalogue.evidence().len(), 660);
+    assert_eq!(catalogue.evidence().len(), 662);
     assert_eq!(catalogue.systemd_evidence().len(), 1);
 
     let documentation: Vec<_> = catalogue
@@ -74,6 +74,8 @@ fn supported_range_records_container_environment_reset() -> Result<(), String> {
             "podman-5-4-container-environment-reset-source",
             "podman-6-0-2-container-environment-reset-source",
             "podman-5-4-through-current-container-environment-reset-generators",
+            "podman-5-4-0-deferred-service-environment-generator",
+            "podman-6-1-2-deferred-service-environment-generator",
         ]
     );
     let native = capability
@@ -5096,3 +5098,44 @@ versions = { minimum = "5.4.0", maximum = "5.4.1" }
 summary = "native support starts in the final patch"
 evidence = ["generator-5-4"]
 "#;
+
+#[test]
+fn deferred_service_generator_evidence_is_endpoint_only_and_reuses_capabilities() -> Result<(), String> {
+    let catalogue = CapabilityCatalogue::supported_range().map_err(|error| error.to_string())?;
+    for (id, endpoint) in [
+        ("podman-5-4-0-deferred-service-environment-generator", version(5, 4, 0)),
+        ("podman-6-1-2-deferred-service-environment-generator", version(6, 1, 2)),
+    ] {
+        let evidence = catalogue
+            .evidence()
+            .iter()
+            .find(|record| record.id() == id)
+            .ok_or("missing deferred endpoint evidence")?;
+        assert_eq!(evidence.level(), VerificationLevel::Generator);
+        assert_eq!(evidence.versions().minimum(), endpoint);
+        assert_eq!(evidence.versions().maximum(), endpoint);
+        assert!(
+            evidence
+                .url()
+                .ends_with("/fixtures/generators/deferred-service-environment")
+        );
+        assert!(evidence.gap().is_some());
+        for capability in [
+            "quadlet.container.environment",
+            "quadlet.container.volume",
+            "systemd.section.pass-through",
+        ] {
+            let record = catalogue
+                .capability(capability)
+                .ok_or("missing existing native capability")?;
+            assert_eq!(
+                record.evidence().iter().filter(|linked| linked.as_str() == id).count(),
+                1
+            );
+            let range = record.native_range().ok_or("missing unchanged native range")?;
+            assert_eq!(range.minimum(), version(5, 4, 0));
+            assert_eq!(range.maximum(), version(6, 1, 2));
+        }
+    }
+    Ok(())
+}
