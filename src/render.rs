@@ -46,6 +46,80 @@ impl EntryValue {
     }
 }
 
+/// A validated inert vendor section name beginning with ASCII `X-`.
+///
+/// The suffix starts with an ASCII alphanumeric byte and otherwise contains only
+/// ASCII alphanumeric bytes, dots, underscores, or hyphens.
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub struct XSectionName(String);
+
+impl XSectionName {
+    /// Validates a native extension section name without retaining it in errors.
+    ///
+    /// # Errors
+    /// Returns [`RenderError::InvalidExtensionSection`] for an invalid name.
+    pub fn new(name: impl Into<String>) -> Result<Self, RenderError> {
+        let name = name.into();
+        let suffix = name.strip_prefix("X-").ok_or(RenderError::InvalidExtensionSection)?;
+        if suffix.is_empty()
+            || !suffix.as_bytes()[0].is_ascii_alphanumeric()
+            || !suffix
+                .bytes()
+                .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'-'))
+        {
+            return Err(RenderError::InvalidExtensionSection);
+        }
+        Ok(Self(name))
+    }
+
+    /// Returns the validated section name without brackets.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+/// Exact protected extension text that cannot introduce a physical line or continuation.
+///
+/// Debug output redacts the value. Explicit access and rendered output retain it.
+/// This type does not interpret JSON, specifiers, or vendor semantics.
+#[derive(Clone, Eq, PartialEq)]
+pub struct ExtensionValue(String);
+
+impl ExtensionValue {
+    /// Creates an exact single-physical-line extension value.
+    ///
+    /// # Errors
+    /// Returns [`RenderError::InvalidExtensionValue`] for NUL, CR, LF, or a final
+    /// backslash (including before trailing whitespace). Errors never retain input.
+    pub fn new(value: impl Into<String>) -> Result<Self, RenderError> {
+        let value = value.into();
+        if value.bytes().any(|byte| matches!(byte, 0 | b'\n' | b'\r')) || value.trim_end().ends_with('\\') {
+            return Err(RenderError::InvalidExtensionValue);
+        }
+        Ok(Self(value))
+    }
+
+    /// Explicitly returns the exact protected value.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl fmt::Debug for ExtensionValue {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("ExtensionValue(<redacted sensitive value>)")
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct ExtensionEntry {
+    section: XSectionName,
+    key: String,
+    value: ExtensionValue,
+}
+
 /// One literal assignment for a container `Environment=` entry.
 ///
 /// This focused construction boundary accepts one ASCII environment name and one literal
@@ -740,11 +814,13 @@ impl fmt::Debug for GeneratedEntry {
 ///
 /// Native entries use typed keys and must match the selected unit type. Repeated keys retain
 /// insertion order; duplicate singleton native keys are rejected. Generated sections use the
-/// deterministic order `[Unit]`, the selected native section, `[Service]`, and `[Install]`.
+/// deterministic order `[Unit]`, `[Quadlet]`, the selected native section, `[Service]`, and
+/// `[Install]`, followed by lexical X-section groups.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QuadletDocumentBuilder {
     unit_type: QuadletUnitType,
     entries: Vec<GeneratedEntry>,
+    extension_entries: Vec<ExtensionEntry>,
 }
 
 impl QuadletDocumentBuilder {
@@ -754,6 +830,7 @@ impl QuadletDocumentBuilder {
         Self {
             unit_type,
             entries: Vec::new(),
+            extension_entries: Vec::new(),
         }
     }
 
@@ -1018,6 +1095,28 @@ impl QuadletDocumentBuilder {
         )
     }
 
+    /// Appends an inert extension entry, preserving repeated keys and entry order.
+    ///
+    /// Extension sections follow the standard sections, grouped in lexical name order.
+    /// Only validated `X-*` sections are accepted; keys use ASCII alphanumeric bytes.
+    ///
+    /// # Errors
+    /// Returns [`RenderError::InvalidExtensionKey`] for an empty or invalid key.
+    /// The error never includes the attempted key or protected value.
+    pub fn push_extension_entry(
+        &mut self,
+        section: XSectionName,
+        key: impl Into<String>,
+        value: ExtensionValue,
+    ) -> Result<(), RenderError> {
+        let key = key.into();
+        if key.is_empty() || !key.bytes().all(|byte| byte.is_ascii_alphanumeric()) {
+            return Err(RenderError::InvalidExtensionKey);
+        }
+        self.extension_entries.push(ExtensionEntry { section, key, value });
+        Ok(())
+    }
+
     /// Appends an open-ended entry to a generic systemd section.
     ///
     /// Generic entries retain insertion order and may repeat because their reset and list behavior
@@ -1063,9 +1162,21 @@ impl QuadletDocumentBuilder {
     ///
     /// # Errors
     ///
+    /// Returns [`RenderError::InvalidExtensionContext`] when native or systemd values
+    /// end in continuation backslashes while extension sections are present.
     /// Returns [`RenderError::InvalidDocument`] when native shape validation fails, or
     /// [`RenderError::TypedModel`] for an internal source-span consistency failure.
     pub fn build(&self, source_id: SourceId) -> Result<GeneratedQuadletDocument, RenderError> {
+        // Existing exact native values permit authored continuation syntax. Do not
+        // let that syntax consume an extension header and activate its payload.
+        if !self.extension_entries.is_empty()
+            && self
+                .entries
+                .iter()
+                .any(|entry| entry.value.as_str().trim_end().ends_with('\\'))
+        {
+            return Err(RenderError::InvalidExtensionContext);
+        }
         let text = self.render_text();
         let parsed = QuadletDocument::parse(self.unit_type, source_id, text).map_err(RenderError::TypedModel)?;
         if !parsed.is_valid() {
@@ -1143,6 +1254,18 @@ impl QuadletDocumentBuilder {
                 output.push('\n');
             }
         }
+        let extension_sections: BTreeSet<_> = self.extension_entries.iter().map(|entry| &entry.section).collect();
+        for section in extension_sections {
+            output.push_str("\n[");
+            output.push_str(section.as_str());
+            output.push_str("]\n");
+            for entry in self.extension_entries.iter().filter(|entry| &entry.section == section) {
+                output.push_str(&entry.key);
+                output.push('=');
+                output.push_str(entry.value.as_str());
+                output.push('\n');
+            }
+        }
         output
     }
 }
@@ -1183,6 +1306,14 @@ impl GeneratedQuadletDocument {
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[non_exhaustive]
 pub enum RenderError {
+    /// An extension section name did not satisfy the safe ASCII `X-*` grammar.
+    InvalidExtensionSection,
+    /// An extension key was empty or not ASCII alphanumeric.
+    InvalidExtensionKey,
+    /// An extension value could introduce a physical line or continuation.
+    InvalidExtensionValue,
+    /// A native or systemd value could continue into an extension section.
+    InvalidExtensionContext,
     /// A native value contained a line ending or NUL byte.
     InvalidValue,
     /// A generic systemd key was empty or contained non-alphanumeric bytes.
@@ -1223,6 +1354,14 @@ impl RenderError {
 impl fmt::Display for RenderError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::InvalidExtensionContext => formatter.write_str(
+                "extension sections require native and systemd values without final continuation backslashes",
+            ),
+            Self::InvalidExtensionSection => formatter.write_str("invalid extension section name"),
+            Self::InvalidExtensionKey => formatter.write_str("invalid extension key"),
+            Self::InvalidExtensionValue => {
+                formatter.write_str("extension values must fit on one physical line without continuation")
+            }
             Self::InvalidValue => formatter.write_str("generated Quadlet values must fit on one physical line"),
             Self::InvalidKey(key) => write!(formatter, "invalid generic systemd key `{key}`"),
             Self::WrongUnitType { document, entry } => {

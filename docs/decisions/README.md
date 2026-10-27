@@ -53,3 +53,6 @@ runtime claims.
 | [0019](0019-rust-baseline.md)                                      | accepted   | Rust 1.98.1 minimum with manifest-derived validation and aligned Clippy configuration  |
 
 Use the next four-digit number for new decisions. Include context, decision, consequences, and alternatives. Supersede accepted decisions with a new ADR rather than rewriting history.
+
+[ADR 0021](0021-protected-inert-extension-sections.md) extends validated generation with
+protected inert X-sections and conservative parsed-source Debug redaction.

@@ -980,7 +980,7 @@ pub struct AuthoredValue {
 ///
 /// The source-owned [`AuthoredValue`] remains the authoritative spelling. This is a separate
 /// semantic view for callers that need the bounded literal assignment subset. Its debug output
-/// never exposes environment values.
+/// never exposes environment names or values.
 #[derive(Clone, Eq, PartialEq)]
 #[non_exhaustive]
 pub enum AuthoredContainerEnvironmentDirective {
@@ -1054,21 +1054,21 @@ impl AuthoredContainerEnvironmentDirective {
 impl fmt::Debug for AuthoredContainerEnvironmentDirective {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Assignment { name, span, .. } => formatter
+            Self::Assignment { span, .. } => formatter
                 .debug_struct("Assignment")
-                .field("name", name)
+                .field("name", &"<redacted environment name>")
                 .field("value", &"<redacted environment value>")
                 .field("span", span)
                 .finish(),
-            Self::BareName { name, span } => formatter
+            Self::BareName { span, .. } => formatter
                 .debug_struct("BareName")
-                .field("name", name)
+                .field("name", &"<redacted environment name>")
                 .field("span", span)
                 .finish(),
             Self::Reset { span } => formatter.debug_struct("Reset").field("span", span).finish(),
-            Self::Deferred { name, span } => formatter
+            Self::Deferred { span, .. } => formatter
                 .debug_struct("Deferred")
-                .field("name", name)
+                .field("name", &"<redacted environment name>")
                 .field("value", &"<redacted deferred environment value>")
                 .field("span", span)
                 .finish(),
@@ -1078,7 +1078,7 @@ impl fmt::Debug for AuthoredContainerEnvironmentDirective {
 }
 
 /// Result of explicitly looking up one name in an authored container environment view.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Eq, PartialEq)]
 #[non_exhaustive]
 pub enum AuthoredContainerEnvironmentValue<'a> {
     /// The name has no effective authored directive in the bounded view.
@@ -1087,6 +1087,19 @@ pub enum AuthoredContainerEnvironmentValue<'a> {
     Literal(&'a str),
     /// The final known directive needs systemd manager or process environment context.
     Deferred,
+}
+
+impl fmt::Debug for AuthoredContainerEnvironmentValue<'_> {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Absent => formatter.write_str("Absent"),
+            Self::Deferred => formatter.write_str("Deferred"),
+            Self::Literal(_) => formatter
+                .debug_tuple("Literal")
+                .field(&"<redacted environment value>")
+                .finish(),
+        }
+    }
 }
 
 /// Ordered, recoverable authored semantic view of `[Container]` `Environment=` directives.
@@ -1292,11 +1305,13 @@ impl TypedEntry {
     ///
     /// This is currently true for recognized `[Image]`/`[Artifact]` `Creds=` and
     /// `DecryptionKey=` entries plus `[Container]` and `[Build]` `Environment=` entries.
+    /// Values throughout source containing a physical `X-*` header candidate are
+    /// conservatively protected, including malformed or continuation-consumed headers.
     /// Rendering and [`Self::value`] retain the exact authored text, so callers must avoid
     /// exposing that text.
     #[must_use]
     pub const fn is_sensitive(&self) -> bool {
-        self.kind.has_sensitive_value()
+        self.value.primary.sensitive
     }
 
     /// Returns the conservative path or reference classification.
@@ -1344,7 +1359,7 @@ impl fmt::Debug for TypedEntry {
             .field("kind", &self.kind)
             .field("value_kind", &self.value_kind)
             .field("source_line", &self.source_line);
-        if self.kind.has_sensitive_value() {
+        if self.is_sensitive() {
             debug.field("value", &"<redacted sensitive value>")
         } else {
             debug.field("value", &self.value)
@@ -1408,6 +1423,9 @@ impl QuadletDocument {
         unit_type: QuadletUnitType,
         syntax: &SyntaxDocument,
     ) -> Result<(Self, Vec<Diagnostic>), TypedModelError> {
+        // Display-only protection also covers malformed or continuation-consumed
+        // extension headers, without adding a second semantic parser.
+        let protect_extension_source = syntax.source().has_extension_header_candidate();
         let mut sections: Vec<TypedSection> = Vec::new();
         let mut current_section = None;
 
@@ -1431,7 +1449,7 @@ impl QuadletDocument {
                     let key = SourcedText::from_span(syntax.source(), entry.key())?;
                     let section_kind = sections[section_index].kind;
                     let kind = classify_entry(section_kind, key.text());
-                    let sensitive = kind.has_sensitive_value();
+                    let sensitive = kind.has_sensitive_value() || protect_extension_source;
                     let primary =
                         SourcedText::from_span(syntax.source(), entry.value())?.with_sensitive_value(sensitive);
                     let continuations = collect_continuations(syntax, line_index, sensitive)?;

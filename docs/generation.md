@@ -7,8 +7,8 @@ section names or complete files as strings.
 
 ```rust
 use quadlet_lens::{
-    model::{ContainerKey, EntryValue, QuadletUnitType},
-    render::QuadletDocumentBuilder,
+    model::{ContainerKey, QuadletUnitType},
+    render::{EntryValue, QuadletDocumentBuilder},
     source::SourceId,
 };
 
@@ -78,3 +78,43 @@ cross-format selection and loss policy.
 The complete key and method surface belongs to the
 [Rust API](https://boxferry.dev/docs/api/quadlet-lens/); exact compatibility claims belong to the
 [catalogue](../catalogue/v1/podman-supported-range.toml).
+
+## Protected inert extension sections
+
+Use `render::XSectionName`, `render::ExtensionValue`, and
+`QuadletDocumentBuilder::push_extension_entry` for native vendor sections. A section name starts
+with ASCII `X-`, followed by an ASCII alphanumeric byte and then only ASCII alphanumeric bytes,
+dots, underscores, or hyphens. Keys use nonempty ASCII alphanumeric names.
+
+Extension values remain opaque. They reject NUL, CR, LF, and a final backslash, including a
+backslash before trailing whitespace, so they cannot introduce another directive or accidentally
+continue into another physical line. Validation errors contain no attempted input. This dedicated
+protected type never routes payloads through the publicly printable `EntryValue` type.
+
+The builder emits extension sections after its standard sections in lexical section-name order,
+with repeated keys and insertion order preserved within each section. It reparses the complete
+output before success. When extension entries are present, build also rejects final backslashes
+in native or systemd values, preventing an earlier continuation from consuming an X-section header.
+JSON framing, vendor schemas, and cross-format meaning belong to callers.
+
+All parsed values in source containing any physical `X-*` header candidate are conservatively
+sensitive, including unknown keys and continued values. This display-only over-redaction protects
+malformed headers and headers consumed by a preceding continuation, without changing semantic
+parsing or explicit access. Ordinary source without X-header candidates retains its existing
+Debug behavior. Debug output protects generated values, builders, typed values, parse results, syntax,
+and their source objects. Source Debug omits the whole raw text when it contains an X-section
+header, including malformed source. Explicit `as_str`, source/value access, and rendering still
+return original bytes and require caller-controlled disclosure.
+
+The authored [generator fixture](../fixtures/generators/x-sections-inert/fixture.toml) checks
+pass-through, repetition, and absence of payloads in active generated directives. Passing native
+dry-run runs establish generator behavior only; they do not establish systemd runtime behavior.
+See [ADR 0021](decisions/0021-protected-inert-extension-sections.md).
+
+Decoded native views preserve this display protection: complete port specifications, environment-secret references,
+and document-set reference names retain their originating entry's sensitivity. Their ordinary
+Debug behavior remains available for unprotected source. Mount option names/values and authored
+environment directive names/lookup literals are always redacted because their public enum variants
+cannot carry source sensitivity without changing the API. Explicit fields, accessors, and rendered
+source retain their original contents. Command arguments, mount paths, and environment-file paths
+already use protected Debug representations. Diagnostics contain no copied payload text.

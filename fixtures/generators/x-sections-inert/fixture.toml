@@ -1,0 +1,18 @@
+schema = 1
+id = "x-sections-inert"
+suite = "generators"
+description = "Checks inert X-section pass-through without active command or environment effects."
+secrets_reviewed = true
+files = ["extension.container", "expected-fragments.txt"]
+
+[provenance]
+source = "authored"
+license = "MPL-2.0"
+redistribution = "allowed"
+modifications = "none"
+
+[environment]
+description = "Exact pinned Podman dry-run generators only; never install or execute generated units. No newly claimed Podman or systemd support range."
+
+[expectations]
+summary = "The generator retains repeated extension payloads in their X-section, without moving the inert ExecStart spelling or any payload into active sections. This authored expectation needs a passing exact-generator run before it is reported as observed evidence."

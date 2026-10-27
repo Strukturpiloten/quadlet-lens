@@ -129,14 +129,36 @@ pub enum ReferenceResolution {
 }
 
 /// One authored reference and its exact document-set resolution.
-#[derive(Clone, Debug, Eq, PartialEq)]
+///
+/// Debug redacts the target name when its originating entry is protected.
+#[derive(Clone, Eq, PartialEq)]
 pub struct UnitReference {
+    sensitive: bool,
     source_document: usize,
     target_name: String,
     kind: UnitReferenceKind,
     systemd_unit_key: Option<SystemdUnitKey>,
     span: SourceSpan,
     resolution: ReferenceResolution,
+}
+
+impl fmt::Debug for UnitReference {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let target: &dyn fmt::Debug = if self.sensitive {
+            &"<redacted sensitive unit reference>"
+        } else {
+            &self.target_name
+        };
+        formatter
+            .debug_struct("UnitReference")
+            .field("source_document", &self.source_document)
+            .field("target_name", target)
+            .field("kind", &self.kind)
+            .field("systemd_unit_key", &self.systemd_unit_key)
+            .field("span", &self.span)
+            .field("resolution", &self.resolution)
+            .finish()
+    }
 }
 
 impl UnitReference {
@@ -297,6 +319,7 @@ impl QuadletDocumentSet {
                     kind,
                     None,
                     entry.value().primary().span(),
+                    entry.is_sensitive(),
                     &by_name,
                     &mut diagnostics,
                     &mut references,
@@ -311,6 +334,7 @@ impl QuadletDocumentSet {
                     reference.kind,
                     Some(reference.key),
                     reference.span,
+                    reference.sensitive,
                     &by_name,
                     &mut diagnostics,
                     &mut references,
@@ -366,8 +390,8 @@ impl QuadletDocumentSet {
     }
 }
 
-#[derive(Debug)]
 struct SystemdRelationshipReference {
+    sensitive: bool,
     target_name: String,
     kind: UnitReferenceKind,
     key: SystemdUnitKey,
@@ -393,6 +417,7 @@ fn effective_systemd_unit_references(document: &QuadletDocument) -> Vec<SystemdR
         references.extend(tokens.into_iter().filter_map(|target_name| {
             let kind = reference_by_suffix(&target_name)?;
             Some(SystemdRelationshipReference {
+                sensitive: entry.is_sensitive(),
                 target_name,
                 kind,
                 key,
@@ -481,6 +506,7 @@ fn resolve_reference(
     kind: UnitReferenceKind,
     systemd_unit_key: Option<SystemdUnitKey>,
     span: SourceSpan,
+    sensitive: bool,
     by_name: &BTreeMap<String, Vec<usize>>,
     diagnostics: &mut Vec<Diagnostic>,
     references: &mut Vec<UnitReference>,
@@ -522,6 +548,7 @@ fn resolve_reference(
         }
     };
     references.push(UnitReference {
+        sensitive,
         source_document,
         target_name,
         kind,
