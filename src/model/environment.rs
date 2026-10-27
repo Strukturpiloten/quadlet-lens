@@ -77,8 +77,11 @@ impl fmt::Debug for EnvironmentFileReference {
 }
 
 /// One source-located `Secret=...,type=env` reference.
+///
+/// Debug redacts names copied from a protected source entry; explicit access is unchanged.
 #[derive(Clone, Eq, PartialEq)]
 pub struct EnvironmentSecretReference {
+    sensitive: bool,
     secret: Option<String>,
     target: Option<String>,
     state: EnvironmentReferenceState,
@@ -113,10 +116,20 @@ impl EnvironmentSecretReference {
 
 impl fmt::Debug for EnvironmentSecretReference {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let secret: &dyn fmt::Debug = if self.sensitive {
+            &"<redacted sensitive secret>"
+        } else {
+            &self.secret
+        };
+        let target: &dyn fmt::Debug = if self.sensitive {
+            &"<redacted sensitive target>"
+        } else {
+            &self.target
+        };
         formatter
             .debug_struct("EnvironmentSecretReference")
-            .field("secret", &self.secret)
-            .field("target", &self.target)
+            .field("secret", secret)
+            .field("target", target)
             .field("state", &self.state)
             .field("span", &self.span)
             .finish()
@@ -346,6 +359,7 @@ fn parse_environment_secret(
     let target = target.unwrap_or(secret);
     if malformed {
         secrets.push(EnvironmentSecretReference {
+            sensitive: entry.is_sensitive(),
             secret: None,
             target: None,
             state: EnvironmentReferenceState::Unmodeled,
@@ -369,6 +383,7 @@ fn parse_environment_secret(
         EnvironmentReferenceState::Deferred
     } else if !is_authored_environment_name(target) {
         secrets.push(EnvironmentSecretReference {
+            sensitive: entry.is_sensitive(),
             secret: None,
             target: None,
             state: EnvironmentReferenceState::Unmodeled,
@@ -385,6 +400,7 @@ fn parse_environment_secret(
         EnvironmentReferenceState::Literal
     };
     secrets.push(EnvironmentSecretReference {
+        sensitive: entry.is_sensitive(),
         secret: Some(secret.to_owned()),
         target: Some(target.to_owned()),
         state,

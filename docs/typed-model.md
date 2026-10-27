@@ -117,6 +117,19 @@ Branch on diagnostic codes and typed severities, not display text. Keep the sour
 when rendering labels, but avoid raw excerpts when a key may contain credentials or environment
 values.
 
+All values in source containing physical `X-*` header candidates are conservatively sensitive,
+including unknown keys, continuations, and values outside a semantic X-section. This display-only
+over-redaction protects malformed and continuation-consumed headers without changing parsing.
+Typed value and syntax/source Debug output redacts them; explicit raw access and rendering retain
+them. See [protected extension generation](generation.md#protected-inert-extension-sections).
+
 For exact item signatures and supported key enums, use the
 [Rust API](https://boxferry.dev/docs/api/quadlet-lens/). For target support, evaluate the
 [capability catalogue](capability-model.md) separately.
+
+Decoded views also protect copied source strings: complete port specifications, environment-secret references, and
+unit-reference names inherit entry sensitivity. Mount option strings and authored environment
+names/lookup literals are conservatively redacted in Debug even for ordinary source because their
+public enum shapes carry no sensitivity metadata. Explicit accessors and enum fields retain the
+original contents. Native command arguments, mount paths, and environment-file paths are always
+redacted in Debug.

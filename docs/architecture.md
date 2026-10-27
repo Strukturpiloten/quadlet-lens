@@ -54,7 +54,9 @@ supports it.
 ### Generation
 
 The builder accepts typed native keys and open-ended generic systemd directives, enforces structural
-rules, emits deterministic text, and reparses the result. Callers remain responsible for choosing
+rules, emits deterministic text, and reparses the result. Dedicated protected extension values
+and validated `X-*` section names add inert vendor syntax without interpreting its contents.
+All parsed X-section payloads are conservatively redacted in Debug, including syntax source. Callers remain responsible for choosing
 an evidenced native value representation.
 
 ## Module ownership

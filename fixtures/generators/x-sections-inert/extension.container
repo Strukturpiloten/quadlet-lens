@@ -1,0 +1,7 @@
+[Container]
+Image=example.invalid/quadlet-lens-extension:1
+
+[X-QuadletLens]
+Payload=QUADLET_LENS_EXTENSION_FIRST
+Payload=QUADLET_LENS_EXTENSION_SECOND
+ExecStart=QUADLET_LENS_EXTENSION_INERT_COMMAND

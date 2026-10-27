@@ -1,5 +1,7 @@
 //! Source identities, byte spans, and line/column lookup.
 
+use std::fmt;
+
 /// Stable caller-selected identity for one source document.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct SourceId(u32);
@@ -84,14 +86,37 @@ impl LineColumn {
 }
 
 /// Immutable UTF-8 source text with precomputed line starts.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct SourceText {
     id: SourceId,
     text: String,
     line_starts: Vec<usize>,
 }
 
+impl fmt::Debug for SourceText {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // Protect even freshly parsed or invalid extension source, independently of the
+        // typed model. Explicit source and rendering APIs retain the original bytes.
+        let protected = self.has_extension_header_candidate();
+        let text: &dyn fmt::Debug = if protected {
+            &"<redacted extension source>"
+        } else {
+            &self.text
+        };
+        formatter
+            .debug_struct("SourceText")
+            .field("id", &self.id)
+            .field("text", text)
+            .field("line_starts", &self.line_starts)
+            .finish()
+    }
+}
+
 impl SourceText {
+    pub(crate) fn has_extension_header_candidate(&self) -> bool {
+        self.text.lines().any(|line| line.trim_start().starts_with("[X-"))
+    }
+
     pub(crate) fn new(id: SourceId, text: String) -> Self {
         let mut line_starts = vec![0];
         line_starts.extend(text.match_indices('\n').map(|(offset, _)| offset + 1));

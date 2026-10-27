@@ -2273,3 +2273,18 @@ fn supported_public_pipeline_compiles_and_keeps_stages_explicit() -> Result<(), 
 
     Ok(())
 }
+
+#[test]
+fn protected_extension_generation_is_available_to_external_consumers() -> Result<(), Box<dyn std::error::Error>> {
+    use quadlet_lens::render::{ExtensionValue, XSectionName};
+    let mut builder = QuadletDocumentBuilder::new(QuadletUnitType::Container);
+    builder.push_container(ContainerKey::Image, EntryValue::new("example.invalid/app:1")?)?;
+    builder.push_extension_entry(
+        XSectionName::new("X-Consumer")?,
+        "Payload",
+        ExtensionValue::new("opaque")?,
+    )?;
+    let generated = builder.build(SourceId::new(162_001))?;
+    assert!(generated.text().contains("[X-Consumer]\nPayload=opaque\n"));
+    Ok(())
+}

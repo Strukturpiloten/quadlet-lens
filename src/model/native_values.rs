@@ -74,13 +74,36 @@ pub enum NativePortProtocol {
 }
 
 /// One fully decoded native `PublishPort=` directive.
-#[derive(Clone, Debug, Eq, PartialEq)]
+///
+/// Debug redacts all publication fields when the originating entry is protected. Explicit access is unchanged.
+#[derive(Clone, Eq, PartialEq)]
 pub struct NativePortSpecification {
+    sensitive: bool,
     host: Option<String>,
     published: Option<NativePortRange>,
     container: NativePortRange,
     protocol: NativePortProtocol,
     span: SourceSpan,
+}
+
+impl fmt::Debug for NativePortSpecification {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.sensitive {
+            return formatter
+                .debug_struct("NativePortSpecification")
+                .field("value", &"<redacted sensitive publication>")
+                .field("span", &self.span)
+                .finish();
+        }
+        formatter
+            .debug_struct("NativePortSpecification")
+            .field("host", &self.host)
+            .field("published", &self.published)
+            .field("container", &self.container)
+            .field("protocol", &self.protocol)
+            .field("span", &self.span)
+            .finish()
+    }
 }
 
 impl NativePortSpecification {
@@ -174,7 +197,10 @@ impl NativePortPublications {
                     directives.push(NativePortPublication::Deferred { span });
                 }
                 Ok(value) => match parse_port(&literal_specifier_value(&value).unwrap_or_default(), span) {
-                    Ok(value) => directives.push(NativePortPublication::Publication(value)),
+                    Ok(mut value) => {
+                        value.sensitive = entry.is_sensitive();
+                        directives.push(NativePortPublication::Publication(value));
+                    }
                     Err(message) => {
                         diagnostics.push(diagnostic(MALFORMED_PORT, span, message, "use a Podman publication form such as hostPort:containerPort or [IPv6]:hostPort:containerPort"));
                         directives.push(NativePortPublication::Unmodeled { span });
@@ -211,6 +237,8 @@ impl NativePortPublications {
 }
 
 /// One native long-mount option. Unknown option names remain native evidence.
+///
+/// Debug always redacts option names and values because public variants do not carry source sensitivity.
 #[derive(Clone, Eq, PartialEq)]
 #[non_exhaustive]
 pub enum NativeMountOption {
@@ -228,10 +256,10 @@ pub enum NativeMountOption {
 impl fmt::Debug for NativeMountOption {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Flag(name) => formatter.debug_tuple("Flag").field(name).finish(),
-            Self::Assignment { name, .. } => formatter
+            Self::Flag(_) => formatter.debug_tuple("Flag").field(&"<native option name>").finish(),
+            Self::Assignment { .. } => formatter
                 .debug_struct("Assignment")
-                .field("name", name)
+                .field("name", &"<native option name>")
                 .field("value", &"<native option>")
                 .finish(),
         }
@@ -689,6 +717,7 @@ fn parse_port(value: &str, span: SourceSpan) -> Result<NativePortSpecification, 
         return Err("native PublishPort host and container ranges must have equal length");
     }
     Ok(NativePortSpecification {
+        sensitive: false,
         host,
         published,
         container,

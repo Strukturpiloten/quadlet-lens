@@ -1,0 +1,6 @@
+---extension.service---
+SourcePath=/fixtures/extension.container
+[X-QuadletLens]
+Payload=QUADLET_LENS_EXTENSION_FIRST
+Payload=QUADLET_LENS_EXTENSION_SECOND
+ExecStart=QUADLET_LENS_EXTENSION_INERT_COMMAND

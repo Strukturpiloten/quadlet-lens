@@ -1076,6 +1076,7 @@ struct GeneratorFixtures {
     pod_label: (PathBuf, Vec<String>),
     container_environment_reset: (PathBuf, Vec<String>),
     native_value_decoding: (PathBuf, Vec<String>),
+    x_sections: (PathBuf, Vec<String>),
     container_image_volume: (PathBuf, Vec<String>),
     memory: (PathBuf, Vec<String>),
     build_retry: (PathBuf, Vec<String>),
@@ -3162,6 +3163,7 @@ fn load_generator_fixtures() -> Result<GeneratorFixtures, String> {
         pod_label: load_named_container_fixture("pod-label-supported-range")?,
         container_environment_reset: load_named_container_fixture("container-environment-reset-supported-range")?,
         native_value_decoding: load_named_container_fixture("native-value-decoding-supported-range")?,
+        x_sections: load_named_container_fixture("x-sections-inert")?,
         container_image_volume: load_named_container_fixture("container-image-volume-supported-range")?,
         memory: load_memory_fixture()?,
         build_retry: load_build_retry_fixture()?,
@@ -3614,6 +3616,11 @@ fn verify_image_isolated_fixtures(
         &image.version,
         &fixtures.container_environment_reset.1,
         &run_generator_raw(engine, image, &fixtures.container_environment_reset.0)?,
+    )?;
+    verify_x_sections_generator_output(
+        &image.version,
+        &fixtures.x_sections.1,
+        &run_generator_raw(engine, image, &fixtures.x_sections.0)?,
     )?;
     verify_native_value_decoding_generator_output(
         &image.version,
@@ -4631,6 +4638,17 @@ fn verify_source_isolated_fixtures(
             source,
             generator,
             &fixtures.container_environment_reset.0,
+        )?,
+    )?;
+    verify_x_sections_generator_output(
+        &source.version,
+        &fixtures.x_sections.1,
+        &run_source_generator_raw(
+            engine,
+            &matrix.builder_reference,
+            source,
+            generator,
+            &fixtures.x_sections.0,
         )?,
     )?;
     verify_native_value_decoding_generator_output(
@@ -12771,4 +12789,83 @@ fn ensure_success(version: &str, operation: &str, output: &Output) -> Result<(),
         String::from_utf8_lossy(&output.stdout),
         String::from_utf8_lossy(&output.stderr)
     ))
+}
+
+fn verify_x_sections_generator_output(version: &str, expected: &[String], output: &Output) -> Result<(), String> {
+    ensure_success(version, "inert X-section generator", output)?;
+    let generated = String::from_utf8(output.stdout.clone()).map_err(|error| error.to_string())?;
+    if expected.iter().any(|fragment| !generated.contains(fragment)) {
+        return Err(format!("Podman {version} omitted expected inert X-section fragments"));
+    }
+    let unit = generated_unit(version, &generated, "extension.service", output)?;
+    verify_inert_x_section_service(unit)?;
+    eprintln!("Podman {version}: repeated X-section values pass through without active directives");
+    Ok(())
+}
+
+fn verify_inert_x_section_service(unit: &str) -> Result<(), String> {
+    use quadlet_lens::{
+        source::SourceId,
+        syntax::{SyntaxDocument, SyntaxLineKind},
+    };
+    let parsed = SyntaxDocument::parse(SourceId::new(162), unit);
+    if !parsed.is_valid() {
+        return Err("invalid generated service syntax".to_owned());
+    }
+    let source = parsed.document().source();
+    let mut extension = false;
+    let mut entries = Vec::new();
+    let mut active_command = false;
+    for line in parsed.document().lines() {
+        match line.kind() {
+            SyntaxLineKind::Section(section) => {
+                extension = source.slice(section.name()) == Some("X-QuadletLens");
+            }
+            SyntaxLineKind::Entry(entry) => {
+                let key = source.slice(entry.key()).ok_or("missing generated key")?;
+                let value = source.slice(entry.value()).ok_or("missing generated value")?;
+                if extension {
+                    entries.push((key, value));
+                } else {
+                    if value.contains("QUADLET_LENS_EXTENSION_") {
+                        return Err("extension payload escaped into an active section".to_owned());
+                    }
+                    active_command |= key == "ExecStart"
+                        && value.contains("podman")
+                        && value.contains("example.invalid/quadlet-lens-extension:1");
+                }
+            }
+            _ => {}
+        }
+    }
+    if !active_command
+        || entries
+            != [
+                ("Payload", "QUADLET_LENS_EXTENSION_FIRST"),
+                ("Payload", "QUADLET_LENS_EXTENSION_SECOND"),
+                ("ExecStart", "QUADLET_LENS_EXTENSION_INERT_COMMAND"),
+            ]
+    {
+        return Err("inert X-section order or active command changed".to_owned());
+    }
+    Ok(())
+}
+
+#[test]
+fn x_section_generator_expectations_reject_active_payloads_and_lost_repetition() -> Result<(), String> {
+    let fixture = include_str!("../fixtures/generators/x-sections-inert/extension.container");
+    let service = fixture.replace(
+        "[Container]\nImage=example.invalid/quadlet-lens-extension:1",
+        "[Service]\nExecStart=/usr/bin/podman run example.invalid/quadlet-lens-extension:1",
+    );
+    verify_inert_x_section_service(&service)?;
+    assert!(verify_inert_x_section_service(&service.replace("[X-QuadletLens]", "[Service]")).is_err());
+    assert!(verify_inert_x_section_service(&service.replace("Payload=QUADLET_LENS_EXTENSION_FIRST\n", "")).is_err());
+    assert!(
+        verify_inert_x_section_service(&format!(
+            "[Service]\nEnvironment=QUADLET_LENS_EXTENSION_INERT_COMMAND\n{service}"
+        ))
+        .is_err()
+    );
+    Ok(())
 }

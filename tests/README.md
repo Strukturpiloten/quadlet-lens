@@ -10,6 +10,7 @@ Suites are introduced with the behavior they verify:
 - `typed-model` — native Quadlet unit types, sections, keys, value forms, and document-set graphs
 - `environment` — caller-authorized environment-file/secret values and safe generated ordering
 - `render` — validated programmatic construction, deterministic output, and rejection paths
+- `extensions` — protected inert X-section generation, fresh-source redaction, and injection rejection
 - `roundtrip` — preservation and deterministic canonical rendering
 - `capabilities` — catalogue schema and coherent version evidence
 - `version-boundaries` — behavior immediately around supported version changes

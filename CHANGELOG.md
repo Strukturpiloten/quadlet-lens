@@ -5,6 +5,11 @@ Versioning for its documented pre-1.0 public API.
 
 ## [Unreleased]
 
+### Added
+
+- Add protected inert `X-*` section generation with repeated ordered entries, injection-safe
+  values, and redacted parsed/generated Debug output. See [the generation guide](docs/generation.md).
+
 ### Changed
 
 - Raise the minimum supported Rust version to 1.98.1; consumers using an older compiler must
