@@ -4,14 +4,15 @@ The additive native value views on `QuadletDocument` are supported entry points.
 results preserve ordered source evidence and recoverable deferred or malformed states; they do not
 promise target acceptance or portable conversion of every decoded native form.
 
-QuadletLens is pre-1.0, but version 0.2 establishes the current supported integration line for
+QuadletLens is pre-1.0, and version 0.3 is the current supported integration line for
 BoxFerry and independent tools that need native Quadlet parsing, modeling, document-set resolution,
-and evidence-backed Podman capability queries. This policy is recorded by
-[ADR 0010](decisions/0010-consolidated-0.2-public-api.md).
+and evidence-backed Podman capability queries. These boundaries build on
+[ADR 0010](decisions/0010-consolidated-0.2-public-api.md) and
+[ADR 0022](decisions/0022-typed-deferred-service-environment.md).
 
-## The 0.2.x contract
+## The 0.3.x contract
 
-Within the 0.2.x line:
+Within the 0.3.x line:
 
 - patch releases preserve source compatibility for the supported public entry points;
 - public APIs use QuadletLens-owned types;
@@ -59,12 +60,13 @@ variants are therefore appended; existing variants are never reordered. The publ
 test records the published key-enum values, and normal CI compares the candidate API with the
 latest published crate before changes can reach the release workflow.
 
-## Not promised by 0.2
+## Not promised by 0.3
 
-The 0.2 contract does not claim:
+The 0.3 contract does not claim:
 
 - typed coverage of every open-ended generic systemd directive or complete systemd value grammar;
-- key-specific quoting, value parsing, and target-aware value rendering;
+- complete key-specific quoting, value parsing, and target-aware rendering beyond the documented
+  focused helpers;
 - runtime, rootless/rootful, SELinux, cgroup, network, or systemd activation behavior;
 - support evidence beyond the finite catalogue range or its capability-specific evidence; or
 - long-term 1.x compatibility.
