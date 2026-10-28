@@ -1,20 +1,31 @@
 #!/usr/bin/env bash
 
 set -Eeuo pipefail
+if (($# > 1)); then
+  printf 'Usage: %s [--development|--release]\n' "$0" >&2
+  exit 2
+fi
+mode="${1---release}"
+case "${mode}" in
+  --development | --release) ;;
+  *)
+    printf 'Usage: %s [--development|--release]\n' "$0" >&2
+    exit 2
+    ;;
+esac
+readonly mode
 
 if [[ "${QUADLET_LENS_RELEASE_METADATA_TEST_MODE:-0}" == "1" ]]; then
   version="${QUADLET_LENS_TEST_VERSION:?test version is required}"
   changelog="${QUADLET_LENS_TEST_CHANGELOG:?test changelog is required}"
-  latest_tag="${QUADLET_LENS_TEST_LATEST_TAG:-}"
 else
   version="$(
     cargo metadata --locked --no-deps --format-version 1 |
       jq -er '.packages[] | select(.name == "quadlet-lens") | .version'
   )"
   changelog=CHANGELOG.md
-  latest_tag="$(git describe --tags --abbrev=0 --match 'v[0-9]*' 2> /dev/null || true)"
 fi
-readonly version changelog latest_tag
+readonly version changelog
 
 if [[ ! -f "${changelog}" ]]; then
   printf 'Changelog does not exist: %s\n' "${changelog}" >&2
@@ -71,7 +82,7 @@ if ! grep --quiet '[[:alnum:]]' <<< "${release_notes}"; then
   exit 1
 fi
 
-if [[ -n "${latest_tag}" && "${latest_tag#v}" != "${version}" ]]; then
+if [[ "${mode}" == "--release" ]]; then
   unreleased_notes="$(
     awk '
       $0 == "## [Unreleased]" {
@@ -83,8 +94,8 @@ if [[ -n "${latest_tag}" && "${latest_tag#v}" != "${version}" ]]; then
     ' "${changelog}"
   )"
   if grep --quiet '[[:alnum:]]' <<< "${unreleased_notes}"; then
-    printf 'Unreleased must be empty while preparing QuadletLens %s after %s.\n' \
-      "${version}" "${latest_tag}" >&2
+    printf 'Unreleased must be empty for the QuadletLens %s release candidate.\n' \
+      "${version}" >&2
     printf 'Move every included change into the numbered release section before merging.\n' >&2
     exit 1
   fi

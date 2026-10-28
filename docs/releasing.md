@@ -77,6 +77,15 @@ GitHub release notes are extracted from the matching version section in `CHANGEL
 the only release-history source in the repository. Keep changelog entries short and move technical
 detail into the canonical topic documentation.
 
+Release metadata validation selects its context explicitly. The complete local gate and ordinary
+PR/main CI use `bash scripts/check-release-metadata.sh --development`, which permits pending
+`Unreleased` notes even when a prepared crate version is newer than the last published tag.
+Release-plz pull-request CI uses `--release`; every protected Release run, including
+`validation_only`, also uses `--release` and requires an empty `Unreleased` section. Calling the
+checker without arguments keeps that strict release behavior. Both modes require one `Unreleased`
+section, a unique newest release matching the crate version, a dated heading, and usable numbered
+release notes. Git tags never select the validation mode.
+
 Record user-visible changes in the single `Unreleased` section. Ordinary product pull requests
 must not create a future numbered section, set its date, or bump the crate version. Release-plz
 inserts only the dated version heading, with blank lines on both sides; the curated notes below

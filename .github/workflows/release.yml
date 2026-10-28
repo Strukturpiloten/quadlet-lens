@@ -59,11 +59,7 @@ jobs:
             echo "Run releases from the default branch (${DEFAULT_BRANCH})." >&2
             exit 1
           fi
-          version="$(
-            cargo metadata --locked --no-deps --format-version 1 |
-              jq -er '.packages[] | select(.name == "quadlet-lens") | .version'
-          )"
-          bash scripts/extract-release-notes.sh "${version}" >/dev/null
+          bash scripts/check-release-metadata.sh --release
 
   native-generator-evidence:
     name: Exact-SHA native generator evidence
