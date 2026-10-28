@@ -166,7 +166,7 @@ run_step "Run documentation tests" cargo ci-doctest
 run_step "Build documentation with warnings denied" env RUSTDOCFLAGS="-D warnings" cargo ci-doc
 run_step "Verify the release package" cargo package --locked --allow-dirty
 run_step "Test release metadata policy" bash scripts/test-release-metadata.sh
-run_step "Check release metadata and changelog" bash scripts/check-release-metadata.sh
+run_step "Check release metadata and changelog" bash scripts/check-release-metadata.sh --development
 run_step "Clean coverage artifacts" env CARGO_TARGET_DIR="${coverage_target_dir}" \
   cargo llvm-cov clean --locked
 run_step "Enforce coverage ratchets" env CARGO_TARGET_DIR="${coverage_target_dir}" \

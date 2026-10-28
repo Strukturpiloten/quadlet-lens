@@ -773,6 +773,40 @@ fn release_plz_prepares_only_guarded_releases() -> Result<(), String> {
 }
 
 #[test]
+fn release_metadata_context_is_explicit_in_every_gate() -> Result<(), String> {
+    let local = read_repository_file("scripts/check-all.sh")?;
+    if !local.contains("bash scripts/check-release-metadata.sh --development") {
+        return Err("complete local validation must use development release metadata".to_owned());
+    }
+    let ci = read_repository_file(".github/workflows/ci.yml")?;
+    for required in [
+        "run: bash scripts/test-release-metadata.sh",
+        "RELEASE_METADATA_MODE: ${{ github.event_name == 'pull_request' && startsWith(github.head_ref, 'release-plz-') && '--release' || '--development' }}",
+        "run: bash scripts/check-release-metadata.sh \"${RELEASE_METADATA_MODE}\"",
+    ] {
+        if !ci.contains(required) {
+            return Err(format!("CI release metadata context is missing `{required}`"));
+        }
+    }
+    let release = read_repository_file(".github/workflows/release.yml")?;
+    let metadata_job = release
+        .split("  release-metadata:")
+        .nth(1)
+        .and_then(|job| job.split("  native-generator-evidence:").next())
+        .ok_or("Release must retain its independent metadata gate")?;
+    if !metadata_job.contains("bash scripts/check-release-metadata.sh --release")
+        || metadata_job.contains("validation_only")
+    {
+        return Err("Release, including validation_only, must use strict release metadata".to_owned());
+    }
+    let checker = read_repository_file("scripts/check-release-metadata.sh")?;
+    if checker.contains("git describe") || checker.contains("latest_tag") {
+        return Err("release metadata context must not be inferred from published tags".to_owned());
+    }
+    Ok(())
+}
+
+#[test]
 fn release_note_extraction_is_strict_and_bounded() -> Result<(), String> {
     validate_release_note_extraction("quadlet-lens")
 }
