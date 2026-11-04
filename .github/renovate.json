@@ -53,14 +53,6 @@
     },
     {
       "customType": "regex",
-      "description": "Signal updates for checksum-pinned file-quality tools",
-      "managerFilePatterns": ["/^scripts/install-file-tools\\.sh$/"],
-      "matchStrings": [
-        "# renovate: datasource=(?<datasource>[^\\s]+) depName=(?<depName>[^\\s]+)\\nreadonly [a-z0-9_]+_version=\"(?<currentValue>[^\"]+)\""
-      ]
-    },
-    {
-      "customType": "regex",
       "description": "Update directly pinned workflow tool versions",
       "managerFilePatterns": ["/^\\.github/workflows/.*\\.yml$/"],
       "matchStrings": [
@@ -104,6 +96,28 @@
       ],
       "datasourceTemplate": "github-digest",
       "autoReplaceStringTemplate": "{{{indentation}}}# renovate: datasource=github-digest depName={{{depName}}} currentValue={{{newValue}}}\n{{{indentation}}}ref: {{{newDigest}}}"
+    },
+    {
+      "customType": "regex",
+      "description": "Track the prerequisite shared eligibility service immutable revision",
+      "managerFilePatterns": ["/^\\.github/workflows/dependency-eligibility\\.yml$/"],
+      "matchStrings": [
+        "(?<prefix>uses: Strukturpiloten/boxferry/\\.github/workflows/shared-dependency-eligibility\\.yml@|automation-sha:\\s*)(?<currentDigest>[a-f0-9]{40})"
+      ],
+      "depNameTemplate": "Strukturpiloten/boxferry",
+      "datasourceTemplate": "github-digest",
+      "currentValueTemplate": "automation-v1"
+    },
+    {
+      "customType": "regex",
+      "description": "Keep the prerequisite trusted base manifest at the service revision",
+      "managerFilePatterns": ["/^\\.github/automation\\.json$/"],
+      "matchStrings": [
+        "(?<prefix>\"revision\"[ \\t]*:[ \\t]*\")(?<currentDigest>[a-f0-9]{40})(?<suffix>\")"
+      ],
+      "depNameTemplate": "Strukturpiloten/boxferry",
+      "datasourceTemplate": "github-digest",
+      "currentValueTemplate": "automation-v1"
     }
   ],
   "packageRules": [
@@ -232,13 +246,16 @@
       "groupName": "Rust toolchain"
     },
     {
-      "description": "Require checksum review for downloaded file-quality tools",
-      "matchFileNames": ["scripts/install-file-tools.sh"],
-      "dependencyDashboardApproval": true,
-      "automerge": false,
-      "prBodyNotes": [
-        "Review both Linux release assets and update their SHA-256 checksums before merging."
-      ]
+      "description": "The prerequisite service revision has one custom owner before full shared-preset adoption",
+      "matchManagers": ["github-actions"],
+      "matchPackageNames": ["Strukturpiloten/boxferry"],
+      "enabled": false
+    },
+    {
+      "description": "Keep prerequisite eligibility workflow and implementation input atomic",
+      "matchManagers": ["custom.regex"],
+      "matchPackageNames": ["Strukturpiloten/boxferry"],
+      "groupName": "Shared eligibility prerequisite"
     }
   ]
 }
