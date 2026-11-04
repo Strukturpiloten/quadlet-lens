@@ -280,12 +280,28 @@ fn is_immutable_versioned_action(reference: &str) -> bool {
         return false;
     };
 
-    !action.is_empty()
-        && sha.len() == 40
-        && sha
+    // The immutable SHA guard is mandatory for every action, including bootstrap callers.
+    if action.is_empty()
+        || sha.len() != 40
+        || !sha
             .bytes()
             .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
-        && is_exact_version(version.trim())
+    {
+        return false;
+    }
+    // ADR 0023 documents the initial infrastructure interface; no release tag is invented.
+    is_exact_version(version.trim())
+        || (version.trim() == "automation-v1 interface v1"
+            && matches!(
+                action,
+                "Strukturpiloten/boxferry/.github/workflows/shared-rust-ci.yml"
+                    | "Strukturpiloten/boxferry/.github/workflows/shared-rust-dependencies.yml"
+                    | "Strukturpiloten/boxferry/.github/workflows/shared-rust-semver.yml"
+                    | "Strukturpiloten/boxferry/.github/workflows/shared-release-prepare.yml"
+                    | "Strukturpiloten/boxferry/.github/workflows/shared-release-validation.yml"
+                    | "Strukturpiloten/boxferry/.github/workflows/shared-dependency-eligibility.yml"
+                    | "Strukturpiloten/boxferry/.github/workflows/shared-dependency-wait.yml"
+            ))
 }
 
 fn is_exact_version(version: &str) -> bool {
@@ -327,6 +343,40 @@ mod tests {
         assert!(is_immutable_versioned_action(
             "obi1kenobi/cargo-semver-checks-action@6b69fcf40e9b5fb17adeb57e4b6ecd020649a239 # v2.9"
         ));
+    }
+
+    #[test]
+    fn shared_bootstrap_comments_still_require_an_exact_immutable_workflow() {
+        let prefix = "Strukturpiloten/boxferry/.github/workflows/";
+        let sha = "0123456789abcdef0123456789abcdef01234567";
+        for workflow in [
+            "shared-rust-ci.yml",
+            "shared-rust-dependencies.yml",
+            "shared-rust-semver.yml",
+            "shared-release-prepare.yml",
+            "shared-release-validation.yml",
+            "shared-dependency-eligibility.yml",
+            "shared-dependency-wait.yml",
+        ] {
+            assert!(is_immutable_versioned_action(&format!(
+                "{prefix}{workflow}@{sha} # automation-v1 interface v1"
+            )));
+        }
+        for reference in [
+            format!("{prefix}shared-rust-ci.yml@automation-v1 # automation-v1 interface v1"),
+            format!("{prefix}shared-rust-ci.yml@main # automation-v1 interface v1"),
+            format!("{prefix}shared-rust-ci.yml@v1.0.0 # automation-v1 interface v1"),
+            format!("{prefix}shared-rust-ci.yml@0123456789abcdef # automation-v1 interface v1"),
+            format!("{prefix}shared-rust-ci.yml@0123456789abcdef0123456789abcdef0123456g # automation-v1 interface v1"),
+            format!("{prefix}shared-other.yml@{sha} # automation-v1 interface v1"),
+            format!("other/boxferry/.github/workflows/shared-rust-ci.yml@{sha} # automation-v1 interface v1"),
+            format!("{prefix}shared-rust-ci.yml@{sha} # automation-v1"),
+        ] {
+            assert!(
+                !is_immutable_versioned_action(&reference),
+                "accepted weakened shared pin: {reference}"
+            );
+        }
     }
 
     #[test]

@@ -42,7 +42,7 @@ preparation are development tools rather than published Rust dependencies.
 Their exact sources are:
 
 - `package-lock.json` for Node tools;
-- `scripts/install-file-tools.sh` for checksum-pinned native tools;
+- the canonical `automation/tool-artifacts.json` inventory at the manifest revision for native tools;
 - `.devcontainer/Dockerfile` for container tooling;
 - full commit pins and release comments in GitHub workflows; and
 - `release-plz.toml` plus the release workflows for release preparation.
@@ -104,3 +104,7 @@ Before merging a dependency change:
 3. review the lockfile and transitive changes;
 4. update an ADR if representation or public policy changes; and
 5. run the complete repository gate.
+
+The complete bootstrap carries the interface-1 loader, manifest and thin core-tool installer
+together. CI and Dev Container extras explicitly select actionlint and Lychee from that same
+checksum-verified inventory. Shared selection and common-preset rollout remain a later stage.

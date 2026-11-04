@@ -32,11 +32,13 @@ jobs:
           restore-keys: |
             documentation-links-${{ runner.os }}-
 
+      - name: Install canonical Lychee
+        run: |
+          set -euo pipefail
+          tool_dir="${RUNNER_TEMP}/quadlet-lens-link-tools"
+          python3 scripts/shared-ci.py tools --destination "${tool_dir}" --tools lychee
+          printf '%s\n' "${tool_dir}" >> "${GITHUB_PATH}"
       - name: Check external documentation links
-        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
-        with:
-          args: >-
-            --config lychee.toml --root-dir '${{ github.workspace }}' --cache
-            './**/*.md'
-          fail: true
-          token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: lychee --config lychee.toml --root-dir "${GITHUB_WORKSPACE}" --cache './**/*.md'

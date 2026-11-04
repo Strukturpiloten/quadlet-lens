@@ -218,7 +218,12 @@ fn ci_workflow_uses_trusted_change_plan_and_fail_closed_gate() -> Result<(), Str
         "python3 \"${verifier}\" gate",
         "set(needs) != {\"validation-plan\", *jobs}",
         "repository: Strukturpiloten/.github",
-        "ref: ${{ github.event.pull_request.head.sha }}",
+        "ref: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha }}",
+        "BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}",
+        "HEAD_SHA: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha }}",
+        "test \"${HEAD_SHA}\" = \"${GITHUB_SHA}\"",
+        "test \"$(git rev-parse HEAD)\" = \"${HEAD_SHA}\"",
+        "git merge-base --is-ancestor \"${BASE_SHA}\" \"${HEAD_SHA}\"",
         "--repository-root \"${GITHUB_WORKSPACE}\"",
         "--base \"${BASE_SHA}\"",
         "--head \"${HEAD_SHA}\"",
@@ -599,7 +604,10 @@ fn non_rust_file_quality_is_locked_and_required() -> Result<(), String> {
         let workflow = read_repository_file(&format!(".github/workflows/{workflow_name}"))?;
         for required in [
             "npm ci --ignore-scripts",
-            "bash scripts/install-file-tools.sh /usr/local/bin",
+            r#"tool_dir="${RUNNER_TEMP}/quadlet-lens-tools""#,
+            r#"bash scripts/install-file-tools.sh "${tool_dir}""#,
+            r#"python3 scripts/shared-ci.py tools --destination "${tool_dir}" --tools actionlint lychee"#,
+            r#"printf '%s\n' "${tool_dir}" >> "${GITHUB_PATH}""#,
             "bash scripts/check-files.sh --check",
         ] {
             if !workflow.contains(required) {
@@ -1090,7 +1098,6 @@ fn validate_renovate_lockfile_policy(renovate: &serde_json::Value) -> Result<(),
     for description in [
         "Keep newest-upstream and maintained-minor Podman discovery separate from reviewed support",
         "Keep Dev Container feature versions current; the lock file owns digests",
-        "Require checksum review for downloaded file-quality tools",
     ] {
         let (index, rule) = rules
             .iter()
@@ -1456,6 +1463,252 @@ fn podman_patch_discovery_rejects_missing_or_ambiguous_owners() -> Result<(), St
     Ok(())
 }
 
+// Native file-tool versions/checksums now belong to the immutable shared inventory.
+// These exact-file owners update its revision together without a second native owner.
+fn validate_bootstrap_tool_ownership(renovate: &serde_json::Value) -> Result<(), String> {
+    let managers = renovate["customManagers"]
+        .as_array()
+        .ok_or("Renovate managers must be an array")?;
+    let expected_managers = [
+        serde_json::json!({
+            "customType": "regex",
+            "description": "Track the prerequisite shared eligibility service immutable revision",
+            "managerFilePatterns": [r"/^\.github/workflows/dependency-eligibility\.yml$/"],
+            "matchStrings": [r"(?<prefix>uses: Strukturpiloten/boxferry/\.github/workflows/shared-dependency-eligibility\.yml@|automation-sha:\s*)(?<currentDigest>[a-f0-9]{40})"],
+            "depNameTemplate": "Strukturpiloten/boxferry",
+            "datasourceTemplate": "github-digest",
+            "currentValueTemplate": "automation-v1",
+        }),
+        serde_json::json!({
+            "customType": "regex",
+            "description": "Keep the prerequisite trusted base manifest at the service revision",
+            "managerFilePatterns": [r"/^\.github/automation\.json$/"],
+            "matchStrings": [r#"(?<prefix>"revision"[ \t]*:[ \t]*")(?<currentDigest>[a-f0-9]{40})(?<suffix>")"#],
+            "depNameTemplate": "Strukturpiloten/boxferry",
+            "datasourceTemplate": "github-digest",
+            "currentValueTemplate": "automation-v1",
+        }),
+    ];
+    for expected in &expected_managers {
+        if managers.iter().filter(|manager| *manager == expected).count() != 1 {
+            return Err(format!(
+                "shared bootstrap requires one exact owner: {}",
+                expected["description"]
+            ));
+        }
+    }
+    if managers
+        .iter()
+        .filter(|manager| manager["depNameTemplate"] == "Strukturpiloten/boxferry")
+        .count()
+        != 2
+        || managers.iter().any(|manager| {
+            manager["managerFilePatterns"]
+                .to_string()
+                .contains("install-file-tools")
+        })
+    {
+        return Err("shared file-tool pins must not have duplicate or retired local owners".to_owned());
+    }
+    let rules = renovate["packageRules"]
+        .as_array()
+        .ok_or("Renovate rules must be an array")?;
+    for expected in [
+        serde_json::json!({
+            "description": "The prerequisite service revision has one custom owner before full shared-preset adoption",
+            "matchManagers": ["github-actions"],
+            "matchPackageNames": ["Strukturpiloten/boxferry"],
+            "enabled": false,
+        }),
+        serde_json::json!({
+            "description": "Keep prerequisite eligibility workflow and implementation input atomic",
+            "matchManagers": ["custom.regex"],
+            "matchPackageNames": ["Strukturpiloten/boxferry"],
+            "groupName": "Shared eligibility prerequisite",
+        }),
+    ] {
+        if rules.iter().filter(|rule| **rule == expected).count() != 1 {
+            return Err(format!(
+                "shared bootstrap requires one exact ownership rule: {}",
+                expected["description"]
+            ));
+        }
+    }
+    if rules
+        .iter()
+        .filter(|rule| rule["matchPackageNames"] == serde_json::json!(["Strukturpiloten/boxferry"]))
+        .count()
+        != 2
+    {
+        return Err("shared bootstrap grouping and native-manager exclusion must each have one owner".to_owned());
+    }
+    Ok(())
+}
+
+#[test]
+fn shared_file_tool_ownership_rejects_broadening_duplicates_and_weakened_grouping() -> Result<(), String> {
+    let renovate: serde_json::Value =
+        serde_json::from_str(&read_repository_file(".github/renovate.json")?).map_err(|error| error.to_string())?;
+    validate_bootstrap_tool_ownership(&renovate)?;
+    for index in renovate["customManagers"]
+        .as_array()
+        .ok_or("missing managers")?
+        .iter()
+        .enumerate()
+        .filter_map(|(index, manager)| (manager["depNameTemplate"] == "Strukturpiloten/boxferry").then_some(index))
+    {
+        for (field, value) in [
+            ("managerFilePatterns", serde_json::json!([r"/^\.github/.*$/"])),
+            ("matchStrings", serde_json::json!(["(?<currentDigest>.+)"])),
+            ("datasourceTemplate", serde_json::json!("github-releases")),
+            ("currentValueTemplate", serde_json::json!("main")),
+        ] {
+            let mut mutated = renovate.clone();
+            mutated["customManagers"][index][field] = value;
+            assert!(
+                validate_bootstrap_tool_ownership(&mutated).is_err(),
+                "accepted {field} mutation"
+            );
+        }
+        for duplicate in [false, true] {
+            let mut mutated = renovate.clone();
+            let managers = mutated["customManagers"].as_array_mut().ok_or("missing managers")?;
+            if duplicate {
+                managers.push(managers[index].clone());
+            } else {
+                managers.remove(index);
+            }
+            assert!(
+                validate_bootstrap_tool_ownership(&mutated).is_err(),
+                "accepted missing/duplicate owner"
+            );
+        }
+    }
+    for index in renovate["packageRules"]
+        .as_array()
+        .ok_or("missing rules")?
+        .iter()
+        .enumerate()
+        .filter_map(|(index, rule)| {
+            (rule["matchPackageNames"] == serde_json::json!(["Strukturpiloten/boxferry"])).then_some(index)
+        })
+    {
+        let mut mutated = renovate.clone();
+        mutated["packageRules"][index]["automerge"] = serde_json::json!(true);
+        assert!(
+            validate_bootstrap_tool_ownership(&mutated).is_err(),
+            "accepted weakened ownership rule"
+        );
+        let mut mutated = renovate.clone();
+        mutated["packageRules"][index]["matchManagers"] = serde_json::json!(["github-actions", "custom.regex"]);
+        assert!(
+            validate_bootstrap_tool_ownership(&mutated).is_err(),
+            "accepted broadened ownership rule"
+        );
+        let mut mutated = renovate.clone();
+        mutated["packageRules"]
+            .as_array_mut()
+            .ok_or("missing rules")?
+            .remove(index);
+        assert!(
+            validate_bootstrap_tool_ownership(&mutated).is_err(),
+            "accepted missing ownership rule"
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn shared_file_tool_bootstrap_preserves_pins_arguments_and_child_failures() -> Result<(), String> {
+    let output = Command::new("python3").arg("-c").arg(r#"
+import contextlib
+import importlib.util
+import io
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+import tempfile
+
+source = Path(sys.argv[1])
+config = json.loads((source / '.github/automation.json').read_text())
+caller = (source / '.github/workflows/dependency-eligibility.yml').read_text()
+revision = config['revision']
+assert len(revision) == 40 and all(c in '0123456789abcdef' for c in revision)
+assert caller.count('shared-dependency-eligibility.yml@' + revision + ' # automation-v1 interface v1') == 1
+assert caller.count('automation-sha: ' + revision) == 1
+with tempfile.TemporaryDirectory(prefix='quadlet-tool-policy-') as temporary:
+    root = Path(temporary)
+    (root / '.github').mkdir()
+    (root / 'scripts').mkdir()
+    (root / 'bin').mkdir()
+    manifest = root / '.github/automation.json'
+    manifest.write_text(json.dumps(config))
+    for name in ['shared-ci.py', 'install-file-tools.sh']:
+        shutil.copyfile(source / 'scripts' / name, root / 'scripts' / name)
+    spec = importlib.util.spec_from_file_location('quadlet_tool_bootstrap_test', root / 'scripts/shared-ci.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    assert module.load_config(root) == config
+    replacement = dict(config, revision='0123456789abcdef0123456789abcdef01234567')
+    manifest.write_text(json.dumps(replacement))
+    assert module.load_config(root) == replacement, 'valid immutable updates must remain accepted'
+    for invalid in ['main', 'automation-v1', 'a' * 39, 'a' * 41, 'A' * 40, 'g' * 40, 'a' * 40 + '\n']:
+        manifest.write_text(json.dumps(dict(config, revision=invalid)))
+        try:
+            module.load_config(root)
+        except module.BootstrapError:
+            pass
+        else:
+            raise AssertionError('accepted invalid revision: ' + repr(invalid))
+    manifest.write_text(json.dumps(config))
+    project = root / 'implementation/automation'
+    bootstrap = project / 'src/boxferry_ci/bootstrap.py'
+    bootstrap.parent.mkdir(parents=True)
+    bootstrap.write_text('def run_project(root, project, args):\n'
+                         '    assert root.name.startswith("quadlet-tool-policy-")\n'
+                         '    assert project.name == "automation"\n'
+                         '    assert args == ["tools", "--destination", "target dir", "--profile", "core"]\n'
+                         '    return 37\n')
+    def prepare(repository_root, pinned_revision):
+        assert repository_root == root and pinned_revision == revision
+        return project
+    module.prepare_implementation = prepare
+    arguments = ['tools', '--destination', 'target dir', '--profile', 'core']
+    assert module.main(arguments) == 37, 'loader masked delegated failure'
+    def unavailable(*args):
+        raise module.BootstrapError('unavailable immutable implementation')
+    module.prepare_implementation = unavailable
+    error = io.StringIO()
+    with contextlib.redirect_stderr(error):
+        assert module.main(arguments) == 2
+    assert 'unavailable immutable implementation' in error.getvalue()
+    recorder = root / 'arguments'
+    python = root / 'bin/python3'
+    python.write_text('#!/bin/bash\nprintf "%s\\n" "$@" > "$ARGUMENT_RECORD"\nexit 37\n')
+    python.chmod(0o755)
+    environment = dict(os.environ, PATH=str(root / 'bin') + os.pathsep + os.defpath, ARGUMENT_RECORD=str(recorder))
+    wrapper = root / 'scripts/install-file-tools.sh'
+    for extra, destination in [([], '/usr/local/bin'), (['target dir'], 'target dir')]:
+        result = subprocess.run(['bash', str(wrapper), *extra], env=environment, capture_output=True)
+        assert result.returncode == 37, 'installer masked child failure'
+        assert recorder.read_text().splitlines() == [str(root / 'scripts/shared-ci.py'), 'tools', '--destination', destination, '--profile', 'core']
+    recorder.unlink()
+    result = subprocess.run(['bash', str(wrapper), 'one', 'two'], env=environment, capture_output=True)
+    assert result.returncode == 2 and b'Usage:' in result.stderr
+    assert not recorder.exists(), 'invalid arguments reached tool acquisition'
+"#).arg(repository_root()).output().map_err(|error| format!("failed to run shared file-tool contract: {error}"))?;
+    if !output.status.success() {
+        return Err(format!(
+            "shared file-tool contract failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+    Ok(())
+}
+
 #[test]
 fn renovate_tracks_every_directly_pinned_development_tool() -> Result<(), String> {
     let renovate = read_repository_file(".github/renovate.json")?;
@@ -1465,7 +1718,6 @@ fn renovate_tracks_every_directly_pinned_development_tool() -> Result<(), String
     validate_podman_patch_discovery(&renovate_value, &read_repository_file("tools/generator-matrix.toml")?)?;
     for required in [
         "Update versioned Dev Container tools",
-        "Signal updates for checksum-pinned file-quality tools",
         "Update directly pinned workflow tool versions",
         "Update the documented Dev Container CLI",
         "Update the GitHub CLI installed in the Dev Container",
@@ -1493,10 +1745,21 @@ fn renovate_tracks_every_directly_pinned_development_tool() -> Result<(), String
         }
     }
 
-    if renovate.matches(r#""automerge": false"#).count() != 3 {
-        return Err(
-            "Renovate must keep Podman discovery, Dev Container features, and checksum-pinned tools manual".to_owned(),
-        );
+    validate_bootstrap_tool_ownership(&renovate_value)?;
+    let manual_rules = renovate_value["packageRules"]
+        .as_array()
+        .ok_or("Renovate rules must be an array")?
+        .iter()
+        .filter(|rule| rule["automerge"] == false)
+        .map(|rule| rule["description"].as_str().unwrap_or_default())
+        .collect::<Vec<_>>();
+    if manual_rules
+        != [
+            "Keep newest-upstream and maintained-minor Podman discovery separate from reviewed support",
+            "Keep Dev Container feature versions current; the lock file owns digests",
+        ]
+    {
+        return Err("local manual review must retain exactly Podman discovery and Dev Container features".to_owned());
     }
 
     for workflow_name in ["ci.yml"] {

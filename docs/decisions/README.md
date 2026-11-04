@@ -59,3 +59,6 @@ protected inert X-sections and conservative parsed-source Debug redaction.
 
 [ADR 0022](0022-typed-deferred-service-environment.md) defines protected typed deferred words,
 literal service providers, and native quoting without evaluation or provider acquisition.
+
+[ADR 0023](0023-shared-validation-and-dependency-automation.md) stages trusted shared automation
+with a metadata-only eligibility prerequisite before candidate receipt-reader adoption.
