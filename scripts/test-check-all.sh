@@ -27,12 +27,22 @@ case "${command_name}:$*" in
     printf '%s\n' "${command_line% }" >> "${CHECK_ALL_TEST_LOG}"
     ;;
 esac
-if [[ "${CHECK_ALL_TEST_FAIL:-}" == "${command_name}" ]]; then
+if [[ "${CHECK_ALL_TEST_FAIL:-}" == "${command_name}" ||
+  "${CHECK_ALL_TEST_FAIL_COMMAND:-}" == "${command_name} $*" ]]; then
   exit 17
 fi
 case "${command_name}:$*" in
   git:ls-files*) printf 'README.md\0' ;;
+  jq:-er\ .rust_channel) printf '9.8.7\n' ;;
   jq:*) printf '%s\n' "${CHECK_ALL_TEST_MSRV}" ;;
+  python3:scripts/shared-ci.py\ cargo-tools\ verify*)
+    [[ "${CARGO_HOME}" == "${CARGO_TARGET_DIR%/cargo-semver-checks-target}/cargo-home" ]]
+    [[ "${CARGO_TARGET_DIR}" == */check-all/quadlet-lens/cargo-semver-checks-target ]]
+    printf '{"rust_channel":"9.8.7"}\n' ;;
+  python3:scripts/shared-ci.py\ run\ --event\ local\ --task\ api-development*)
+    [[ "${CARGO_HOME}" == "${CARGO_TARGET_DIR%/cargo-semver-checks-target}/cargo-home" ]]
+    [[ "${CARGO_TARGET_DIR}" == */check-all/quadlet-lens/cargo-semver-checks-target ]]
+    [[ "${RUSTUP_TOOLCHAIN}" == '9.8.7' ]] ;;
 esac
 MOCK
 chmod +x "${test_root}/bin/mock"
@@ -65,10 +75,50 @@ export BOXFERRY_WEBSITE_FORMAT_MODE=fix
 run_gate default
 run_gate fix --fix
 run_gate check --check
+# Declared-tool verification is a required preflight in both modes. Its selected
+# compiler is deliberately different from the metadata MSRV to prove forwarding.
+semver_verification="python3 scripts/shared-ci.py cargo-tools verify --repository-root ${test_root}/repository --package cargo-semver-checks"
+for mode in default fix check; do
+  assert_contains "${mode}" "${semver_verification}"
+  [[ "$(grep -Fxc -- "${semver_verification}" "${test_root}/${mode}.commands")" == 1 ]]
+  assert_contains "${mode}" 'python3 scripts/shared-ci.py run --event local --task api-development --report-json target/api-development-task.json'
+done
+for mode in fix check; do
+  status=0
+  CHECK_ALL_TEST_FAIL_COMMAND="${semver_verification}" run_gate invalid_semver "--${mode}" || status=$?
+  [[ "${status}" == 17 ]]
+  [[ "$(tail -n 1 "${test_root}/invalid_semver.commands")" == "${semver_verification}" ]]
+  grep -Fq 'Verify exact local Cargo SemVer selection' "${test_root}/invalid_semver.output"
+  if grep -Eq '^cargo (fmt|semver-checks)' "${test_root}/invalid_semver.commands"; then
+    printf 'Invalid SemVer selection reached formatting or compatibility.\n' >&2
+    exit 1
+  fi
+done
+
+api_development='python3 scripts/shared-ci.py run --event local --task api-development --report-json target/api-development-task.json'
+for mode in fix check; do
+  status=0
+  CHECK_ALL_TEST_FAIL_COMMAND="${api_development}" run_gate api_failure "--${mode}" || status=$?
+  [[ "${status}" == 17 ]]
+  [[ "$(tail -n 1 "${test_root}/api_failure.commands")" == "${api_development}" ]]
+  grep -Fq 'Check development API compatibility' "${test_root}/api_failure.output"
+  if grep -Fq 'local validation passed' "${test_root}/api_failure.output"; then
+    printf 'Failed API development check reported complete gate success.\n' >&2
+    exit 1
+  fi
+done
 diff -u "${test_root}/default.commands" "${test_root}/fix.commands"
 assert_contains fix "bash scripts/check-files.sh --fix"
 assert_contains check "bash scripts/check-files.sh --check"
-assert_contains check "python3 scripts/test-validation-plan.py"
+assert_contains check "python3 scripts/shared-ci.py run --task python-quality"
+# Ordinary validation retains the existing complete gate without activating image qualification.
+for mode in fix check; do
+  if grep -Fq 'devcontainer-local' "${test_root}/${mode}.commands"; then
+    printf 'Ordinary validation unexpectedly activated image qualification.\n' >&2
+    exit 1
+  fi
+  grep -Fq 'passed all 25 steps' "${test_root}/${mode}.output"
+done
 assert_contains check "cargo +${CHECK_ALL_TEST_MSRV} ci-check"
 assert_contains check "cargo +${CHECK_ALL_TEST_MSRV} ci-policy"
 CHECK_ALL_TEST_MSRV=1.99.0 run_gate newer_msrv --check
@@ -122,4 +172,5 @@ for mode in fix check; do
   [[ "${status}" == 17 ]]
   [[ "$(tail -n 1 "${test_root}/failure.commands")" == "actionlint" ]]
 done
+unset CHECK_ALL_TEST_FAIL
 printf 'Complete gate mode regression tests passed.\n'

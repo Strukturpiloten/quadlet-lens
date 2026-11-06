@@ -45,20 +45,21 @@ continues to identify repository `quadlet-lens`, workflow `release.yml`, and env
    workflow at the exact candidate SHA. The latter executes the full pinned generator matrix and
    the existing tracked-current application-generator lane. It uploads current-run, task-labelled
    evidence; a missing, failed, cancelled, timed-out, or unexpectedly skipped prerequisite blocks
-   the fail-closed release gate.
+   the shared fail-closed release gate. The typed `.github/release-policy.json` preserves all four
+   independent prerequisites and their exact candidate outputs.
 
    The change-aware PR classifier is not used to reduce release validation: reusable CI always
    selects every deterministic job for the exact candidate, and the full native lanes remain
    separate mandatory prerequisites.
 
 5. A maintainer can dispatch Release with `validation_only` to run that identical gate without a
-   crate publication, tag, draft release, asset, or other release mutation. Only the final,
-   already-gated publication job receives release credentials.
+   crate publication, tag, draft release, asset, or other release mutation. Shared crate preparation
+   runs read-only after the gate. Only the protected final publisher receives release credentials.
 
 6. Approve the `release` environment deployment for a publication run. The final gated job builds
-   the package, publishes through trusted publishing, attaches the attested crate and checksum,
-   and publishes the immutable GitHub release; it does not repeat validation with release
-   credentials.
+   the package, attaches its attestation/checksum, invokes the common trusted crate publisher and
+   publishes the immutable GitHub release. Preparation and publication use the same verified
+   candidate; product/native validation never runs with release credentials.
 
 GitHub uses the pull-request title as the squash commit title, so the title is the release
 classification contract. Release-plz creates or updates a release pull request only when at least

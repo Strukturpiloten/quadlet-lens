@@ -29,6 +29,10 @@ fn ci_runs_once_per_pull_request_update_and_on_main_pushes() -> Result<(), Strin
     let workflow_path = repository_root().join(".github/workflows/ci.yml");
     let workflow = fs::read_to_string(&workflow_path)
         .map_err(|error| format!("failed to read {}: {error}", workflow_path.display()))?;
+    validate_ci_trigger_contract(&workflow)
+}
+
+fn validate_ci_trigger_contract(workflow: &str) -> Result<(), String> {
     let expected = "on:\n  push:\n    branches:\n      - main\n  pull_request:\n  workflow_dispatch:\n";
     if !workflow.contains(expected) {
         return Err(
@@ -37,6 +41,21 @@ fn ci_runs_once_per_pull_request_update_and_on_main_pushes() -> Result<(), Strin
         );
     }
 
+    if workflow.lines().filter(|line| *line == "on:").count() != 1 {
+        return Err("CI must declare one event boundary".to_owned());
+    }
+    for event in [
+        "push",
+        "pull_request",
+        "workflow_dispatch",
+        "workflow_call",
+        "merge_group",
+    ] {
+        let declaration = format!("  {event}:");
+        if workflow.lines().filter(|line| *line == declaration.as_str()).count() != 1 {
+            return Err(format!("CI must retain exactly one {event} event"));
+        }
+    }
     Ok(())
 }
 
@@ -86,6 +105,24 @@ fn rust_minimum_matches_clippy_and_public_claims() -> Result<(), String> {
     Ok(())
 }
 
+#[test]
+fn ci_trigger_contract_rejects_removed_events_and_feature_branch_pushes() -> Result<(), String> {
+    let workflow = read_repository_file(".github/workflows/ci.yml")?;
+    validate_ci_trigger_contract(&workflow)?;
+    for event in ["pull_request", "workflow_dispatch", "workflow_call", "merge_group"] {
+        let changed = workflow.replacen(&format!("  {event}:\n"), "", 1);
+        assert_ne!(changed, workflow);
+        assert!(
+            validate_ci_trigger_contract(&changed).is_err(),
+            "accepted missing {event}"
+        );
+    }
+    let extra_push = workflow.replacen("      - main\n", "      - main\n      - feature\n", 1);
+    assert!(validate_ci_trigger_contract(&extra_push).is_err());
+    assert!(validate_ci_trigger_contract(&(workflow + "\non:\n")).is_err());
+    Ok(())
+}
+
 fn exact_rust_release(version: &str) -> Result<[u32; 3], String> {
     version
         .split('.')
@@ -111,31 +148,34 @@ fn rust_release_comparison_preserves_patch_and_minor_boundaries() -> Result<(), 
 
 #[test]
 fn public_api_compatibility_runs_in_reusable_ci() -> Result<(), String> {
-    const ACTION: &str = "obi1kenobi/cargo-semver-checks-action@6b69fcf40e9b5fb17adeb57e4b6ecd020649a239 # v2.9";
-    const CONFIGURATION: &str = "package: quadlet-lens";
-
-    let workflow_name = "ci.yml";
-    let workflow_path = repository_root().join(".github/workflows").join(workflow_name);
-    let workflow = fs::read_to_string(&workflow_path)
-        .map_err(|error| format!("failed to read {}: {error}", workflow_path.display()))?;
-
-    let configured_action = format!("uses: {ACTION}\n        with:\n          {CONFIGURATION}");
-    if workflow.matches(ACTION).count() != 1
-        || workflow.matches(&configured_action).count() != 1
-        || workflow.contains("release-type:")
-    {
-        return Err(format!(
-            "{workflow_name} must contain one version-derived cargo-semver-checks action for quadlet-lens"
-        ));
+    let workflow = read_repository_file(".github/workflows/ci.yml")?;
+    let manifest: serde_json::Value =
+        serde_json::from_str(&read_repository_file(".github/automation.json")?).map_err(|error| error.to_string())?;
+    let revision = manifest["revision"].as_str().ok_or("missing automation revision")?;
+    let reference = format!("shared-rust-semver.yml@{revision} # automation-v1 interface v1");
+    if workflow.matches(&reference).count() != 1 {
+        return Err("API must have one manifest-bound shared SemVer owner".to_owned());
     }
-
+    for required in [
+        "package: quadlet-lens",
+        "api_purpose: ${{ inputs.api_purpose || 'development' }}",
+        "PUBLISHED_API_CANDIDATE_SHA: ${{ needs.api.outputs.published_api_candidate_sha }}",
+        "test \"${PUBLISHED_API_CANDIDATE_SHA}\" = \"${GITHUB_SHA}\"",
+    ] {
+        if !workflow.contains(required) {
+            return Err(format!("shared API contract is missing `{required}`"));
+        }
+    }
+    if workflow.contains("release_type:") || workflow.contains("initial_api_contract:") {
+        return Err("published QuadletLens must derive API baselines without initial-publication bypasses".to_owned());
+    }
     Ok(())
 }
 
 #[test]
 fn coverage_ratchet_runs_in_reusable_ci() -> Result<(), String> {
     const CLEAN: &str = "cargo llvm-cov clean --locked";
-    const COMMAND: &str = "cargo llvm-cov --locked --no-clean --workspace --all-features --all-targets --summary-only\n          --fail-under-regions 91 --fail-under-functions 92 --fail-under-lines 92";
+    const COMMAND: &str = "cargo llvm-cov --locked --no-clean --workspace --all-features --all-targets --summary-only --fail-under-regions 91 --fail-under-functions 92 --fail-under-lines 92";
 
     let dockerfile = read_repository_file(".devcontainer/Dockerfile")?;
     let expected_version = pinned_cargo_llvm_cov_version(&dockerfile, ".devcontainer/Dockerfile")?;
@@ -204,86 +244,49 @@ fn pinned_cargo_llvm_cov_version(document: &str, source: &str) -> Result<String,
 #[test]
 fn ci_workflow_uses_trusted_change_plan_and_fail_closed_gate() -> Result<(), String> {
     let workflow = read_repository_file(".github/workflows/ci.yml")?;
-    if workflow.matches("    name: Required CI\n").count() != 1 {
-        return Err("CI workflow must expose exactly one Required CI aggregate".to_owned());
-    }
     for required in [
         "  validation-plan:\n    name: Validation plan",
-        "ref: ${{ github.event.pull_request.base.sha }}",
-        "python3 .validation-base/scripts/validation-plan.py plan",
-        "trusted base has no classifier",
+        "python -m boxferry_ci plan",
+        "python -m boxferry_ci gate",
+        "--policy-sha",
+        "--tested-sha",
+        "--automation-sha",
+        "--plan-json",
+        "--needs-json",
         "if: needs.validation-plan.outputs.select_rust == 'true'",
         "if: needs.validation-plan.outputs.select_documentation == 'true'",
         "  pr-gate:\n    name: Required CI\n    if: always()",
-        "python3 \"${verifier}\" gate",
-        "set(needs) != {\"validation-plan\", *jobs}",
-        "repository: Strukturpiloten/.github",
-        "ref: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha }}",
-        "BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}",
-        "HEAD_SHA: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha }}",
-        "test \"${HEAD_SHA}\" = \"${GITHUB_SHA}\"",
-        "test \"$(git rev-parse HEAD)\" = \"${HEAD_SHA}\"",
-        "git merge-base --is-ancestor \"${BASE_SHA}\" \"${HEAD_SHA}\"",
-        "--repository-root \"${GITHUB_WORKSPACE}\"",
-        "--base \"${BASE_SHA}\"",
-        "--head \"${HEAD_SHA}\"",
-        "--minimum-age-hours 72",
+        "uses: ./_automation/.github/actions/shared-source",
+        "uses: ./_automation/.github/actions/shared-python",
+        "shared-dependency-wait.yml@",
     ] {
         if !workflow.contains(required) {
-            return Err(format!("CI workflow is missing contract `{required}`"));
+            return Err(format!("CI shared trusted-candidate contract is missing `{required}`"));
         }
     }
-    let pr_gate = workflow
-        .split_once("  pr-gate:\n")
-        .ok_or("CI workflow is missing the PR gate")?
-        .1;
-    let needs = pr_gate
-        .split_once("needs:")
-        .ok_or("PR gate is missing needs")?
-        .1
-        .trim_start()
-        .strip_prefix('[')
-        .ok_or("PR gate needs must use a bounded flow list")?;
-    let (needs, _) = needs.split_once(']').ok_or("PR gate needs list is not closed")?;
-    let needs = needs.trim();
-    let needs = needs.strip_suffix(',').unwrap_or(needs);
-    let actual_needs = needs.split(',').map(str::trim).collect::<Vec<_>>();
-    let expected_needs = [
-        "validation-plan",
-        "rust",
-        "coverage",
-        "msrv",
-        "dependencies",
-        "api",
-        "documentation",
-        "lockfile-release-age",
-    ];
-    if actual_needs != expected_needs {
-        return Err(format!("PR gate dependencies changed: {actual_needs:?}"));
-    }
-    if workflow.contains("runs-on: macos-") || workflow.contains("runs-on: windows-") {
-        return Err("CI must only claim evidenced Linux validation".to_owned());
-    }
-    let marker = "# renovate: datasource=github-digest depName=Strukturpiloten/.github currentValue=main";
-    let lines = workflow.lines().collect::<Vec<_>>();
-    let marker_line = lines
-        .iter()
-        .position(|line| line.trim() == marker)
-        .ok_or_else(|| "CI shared-policy Renovate marker is missing".to_owned())?;
-    let shared_ref = lines
-        .get(marker_line + 1)
-        .and_then(|line| line.trim().strip_prefix("ref: "))
-        .ok_or_else(|| "CI shared-policy marker must be adjacent to its ref".to_owned())?;
-    if workflow.matches(marker).count() != 1
-        || shared_ref.len() != 40
-        || !shared_ref
-            .bytes()
-            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+    if workflow.matches("    name: Required CI\n").count() != 1
         || workflow.contains("continue-on-error: true")
+        || workflow.contains("runs-on: macos-")
+        || workflow.contains("runs-on: windows-")
+        || workflow.contains("scripts/validation-plan.py")
+        || workflow.contains("devcontainer-validation")
     {
-        return Err(
-            "shared lockfile guard must have one immutable Renovate-owned SHA without softened failures".to_owned(),
-        );
+        return Err("CI must retain one fail-closed shared aggregate on evidenced Linux runners".to_owned());
+    }
+    let policy: serde_json::Value = serde_json::from_str(&read_repository_file("scripts/validation-policy.json")?)
+        .map_err(|error| error.to_string())?;
+    if policy["jobs"]
+        != serde_json::json!([
+            "rust",
+            "coverage",
+            "msrv",
+            "dependencies",
+            "api",
+            "documentation",
+            "lockfile-release-age"
+        ])
+    {
+        return Err("ordinary shared adoption must preserve every original validation job".to_owned());
     }
     Ok(())
 }
@@ -334,8 +337,11 @@ fn local_developer_workflow_covers_deterministic_release_checks() -> Result<(), 
         "env CARGO_TARGET_DIR=\"${coverage_target_dir}\"",
         "env CARGO_HOME=\"${semver_cargo_home}\"",
         "CARGO_TARGET_DIR=\"${semver_target_dir}\"",
-        "cargo semver-checks check-release",
-        "--package quadlet-lens",
+        "python3 scripts/shared-ci.py run --event local --task api-development",
+        "--task api-development",
+        "cargo-tools verify",
+        "--repository-root",
+        "--package cargo-semver-checks",
     ] {
         if !script.contains(required) {
             return Err(format!("local validation runner missing `{required}`"));
@@ -737,41 +743,42 @@ fn release_workflow_uses_the_create_response_as_its_draft_identity() -> Result<(
 
 #[test]
 fn release_workflow_uses_only_trusted_publishing() -> Result<(), String> {
-    let workflow_path = repository_root().join(".github/workflows/release.yml");
-    let workflow = fs::read_to_string(&workflow_path)
-        .map_err(|error| format!("failed to read {}: {error}", workflow_path.display()))?;
-
+    let workflow = read_repository_file(".github/workflows/release.yml")?;
     for forbidden in [
         "CRATES_IO_API_TOKEN",
         "CRATES_IO_BOOTSTRAP_TOKEN",
         "cargo login",
         "--token",
         "secrets.",
+        "cargo publish --locked",
     ] {
         if workflow.contains(forbidden) {
             return Err(format!(
-                "release workflow contains the forbidden long-lived credential path `{forbidden}`"
+                "consumer Release must not own credential or publication implementation `{forbidden}`"
             ));
         }
     }
-
     for required in [
         "id-token: write",
-        "rust-lang/crates-io-auth-action@",
-        "CARGO_REGISTRY_TOKEN: ${{ steps.crates-auth.outputs.token }}",
-        "cargo publish --locked",
+        "environment: release",
+        "uses: ./_automation/.github/actions/shared-crate-publish",
+        "validation-sha: ${{ needs.release-gate.outputs.candidate_sha }}",
+        "validation-result: ${{ needs.release-gate.result }}",
+        "validation-only: \"true\"",
+        "validation-only: \"false\"",
+        "api_purpose: published",
     ] {
         if !workflow.contains(required) {
-            return Err(format!(
-                "release workflow is missing the trusted-publishing guard `{required}`"
-            ));
+            return Err(format!("shared trusted publication boundary is missing `{required}`"));
         }
     }
-
-    if workflow.matches("cargo publish --locked").count() != 1 {
-        return Err("release workflow must contain exactly one publication command".to_owned());
+    if workflow
+        .matches("uses: ./_automation/.github/actions/shared-crate-publish")
+        .count()
+        != 2
+    {
+        return Err("Release needs one read-only preparation and one protected publication caller".to_owned());
     }
-
     Ok(())
 }
 
@@ -857,19 +864,13 @@ fn validate_release_plz_contract(repository: &str) -> Result<(), String> {
     validate_release_plz_changelog(&config)?;
 
     let workflow = read_repository_file(".github/workflows/release-plz.yml")?;
+    let manifest: serde_json::Value =
+        serde_json::from_str(&read_repository_file(".github/automation.json")?).map_err(|error| error.to_string())?;
+    let revision = manifest["revision"]
+        .as_str()
+        .ok_or("missing shared automation revision")?;
+    validate_shared_release_preparation(&workflow, repository, revision)?;
     for required in [
-        repository,
-        "vars.RELEASE_PLZ_APP_CLIENT_ID",
-        "client-id:",
-        "secrets.RELEASE_PLZ_APP_PRIVATE_KEY",
-        "permission-contents: write",
-        "permission-pull-requests: write",
-        "continue-on-error: true",
-        "steps.app-token.outcome == 'failure'",
-        "approve the updated permissions for the App installation",
-        "command: release-pr",
-        "renovate: datasource=crate depName=release-plz",
-        "version: \"0.3.160\"",
         "(.head.ref | startswith(\"release-plz-\"))",
         "actions/workflows/release.yml/dispatches",
         "actions: write",
@@ -879,7 +880,7 @@ fn validate_release_plz_contract(repository: &str) -> Result<(), String> {
         "No release was dispatched.",
     ] {
         if !workflow.contains(required) {
-            return Err(format!("release-plz workflow is missing `{required}`"));
+            return Err(format!("guarded release dispatcher missing `{required}`"));
         }
     }
     for forbidden in [
@@ -889,26 +890,140 @@ fn validate_release_plz_contract(repository: &str) -> Result<(), String> {
         "cargo publish",
         "git tag",
         "gh release create",
+        "renovate: datasource=crate depName=release-plz",
     ] {
         if workflow.contains(forbidden) {
-            return Err(format!("release-plz workflow must not contain `{forbidden}`"));
+            return Err(format!("release preparation must not retain `{forbidden}`"));
         }
     }
-
-    if workflow
-        .matches("renovate: datasource=crate depName=release-plz")
-        .count()
-        != 1
-    {
-        return Err("release-plz workflow must have exactly one canonical Renovate marker".to_owned());
-    }
-    for action in ["release-plz/action", "actions/create-github-app-token"] {
-        validate_renovate_owned_action_pin(&workflow, action)?;
-    }
-
     let release = read_repository_file(".github/workflows/release.yml")?;
     if release.contains("docs/releases/${version}.md") || !release.contains("bash scripts/extract-release-notes.sh") {
         return Err("protected publication must derive release notes from CHANGELOG.md".to_owned());
+    }
+    Ok(())
+}
+
+/// Validate the preparation job against the full owner/repository identity.
+fn validate_shared_release_preparation(workflow: &str, repository: &str, revision: &str) -> Result<(), String> {
+    let (_, tail) = workflow
+        .split_once("  prepare-release-pr:\n")
+        .ok_or("missing release preparation job")?;
+    let (prepare, _) = tail
+        .split_once("  dispatch-release:\n")
+        .ok_or("missing guarded release dispatcher")?;
+    let reference = format!(
+        "uses: Strukturpiloten/boxferry/.github/workflows/shared-release-prepare.yml@{revision} # automation-v1 interface v1"
+    );
+    if prepare.matches(reference.as_str()).count() != 1 {
+        return Err("release preparation must select the manifest-bound shared workflow once".to_owned());
+    }
+    let repository_guard = format!("    if: github.repository == '{repository}'");
+    if !prepare
+        .lines()
+        .filter(|line| line.starts_with("    if:"))
+        .eq([repository_guard.as_str()])
+    {
+        return Err("release preparation must retain its exact job-level repository guard".to_owned());
+    }
+    for expected in [
+        "permissions:\n      contents: read".to_owned(),
+        "candidate_sha: ${{ github.sha }}".to_owned(),
+        format!("automation_sha: {revision}"),
+        "policy_sha: ${{ github.sha }}".to_owned(),
+        "config_path: scripts/validation-policy.json".to_owned(),
+        "app_client_id: ${{ vars.RELEASE_PLZ_APP_CLIENT_ID }}".to_owned(),
+        "app_private_key: ${{ secrets.RELEASE_PLZ_APP_PRIVATE_KEY }}".to_owned(),
+    ] {
+        if !prepare.contains(expected.as_str()) {
+            return Err(format!("shared release preparation omits `{expected}`"));
+        }
+    }
+    for forbidden in [
+        "runs-on:",
+        "steps:",
+        "release-plz/action@",
+        "actions/create-github-app-token@",
+        "version:",
+        "secrets: inherit",
+        "contents: write",
+        "actions: write",
+        "pull-requests: write",
+        "id-token: write",
+    ] {
+        if prepare.contains(forbidden) {
+            return Err(format!("thin release preparation must not contain `{forbidden}`"));
+        }
+    }
+    Ok(())
+}
+
+#[test]
+fn shared_release_preparation_rejects_source_scope_and_token_drift() -> Result<(), String> {
+    let workflow = read_repository_file(".github/workflows/release-plz.yml")?;
+    let manifest: serde_json::Value =
+        serde_json::from_str(&read_repository_file(".github/automation.json")?).map_err(|error| error.to_string())?;
+    let revision = manifest["revision"].as_str().ok_or("missing automation revision")?;
+    validate_shared_release_preparation(&workflow, "Strukturpiloten/quadlet-lens", revision)?;
+    for (before, after) in [
+        (
+            "if: github.repository == 'Strukturpiloten/quadlet-lens'".to_owned(),
+            "if: github.repository == 'OtherOwner/quadlet-lens'".to_owned(),
+        ),
+        (
+            "if: github.repository == 'Strukturpiloten/quadlet-lens'".to_owned(),
+            String::new(),
+        ),
+        (
+            "if: github.repository == 'Strukturpiloten/quadlet-lens'".to_owned(),
+            "if: github.repository == 'Strukturpiloten/quadlet-lens' || true".to_owned(),
+        ),
+        (
+            "if: github.repository == 'Strukturpiloten/quadlet-lens'".to_owned(),
+            "if: github.repository == 'OtherOwner/quadlet-lens'\n    # if: github.repository == 'Strukturpiloten/quadlet-lens'".to_owned(),
+        ),
+        (
+            "if: github.repository == 'Strukturpiloten/quadlet-lens'".to_owned(),
+            "if: github.repository == 'OtherOwner/quadlet-lens'\n    env:\n      GUARD_TEXT: |\n        if: github.repository == 'Strukturpiloten/quadlet-lens'".to_owned(),
+        ),
+        (
+            format!("shared-release-prepare.yml@{revision}"),
+            format!("shared-release-prepare.yml@{}", "a".repeat(40)),
+        ),
+        (
+            format!("automation_sha: {revision}"),
+            format!("automation_sha: {}", "a".repeat(40)),
+        ),
+        (
+            "candidate_sha: ${{ github.sha }}".to_owned(),
+            "candidate_sha: main".to_owned(),
+        ),
+        (
+            "policy_sha: ${{ github.sha }}".to_owned(),
+            "policy_sha: main".to_owned(),
+        ),
+        (
+            "app_client_id: ${{ vars.RELEASE_PLZ_APP_CLIENT_ID }}".to_owned(),
+            "app_client_id: missing".to_owned(),
+        ),
+        (
+            "app_private_key: ${{ secrets.RELEASE_PLZ_APP_PRIVATE_KEY }}".to_owned(),
+            "app_private_key: missing".to_owned(),
+        ),
+        (
+            "permissions:\n      contents: read".to_owned(),
+            "permissions:\n      contents: write".to_owned(),
+        ),
+        (
+            "    uses: Strukturpiloten/boxferry/".to_owned(),
+            "    steps: []\n    uses: Strukturpiloten/boxferry/".to_owned(),
+        ),
+    ] {
+        let changed = workflow.replacen(before.as_str(), after.as_str(), 1);
+        assert_ne!(changed, workflow);
+        assert!(
+            validate_shared_release_preparation(&changed, "Strukturpiloten/quadlet-lens", revision).is_err(),
+            "accepted drift: {before}"
+        );
     }
     Ok(())
 }
@@ -1028,596 +1143,6 @@ fn validate_release_plz_changelog(config: &toml::Value) -> Result<(), String> {
     Ok(())
 }
 
-fn reextract_shared_policy_marker<'a>(
-    manager_pattern: &str,
-    candidate: &'a str,
-) -> Option<(&'a str, &'a str, &'a str)> {
-    let expected_pattern = "(?<indentation>[ \\t]*)# renovate: datasource=github-digest depName=(?<depName>Strukturpiloten/\\.github) currentValue=(?<currentValue>main)\\n[ \\t]*ref:\\s*(?<currentDigest>[a-f0-9]{40})";
-    if manager_pattern != expected_pattern {
-        return None;
-    }
-    let (marker_line, ref_line) = candidate.split_once('\n')?;
-    let (indentation, marker) = marker_line.split_once('#')?;
-    if !indentation.bytes().all(|byte| matches!(byte, b' ' | b'\t')) {
-        return None;
-    }
-    let marker = marker.strip_prefix(" renovate: datasource=github-digest depName=")?;
-    let (dep_name, current_value) = marker.split_once(" currentValue=")?;
-    if dep_name != "Strukturpiloten/.github" || current_value != "main" {
-        return None;
-    }
-    let ref_line = ref_line.strip_prefix(indentation)?.strip_prefix("ref: ")?;
-    if ref_line.len() != 40
-        || !ref_line
-            .bytes()
-            .all(|byte| byte.is_ascii_digit() || matches!(byte, b'a'..=b'f'))
-    {
-        return None;
-    }
-    Some((dep_name, current_value, ref_line))
-}
-
-fn validate_renovate_lockfile_policy(renovate: &serde_json::Value) -> Result<(), String> {
-    validate_in_house_release_age_policy(renovate)?;
-    if renovate["minimumReleaseAge"] != "3 days" {
-        return Err("Renovate must retain the three-day minimum release age".to_owned());
-    }
-    let rules = renovate["packageRules"]
-        .as_array()
-        .ok_or_else(|| "Renovate packageRules must be an array".to_owned())?;
-    let generic_index = rules
-        .iter()
-        .position(|rule| rule["description"] == "Automerge tested non-major dependency updates")
-        .ok_or_else(|| "Renovate generic non-major automerge rule is missing".to_owned())?;
-    let generic_rule = &rules[generic_index];
-    if generic_rule["matchUpdateTypes"] != serde_json::json!(["minor", "patch", "pin", "digest", "pinDigest"])
-        || generic_rule["automerge"] != true
-        || generic_rule["automergeType"] != "pr"
-        || generic_rule["platformAutomerge"] != false
-    {
-        return Err("Renovate generic non-major automerge categories must remain exact".to_owned());
-    }
-    let lock_matches = rules
-        .iter()
-        .enumerate()
-        .filter(|(_, rule)| rule["description"] == "Automerge green-gated lock-file maintenance")
-        .collect::<Vec<_>>();
-    if lock_matches.len() != 1 {
-        return Err("Renovate must define exactly one lock-file maintenance rule".to_owned());
-    }
-    let (lock_index, lock_rule) = lock_matches[0];
-    if lock_rule["matchUpdateTypes"] != serde_json::json!(["lockFileMaintenance"])
-        || lock_rule["minimumReleaseAge"] != "0 days"
-        || lock_rule["automerge"] != true
-        || lock_rule["automergeType"] != "pr"
-        || lock_rule["platformAutomerge"] != false
-        || lock_index <= generic_index
-    {
-        return Err("Renovate lock-file maintenance must follow generic automerge and remain green-gated".to_owned());
-    }
-    for description in [
-        "Keep newest-upstream and maintained-minor Podman discovery separate from reviewed support",
-        "Keep Dev Container feature versions current; the lock file owns digests",
-    ] {
-        let (index, rule) = rules
-            .iter()
-            .enumerate()
-            .find(|(_, rule)| rule["description"] == description)
-            .ok_or_else(|| format!("Renovate manual-review rule `{description}` is missing"))?;
-        if index <= generic_index || index <= lock_index || rule["automerge"] != false {
-            return Err(format!(
-                "Renovate manual-review rule `{description}` must follow both automerge rules and stay manual"
-            ));
-        }
-    }
-    validate_shared_policy_manager(renovate)
-}
-
-fn validate_in_house_release_age_policy(renovate: &serde_json::Value) -> Result<(), String> {
-    if renovate["minimumReleaseAge"] != "3 days" {
-        return Err("Renovate must retain the three-day minimum release age".to_owned());
-    }
-    let rules = renovate["packageRules"]
-        .as_array()
-        .ok_or_else(|| "Renovate packageRules must be an array".to_owned())?;
-    let description = "Do not delay BoxFerry and Lens releases";
-    let exceptions = rules
-        .iter()
-        .filter(|rule| rule["description"] == description)
-        .collect::<Vec<_>>();
-    let expected = serde_json::json!({
-        "description": description,
-        "matchManagers": ["cargo"],
-        "matchDatasources": ["crate"],
-        "matchPackageNames": [
-            "boxferry", "boxferry-model", "boxferry-engine", "boxferry-compose",
-            "boxferry-podman", "boxferry-quadlet", "compose-lens", "podman-lens",
-            "quadlet-lens", "docker-lens",
-        ],
-        "minimumReleaseAge": "0 days",
-    });
-    if exceptions.len() != 1 || *exceptions[0] != expected {
-        return Err("in-house release-age exception must retain exact Cargo/crate names and waive only age".to_owned());
-    }
-    if rules.iter().any(|rule| {
-        rule.get("minimumReleaseAge").is_some()
-            && rule["description"] != description
-            && rule["description"] != "Automerge green-gated lock-file maintenance"
-    }) {
-        return Err(
-            "only in-house Cargo releases and guarded lock-file maintenance may override release age".to_owned(),
-        );
-    }
-    Ok(())
-}
-
-#[test]
-fn renovate_in_house_age_exception_rejects_broadened_scope_and_weakened_gates() -> Result<(), String> {
-    let renovate: serde_json::Value =
-        serde_json::from_str(&read_repository_file(".github/renovate.json")?).map_err(|error| error.to_string())?;
-    validate_renovate_lockfile_policy(&renovate)?;
-    let rules = renovate["packageRules"]
-        .as_array()
-        .ok_or("Renovate rules must be an array")?;
-    let exception_index = rules
-        .iter()
-        .position(|rule| rule["description"] == "Do not delay BoxFerry and Lens releases")
-        .ok_or("in-house exception is missing")?;
-
-    for (field, replacement) in [
-        ("matchManagers", serde_json::json!(["npm"])),
-        ("matchManagers", serde_json::json!(["cargo", "npm", "custom.regex"])),
-        ("matchDatasources", serde_json::json!(["github-releases"])),
-        ("matchDatasources", serde_json::json!(["crate", "npm"])),
-        ("minimumReleaseAge", serde_json::json!("1 day")),
-        ("automerge", serde_json::json!(true)),
-        ("dependencyDashboardApproval", serde_json::json!(false)),
-    ] {
-        let mut mutated = renovate.clone();
-        mutated["packageRules"][exception_index][field] = replacement;
-        assert!(
-            validate_renovate_lockfile_policy(&mutated).is_err(),
-            "accepted mutation of {field}"
-        );
-    }
-    for field in ["matchManagers", "matchDatasources", "matchPackageNames"] {
-        let mut mutated = renovate.clone();
-        mutated["packageRules"][exception_index]
-            .as_object_mut()
-            .ok_or("in-house exception must be an object")?
-            .remove(field);
-        assert!(
-            validate_renovate_lockfile_policy(&mutated).is_err(),
-            "accepted missing {field}"
-        );
-    }
-    let names = rules[exception_index]["matchPackageNames"]
-        .as_array()
-        .ok_or("in-house package names must be an array")?;
-    for index in 0..names.len() {
-        let mut mutated = renovate.clone();
-        mutated["packageRules"][exception_index]["matchPackageNames"]
-            .as_array_mut()
-            .ok_or("in-house package names must be an array")?
-            .remove(index);
-        assert!(
-            validate_renovate_lockfile_policy(&mutated).is_err(),
-            "accepted missing package {index}"
-        );
-    }
-    for added in ["serde", "docker-lens-extra", "*", "docker-lens"] {
-        let mut mutated = renovate.clone();
-        mutated["packageRules"][exception_index]["matchPackageNames"]
-            .as_array_mut()
-            .ok_or("in-house package names must be an array")?
-            .push(serde_json::json!(added));
-        assert!(
-            validate_renovate_lockfile_policy(&mutated).is_err(),
-            "accepted added package {added}"
-        );
-    }
-    let mut younger_global_age = renovate.clone();
-    younger_global_age["minimumReleaseAge"] = serde_json::json!("0 days");
-    assert!(validate_renovate_lockfile_policy(&younger_global_age).is_err());
-    for additional_rule in [
-        rules[exception_index].clone(),
-        serde_json::json!({"matchPackageNames": ["serde"], "minimumReleaseAge": "0 days"}),
-    ] {
-        let mut mutated = renovate.clone();
-        mutated["packageRules"]
-            .as_array_mut()
-            .ok_or("Renovate rules must be an array")?
-            .push(additional_rule);
-        assert!(
-            validate_renovate_lockfile_policy(&mutated).is_err(),
-            "accepted additional age exception"
-        );
-    }
-    Ok(())
-}
-
-#[test]
-fn renovate_shared_guard_keeps_one_owner_and_digest_reextraction() -> Result<(), String> {
-    let renovate: serde_json::Value =
-        serde_json::from_str(&read_repository_file(".github/renovate.json")?).map_err(|error| error.to_string())?;
-    validate_shared_policy_manager(&renovate)?;
-    let managers = renovate["customManagers"]
-        .as_array()
-        .ok_or("Renovate managers must be an array")?;
-    let owner_index = managers
-        .iter()
-        .position(|manager| manager["description"] == "Track the immutable Strukturpiloten shared-policy commit")
-        .ok_or("shared-policy owner is missing")?;
-    for (field, replacement) in [
-        ("datasourceTemplate", serde_json::json!("github-releases")),
-        ("managerFilePatterns", serde_json::json!([r"/^Cargo\.toml$/"])),
-        ("matchStrings", serde_json::json!(["ref: (?<currentDigest>.+)"])),
-        ("autoReplaceStringTemplate", serde_json::json!("ref: {{{newDigest}}}")),
-    ] {
-        let mut mutated = renovate.clone();
-        mutated["customManagers"][owner_index][field] = replacement;
-        assert!(
-            validate_shared_policy_manager(&mutated).is_err(),
-            "accepted shared-policy mutation of {field}"
-        );
-    }
-    let mut duplicate = renovate.clone();
-    duplicate["customManagers"]
-        .as_array_mut()
-        .ok_or("Renovate managers must be an array")?
-        .push(managers[owner_index].clone());
-    assert!(validate_shared_policy_manager(&duplicate).is_err());
-    Ok(())
-}
-
-fn validate_shared_policy_manager(renovate: &serde_json::Value) -> Result<(), String> {
-    let managers = renovate["customManagers"]
-        .as_array()
-        .ok_or_else(|| "Renovate customManagers must be an array".to_owned())?
-        .iter()
-        .filter(|manager| manager["description"] == "Track the immutable Strukturpiloten shared-policy commit")
-        .collect::<Vec<_>>();
-    if managers.len() != 1
-        || managers[0]["customType"] != "regex"
-        || managers[0]["managerFilePatterns"] != serde_json::json!([r"/^\.github/workflows/.*\.ya?ml$/"])
-    {
-        return Err("Renovate must have exactly one owner for the shared lockfile guard pin".to_owned());
-    }
-    if managers[0]["datasourceTemplate"] != "github-digest" {
-        return Err("shared-policy Renovate manager must declare the github-digest datasource".to_owned());
-    }
-    let pattern = managers[0]["matchStrings"]
-        .as_array()
-        .and_then(|patterns| patterns.first())
-        .and_then(serde_json::Value::as_str)
-        .ok_or_else(|| "Renovate shared lockfile guard manager must define one regex".to_owned())?;
-    let template = managers[0]["autoReplaceStringTemplate"]
-        .as_str()
-        .ok_or_else(|| "Renovate shared lockfile guard manager must define a replacement template".to_owned())?;
-    if !template.contains('\n') || template.contains(r"\n") {
-        return Err("Renovate shared lockfile guard replacement must use a real newline".to_owned());
-    }
-    let new_digest = "0123456789abcdef0123456789abcdef01234567";
-    let rewritten = template
-        .replace("{{{indentation}}}", "      ")
-        .replace("{{{depName}}}", "Strukturpiloten/.github")
-        .replace("{{{newValue}}}", "main")
-        .replace("{{{newDigest}}}", new_digest);
-    if reextract_shared_policy_marker(pattern, &rewritten) != Some(("Strukturpiloten/.github", "main", new_digest)) {
-        return Err("Renovate shared lockfile guard regex must re-extract the rewritten main digest".to_owned());
-    }
-    Ok(())
-}
-
-#[expect(
-    clippy::too_many_lines,
-    reason = "One policy verifier must audit all discovery owners and their exact matrix markers together."
-)]
-fn validate_podman_patch_discovery(renovate: &serde_json::Value, matrix: &str) -> Result<(), String> {
-    let managers = renovate["customManagers"]
-        .as_array()
-        .ok_or_else(|| "Renovate customManagers must be an array".to_owned())?;
-    let upstream = managers
-        .iter()
-        .filter(|manager| manager["description"] == "Discover the newest stable Podman release across minor lines")
-        .collect::<Vec<_>>();
-    if upstream.len() != 1
-        || upstream[0]["customType"] != "regex"
-        || upstream[0]["managerFilePatterns"] != serde_json::json!([r"/^tools/generator-matrix\.toml$/"])
-        || upstream[0]["matchStrings"]
-            != serde_json::json!([
-                r#"# renovate: datasource=(?<datasource>[^\s]+) packageName=(?<packageName>[^\s]+) depName=(?<depName>podman-upstream)\nlatest_upstream = \"(?<currentValue>[^\"]+)\""#
-            ])
-        || upstream[0]["extractVersionTemplate"] != r"^v?(?<version>.*)$"
-    {
-        return Err("Renovate must uniquely extract the overall newest Podman release".to_owned());
-    }
-    if matrix
-        .matches("# renovate: datasource=github-releases packageName=podman-container-tools/podman depName=podman-upstream\nlatest_upstream = \"6.1.2\"")
-        .count()
-        != 1
-    {
-        return Err("Podman matrix must have one overall newest-release discovery owner".to_owned());
-    }
-    let discovery = managers
-        .iter()
-        .filter(|manager| {
-            manager["description"]
-                == "Discover the newest stable Podman patch independently for each maintained minor line"
-        })
-        .collect::<Vec<_>>();
-    if discovery.len() != 1 {
-        return Err("Renovate must have exactly one maintained-minor Podman discovery manager".to_owned());
-    }
-    let discovery = discovery[0];
-    if discovery["customType"] != "regex"
-        || discovery["managerFilePatterns"] != serde_json::json!([r"/^tools/generator-matrix\.toml$/"])
-        || discovery["matchStrings"]
-            != serde_json::json!([
-                r#"# renovate: datasource=(?<datasource>[^\s]+) packageName=(?<packageName>[^\s]+) depName=(?<depName>podman-[0-9]+\.[0-9]+)\nlatest_[0-9]+_[0-9]+ = \"(?<currentValue>[^\"]+)\""#
-            ])
-        || discovery["extractVersionTemplate"] != r"^v?(?<version>.*)$"
-    {
-        return Err("Podman discovery must extract only the seven canonical per-minor markers".to_owned());
-    }
-    let rules = renovate["packageRules"]
-        .as_array()
-        .ok_or_else(|| "Renovate packageRules must be an array".to_owned())?;
-    let upstream_rules = rules
-        .iter()
-        .filter(|rule| {
-            rule["matchManagers"] == serde_json::json!(["custom.regex"])
-                && rule["matchDepNames"] == serde_json::json!(["podman-upstream"])
-        })
-        .collect::<Vec<_>>();
-    if upstream_rules.len() != 1 || upstream_rules[0]["allowedVersions"] != r"/^[0-9]+\.[0-9]+\.[0-9]+$/" {
-        return Err("Podman newest-release discovery must admit stable version candidates only".to_owned());
-    }
-    for (major, minor, patch) in [
-        (5, 4, 2),
-        (5, 5, 2),
-        (5, 6, 2),
-        (5, 7, 1),
-        (5, 8, 7),
-        (6, 0, 2),
-        (6, 1, 2),
-    ] {
-        let marker = format!(
-            "# renovate: datasource=github-releases packageName=podman-container-tools/podman depName=podman-{major}.{minor}\nlatest_{major}_{minor} = \"{major}.{minor}.{patch}\""
-        );
-        if matrix.matches(&marker).count() != 1 {
-            return Err(format!(
-                "Podman {major}.{minor} discovery marker must occur exactly once"
-            ));
-        }
-        let name = format!("podman-{major}.{minor}");
-        let version_pattern = format!(r"/^{major}\.{minor}\.[0-9]+$/");
-        let owners = rules
-            .iter()
-            .filter(|rule| {
-                rule["matchManagers"] == serde_json::json!(["custom.regex"])
-                    && rule["matchDepNames"] == serde_json::json!([name])
-            })
-            .collect::<Vec<_>>();
-        if owners.len() != 1 || owners[0]["allowedVersions"] != version_pattern {
-            return Err(format!(
-                "Podman {major}.{minor} must have one patch-only discovery rule"
-            ));
-        }
-    }
-    let discovery_prefix =
-        "# renovate: datasource=github-releases packageName=podman-container-tools/podman depName=podman-";
-    if matrix
-        .lines()
-        .filter(|line| line.starts_with(discovery_prefix) && !line.ends_with("podman-upstream"))
-        .count()
-        != 7
-    {
-        return Err("Podman matrix must have exactly seven maintained-minor discovery owners".to_owned());
-    }
-    Ok(())
-}
-
-#[test]
-fn podman_patch_discovery_rejects_missing_or_ambiguous_owners() -> Result<(), String> {
-    let renovate: serde_json::Value =
-        serde_json::from_str(&read_repository_file(".github/renovate.json")?).map_err(|error| error.to_string())?;
-    let matrix = read_repository_file("tools/generator-matrix.toml")?;
-    validate_podman_patch_discovery(&renovate, &matrix)?;
-    let file_checks = read_repository_file("scripts/check-files.sh")?;
-    if !file_checks.contains("run node scripts/check-renovate-discovery.mjs") {
-        return Err("file checks must execute the real Podman Renovate extraction fixture".to_owned());
-    }
-
-    let missing_upstream = matrix.replace("latest_upstream = \"6.1.2\"", "latest_upstream = \"6.1.1\"");
-    assert!(validate_podman_patch_discovery(&renovate, &missing_upstream).is_err());
-
-    let missing_line = matrix.replace("latest_5_8 = \"5.8.7\"", "latest_5_8 = \"5.8.6\"");
-    assert!(validate_podman_patch_discovery(&renovate, &missing_line).is_err());
-
-    let mut wrong_range = renovate.clone();
-    let rules = wrong_range["packageRules"]
-        .as_array_mut()
-        .ok_or_else(|| "Renovate packageRules must be an array".to_owned())?;
-    let minor = rules
-        .iter_mut()
-        .find(|rule| rule["matchDepNames"] == serde_json::json!(["podman-5.8"]))
-        .ok_or_else(|| "missing Podman 5.8 rule".to_owned())?;
-    minor["allowedVersions"] = serde_json::json!(r"/^5\.[0-9]+\.[0-9]+$/");
-    assert!(validate_podman_patch_discovery(&wrong_range, &matrix).is_err());
-
-    let mut duplicate = renovate.clone();
-    let managers = duplicate["customManagers"]
-        .as_array_mut()
-        .ok_or_else(|| "Renovate customManagers must be an array".to_owned())?;
-    let owner = managers
-        .iter()
-        .find(|manager| {
-            manager["description"]
-                == "Discover the newest stable Podman patch independently for each maintained minor line"
-        })
-        .ok_or_else(|| "missing Podman discovery manager".to_owned())?
-        .clone();
-    managers.push(owner);
-    assert!(validate_podman_patch_discovery(&duplicate, &matrix).is_err());
-    Ok(())
-}
-
-// Native file-tool versions/checksums now belong to the immutable shared inventory.
-// These exact-file owners update its revision together without a second native owner.
-fn validate_bootstrap_tool_ownership(renovate: &serde_json::Value) -> Result<(), String> {
-    let managers = renovate["customManagers"]
-        .as_array()
-        .ok_or("Renovate managers must be an array")?;
-    let expected_managers = [
-        serde_json::json!({
-            "customType": "regex",
-            "description": "Track the prerequisite shared eligibility service immutable revision",
-            "managerFilePatterns": [r"/^\.github/workflows/dependency-eligibility\.yml$/"],
-            "matchStrings": [r"(?<prefix>uses: Strukturpiloten/boxferry/\.github/workflows/shared-dependency-eligibility\.yml@|automation-sha:\s*)(?<currentDigest>[a-f0-9]{40})"],
-            "depNameTemplate": "Strukturpiloten/boxferry",
-            "datasourceTemplate": "github-digest",
-            "currentValueTemplate": "automation-v1",
-        }),
-        serde_json::json!({
-            "customType": "regex",
-            "description": "Keep the prerequisite trusted base manifest at the service revision",
-            "managerFilePatterns": [r"/^\.github/automation\.json$/"],
-            "matchStrings": [r#"(?<prefix>"revision"[ \t]*:[ \t]*")(?<currentDigest>[a-f0-9]{40})(?<suffix>")"#],
-            "depNameTemplate": "Strukturpiloten/boxferry",
-            "datasourceTemplate": "github-digest",
-            "currentValueTemplate": "automation-v1",
-        }),
-    ];
-    for expected in &expected_managers {
-        if managers.iter().filter(|manager| *manager == expected).count() != 1 {
-            return Err(format!(
-                "shared bootstrap requires one exact owner: {}",
-                expected["description"]
-            ));
-        }
-    }
-    if managers
-        .iter()
-        .filter(|manager| manager["depNameTemplate"] == "Strukturpiloten/boxferry")
-        .count()
-        != 2
-        || managers.iter().any(|manager| {
-            manager["managerFilePatterns"]
-                .to_string()
-                .contains("install-file-tools")
-        })
-    {
-        return Err("shared file-tool pins must not have duplicate or retired local owners".to_owned());
-    }
-    let rules = renovate["packageRules"]
-        .as_array()
-        .ok_or("Renovate rules must be an array")?;
-    for expected in [
-        serde_json::json!({
-            "description": "The prerequisite service revision has one custom owner before full shared-preset adoption",
-            "matchManagers": ["github-actions"],
-            "matchPackageNames": ["Strukturpiloten/boxferry"],
-            "enabled": false,
-        }),
-        serde_json::json!({
-            "description": "Keep prerequisite eligibility workflow and implementation input atomic",
-            "matchManagers": ["custom.regex"],
-            "matchPackageNames": ["Strukturpiloten/boxferry"],
-            "groupName": "Shared eligibility prerequisite",
-        }),
-    ] {
-        if rules.iter().filter(|rule| **rule == expected).count() != 1 {
-            return Err(format!(
-                "shared bootstrap requires one exact ownership rule: {}",
-                expected["description"]
-            ));
-        }
-    }
-    if rules
-        .iter()
-        .filter(|rule| rule["matchPackageNames"] == serde_json::json!(["Strukturpiloten/boxferry"]))
-        .count()
-        != 2
-    {
-        return Err("shared bootstrap grouping and native-manager exclusion must each have one owner".to_owned());
-    }
-    Ok(())
-}
-
-#[test]
-fn shared_file_tool_ownership_rejects_broadening_duplicates_and_weakened_grouping() -> Result<(), String> {
-    let renovate: serde_json::Value =
-        serde_json::from_str(&read_repository_file(".github/renovate.json")?).map_err(|error| error.to_string())?;
-    validate_bootstrap_tool_ownership(&renovate)?;
-    for index in renovate["customManagers"]
-        .as_array()
-        .ok_or("missing managers")?
-        .iter()
-        .enumerate()
-        .filter_map(|(index, manager)| (manager["depNameTemplate"] == "Strukturpiloten/boxferry").then_some(index))
-    {
-        for (field, value) in [
-            ("managerFilePatterns", serde_json::json!([r"/^\.github/.*$/"])),
-            ("matchStrings", serde_json::json!(["(?<currentDigest>.+)"])),
-            ("datasourceTemplate", serde_json::json!("github-releases")),
-            ("currentValueTemplate", serde_json::json!("main")),
-        ] {
-            let mut mutated = renovate.clone();
-            mutated["customManagers"][index][field] = value;
-            assert!(
-                validate_bootstrap_tool_ownership(&mutated).is_err(),
-                "accepted {field} mutation"
-            );
-        }
-        for duplicate in [false, true] {
-            let mut mutated = renovate.clone();
-            let managers = mutated["customManagers"].as_array_mut().ok_or("missing managers")?;
-            if duplicate {
-                managers.push(managers[index].clone());
-            } else {
-                managers.remove(index);
-            }
-            assert!(
-                validate_bootstrap_tool_ownership(&mutated).is_err(),
-                "accepted missing/duplicate owner"
-            );
-        }
-    }
-    for index in renovate["packageRules"]
-        .as_array()
-        .ok_or("missing rules")?
-        .iter()
-        .enumerate()
-        .filter_map(|(index, rule)| {
-            (rule["matchPackageNames"] == serde_json::json!(["Strukturpiloten/boxferry"])).then_some(index)
-        })
-    {
-        let mut mutated = renovate.clone();
-        mutated["packageRules"][index]["automerge"] = serde_json::json!(true);
-        assert!(
-            validate_bootstrap_tool_ownership(&mutated).is_err(),
-            "accepted weakened ownership rule"
-        );
-        let mut mutated = renovate.clone();
-        mutated["packageRules"][index]["matchManagers"] = serde_json::json!(["github-actions", "custom.regex"]);
-        assert!(
-            validate_bootstrap_tool_ownership(&mutated).is_err(),
-            "accepted broadened ownership rule"
-        );
-        let mut mutated = renovate.clone();
-        mutated["packageRules"]
-            .as_array_mut()
-            .ok_or("missing rules")?
-            .remove(index);
-        assert!(
-            validate_bootstrap_tool_ownership(&mutated).is_err(),
-            "accepted missing ownership rule"
-        );
-    }
-    Ok(())
-}
-
 #[test]
 fn shared_file_tool_bootstrap_preserves_pins_arguments_and_child_failures() -> Result<(), String> {
     let output = Command::new("python3").arg("-c").arg(r#"
@@ -1711,69 +1236,342 @@ with tempfile.TemporaryDirectory(prefix='quadlet-tool-policy-') as temporary:
 
 #[test]
 fn renovate_tracks_every_directly_pinned_development_tool() -> Result<(), String> {
-    let renovate = read_repository_file(".github/renovate.json")?;
-    let renovate_value: serde_json::Value =
-        serde_json::from_str(&renovate).map_err(|error| format!("failed to parse Renovate configuration: {error}"))?;
-    validate_renovate_lockfile_policy(&renovate_value)?;
-    validate_podman_patch_discovery(&renovate_value, &read_repository_file("tools/generator-matrix.toml")?)?;
+    let configuration: serde_json::Value =
+        serde_json::from_str(&read_repository_file(".github/renovate.json")?).map_err(|error| error.to_string())?;
+    let manifest: serde_json::Value =
+        serde_json::from_str(&read_repository_file(".github/automation.json")?).map_err(|error| error.to_string())?;
+    let revision = manifest["revision"].as_str().ok_or("missing automation revision")?;
+    let expected = serde_json::json!([
+        format!("github>Strukturpiloten/boxferry//renovate-presets/common#{revision}"),
+        format!("github>Strukturpiloten/boxferry//renovate-presets/rust#{revision}")
+    ]);
+    if configuration["extends"] != expected {
+        return Err("common/Rust presets and executable source must form one immutable adoption".to_owned());
+    }
+    validate_podman_patch_discovery(&configuration, &read_repository_file("tools/generator-matrix.toml")?)?;
+    let managers = configuration["customManagers"]
+        .as_array()
+        .ok_or("missing local managers")?;
     for required in [
         "Update versioned Dev Container tools",
         "Update directly pinned workflow tool versions",
-        "Update the documented Dev Container CLI",
+        "Update the Dev Container base release and digest together",
         "Update the GitHub CLI installed in the Dev Container",
-        r#""matchManagers": ["cargo"]"#,
-        r#""matchManagers": ["npm"]"#,
-        r#""matchManagers": ["github-actions"]"#,
-        r#""matchManagers": ["devcontainer"]"#,
-        r#""matchManagers": ["rust-toolchain"]"#,
-        "Automerge tested non-major dependency updates",
-        "Do not delay BoxFerry and Lens releases",
-        "Keep newest-upstream and maintained-minor Podman discovery separate from reviewed support",
-        r#""matchManagers": ["custom.regex"]"#,
-        r#""matchPackageNames": ["podman-container-tools/podman"]"#,
-        r#""matchFileNames": ["tools/generator-matrix.toml"]"#,
-        "This updates a Podman discovery signal only",
-        r#""minimumReleaseAge": "0 days""#,
-        r#""platformAutomerge": false"#,
-        r#""boxferry-model""#,
-        r#""compose-lens""#,
-        r#""podman-lens""#,
-        r#""quadlet-lens""#,
     ] {
-        if !renovate.contains(required) {
-            return Err(format!("Renovate configuration is missing `{required}`"));
+        if managers
+            .iter()
+            .filter(|manager| manager["description"] == required)
+            .count()
+            != 1
+        {
+            return Err(format!("local pin must retain one owner `{required}`"));
         }
     }
-
-    validate_bootstrap_tool_ownership(&renovate_value)?;
-    let manual_rules = renovate_value["packageRules"]
-        .as_array()
-        .ok_or("Renovate rules must be an array")?
+    if managers
         .iter()
-        .filter(|rule| rule["automerge"] == false)
-        .map(|rule| rule["description"].as_str().unwrap_or_default())
-        .collect::<Vec<_>>();
-    if manual_rules
-        != [
-            "Keep newest-upstream and maintained-minor Podman discovery separate from reviewed support",
-            "Keep Dev Container feature versions current; the lock file owns digests",
-        ]
+        .any(|manager| manager["depNameTemplate"] == "Strukturpiloten/boxferry")
     {
-        return Err("local manual review must retain exactly Podman discovery and Dev Container features".to_owned());
+        return Err("shared preset must replace temporary duplicate bootstrap managers".to_owned());
     }
+    let rules = configuration["packageRules"].as_array().ok_or("missing local rules")?;
+    if rules.iter().any(|rule| {
+        rule["dependencyDashboardApproval"] == true
+            || rule["automerge"] == false
+            || rule.get("minimumReleaseAge").is_some()
+    }) {
+        return Err("local overrides must not weaken shared automatic policy or third-party age".to_owned());
+    }
+    Ok(())
+}
 
-    for workflow_name in ["ci.yml"] {
-        let workflow = read_repository_file(&format!(".github/workflows/{workflow_name}"))?;
-        for required in [
-            "renovate: datasource=crate depName=cargo-llvm-cov",
-            "renovate: datasource=node-version depName=node",
-        ] {
-            if !workflow.contains(required) {
-                return Err(format!("{workflow_name} is missing Renovate marker `{required}`"));
-            }
+const UPSTREAM_DISCOVERY: &str = "Discover the newest stable Podman release across minor lines";
+const MINOR_DISCOVERY: &str = "Discover the newest stable Podman patch independently for each maintained minor line";
+
+fn discovery_release(value: &str) -> Result<[u32; 3], String> {
+    let parts = value
+        .split('.')
+        .map(str::parse::<u32>)
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|_| format!("discovery must use a stable numeric release: {value}"))?;
+    let release: [u32; 3] = parts
+        .try_into()
+        .map_err(|_| format!("discovery must use three release components: {value}"))?;
+    if value != format!("{}.{}.{}", release[0], release[1], release[2]) {
+        return Err("discovery must use canonical decimal release components".to_owned());
+    }
+    Ok(release)
+}
+
+fn discovery_owner<'a>(
+    configuration: &'a serde_json::Value,
+    description: &str,
+    pattern: &str,
+) -> Result<&'a serde_json::Value, String> {
+    let owners = configuration["customManagers"]
+        .as_array()
+        .ok_or("missing discovery managers")?
+        .iter()
+        .filter(|manager| manager["description"] == description)
+        .collect::<Vec<_>>();
+    let [owner] = owners.as_slice() else {
+        return Err(format!("discovery must retain one owner for {description}"));
+    };
+    if owner["customType"] != "regex"
+        || owner["enabled"] == false
+        || owner["managerFilePatterns"] != serde_json::json!(["/^tools/generator-matrix\\.toml$/"])
+        || owner["matchStrings"] != serde_json::json!([pattern])
+        || owner["extractVersionTemplate"] != "^v?(?<version>.*)$"
+    {
+        return Err(format!("discovery owner path/extraction changed: {description}"));
+    }
+    Ok(owner)
+}
+
+fn validate_discovery_declaration(
+    rules: &[serde_json::Value],
+    repository: &str,
+    key: &str,
+    value: &toml::Value,
+    lines: &[&str],
+) -> Result<String, String> {
+    let value = value.as_str().ok_or("discovery release must be a string")?;
+    let release = discovery_release(value)?;
+    let (dependency, allowed) = if key == "latest_upstream" {
+        ("podman-upstream".to_owned(), r"/^[0-9]+\.[0-9]+\.[0-9]+$/".to_owned())
+    } else {
+        let suffix = key.strip_prefix("latest_").ok_or("missing discovery prefix")?;
+        if suffix != format!("{}_{}", release[0], release[1]) {
+            return Err("maintained discovery version must match its minor key".to_owned());
+        }
+        (
+            format!("podman-{}.{}", release[0], release[1]),
+            format!(r"/^{}\.{}\.[0-9]+$/", release[0], release[1]),
+        )
+    };
+    let declaration = format!("{key} = \"{value}\"");
+    let positions = lines
+        .iter()
+        .enumerate()
+        .filter_map(|(index, line)| (*line == declaration.as_str()).then_some(index))
+        .collect::<Vec<_>>();
+    let [position] = positions.as_slice() else {
+        return Err("discovery must retain one canonical declaration".to_owned());
+    };
+    let marker = format!("# renovate: datasource=github-releases packageName={repository} depName={dependency}");
+    if *position == 0 || lines[*position - 1] != marker.as_str() {
+        return Err("discovery declaration must retain its exact owner marker".to_owned());
+    }
+    let filters = rules
+        .iter()
+        .filter(|rule| {
+            rule["matchManagers"]
+                .as_array()
+                .is_some_and(|values| values.iter().any(|value| value.as_str() == Some("custom.regex")))
+                && rule["matchDepNames"]
+                    .as_array()
+                    .is_some_and(|values| values.iter().any(|value| value.as_str() == Some(dependency.as_str())))
+        })
+        .collect::<Vec<_>>();
+    let [filter] = filters.as_slice() else {
+        return Err(format!("discovery must retain one candidate filter for {dependency}"));
+    };
+    if filter["matchManagers"] != serde_json::json!(["custom.regex"])
+        || filter["matchDepNames"] != serde_json::json!([dependency])
+        || filter["allowedVersions"].as_str() != Some(allowed.as_str())
+        || filter["enabled"] == false
+    {
+        return Err("discovery candidate filter must preserve its stable minor boundary".to_owned());
+    }
+    Ok(dependency)
+}
+
+fn validate_podman_patch_discovery(configuration: &serde_json::Value, matrix: &str) -> Result<(), String> {
+    // Rust/MSRV policy checks remain structural and Node-free. The mandatory MJS
+    // check in check-files.sh independently exercises actual regex semantics.
+    discovery_owner(
+        configuration,
+        UPSTREAM_DISCOVERY,
+        r#"# renovate: datasource=(?<datasource>[^\s]+) packageName=(?<packageName>[^\s]+) depName=(?<depName>podman-upstream)\nlatest_upstream = \"(?<currentValue>[^\"]+)\""#,
+    )?;
+    discovery_owner(
+        configuration,
+        MINOR_DISCOVERY,
+        r#"# renovate: datasource=(?<datasource>[^\s]+) packageName=(?<packageName>[^\s]+) depName=(?<depName>podman-[0-9]+\.[0-9]+)\nlatest_[0-9]+_[0-9]+ = \"(?<currentValue>[^\"]+)\""#,
+    )?;
+    let managers = configuration["customManagers"].as_array().ok_or("missing managers")?;
+    let matrix_owners = managers
+        .iter()
+        .filter(|manager| {
+            manager["customType"] == "regex"
+                && manager["enabled"] != false
+                && manager["managerFilePatterns"] == serde_json::json!(["/^tools/generator-matrix\\.toml$/"])
+                && manager["matchStrings"].as_array().is_some_and(|patterns| {
+                    patterns
+                        .iter()
+                        .any(|pattern| pattern.as_str().is_some_and(|value| value.contains("latest_")))
+                })
+        })
+        .count();
+    if matrix_owners != 2 {
+        return Err("discovery must retain exactly two canonical matrix managers".to_owned());
+    }
+    let parsed = toml::from_str::<toml::Value>(matrix).map_err(|error| error.to_string())?;
+    let table = parsed.as_table().ok_or("generator matrix must be a table")?;
+    let repository = table
+        .get("source_repository")
+        .and_then(toml::Value::as_str)
+        .and_then(|value| value.strip_prefix("https://github.com/"))
+        .and_then(|value| value.strip_suffix(".git"))
+        .ok_or("matrix must declare its public upstream repository")?;
+    let rules = configuration["packageRules"]
+        .as_array()
+        .ok_or("missing discovery rules")?;
+    let mut dependencies = BTreeSet::new();
+    let lines = matrix.lines().collect::<Vec<_>>();
+    for (key, value) in table.iter().filter(|(key, _)| key.starts_with("latest_")) {
+        let dependency = validate_discovery_declaration(rules, repository, key, value, &lines)?;
+        if !dependencies.insert(dependency) {
+            return Err("duplicate discovery dependency".to_owned());
         }
     }
+    if !dependencies.contains("podman-upstream") || dependencies.len() < 2 {
+        return Err("newest and maintained discovery must both remain present".to_owned());
+    }
+    let groups = rules
+        .iter()
+        .filter(|rule| {
+            rule["matchManagers"]
+                .as_array()
+                .is_some_and(|values| values.iter().any(|value| value.as_str() == Some("custom.regex")))
+                && rule["matchPackageNames"]
+                    .as_array()
+                    .is_some_and(|values| values.iter().any(|value| value.as_str() == Some(repository)))
+        })
+        .collect::<Vec<_>>();
+    let [group] = groups.as_slice() else {
+        return Err("discovery must have one separately grouped package rule".to_owned());
+    };
+    if group["groupName"] != "Podman generator discovery"
+        || group["matchFileNames"] != serde_json::json!(["tools/generator-matrix.toml"])
+        || [
+            "automerge",
+            "dependencyDashboardApproval",
+            "minimumReleaseAge",
+            "enabled",
+        ]
+        .iter()
+        .any(|field| group.get(*field).is_some())
+    {
+        return Err("discovery grouping must retain the shared automatic update policy".to_owned());
+    }
+    Ok(())
+}
 
+#[test]
+fn podman_discovery_guard_accepts_future_values_and_rejects_owner_filter_drift() -> Result<(), String> {
+    let configuration: serde_json::Value =
+        serde_json::from_str(&read_repository_file(".github/renovate.json")?).map_err(|error| error.to_string())?;
+    let matrix = read_repository_file("tools/generator-matrix.toml")?;
+    validate_podman_patch_discovery(&configuration, &matrix)?;
+    let parsed = toml::from_str::<toml::Value>(&matrix).map_err(|error| error.to_string())?;
+    for (key, value) in parsed
+        .as_table()
+        .ok_or("missing matrix table")?
+        .iter()
+        .filter(|(key, _)| key.starts_with("latest_"))
+    {
+        let value = value.as_str().ok_or("missing discovery release")?;
+        let mut release = discovery_release(value)?;
+        if key == "latest_upstream" {
+            release[1] = release[1].checked_add(1).ok_or("minor overflow")?;
+            release[2] = 0;
+        } else {
+            release[2] = release[2].checked_add(1).ok_or("patch overflow")?;
+        }
+        let before = format!("{key} = \"{value}\"");
+        let after = format!("{key} = \"{}.{}.{}\"", release[0], release[1], release[2]);
+        let advanced = matrix.replacen(&before, &after, 1);
+        assert_ne!(advanced, matrix);
+        validate_podman_patch_discovery(&configuration, &advanced)?;
+        assert_eq!(
+            advanced.replacen(&after, &before, 1),
+            matrix,
+            "fixed generator evidence changed"
+        );
+    }
+    let owners = configuration["customManagers"].as_array().ok_or("missing managers")?;
+    let upstream = owners
+        .iter()
+        .position(|manager| manager["description"] == UPSTREAM_DISCOVERY)
+        .ok_or("missing upstream owner")?;
+    let mut duplicate = configuration.clone();
+    duplicate["customManagers"]
+        .as_array_mut()
+        .ok_or("missing managers")?
+        .push(owners[upstream].clone());
+    assert!(validate_podman_patch_discovery(&duplicate, &matrix).is_err());
+    let mut missing = configuration.clone();
+    missing["customManagers"]
+        .as_array_mut()
+        .ok_or("missing managers")?
+        .remove(upstream);
+    assert!(validate_podman_patch_discovery(&missing, &matrix).is_err());
+    let mut wrong_path = configuration.clone();
+    wrong_path["customManagers"][upstream]["managerFilePatterns"] = serde_json::json!(["/^unrelated\\.toml$/"]);
+    assert!(validate_podman_patch_discovery(&wrong_path, &matrix).is_err());
+    let mut broad = configuration.clone();
+    let filter = broad["packageRules"]
+        .as_array_mut()
+        .ok_or("missing rules")?
+        .iter_mut()
+        .find(|rule| {
+            rule["matchDepNames"]
+                .as_array()
+                .is_some_and(|names| names.iter().any(|name| name == "podman-upstream"))
+        })
+        .ok_or("missing upstream filter")?;
+    filter["allowedVersions"] = serde_json::json!("/.*/");
+    assert!(validate_podman_patch_discovery(&broad, &matrix).is_err());
+    Ok(())
+}
+
+#[test]
+fn podman_maintained_filter_rejects_broad_missing_and_duplicate_rules() -> Result<(), String> {
+    let configuration: serde_json::Value =
+        serde_json::from_str(&read_repository_file(".github/renovate.json")?).map_err(|error| error.to_string())?;
+    let matrix = read_repository_file("tools/generator-matrix.toml")?;
+    let parsed = toml::from_str::<toml::Value>(&matrix).map_err(|error| error.to_string())?;
+    let key = parsed
+        .as_table()
+        .ok_or("missing matrix table")?
+        .keys()
+        .find(|key| key.starts_with("latest_") && *key != "latest_upstream")
+        .ok_or("missing maintained minor")?;
+    let dependency = format!("podman-{}", key.trim_start_matches("latest_").replace('_', "."));
+    let rules = configuration["packageRules"].as_array().ok_or("missing rules")?;
+    let index = rules
+        .iter()
+        .position(|rule| {
+            rule["matchDepNames"]
+                .as_array()
+                .is_some_and(|values| values.iter().any(|value| value.as_str() == Some(dependency.as_str())))
+        })
+        .ok_or("missing maintained filter")?;
+    let mut broad = configuration.clone();
+    broad["packageRules"][index]["allowedVersions"] = serde_json::json!(r"/^[0-9]+\.[0-9]+\.[0-9]+$/");
+    assert!(validate_podman_patch_discovery(&broad, &matrix).is_err());
+    let mut missing = configuration.clone();
+    missing["packageRules"]
+        .as_array_mut()
+        .ok_or("missing rules")?
+        .remove(index);
+    assert!(validate_podman_patch_discovery(&missing, &matrix).is_err());
+    let mut duplicate = configuration.clone();
+    duplicate["packageRules"]
+        .as_array_mut()
+        .ok_or("missing rules")?
+        .push(rules[index].clone());
+    assert!(validate_podman_patch_discovery(&duplicate, &matrix).is_err());
     Ok(())
 }
 

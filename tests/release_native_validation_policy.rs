@@ -46,6 +46,32 @@ fn release_reuses_complete_native_generator_validation_fail_closed() -> Result<(
     Ok(())
 }
 
+#[test]
+fn release_policy_preserves_the_published_crate_and_all_four_prerequisites() -> Result<(), String> {
+    let path = repository_root().join(".github/release-policy.json");
+    let source = fs::read_to_string(path).map_err(|error| error.to_string())?;
+    let actual: serde_json::Value = serde_json::from_str(&source).map_err(|error| error.to_string())?;
+    let expected = serde_json::json!({
+        "schema": 1,
+        "repository": "Strukturpiloten/quadlet-lens",
+        "packages": ["quadlet-lens"],
+        "required_jobs": [
+            "deterministic",
+            "native-generator-validation",
+            "native-generator-evidence",
+            "release-metadata"
+        ],
+        "publication_enabled": true
+    });
+    if actual != expected {
+        return Err(
+            "typed release policy must preserve the existing publication and four exact-candidate prerequisites"
+                .to_owned(),
+        );
+    }
+    Ok(())
+}
+
 fn assert_release_validation_contract(release: &str) -> Result<(), String> {
     for required in [
         "uses: ./.github/workflows/ci.yml",
@@ -54,6 +80,16 @@ fn assert_release_validation_contract(release: &str) -> Result<(), String> {
         "task: release-native-generator",
         "name: Exact-SHA native generator evidence",
         "name: Fail-closed release validation gate",
+        "shared-release-validation.yml@",
+        "config_path: .github/release-policy.json",
+        "needs_json: ${{ toJSON(needs) }}",
+        "uses: ./_automation/.github/actions/shared-crate-publish",
+        "validation-sha: ${{ needs.release-gate.outputs.candidate_sha }}",
+        "validation-result: ${{ needs.release-gate.result }}",
+        "candidate_sha: ${{ steps.verified.outputs.candidate_sha }}",
+        "name: Read-only crate publication preparation",
+        "validation-only: \"true\"",
+        "validation-only: \"false\"",
         "!inputs.validation_only",
         "artifact-metadata: write",
         "attestations: write",
@@ -118,6 +154,9 @@ fn assert_generator_validation_contract(generators: &str) -> Result<(), String> 
         "quadlet-generator-evidence-${GITHUB_RUN_ID}-${EVIDENCE_TASK}",
         "overwrite: true",
         "retention-days: 90",
+        "value: ${{ jobs.supported-generators.outputs.candidate_sha }}",
+        "name: Expose successfully persisted native candidate",
+        "test \"$(git rev-parse HEAD)\" = \"${CANDIDATE_SHA}\"",
     ] {
         if !generators.contains(required) {
             return Err(format!(

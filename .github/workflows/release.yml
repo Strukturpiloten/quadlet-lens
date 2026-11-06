@@ -21,8 +21,12 @@ jobs:
     name: Complete deterministic validation
     if: github.repository == 'Strukturpiloten/quadlet-lens'
     permissions:
+      actions: read
       contents: read
+      statuses: read
     uses: ./.github/workflows/ci.yml
+    with:
+      api_purpose: published
 
   native-generator-validation:
     name: Complete pinned native generator validation
@@ -41,6 +45,8 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: read
+    outputs:
+      candidate_sha: ${{ steps.verified.outputs.candidate_sha }}
     steps:
       - name: Check out exact release revision
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -50,6 +56,7 @@ jobs:
       - name: Install configured Rust toolchain
         run: rustup show active-toolchain
       - name: Validate release branch, version, and notes
+        id: verified
         shell: bash
         env:
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
@@ -60,6 +67,7 @@ jobs:
             exit 1
           fi
           bash scripts/check-release-metadata.sh --release
+          printf 'candidate_sha=%s\n' "${GITHUB_SHA}" >> "${GITHUB_OUTPUT}"
 
   native-generator-evidence:
     name: Exact-SHA native generator evidence
@@ -70,6 +78,8 @@ jobs:
     permissions:
       actions: read
       contents: read
+    outputs:
+      candidate_sha: ${{ steps.verified.outputs.candidate_sha }}
     steps:
       - name: Download current-run native-generator evidence
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
@@ -80,8 +90,12 @@ jobs:
         shell: bash
         env:
           EXPECTED_TASK: release-native-generator
+          NATIVE_RESULT: ${{ needs.native-generator-validation.result }}
+          NATIVE_CANDIDATE: ${{ needs.native-generator-validation.outputs.candidate_sha }}
         run: |
           set -euo pipefail
+          test "${NATIVE_RESULT}" = success
+          test "${NATIVE_CANDIDATE}" = "${GITHUB_SHA}"
           evidence=target/release-evidence/native-generator-v1.json
           jq --exit-status \
             --arg revision "${GITHUB_SHA}" \
@@ -106,30 +120,63 @@ jobs:
           overwrite: true
           retention-days: 90
 
+      - name: Expose verified native evidence candidate
+        id: verified
+        shell: bash
+        run: printf 'candidate_sha=%s\n' "${GITHUB_SHA}" >> "${GITHUB_OUTPUT}"
   release-gate:
     name: Fail-closed release validation gate
     needs: [deterministic, native-generator-validation, native-generator-evidence, release-metadata]
     if: always() && github.repository == 'Strukturpiloten/quadlet-lens'
+    permissions:
+      contents: read
+    uses: Strukturpiloten/boxferry/.github/workflows/shared-release-validation.yml@1cf96f5a667d96e66c119753cf7814e22e0dee7e # automation-v1 interface v1
+    with:
+      candidate_sha: ${{ github.sha }}
+      automation_sha: 1cf96f5a667d96e66c119753cf7814e22e0dee7e
+      policy_sha: ${{ github.sha }}
+      config_path: .github/release-policy.json
+      needs_json: ${{ toJSON(needs) }}
+  crate-preparation:
+    name: Read-only crate publication preparation
+    needs: release-gate
+    if: github.repository == 'Strukturpiloten/quadlet-lens'
+    permissions:
+      contents: read
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    permissions: {}
-    env:
-      DETERMINISTIC_RESULT: ${{ needs.deterministic.result }}
-      GENERATOR_RESULT: ${{ needs.native-generator-validation.result }}
-      EVIDENCE_RESULT: ${{ needs.native-generator-evidence.result }}
-      METADATA_RESULT: ${{ needs.release-metadata.result }}
+    timeout-minutes: 10
     steps:
-      - name: Block publication unless every required validation succeeded
-        shell: bash
-        run: |
-          set -euo pipefail
-          for result in "${DETERMINISTIC_RESULT}" "${GENERATOR_RESULT}" "${EVIDENCE_RESULT}" "${METADATA_RESULT}"; do
-            if [[ "${result}" != success ]]; then
-              printf 'Release validation prerequisite did not succeed: %s\n' "${result}" >&2
-              exit 1
-            fi
-          done
-
+      - name: Check out immutable shared release automation
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: Strukturpiloten/boxferry
+          # renovate: datasource=github-digest depName=Strukturpiloten/boxferry currentValue=automation-v1
+          ref: 1cf96f5a667d96e66c119753cf7814e22e0dee7e
+          path: _automation
+          persist-credentials: false
+      - name: Bind release candidate and typed policy
+        id: source
+        uses: ./_automation/.github/actions/shared-source
+        with:
+          candidate-sha: ${{ github.sha }}
+          automation-sha: 1cf96f5a667d96e66c119753cf7814e22e0dee7e
+          policy-sha: ${{ github.sha }}
+          config-path: .github/release-policy.json
+      - name: Install locked shared Python tooling
+        uses: ./_automation/.github/actions/shared-python
+      - name: Install configured Rust toolchain
+        working-directory: source
+        run: rustup show active-toolchain
+      - name: Validate publication inventory without credentials
+        uses: ./_automation/.github/actions/shared-crate-publish
+        with:
+          candidate-sha: ${{ github.sha }}
+          automation-sha: 1cf96f5a667d96e66c119753cf7814e22e0dee7e
+          release-config: ${{ steps.source.outputs.config }}
+          package: quadlet-lens
+          validation-sha: ${{ needs.release-gate.outputs.candidate_sha }}
+          validation-result: ${{ needs.release-gate.result }}
+          validation-only: "true"
   release:
     name: Publish QuadletLens
     needs:
@@ -139,6 +186,7 @@ jobs:
         native-generator-evidence,
         release-metadata,
         release-gate,
+        crate-preparation,
       ]
     if: github.repository == 'Strukturpiloten/quadlet-lens' && !inputs.validation_only
     environment: release
@@ -152,18 +200,32 @@ jobs:
       contents: write # Create the release tag and GitHub release.
       id-token: write # Authenticate attestations and crates.io trusted publishing.
     steps:
-      - name: Check out repository
+      - name: Check out immutable shared release automation
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 0
+          repository: Strukturpiloten/boxferry
+          # renovate: datasource=github-digest depName=Strukturpiloten/boxferry currentValue=automation-v1
+          ref: 1cf96f5a667d96e66c119753cf7814e22e0dee7e
+          path: _automation
           persist-credentials: false
-
+      - name: Bind release candidate and typed policy
+        id: source
+        uses: ./_automation/.github/actions/shared-source
+        with:
+          candidate-sha: ${{ github.sha }}
+          automation-sha: 1cf96f5a667d96e66c119753cf7814e22e0dee7e
+          policy-sha: ${{ github.sha }}
+          config-path: .github/release-policy.json
+      - name: Install locked shared Python tooling
+        uses: ./_automation/.github/actions/shared-python
       - name: Install configured Rust toolchain
+        working-directory: source
         run: rustup show active-toolchain
 
       - name: Derive release publication metadata
         id: metadata
         shell: bash
+        working-directory: source
         run: |
           set -euo pipefail
 
@@ -187,42 +249,11 @@ jobs:
             printf 'crate=%s\n' "${crate}"
           } >> "${GITHUB_OUTPUT}"
 
-      - name: Check crates.io publication state
-        id: registry
-        shell: bash
-        env:
-          CRATES_IO_USER_AGENT: QuadletLens release workflow (+https://github.com/Strukturpiloten/quadlet-lens)
-          VERSION: ${{ steps.metadata.outputs.version }}
-        run: |
-          set -euo pipefail
-          status="$(
-            curl --silent --show-error \
-              --user-agent "${CRATES_IO_USER_AGENT}" \
-              --retry 3 \
-              --retry-all-errors \
-              --connect-timeout 10 \
-              --max-time 60 \
-              --output /dev/null \
-              --write-out '%{http_code}' \
-              "https://crates.io/api/v1/crates/quadlet-lens/${VERSION}"
-          )"
-          case "${status}" in
-            200)
-              echo "published=true" >> "${GITHUB_OUTPUT}"
-              ;;
-            404)
-              echo "published=false" >> "${GITHUB_OUTPUT}"
-              ;;
-            *)
-              echo "Unexpected crates.io response: HTTP ${status}." >&2
-              exit 1
-              ;;
-          esac
-
       - name: Build release package and checksum
         shell: bash
         env:
           CRATE: ${{ steps.metadata.outputs.crate }}
+        working-directory: source
         run: |
           set -euo pipefail
           cargo ci-package
@@ -231,13 +262,14 @@ jobs:
       - name: Attest release package
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
-          subject-path: ${{ steps.metadata.outputs.crate }}
+          subject-path: source/${{ steps.metadata.outputs.crate }}
 
       - name: Create or verify annotated release tag
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.metadata.outputs.tag }}
+        working-directory: source
         run: |
           set -euo pipefail
 
@@ -272,6 +304,7 @@ jobs:
           NOTES: ${{ steps.metadata.outputs.notes }}
           TAG: ${{ steps.metadata.outputs.tag }}
           VERSION: ${{ steps.metadata.outputs.version }}
+        working-directory: source
         run: |
           set -euo pipefail
 
@@ -360,6 +393,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RELEASE_ID: ${{ steps.release.outputs.release_id }}
           UPLOAD_URL: ${{ steps.release.outputs.upload_url }}
+        working-directory: source
         run: |
           set -euo pipefail
 
@@ -405,22 +439,22 @@ jobs:
           upload_asset "${CRATE}" "application/gzip"
           upload_asset "${CRATE}.sha256" "text/plain"
 
-      - name: Authenticate to crates.io with trusted publishing
-        id: crates-auth
-        if: steps.registry.outputs.published != 'true'
-        uses: rust-lang/crates-io-auth-action@c6f97d42243bad5fab37ca0427f495c86d5b1a18 # v1.0.5
-
-      - name: Publish crate with trusted publishing
-        if: steps.registry.outputs.published != 'true'
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ steps.crates-auth.outputs.token }}
-        run: cargo publish --locked
-
+      - name: Publish crate through shared trusted publishing
+        uses: ./_automation/.github/actions/shared-crate-publish
+        with:
+          candidate-sha: ${{ github.sha }}
+          automation-sha: 1cf96f5a667d96e66c119753cf7814e22e0dee7e
+          release-config: ${{ steps.source.outputs.config }}
+          package: quadlet-lens
+          validation-sha: ${{ needs.release-gate.outputs.candidate_sha }}
+          validation-result: ${{ needs.release-gate.result }}
+          validation-only: "false"
       - name: Publish immutable GitHub release
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_ID: ${{ steps.release.outputs.release_id }}
+        working-directory: source
         run: |
           set -euo pipefail
           jq --null-input '{draft: false, make_latest: "true"}' |

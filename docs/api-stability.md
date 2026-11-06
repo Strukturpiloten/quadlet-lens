@@ -45,6 +45,15 @@ crate consumer would. The modules remain separate: QuadletLens does not hide sou
 target selection, filesystem lookup, Podman execution, or systemd operations behind a convenience
 API.
 
+## Validation baselines
+
+Local validation and ordinary PR/main CI compare the complete proposed change with trusted
+development Git history. The immutable shared helper records its exact baseline and candidate;
+missing or uncertain history fails closed. Release and `validation_only` compare the canonical
+published crate against the chosen manifest version. They require the distinct published-purpose
+candidate receipt after the ordinary aggregate succeeds. A generic CI candidate cannot substitute
+for that API proof. See [ADR 0023](decisions/0023-shared-validation-and-dependency-automation.md).
+
 ## Changes before 1.0
 
 An intentional public break requires the next 0.x minor version, migration guidance in the release
@@ -57,8 +66,8 @@ matches.
 
 Public unit-only enums also expose their implicit numeric discriminants through Rust casts. New
 variants are therefore appended; existing variants are never reordered. The public API regression
-test records the published key-enum values, and normal CI compares the candidate API with the
-latest published crate before changes can reach the release workflow.
+test records the published key-enum values. Normal CI compares with independently trusted
+development Git history; Release and `validation_only` require published-purpose crate validation.
 
 ## Not promised by 0.3
 

@@ -39,14 +39,26 @@ cargo ci-test
 cargo ci-doc
 ```
 
-The VS Code task **QuadletLens: Format, lint, and test all** runs the complete gate. Other tasks
-match the focused Cargo aliases.
+The VS Code complete task runs this gate. Planning and change-aware tasks delegate through
+`scripts/shared-ci.py`; they are development feedback. The shared manifest and repository policy
+retain one implementation for local and hosted selection, typed Python checks and tool ownership.
 
-Use **QuadletLens: Validation plan** to inspect the change classification, **QuadletLens: Change-aware
-checks** for fast local feedback, and **QuadletLens: Prose-only checks** only for a
-verified public-prose change. They do not replace the complete pre-publication gate. The planner
-requires a target directory inside this worktree when `CARGO_TARGET_DIR` is set, avoiding binaries
-with paths retained from deleted worktrees.
+SemVer preflight verifies the canonical compiler, exact binary and isolated Cargo home/target
+before formatting or tests. Local API validation uses trusted development history. Release uses
+the published crate and its own purpose-bound receipt. Shared automation selects the locked
+Python tooling for these checks.
+
+Use VS Code Dev Containers with the existing Podman setup and storage; prefer rootless Podman.
+Ordinary local validation does not build or qualify an image and requires no new privileged
+local setup. The direct image, features, lock and lifecycle definitions retain their main-branch
+form. Their existing manifest input follows the same ordinary shared automation source as CI;
+changing that input invalidates previous image evidence.
+
+Direct image, feature and Dockerfile tool-ARG update proposals are disabled pending fresh GitHub
+CI qualification in [#563](https://github.com/Strukturpiloten/boxferry/issues/563). That qualification
+uses standard engine storage. No image build, publication or updater activation is delivered by
+this ordinary adoption; source tests and mocked probes do not qualify a new image. Normal package,
+compiler and shared-tool metadata updates retain their canonical automatic owners.
 
 Generator containers and the downloaded real-world corpus remain explicit opt-in tiers:
 
@@ -73,10 +85,11 @@ change repository files, so the complete check remains the primary agent's final
 
 ## Update the container
 
-Review Renovate changes to their original source: image digests, feature integrity values, Rust
-toolchain, Node lockfile, native tool checksums, and workflow pins. Regenerate the Dev Container
-lock with the CLI version already pinned by the repository, rebuild the container, run
-`.devcontainer/verify-tools.sh`, and then run the complete gate.
+Direct image and feature proposals remain held by the final rules in
+[Renovate configuration](../.github/renovate.json). Rebuilding or changing those definitions needs
+the fresh CI qualification tracked in #563. Package locks, the compiler and the existing shared
+manifest remain ordinary inputs with one canonical automatic owner; their updates do not prove
+image readiness.
 
 ## Runtime boundary
 
