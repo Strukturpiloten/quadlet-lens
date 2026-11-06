@@ -19,6 +19,11 @@ tables-out-of-order = "error"
 path = "docs/schemas/tombi-cargo-offline.schema.json"
 include = ["Cargo.toml", "**/Cargo.toml"]
 
+# Ruff and ty remain semantic validators; offline schema lookup must not require the network.
+[[schemas]]
+path = "docs/schemas/tombi-python-tools-offline.schema.json"
+include = ["pyproject.toml"]
+
 # Catalogue, generator-matrix, and fixture records use deliberate evidence or execution ordering.
 # Tombi still parses and lints them, but formatting is disabled so their order remains stable.
 [[overrides]]

@@ -1,6 +1,6 @@
 # ADR 0017: Change-aware pull-request validation and Linux evidence
 
-- Status: accepted
+- Status: superseded by [ADR 0023](0023-shared-validation-and-dependency-automation.md)
 - Date: 2026-09-26
 
 ## Context

@@ -18,8 +18,8 @@ Podman patch targets from version-controlled historical generator evidence.
 
 ## Index
 
-[ADR 0017](0017-change-aware-validation-and-linux-evidence.md) defines trusted-base PR selection,
-complete release validation, and Linux-only validation evidence.
+[ADR 0017](0017-change-aware-validation-and-linux-evidence.md) records the original local classifier
+and Linux validation decision, superseded by ADR 0023.
 
 [ADR 0013](0013-bounded-native-value-decoding.md) defines bounded, source-aware
 ports, mounts, commands, and build environment views.
@@ -60,5 +60,5 @@ protected inert X-sections and conservative parsed-source Debug redaction.
 [ADR 0022](0022-typed-deferred-service-environment.md) defines protected typed deferred words,
 literal service providers, and native quoting without evaluation or provider acquisition.
 
-[ADR 0023](0023-shared-validation-and-dependency-automation.md) stages trusted shared automation
-with a metadata-only eligibility prerequisite before candidate receipt-reader adoption.
+[ADR 0023](0023-shared-validation-and-dependency-automation.md) owns immutable shared planning,
+API/dependency/release policy, native qualification and the protected publication boundary.

@@ -15,6 +15,9 @@ on:
         type: string
         default: scheduled-generator-matrix
     outputs:
+      candidate_sha:
+        description: Exact candidate after native checks, cleanup and evidence upload succeed.
+        value: ${{ jobs.supported-generators.outputs.candidate_sha }}
       evidence_artifact:
         description: Immutable-name native generator evidence artifact for this run.
         value: ${{ jobs.supported-generators.outputs.evidence_artifact }}
@@ -44,6 +47,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     outputs:
+      candidate_sha: ${{ steps.verified.outputs.candidate_sha }}
       evidence_artifact: ${{ steps.evidence.outputs.artifact }}
     steps:
       - name: Check out repository
@@ -99,3 +103,13 @@ jobs:
           if-no-files-found: error
           overwrite: true
           retention-days: 90
+      - name: Expose successfully persisted native candidate
+        id: verified
+        shell: bash
+        env:
+          CANDIDATE_SHA: ${{ inputs.candidate_sha || github.sha }}
+        run: |
+          set -euo pipefail
+          [[ "${CANDIDATE_SHA}" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "${CANDIDATE_SHA}"
+          printf 'candidate_sha=%s\n' "${CANDIDATE_SHA}" >> "${GITHUB_OUTPUT}"

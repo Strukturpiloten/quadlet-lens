@@ -15,21 +15,21 @@
       "label": "QuadletLens: Validation plan",
       "type": "process",
       "command": "python3",
-      "args": ["${workspaceFolder}/scripts/validation-plan.py", "plan", "--event", "local"],
+      "args": ["${workspaceFolder}/scripts/shared-ci.py", "plan", "--event", "local"],
       "problemMatcher": []
     },
     {
       "label": "QuadletLens: Change-aware checks",
       "type": "process",
       "command": "python3",
-      "args": ["${workspaceFolder}/scripts/validation-plan.py", "run-local"],
+      "args": ["${workspaceFolder}/scripts/shared-ci.py", "run-local"],
       "problemMatcher": []
     },
     {
       "label": "QuadletLens: Prose-only checks",
       "type": "process",
       "command": "python3",
-      "args": ["${workspaceFolder}/scripts/validation-plan.py", "run-local", "--docs-only"],
+      "args": ["${workspaceFolder}/scripts/shared-ci.py", "run-local", "--docs-only"],
       "problemMatcher": []
     },
     {

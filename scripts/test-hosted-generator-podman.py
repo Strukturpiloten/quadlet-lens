@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Authored, mocked prerequisite/launcher controls: never install or launch Podman."""
 
-import copy
 import ast
+import copy
 import importlib.util
 import json
 import os
@@ -14,20 +14,36 @@ import tempfile
 import unittest
 from unittest import mock
 
-
-SPEC = importlib.util.spec_from_file_location("hosted_generator_podman", pathlib.Path(__file__).with_name("hosted-generator-podman.py"))
+SPEC = importlib.util.spec_from_file_location(
+    "hosted_generator_podman", pathlib.Path(__file__).with_name("hosted-generator-podman.py")
+)
 assert SPEC is not None and SPEC.loader is not None
 HOSTED = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(HOSTED)
-CONTROL_SPEC = importlib.util.spec_from_file_location("hosted_timeout_control", pathlib.Path(__file__).with_name("hosted-generator-timeout-control.py"))
+CONTROL_SPEC = importlib.util.spec_from_file_location(
+    "hosted_timeout_control",
+    pathlib.Path(__file__).with_name("hosted-generator-timeout-control.py"),
+)
 assert CONTROL_SPEC is not None and CONTROL_SPEC.loader is not None
 CONTROL = importlib.util.module_from_spec(CONTROL_SPEC)
 CONTROL_SPEC.loader.exec_module(CONTROL)
 
-AUTHORED = {"host": {"os": "linux", "security": {"rootless": False}, "serviceIsRemote": False,
-                     "ociRuntime": {"name": "crun", "version": "crun version 1.2.3"}},
-            "version": {"Version": "4.9.3"}}
-MOCK_TIMEOUT = {"schema": 1, "result": "passed", "uid": 0, "descendants": "sigkill-reaped", "elapsed_ms": 3000}
+AUTHORED: dict[str, object] = {
+    "host": {
+        "os": "linux",
+        "security": {"rootless": False},
+        "serviceIsRemote": False,
+        "ociRuntime": {"name": "crun", "version": "crun version 1.2.3"},
+    },
+    "version": {"Version": "4.9.3"},
+}
+MOCK_TIMEOUT = {
+    "schema": 1,
+    "result": "passed",
+    "uid": 0,
+    "descendants": "sigkill-reaped",
+    "elapsed_ms": 3000,
+}
 
 
 class HostedPodmanTests(unittest.TestCase):
@@ -35,12 +51,17 @@ class HostedPodmanTests(unittest.TestCase):
         root = pathlib.Path(__file__).resolve().parents[1]
         workflow = (root / ".github/workflows/generator-matrix.yml").read_text()
         self.assertIn("timeout-minutes: 45", workflow)
-        allocations = (("Prepare and record rootful outer Podman", 2),
-                       ("Run every pinned supported generator", 33),
-                       ("Validate real-application generated semantics", 5))
+        allocations = (
+            ("Prepare and record rootful outer Podman", 2),
+            ("Run every pinned supported generator", 33),
+            ("Validate real-application generated semantics", 5),
+        )
         for name, minutes in allocations:
             self.assertRegex(workflow, rf"name: {re.escape(name)}\n\s+timeout-minutes: {minutes}\n")
-        self.assertIn("timeout-minutes: 2\n        run: bash ./scripts/cleanup-generator-containers.sh", workflow)
+        self.assertIn(
+            "timeout-minutes: 2\n        run: bash ./scripts/cleanup-generator-containers.sh",
+            workflow,
+        )
         self.assertEqual(sum(minutes for _, minutes in allocations) + 2 + 3, 45)
         release = (root / ".github/workflows/release.yml").read_text()
         self.assertIn("uses: ./.github/workflows/generator-matrix.yml", release)
@@ -48,14 +69,37 @@ class HostedPodmanTests(unittest.TestCase):
         self.assertIn(".outer_runtime.rootless == false", release)
         self.assertIn(".outer_runtime.remote == false", release)
         self.assertIn('.outer_runtime.timeout_self_control.result == "passed"', release)
-        self.assertIn('.outer_runtime.timeout_self_control.descendants == "sigkill-reaped"', release)
+        self.assertIn(
+            '.outer_runtime.timeout_self_control.descendants == "sigkill-reaped"', release
+        )
 
     def test_privilege_correct_local_engine_and_budgets(self):
-        for operation, seconds in (("run", 1800), ("ps", 16), ("inspect", 6), ("rm", 6), ("info", 8), ("version", 8)):
-            self.assertEqual(HOSTED.command([operation, "authored-argument"], {}),
-                             ["/usr/bin/sudo", "-n", "/usr/bin/timeout", "--signal=TERM", "--kill-after=2s",
-                              f"{seconds}s", "/usr/bin/podman", "--remote=false", operation, "authored-argument"])
-        self.assertIn("240s", HOSTED.command(["run"], {"QUADLET_LENS_ENGINE_RUN_TIMEOUT_SECONDS": "240"}))
+        for operation, seconds in (
+            ("run", 1800),
+            ("ps", 16),
+            ("inspect", 6),
+            ("rm", 6),
+            ("info", 8),
+            ("version", 8),
+        ):
+            self.assertEqual(
+                HOSTED.command([operation, "authored-argument"], {}),
+                [
+                    "/usr/bin/sudo",
+                    "-n",
+                    "/usr/bin/timeout",
+                    "--signal=TERM",
+                    "--kill-after=2s",
+                    f"{seconds}s",
+                    "/usr/bin/podman",
+                    "--remote=false",
+                    operation,
+                    "authored-argument",
+                ],
+            )
+        self.assertIn(
+            "240s", HOSTED.command(["run"], {"QUADLET_LENS_ENGINE_RUN_TIMEOUT_SECONDS": "240"})
+        )
         for arguments in ([], ["docker"], ["--remote=true", "run"]):
             with self.assertRaises(ValueError):
                 HOSTED.command(arguments, {})
@@ -63,25 +107,44 @@ class HostedPodmanTests(unittest.TestCase):
             HOSTED.command(["run"], {"QUADLET_LENS_ENGINE_RUN_TIMEOUT_SECONDS": "3600"})
 
     def test_reviewed_host_only(self):
-        HOSTED.hosted_environment({"GITHUB_ACTIONS": "true", "RUNNER_OS": "Linux"}, 'ID=ubuntu\nVERSION_ID="24.04"\n')
-        for environment, release in (({}, 'ID=ubuntu\nVERSION_ID="24.04"'),
-                                     ({"GITHUB_ACTIONS": "true", "RUNNER_OS": "Linux"}, 'ID=fedora\nVERSION_ID=45')):
+        HOSTED.hosted_environment(
+            {"GITHUB_ACTIONS": "true", "RUNNER_OS": "Linux"}, 'ID=ubuntu\nVERSION_ID="24.04"\n'
+        )
+        for environment, release in (
+            ({}, 'ID=ubuntu\nVERSION_ID="24.04"'),
+            ({"GITHUB_ACTIONS": "true", "RUNNER_OS": "Linux"}, "ID=fedora\nVERSION_ID=45"),
+        ):
             with self.assertRaises(ValueError):
                 HOSTED.hosted_environment(environment, release)
 
     def test_actual_profile_refuses_rootless_remote_or_missing_version(self):
-        self.assertEqual(HOSTED.profile(json.dumps(AUTHORED).encode(), "4.9.3+ds1-1ubuntu0.2"),
-                         {"schema": 1, "engine": "podman", "version": "4.9.3", "package": "4.9.3+ds1-1ubuntu0.2",
-                          "rootless": False, "remote": False, "oci_runtime": "crun",
-                          "oci_runtime_version": "crun version 1.2.3", "installation": "ubuntu-signed-apt-prerequisite"})
+        self.assertEqual(
+            HOSTED.profile(json.dumps(AUTHORED).encode(), "4.9.3+ds1-1ubuntu0.2"),
+            {
+                "schema": 1,
+                "engine": "podman",
+                "version": "4.9.3",
+                "package": "4.9.3+ds1-1ubuntu0.2",
+                "rootless": False,
+                "remote": False,
+                "oci_runtime": "crun",
+                "oci_runtime_version": "crun version 1.2.3",
+                "installation": "ubuntu-signed-apt-prerequisite",
+            },
+        )
         for field in ("rootless", "remote", "version"):
             value = copy.deepcopy(AUTHORED)
+            host = value["host"]
+            version = value["version"]
+            assert isinstance(host, dict) and isinstance(version, dict)
             if field == "rootless":
-                value["host"]["security"]["rootless"] = True
+                security = host["security"]
+                assert isinstance(security, dict)
+                security["rootless"] = True
             elif field == "remote":
-                value["host"]["serviceIsRemote"] = True
+                host["serviceIsRemote"] = True
             else:
-                value["version"]["Version"] = "unavailable"
+                version["Version"] = "unavailable"
             with self.assertRaises(ValueError):
                 HOSTED.profile(json.dumps(value).encode(), "4.9.3+ds1")
 
@@ -90,24 +153,49 @@ class HostedPodmanTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="quadlet-hosted-podman-control-") as scratch:
             try:
                 os.chdir(scratch)
-                responses = [subprocess.CompletedProcess([], 0),
-                             subprocess.CompletedProcess([], 0, json.dumps(AUTHORED).encode()),
-                             subprocess.CompletedProcess([], 0, b"4.9.3+ds1")]
-                with mock.patch.object(pathlib.Path, "is_file", return_value=False), \
-                     mock.patch.object(HOSTED, "native_timeout_control", return_value=MOCK_TIMEOUT) as native, \
-                     mock.patch.object(HOSTED.subprocess, "run", side_effect=responses) as run:
+                responses = [
+                    subprocess.CompletedProcess([], 0),
+                    subprocess.CompletedProcess([], 0, json.dumps(AUTHORED).encode()),
+                    subprocess.CompletedProcess([], 0, b"4.9.3+ds1"),
+                ]
+                with (
+                    mock.patch.object(pathlib.Path, "is_file", return_value=False),
+                    mock.patch.object(
+                        HOSTED, "native_timeout_control", return_value=MOCK_TIMEOUT
+                    ) as native,
+                    mock.patch.object(HOSTED.subprocess, "run", side_effect=responses) as run,
+                ):
                     destination = pathlib.Path("target/release-evidence/outer-podman.json")
                     HOSTED.prepare(destination)
                     self.assertEqual(json.loads(destination.read_text())["engine"], "podman")
-                    self.assertEqual(run.call_args_list[0].args[0],
-                                     ["/usr/bin/sudo", "-n", "/usr/bin/timeout", "--signal=TERM", "--kill-after=2s", "80s",
-                                      "/bin/sh", "-ceu", "apt-get update && apt-get install --yes --no-install-recommends podman"])
+                    self.assertEqual(
+                        run.call_args_list[0].args[0],
+                        [
+                            "/usr/bin/sudo",
+                            "-n",
+                            "/usr/bin/timeout",
+                            "--signal=TERM",
+                            "--kill-after=2s",
+                            "80s",
+                            "/bin/sh",
+                            "-ceu",
+                            "apt-get update && apt-get install --yes --no-install-recommends podman",
+                        ],
+                    )
                     self.assertEqual(len(run.call_args_list), 3)
                     native.assert_called_once_with()
-                    self.assertEqual(json.loads(destination.read_text())["timeout_self_control"], MOCK_TIMEOUT)
+                    self.assertEqual(
+                        json.loads(destination.read_text())["timeout_self_control"], MOCK_TIMEOUT
+                    )
                 destination.unlink()
-                with mock.patch.object(pathlib.Path, "is_file", return_value=False), \
-                     mock.patch.object(HOSTED.subprocess, "run", side_effect=subprocess.CalledProcessError(1, "authored")):
+                with (
+                    mock.patch.object(pathlib.Path, "is_file", return_value=False),
+                    mock.patch.object(
+                        HOSTED.subprocess,
+                        "run",
+                        side_effect=subprocess.CalledProcessError(1, "authored"),
+                    ),
+                ):
                     with self.assertRaises(subprocess.CalledProcessError):
                         HOSTED.prepare(destination)
                     self.assertFalse(destination.exists())
@@ -116,9 +204,11 @@ class HostedPodmanTests(unittest.TestCase):
 
     def test_native_probe_is_mocked_and_uses_the_production_prefix(self):
         controller = pathlib.Path(__file__).with_name("hosted-generator-timeout-control.py")
-        assignments = {node.targets[0].id: ast.literal_eval(node.value)
-                       for node in ast.parse(controller.read_text()).body
-                       if isinstance(node, ast.Assign) and isinstance(node.targets[0], ast.Name)}
+        assignments = {
+            node.targets[0].id: ast.literal_eval(node.value)
+            for node in ast.parse(controller.read_text()).body
+            if isinstance(node, ast.Assign) and isinstance(node.targets[0], ast.Name)
+        }
         self.assertEqual(assignments["PREFIX"], HOSTED.privileged_timeout_prefix(1))
         ast.parse(assignments["WORKER"])
         self.assertIn("controller_fd = os.pidfd_open(controller)", assignments["WORKER"])
@@ -129,9 +219,11 @@ class HostedPodmanTests(unittest.TestCase):
         process = mock.Mock(returncode=0)
         process.communicate.return_value = (json.dumps(MOCK_TIMEOUT).encode(), None)
         process.poll.return_value = 0
-        with mock.patch.object(HOSTED, "hosted_environment"), \
-             mock.patch.object(HOSTED.signal, "signal"), \
-             mock.patch.object(HOSTED.subprocess, "Popen", return_value=process) as spawn:
+        with (
+            mock.patch.object(HOSTED, "hosted_environment"),
+            mock.patch.object(HOSTED.signal, "signal"),
+            mock.patch.object(HOSTED.subprocess, "Popen", return_value=process) as spawn,
+        ):
             observed = HOSTED.native_timeout_control()
         self.assertEqual(observed["descendants"], "sigkill-reaped")
         argv = spawn.call_args.args[0]
@@ -146,11 +238,20 @@ class HostedPodmanTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="quadlet-hosted-podman-refusal-") as scratch:
             try:
                 os.chdir(scratch)
-                with mock.patch.object(pathlib.Path, "is_file", return_value=True), \
-                     mock.patch.object(HOSTED.subprocess, "run", side_effect=[
-                         subprocess.CompletedProcess([], 0, json.dumps(AUTHORED).encode()),
-                         subprocess.CompletedProcess([], 0, b"4.9.3+ds1")]), \
-                     mock.patch.object(HOSTED, "native_timeout_control", side_effect=ValueError("authored refusal")):
+                with (
+                    mock.patch.object(pathlib.Path, "is_file", return_value=True),
+                    mock.patch.object(
+                        HOSTED.subprocess,
+                        "run",
+                        side_effect=[
+                            subprocess.CompletedProcess([], 0, json.dumps(AUTHORED).encode()),
+                            subprocess.CompletedProcess([], 0, b"4.9.3+ds1"),
+                        ],
+                    ),
+                    mock.patch.object(
+                        HOSTED, "native_timeout_control", side_effect=ValueError("authored refusal")
+                    ),
+                ):
                     destination = pathlib.Path("target/release-evidence/outer-podman.json")
                     with self.assertRaises(ValueError):
                         HOSTED.prepare(destination)
@@ -160,27 +261,34 @@ class HostedPodmanTests(unittest.TestCase):
 
     def test_cancelled_native_probe_rejects_even_a_successful_mock_report(self):
         handlers = {}
+
         def handler(signum, callback):
             previous = handlers.get(signum, signal.SIG_DFL)
             handlers[signum] = callback
             return previous
+
         def completed(**_kwargs):
             handlers[signal.SIGTERM](signal.SIGTERM, None)
             return json.dumps(MOCK_TIMEOUT).encode(), None
+
         process = mock.Mock(returncode=0)
         process.communicate.side_effect = completed
         process.poll.return_value = 0
-        with mock.patch.object(HOSTED, "hosted_environment"), \
-             mock.patch.object(HOSTED.signal, "signal", side_effect=handler), \
-             mock.patch.object(HOSTED.subprocess, "Popen", return_value=process):
+        with (
+            mock.patch.object(HOSTED, "hosted_environment"),
+            mock.patch.object(HOSTED.signal, "signal", side_effect=handler),
+            mock.patch.object(HOSTED.subprocess, "Popen", return_value=process),
+        ):
             with self.assertRaises(ValueError):
                 HOSTED.native_timeout_control()
         self.assertTrue(all(value == signal.SIG_DFL for value in handlers.values()))
 
     def test_pidfd_open_disappearance_during_collect_is_not_cleanup_failure(self):
         held = {}
-        with mock.patch.object(CONTROL, "children", return_value=[201]), \
-             mock.patch.object(CONTROL.os, "pidfd_open", side_effect=ProcessLookupError):
+        with (
+            mock.patch.object(CONTROL, "children", return_value=[201]),
+            mock.patch.object(CONTROL.os, "pidfd_open", side_effect=ProcessLookupError),
+        ):
             CONTROL.collect(held, 100)
         self.assertEqual(held, {})
 
@@ -202,7 +310,9 @@ class HostedPodmanTests(unittest.TestCase):
 
         def descendants(pid):
             if pid == 100:
-                return ([200] if 200 not in reaped else []) + [p for p in (201, 202) if p not in reaped and p - 1 not in live]
+                return ([200] if 200 not in reaped else []) + [
+                    p for p in (201, 202) if p not in reaped and p - 1 not in live
+                ]
             if pid in (200, 201):
                 return [pid + 1] if pid + 1 not in reaped and pid in live else []
             return []
@@ -236,23 +346,29 @@ class HostedPodmanTests(unittest.TestCase):
             return process.returncode
 
         process.poll.side_effect = poll
-        with mock.patch.object(CONTROL.ctypes, "CDLL") as library, \
-             mock.patch.object(CONTROL.os, "getuid", return_value=0), \
-             mock.patch.object(CONTROL.os, "geteuid", return_value=0), \
-             mock.patch.object(CONTROL.os, "getpid", return_value=100), \
-             mock.patch.object(CONTROL.os, "pidfd_open", side_effect=lambda pid: pid + 1000), \
-             mock.patch.object(CONTROL.os, "close"), \
-             mock.patch.object(CONTROL.os, "set_blocking"), \
-             mock.patch.object(CONTROL.os, "read", side_effect=read), \
-             mock.patch.object(CONTROL.os, "waitpid", side_effect=wait), \
-             mock.patch.object(CONTROL, "identity", side_effect=lambda pid: pid * 10), \
-             mock.patch.object(CONTROL, "children", side_effect=descendants), \
-             mock.patch.object(CONTROL.select, "select", side_effect=ready), \
-             mock.patch.object(CONTROL.signal, "signal", side_effect=lambda sig, handler: handlers.update({sig: handler})), \
-             mock.patch.object(CONTROL.signal, "pidfd_send_signal", side_effect=send), \
-             mock.patch.object(CONTROL.time, "monotonic", side_effect=clock), \
-             mock.patch.object(CONTROL.time, "sleep"), \
-             mock.patch.object(CONTROL.subprocess, "Popen", return_value=process):
+        with (
+            mock.patch.object(CONTROL.ctypes, "CDLL") as library,
+            mock.patch.object(CONTROL.os, "getuid", return_value=0),
+            mock.patch.object(CONTROL.os, "geteuid", return_value=0),
+            mock.patch.object(CONTROL.os, "getpid", return_value=100),
+            mock.patch.object(CONTROL.os, "pidfd_open", side_effect=lambda pid: pid + 1000),
+            mock.patch.object(CONTROL.os, "close"),
+            mock.patch.object(CONTROL.os, "set_blocking"),
+            mock.patch.object(CONTROL.os, "read", side_effect=read),
+            mock.patch.object(CONTROL.os, "waitpid", side_effect=wait),
+            mock.patch.object(CONTROL, "identity", side_effect=lambda pid: pid * 10),
+            mock.patch.object(CONTROL, "children", side_effect=descendants),
+            mock.patch.object(CONTROL.select, "select", side_effect=ready),
+            mock.patch.object(
+                CONTROL.signal,
+                "signal",
+                side_effect=lambda sig, handler: handlers.update({sig: handler}),
+            ),
+            mock.patch.object(CONTROL.signal, "pidfd_send_signal", side_effect=send),
+            mock.patch.object(CONTROL.time, "monotonic", side_effect=clock),
+            mock.patch.object(CONTROL.time, "sleep"),
+            mock.patch.object(CONTROL.subprocess, "Popen", return_value=process),
+        ):
             library.return_value.prctl.return_value = 0
             with self.assertRaises(ValueError):
                 CONTROL.run(CONTROL.PREFIX)

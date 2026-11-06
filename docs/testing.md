@@ -20,14 +20,25 @@ external generator or runtime evidence only when a lower layer cannot establish 
 sets and independent native semantic expectations. Actual Podman generation remains in the
 separate opt-in generator layer.
 
-Pull-request CI uses the trusted base revision of `scripts/validation-plan.py` and
-`scripts/validation-policy.json` to classify the exact candidate. Only public prose without code
-fences or inline code may skip the Rust, coverage, API and dependency lanes. Pages containing
-executable-looking examples conservatively retain complete validation until a focused independent
-example test exists. Unknown, mixed, malformed and first-rollout comparisons also run the complete
-suite. Main pushes, manual runs, and reusable workflow calls always select all deterministic jobs;
-the stable `Required CI` checks each selection fail-closed. Linux is the validated CI platform. macOS
-client compatibility is intended but is not supported by a macOS CI evidence lane.
+Pull-request CI uses the immutable shared implementation selected by the automation manifest and
+trusted base policy in `scripts/validation-policy.json` to classify the exact candidate. Public
+prose may select documentation and dependency eligibility; examples, unknown paths, malformed
+comparisons and first-rollout policy retain complete validation. Main, manual and reusable calls
+select every deterministic job. The stable `Required CI` verifies selected jobs and planned skips.
+Linux is the validated platform; macOS compatibility has no CI evidence lane.
+
+Ordinary adoption retains the existing deterministic CI inventory and complete local gate.
+Image qualification and updater activation remain separate work in
+[#563](https://github.com/Strukturpiloten/boxferry/issues/563), using fresh GitHub CI evidence with
+standard engine storage. Developer VS Code Dev Containers use existing Podman storage, preferably
+rootless; this gate adds no privileged local setup. Restored direct definitions and mocked source
+checks do not qualify images rebuilt with a changed shared manifest input.
+
+Local and ordinary CI API checks use trusted development Git history. Release, including
+`validation_only`, checks the canonical published crate and requires the purpose-bound exact
+candidate receipt. The [shared contract suite](../scripts/test-automation-contract.py) covers
+policy selection, automatic dependency rules, scoped image proposal holds, age exceptions and failed
+or stale receipts. Native launcher tests remain independently required.
 
 Coverage floors are regression alarms, not substitutes for assertions. The project does not require
 100% coverage, a fuzzing program, or every host and privilege combination.

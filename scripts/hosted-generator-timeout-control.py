@@ -11,8 +11,7 @@ import subprocess
 import sys
 import time
 
-
-WORKER = r'''
+WORKER = r"""
 import json, os, select, signal, sys
 assert os.getuid() == os.geteuid() == 0
 signal.signal(signal.SIGTERM, signal.SIG_IGN)
@@ -32,22 +31,27 @@ else:
 # triggers this lifetime backstop. Both sides of fork retain the same pidfd.
 select.select([controller_fd], [], [])
 os.kill(os.getpid(), signal.SIGKILL)
-'''
+"""
 
 PREFIX = ["/usr/bin/sudo", "-n", "/usr/bin/timeout", "--signal=TERM", "--kill-after=2s", "1s"]
 
 
 def identity(pid):
     raw = pathlib.Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()
-    uid = next(line.split()[1:] for line in pathlib.Path(f"/proc/{pid}/status").read_text().splitlines()
-               if line.startswith("Uid:"))
+    uid = next(
+        line.split()[1:]
+        for line in pathlib.Path(f"/proc/{pid}/status").read_text().splitlines()
+        if line.startswith("Uid:")
+    )
     if uid != ["0", "0", "0", "0"]:
         raise ValueError("non-root probe process")
     return int(raw[19])
 
 
 def children(pid):
-    return [int(value) for value in pathlib.Path(f"/proc/{pid}/task/{pid}/children").read_text().split()]
+    return [
+        int(value) for value in pathlib.Path(f"/proc/{pid}/task/{pid}/children").read_text().split()
+    ]
 
 
 def remember(held, pid):
@@ -125,10 +129,23 @@ def run(prefix):
             process.poll()
 
     try:
-        process = subprocess.Popen([*prefix, "/usr/bin/python3", "-I", "-B", "-c", WORKER,
-                                    str(os.getpid()), str(identity(os.getpid()))],
-                                   stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        process = subprocess.Popen(
+            [
+                *prefix,
+                "/usr/bin/python3",
+                "-I",
+                "-B",
+                "-c",
+                WORKER,
+                str(os.getpid()),
+                str(identity(os.getpid())),
+            ],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+        )
         remember(held, process.pid)
+        assert process.stdout is not None
         os.set_blocking(process.stdout.fileno(), False)
         raw = bytearray()
         observed = None
@@ -152,16 +169,32 @@ def run(prefix):
             if process.returncode is not None and not children(os.getpid()):
                 break
         elapsed = time.monotonic() - started
-        if observed is None or cancelled or not 2.5 <= elapsed < 4.0 or process.returncode not in (137, -signal.SIGKILL):
+        if (
+            observed is None
+            or cancelled
+            or not 2.5 <= elapsed < 4.0
+            or process.returncode not in (137, -signal.SIGKILL)
+        ):
             raise ValueError("root timeout result unavailable")
         for pid, _start in (observed["worker"], observed["child"]):
             status = reaped.get(pid)
-            if status is None or not os.WIFSIGNALED(status) or os.WTERMSIG(status) != signal.SIGKILL:
+            if (
+                status is None
+                or not os.WIFSIGNALED(status)
+                or os.WTERMSIG(status) != signal.SIGKILL
+            ):
                 raise ValueError("root descendant SIGKILL/reaping unavailable")
-        if any(not select.select([descriptor], [], [], 0)[0] for _start, descriptor in held.values()):
+        if any(
+            not select.select([descriptor], [], [], 0)[0] for _start, descriptor in held.values()
+        ):
             raise ValueError("root probe process remains")
-        return {"schema": 1, "result": "passed", "uid": 0, "descendants": "sigkill-reaped",
-                "elapsed_ms": round(elapsed * 1000)}
+        return {
+            "schema": 1,
+            "result": "passed",
+            "uid": 0,
+            "descendants": "sigkill-reaped",
+            "elapsed_ms": round(elapsed * 1000),
+        }
     finally:
         try:
             cleanup(held, deadline, reap)

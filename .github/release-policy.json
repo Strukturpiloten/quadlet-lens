@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "repository": "Strukturpiloten/quadlet-lens",
+  "packages": ["quadlet-lens"],
+  "required_jobs": [
+    "deterministic",
+    "native-generator-validation",
+    "native-generator-evidence",
+    "release-metadata"
+  ],
+  "publication_enabled": true
+}

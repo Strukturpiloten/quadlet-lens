@@ -50,22 +50,25 @@ Their exact sources are:
 The Dev Container and CI run the same repository file checks. Renovate may propose version changes,
 but every update receives the normal tests and review.
 
-Renovate's global three-day minimum release age applies to dependency updates. The exact-name
-BoxFerry and Lens exception preserves the existing BoxFerry package names and includes
-`compose-lens`, `podman-lens`, `quadlet-lens`, and `docker-lens`; it applies only to the Cargo manager
-and crates.io (`crate`) datasource. It waives elapsed release age without changing approvals,
-grouping, or automerge rules. Other ecosystems and similarly named packages retain the global delay.
+The manifest-selected common and Rust presets own automatic dependency policy, grouping and
+approval behavior. Ordinary third-party releases require 72 hours. Exact maintained first-party
+crate/source releases have narrow exceptions; an eligible Lens release waives elapsed age for
+its whole update only after the trusted dependency closure check. Prefix lookalikes, other
+ecosystems and unrelated sources do not inherit an exception. Future or malformed publication
+evidence fails closed. Synthetic lock maintenance still requires the transitive-age guard.
 
-Synthetic lock-file maintenance also uses a zero-day Renovate override. Both exceptions remain
-subject to the shared, fail-closed lockfile release-age guard and the required aggregate PR gate.
-For Cargo's canonical crates.io registry source, the guard's fixed in-house allowlist contains only
-`compose-lens`, `podman-lens`, `quadlet-lens`, and `docker-lens`. It waives elapsed age only after a
-bounded registry lookup returns a valid publication timestamp; a future timestamp still fails.
-Unavailable or malformed registry evidence fails closed. Newly introduced third-party packages,
-including transitive dependencies and BoxFerry packages outside that guard allowlist, still require
-at least 72 hours. The guard has no CLI or environment override for its allowlist. Its immutable
-shared-policy revision retains one Renovate owner. Podman discovery, Dev Container, and
-checksum-pinned tool updates remain manual.
+Shared workflow, action-input, manifest and preset revisions advance atomically. The required
+eligibility reader does not grant write authority to candidate code. Local custom managers own
+native Podman discovery and local image/tool declarations, with one extraction owner per pin.
+Discovery stays automatic and grouped separately from fixed reviewed conformance targets.
+
+Final exact file/package rules disable direct image, feature and Dockerfile tool-ARG proposals
+until fresh GitHub CI qualification in #563. Existing extraction owners remain unique; this is an
+`enabled: false` hold, not a dashboard or manual-review path. Package dependencies, compiler and
+shared-tool metadata retain their canonical automatic owners even when an existing image COPY
+uses them. Advancing those ordinary inputs invalidates previous image evidence without adding
+a second authority. No image build, publication or updater activation is part of this adoption. Consumer tests exercise
+merged effective rules and independent revision drift rather than duplicating shared managers.
 
 ## Review checklist
 
@@ -105,6 +108,7 @@ Before merging a dependency change:
 4. update an ADR if representation or public policy changes; and
 5. run the complete repository gate.
 
-The complete bootstrap carries the interface-1 loader, manifest and thin core-tool installer
-together. CI and Dev Container extras explicitly select actionlint and Lychee from that same
-checksum-verified inventory. Shared selection and common-preset rollout remain a later stage.
+The interface-1 loader and thin installer select one checksum-verified shared tool inventory.
+CI and Dev Container builds retain actionlint, Lychee, uv and locked Ruff/ty ownership there.
+Native Rust tool declarations and the manifest remain image build inputs. Changing a source
+or image/tool pin requires fresh complete and native image qualification.
