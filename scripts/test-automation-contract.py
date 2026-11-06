@@ -51,6 +51,35 @@ def require_release_ci_read_permissions(release: str, ci: str) -> None:
             raise ValueError(f"{name} must grant only actions, contents and statuses read")
 
 
+def require_dependency_service_permissions(workflow: str) -> None:
+    """The service-only recovery job grants the exact immutable callee contract."""
+    if re.findall(r"(?m)^permissions:([^\n]*)$", workflow) != [" {}"]:
+        raise ValueError("dependency service workflow defaults must grant no permissions")
+    required = {
+        "actions": "write",
+        "checks": "read",
+        "contents": "read",
+        "pull-requests": "write",
+        "statuses": "write",
+    }
+    job = re.search(r"(?ms)^  eligibility:\n.*?(?=^  [\w-]+:\n|\Z)", workflow)
+    if job is None or "shared-dependency-eligibility.yml@" not in job[0]:
+        raise ValueError("missing expected dependency eligibility service call")
+    permissions = re.search(r"(?ms)^    permissions:\n(.*?)(?=^    [\w-]+:|\Z)", job[0])
+    if permissions is None:
+        raise ValueError("dependency service requires explicit job permissions")
+    scopes: dict[str, str] = {}
+    for line in permissions[1].splitlines():
+        if not line.strip():
+            continue
+        scope = re.fullmatch(r"      ([a-z-]+): (read|write|none)", line)
+        if scope is None or scope[1] in scopes:
+            raise ValueError("malformed or duplicate dependency service permission")
+        scopes[scope[1]] = scope[2]
+    if scopes != required:
+        raise ValueError("dependency service permissions differ from the exact recovery contract")
+
+
 ORIGINAL_JOBS = (
     "rust",
     "coverage",
@@ -859,6 +888,30 @@ class ConsumerContractTests(unittest.TestCase):
         self.assertIn("scripts/shared-ci.py cargo-tools verify", local)
         self.assertNotIn("--automation-sha", json.dumps(policy["tasks"]["api-development"]))
 
+    def test_dependency_service_requests_only_exact_recovery_permissions(self) -> None:
+        workflow = (ROOT / ".github/workflows/dependency-eligibility.yml").read_text()
+        require_dependency_service_permissions(workflow)
+        manifest = json.loads((ROOT / ".github/automation.json").read_text())
+        self.assertIn("shared-dependency-eligibility.yml@" + manifest["revision"], workflow)
+        self.assertIn("automation-sha: " + manifest["revision"], workflow)
+        for before, after in (
+            ("permissions: {}\n", "permissions: write-all\n"),
+            ("permissions: {}\n", "permissions:\n  issues: write\n"),
+            ("      pull-requests: write\n", "      pull-requests: read\n"),
+            ("      checks: read\n", ""),
+            ("    permissions:\n", "    permissions:\n      issues: write\n"),
+            ("      statuses: write\n", "      statuses: write\n\n      issues: write\n"),
+        ):
+            self.assertEqual(workflow.count(before), 1)
+            mutated = workflow.replace(before, after, 1)
+            self.assertNotEqual(mutated, workflow)
+            with self.subTest(mutation=(before, after)), self.assertRaises(ValueError):
+                require_dependency_service_permissions(mutated)
+        require_release_ci_read_permissions(
+            (ROOT / ".github/workflows/release.yml").read_text(),
+            (ROOT / ".github/workflows/ci.yml").read_text(),
+        )
+
     def test_release_ci_supplies_the_nested_dependency_read_scopes(self) -> None:
         release = (ROOT / ".github/workflows/release.yml").read_text()
         ci = (ROOT / ".github/workflows/ci.yml").read_text()
@@ -1202,8 +1255,9 @@ class ConsumerContractTests(unittest.TestCase):
             "workflows: [CI]",
             "types: [requested, completed]",
             "actions: write",
+            "checks: read",
             "contents: read",
-            "pull-requests: read",
+            "pull-requests: write",
             "statuses: write",
             "shared-dependency-eligibility.yml@",
             "automation-sha:",
