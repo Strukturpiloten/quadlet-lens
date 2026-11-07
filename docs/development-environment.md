@@ -50,15 +50,18 @@ Python tooling for these checks.
 
 Use VS Code Dev Containers with the existing Podman setup and storage; prefer rootless Podman.
 Ordinary local validation does not build or qualify an image and requires no new privileged
-local setup. The direct image, features, lock and lifecycle definitions retain their main-branch
-form. Their existing manifest input follows the same ordinary shared automation source as CI;
-changing that input invalidates previous image evidence.
+setup. The recipe selects the candidate Rust toolchain and retains canonical shared Python tools
+for verification. Its manifest follows the same immutable automation source as CI; changes to
+copied inputs invalidate previous image evidence. Existing nonroot workspace and volume mounts
+and the official feature lock remain intact.
 
-Direct image, feature and Dockerfile tool-ARG update proposals are disabled pending fresh GitHub
-CI qualification in [#563](https://github.com/Strukturpiloten/boxferry/issues/563). That qualification
-uses standard engine storage. No image build, publication or updater activation is delivered by
-this ordinary adoption; source tests and mocked probes do not qualify a new image. Normal package,
-compiler and shared-tool metadata updates retain their canonical automatic owners.
+CI now qualifies selected candidates on native amd64 and arm64 hosted Podman lanes. A missing
+selector runs qualification during the approved trusted-policy transition; the aggregate requires
+a fresh exact-candidate receipt. This adds no local image task. Direct image, feature and
+Dockerfile tool-ARG proposals remain held pending the real native and App evidence in
+[#563](https://github.com/Strukturpiloten/boxferry/issues/563). Source checks and mocked probes
+do not establish image readiness, and no updater schedule or publication is activated. Normal
+package, compiler and shared-tool metadata retain their canonical automatic owners.
 
 Generator containers and the downloaded real-world corpus remain explicit opt-in tiers:
 

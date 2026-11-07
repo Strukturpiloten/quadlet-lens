@@ -301,6 +301,8 @@ fn is_immutable_versioned_action(reference: &str) -> bool {
                     | "Strukturpiloten/boxferry/.github/workflows/shared-release-validation.yml"
                     | "Strukturpiloten/boxferry/.github/workflows/shared-dependency-eligibility.yml"
                     | "Strukturpiloten/boxferry/.github/workflows/shared-dependency-wait.yml"
+                    | "Strukturpiloten/boxferry/.github/workflows/shared-devcontainer-validation.yml"
+                    | "Strukturpiloten/boxferry/.github/workflows/shared-devcontainer-updates.yml"
             ))
 }
 
@@ -357,25 +359,35 @@ mod tests {
             "shared-release-validation.yml",
             "shared-dependency-eligibility.yml",
             "shared-dependency-wait.yml",
+            "shared-devcontainer-validation.yml",
+            "shared-devcontainer-updates.yml",
         ] {
             assert!(is_immutable_versioned_action(&format!(
                 "{prefix}{workflow}@{sha} # automation-v1 interface v1"
             )));
         }
-        for reference in [
-            format!("{prefix}shared-rust-ci.yml@automation-v1 # automation-v1 interface v1"),
-            format!("{prefix}shared-rust-ci.yml@main # automation-v1 interface v1"),
-            format!("{prefix}shared-rust-ci.yml@v1.0.0 # automation-v1 interface v1"),
-            format!("{prefix}shared-rust-ci.yml@0123456789abcdef # automation-v1 interface v1"),
-            format!("{prefix}shared-rust-ci.yml@0123456789abcdef0123456789abcdef0123456g # automation-v1 interface v1"),
-            format!("{prefix}shared-other.yml@{sha} # automation-v1 interface v1"),
-            format!("other/boxferry/.github/workflows/shared-rust-ci.yml@{sha} # automation-v1 interface v1"),
-            format!("{prefix}shared-rust-ci.yml@{sha} # automation-v1"),
+        for workflow in [
+            "shared-rust-ci.yml",
+            "shared-devcontainer-validation.yml",
+            "shared-devcontainer-updates.yml",
         ] {
-            assert!(
-                !is_immutable_versioned_action(&reference),
-                "accepted weakened shared pin: {reference}"
-            );
+            for reference in [
+                format!("{prefix}{workflow}@automation-v1 # automation-v1 interface v1"),
+                format!("{prefix}{workflow}@main # automation-v1 interface v1"),
+                format!("{prefix}{workflow}@v1.0.0 # automation-v1 interface v1"),
+                format!("{prefix}{workflow}@0123456789abcdef # automation-v1 interface v1"),
+                format!("{prefix}{workflow}@0123456789abcdef0123456789abcdef0123456g # automation-v1 interface v1"),
+                format!("{prefix}shared-other.yml@{sha} # automation-v1 interface v1"),
+                format!("other/boxferry/.github/workflows/{workflow}@{sha} # automation-v1 interface v1"),
+                format!("{prefix}{workflow}@{sha} # automation-v1"),
+                format!("{prefix}{workflow}@{sha} # automation-v1 interface v2"),
+                format!("{prefix}{workflow}@0123456789ABCDEF0123456789abcdef01234567 # automation-v1 interface v1"),
+            ] {
+                assert!(
+                    !is_immutable_versioned_action(&reference),
+                    "accepted weakened shared pin: {reference}"
+                );
+            }
         }
     }
 

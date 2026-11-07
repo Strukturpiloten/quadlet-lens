@@ -67,8 +67,13 @@ until fresh GitHub CI qualification in #563. Existing extraction owners remain u
 `enabled: false` hold, not a dashboard or manual-review path. Package dependencies, compiler and
 shared-tool metadata retain their canonical automatic owners even when an existing image COPY
 uses them. Advancing those ordinary inputs invalidates previous image evidence without adding
-a second authority. No image build, publication or updater activation is part of this adoption. Consumer tests exercise
-merged effective rules and independent revision drift rather than duplicating shared managers.
+a second authority.
+
+The selected CI caller now requires native image qualification and a fresh
+candidate receipt where selected, including the approved old-policy bootstrap. Source wiring
+alone supplies no image result and removes no proposal hold. App smoke, updater scheduling and
+publication remain separate. Consumer tests exercise merged effective rules and independent
+revision drift rather than duplicating shared managers.
 
 ## Review checklist
 

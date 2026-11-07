@@ -9,6 +9,7 @@ import io
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -20,7 +21,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from boxferry_ci.contracts import ContractError
-from boxferry_ci.gate import verify_gate
+from boxferry_ci.gate import verify_devcontainer_gate, verify_gate
 from boxferry_ci.planner import Comparison, make_plan, path_profiles
 from boxferry_ci.policy import Policy, load_policy
 
@@ -120,17 +121,22 @@ def ordinary_gate_fixture(
         job: {"result": "success" if job in selected else "skipped"} for job in policy.jobs
     }
     needs["validation-plan"] = {"result": "success"}
+    if needs.get("devcontainer-validation", {}).get("result") == "success":
+        needs["devcontainer-validation"]["outputs"] = {"candidate_sha": candidate}
     return plan, needs, comparison
 
 
 class OrdinaryValidationContractTests(unittest.TestCase):
     def test_adoption_preserves_original_jobs_profiles_and_local_commands(self) -> None:
-        self.assertEqual(POLICY.jobs, ORIGINAL_JOBS)
+        self.assertEqual(POLICY.jobs, (*ORIGINAL_JOBS, "devcontainer-validation"))
         self.assertEqual(
             POLICY.selected_jobs(("prose",)), {"documentation", "lockfile-release-age"}
         )
         for profile in ("executable-docs", "full"):
-            self.assertEqual(POLICY.selected_jobs((profile,)), set(ORIGINAL_JOBS))
+            expected = set(ORIGINAL_JOBS)
+            if profile == "full":
+                expected.add("devcontainer-validation")
+            self.assertEqual(POLICY.selected_jobs((profile,)), expected)
             self.assertEqual(
                 POLICY.local_commands[profile], (("bash", "scripts/check-all.sh", "--check"),)
             )
@@ -188,21 +194,43 @@ class OrdinaryValidationContractTests(unittest.TestCase):
             with self.subTest(event=event):
                 plan = make_plan(ROOT, POLICY, event=event, tested_sha=tested, force_full=True)
                 self.assertEqual(plan["profile"], "full")
-                self.assertEqual(plan["jobs"], dict.fromkeys(ORIGINAL_JOBS, True))
+                self.assertEqual(plan["jobs"], dict.fromkeys(POLICY.jobs, True))
                 expected, needs, comparison = ordinary_gate_fixture(POLICY, event, "full")
                 verify_gate(expected, needs, POLICY, comparison, expected_plan=expected)
 
-    def test_caller_keeps_strict_original_aggregate_without_image_activation(self) -> None:
+    def test_caller_preserves_original_aggregate_and_requires_seed_image_receipt(self) -> None:
         ci = (ROOT / ".github/workflows/ci.yml").read_text()
-        for held in ("devcontainer-validation", "select_devcontainer_validation"):
-            self.assertNotIn(held, ci)
+        self.assertIn(
+            "select_devcontainer_validation: ${{ steps.plan.outputs.select_devcontainer_validation }}",
+            ci,
+        )
+        image = re.search(r"(?ms)^  devcontainer-validation:\n.*?(?=^  [\w-]+:\n)", ci)
+        assert image is not None
+        self.assertIn("    needs: validation-plan\n", image[0])
+        self.assertIn(
+            "if: needs.validation-plan.outputs.select_devcontainer_validation != 'false'",
+            image[0],
+        )
+        self.assertIn("    permissions:\n      contents: read\n", image[0])
+        revision = json.loads((ROOT / ".github/automation.json").read_text())["revision"]
+        self.assertIn("shared-devcontainer-validation.yml@" + revision, image[0])
+        inputs = re.findall(r"(?m)^      ([a-z_]+):", image[0].split("    with:\n", 1)[1])
+        self.assertEqual(inputs, ["candidate_sha", "policy_sha", "automation_sha", "config_path"])
+        for binding in (
+            "candidate_sha: ${{ github.sha }}",
+            "policy_sha: ${{ github.event.pull_request.base.sha || "
+            "github.event.merge_group.base_sha || github.sha }}",
+            "automation_sha: " + revision,
+            "config_path: scripts/validation-policy.json",
+        ):
+            self.assertIn(binding, image[0])
         gate = ci.split("  pr-gate:\n", 1)[1]
         self.assertIn("    name: Required CI\n    if: always()\n", gate)
         dependencies = re.search(r"    needs:\n((?:      - [^\n]+\n)+)", gate)
         assert dependencies is not None
         self.assertEqual(
             [line.strip().removeprefix("- ") for line in dependencies[1].splitlines()],
-            ["validation-plan", *ORIGINAL_JOBS],
+            ["validation-plan", *ORIGINAL_JOBS, "devcontainer-validation"],
         )
         self.assertIn("candidate_sha: ${{ steps.gate.outputs.candidate_sha }}", gate)
         self.assertIn("value: ${{ jobs.pr-gate.outputs.candidate_sha }}", ci)
@@ -253,7 +281,7 @@ class OrdinaryValidationContractTests(unittest.TestCase):
                 self.assertEqual(result.returncode, status, result.stderr)
                 arguments = json.loads((directory / "trace").read_text())
                 self.assertEqual(arguments[arguments.index("--plan-json") + 1], encoded_plan)
-                self.assertNotIn("--devcontainer-validation", arguments)
+                self.assertEqual(arguments.count("--devcontainer-validation"), 1)
                 if status == 0:
                     self.assertEqual(output.read_text(), f"candidate_sha={comparison.tested_sha}\n")
                 else:
@@ -312,6 +340,171 @@ def require_shared_release_preparation(workflow: str, revision: str) -> str:
         if forbidden in job:
             raise ValueError("shared release preparation must stay a read-only thin caller")
     return job
+
+
+class NativeImageIntegrationTests(unittest.TestCase):
+    """Exercise this owner's actual seed, recipe closure and selected-tool probe."""
+
+    def test_actual_seed_and_adopted_policy_use_fresh_image_receipts(self) -> None:
+        shared_source = sys.modules[Policy.__module__].__file__
+        assert shared_source is not None
+        shared = Path(shared_source).resolve().parents[2]
+        seed = load_policy(
+            shared
+            / "tests/fixtures/devcontainer_seed/post-adoption-20261107/quadlet-lens-policy.json.txt"
+        )
+        self.assertEqual(seed.jobs, ORIGINAL_JOBS)
+        self.assertEqual(seed.local_commands, POLICY.local_commands)
+        self.assertEqual(seed.tasks, POLICY.tasks)
+        for event in ("pull_request", "merge_group"):
+            for profile in ("prose", "executable-docs", "full"):
+                with self.subTest(event=event, profile=profile):
+                    plan, needs, comparison = ordinary_gate_fixture(seed, event, profile)
+                    encoded = json.dumps(plan, separators=(",", ":"))
+                    selected_jobs = plan["jobs"]
+                    assert isinstance(selected_jobs, dict)
+                    self.assertNotIn("devcontainer-validation", selected_jobs)
+                    needs["devcontainer-validation"] = {
+                        "result": "success",
+                        "outputs": {"candidate_sha": comparison.tested_sha},
+                    }
+                    verify_devcontainer_gate(plan, needs, seed, comparison, expected_plan=plan)
+                    self.assertEqual(json.dumps(plan, separators=(",", ":")), encoded)
+                    needs["devcontainer-validation"]["outputs"] = {
+                        "candidate_sha": comparison.head_sha
+                    }
+                    with self.assertRaises(ContractError):
+                        verify_devcontainer_gate(plan, needs, seed, comparison, expected_plan=plan)
+        for profile, selected in (("prose", False), ("executable-docs", False), ("full", True)):
+            plan, needs, comparison = ordinary_gate_fixture(POLICY, "merge_group", profile)
+            selected_jobs = plan["jobs"]
+            assert isinstance(selected_jobs, dict)
+            self.assertEqual(selected_jobs["devcontainer-validation"], selected)
+            verify_devcontainer_gate(plan, needs, POLICY, comparison, expected_plan=plan)
+        for local in ("scripts/check-all.sh", ".vscode/tasks.json"):
+            self.assertNotIn("devcontainer-validation", (ROOT / local).read_text())
+
+    def test_actual_recipe_and_recursive_tool_inputs_select_image(self) -> None:
+        dockerfile = (ROOT / ".devcontainer/Dockerfile").read_text()
+        inputs = {
+            ".devcontainer/Dockerfile",
+            ".devcontainer/devcontainer.json",
+            ".devcontainer/devcontainer-lock.json",
+            ".devcontainer/verify-tools.sh",
+            ".dockerignore",
+            ".containerignore",
+        }
+        for match in re.finditer(r"(?m)^COPY (.+)$", dockerfile):
+            operands = shlex.split(match[1])
+            if operands[0].startswith("--from="):
+                continue
+            inputs.update(operands[:-1])
+        self.assertTrue(
+            {
+                "rust-toolchain.toml",
+                ".github/automation.json",
+                "scripts/shared-ci.py",
+                "scripts/install-file-tools.sh",
+                "package.json",
+                "package-lock.json",
+            }
+            <= inputs
+        )
+        installer = (ROOT / "scripts/install-file-tools.sh").read_text()
+        self.assertIn('exec python3 "${script_directory}/shared-ci.py" tools', installer)
+        for path in sorted(inputs):
+            content = (ROOT / path).read_bytes() if (ROOT / path).exists() else b"changed"
+            with self.subTest(path=path):
+                profiles = path_profiles(path, (content,), POLICY, set())
+                self.assertEqual(profiles, {"full"})
+                self.assertIn("devcontainer-validation", POLICY.selected_jobs(tuple(profiles)))
+        for path, content, expected in (
+            ("docs/public/model/index.md", b"Plain prose.\n", {"prose"}),
+            (
+                "docs/public/model/index.md",
+                b"\x60\x60\x60rust\nfn main() {}\n\x60\x60\x60",
+                {"executable-docs"},
+            ),
+            ("scripts/validation-policy.json", b"changed", {"full"}),
+            ("unknown-input/file", b"changed", {"full"}),
+            ("../unsafe", b"changed", {"full"}),
+        ):
+            self.assertEqual(path_profiles(path, (content,), POLICY, set()), expected)
+        self.assertIn("devcontainer-validation", POLICY.selected_jobs(("full",)))
+        self.assertEqual(POLICY.selected_jobs(("prose", "executable-docs")), set(ORIGINAL_JOBS))
+
+    def test_retained_tool_probe_rejects_authority_node_and_compiler_drift(self) -> None:
+        source = (ROOT / ".devcontainer/verify-tools.sh").read_text()
+        probe = re.search(r"<< 'PYTHON'\n(.*?)\nPYTHON", source, re.DOTALL)
+        assert probe is not None
+        shared_source = sys.modules[Policy.__module__].__file__
+        assert shared_source is not None
+        shared = Path(shared_source).resolve().parents[2]
+        metadata = (shared / "pyproject.toml").read_text()
+        import tomllib
+
+        declarations = tomllib.loads(metadata)
+        versions = {"uv": declarations["tool"]["uv"]["required-version"].removeprefix("==")}
+        for name in ("ruff", "ty"):
+            versions[name] = next(
+                requirement.removeprefix(name + "==")
+                for requirement in declarations["dependency-groups"]["dev"]
+                if requirement.startswith(name + "==")
+            )
+        channel = tomllib.loads((ROOT / "rust-toolchain.toml").read_text())["toolchain"]["channel"]
+        manifest = json.loads((ROOT / ".github/automation.json").read_text())
+        for drift in ("none", "authority", "node", "compiler"):
+            with self.subTest(drift=drift), tempfile.TemporaryDirectory() as temporary:
+                directory = Path(temporary)
+                candidate = directory / "candidate"
+                tooling = directory / "tooling"
+                binaries = directory / "bin"
+                for path in (
+                    candidate / ".github",
+                    candidate / ".devcontainer",
+                    tooling / ".github",
+                    binaries,
+                ):
+                    path.mkdir(parents=True)
+                (candidate / ".github/automation.json").write_text(json.dumps(manifest))
+                retained = dict(manifest)
+                if drift == "authority":
+                    retained["revision"] = "f" * 40
+                (tooling / ".github/automation.json").write_text(json.dumps(retained))
+                project = (
+                    tooling / "target/boxferry-automation" / manifest["revision"] / "automation"
+                )
+                project.mkdir(parents=True)
+                (project / "pyproject.toml").write_text(metadata)
+                (candidate / ".devcontainer/Dockerfile").write_text(
+                    (ROOT / ".devcontainer/Dockerfile").read_text()
+                )
+                (candidate / "rust-toolchain.toml").write_text(
+                    (ROOT / "rust-toolchain.toml").read_text()
+                )
+                fake = (
+                    f"#!{sys.executable}\nimport pathlib,sys\n"
+                    f"versions={versions!r}\n"
+                    "name=pathlib.Path(sys.argv[0]).name\n"
+                    "if '--help' in sys.argv: raise SystemExit(0)\n"
+                    f"if name=='rustup': print('rustc {'0.0.1' if drift == 'compiler' else channel} (fixture)')\n"
+                    f"elif name=='node': print('{'v0.0.1' if drift == 'node' else 'v24.22.1'}')\n"
+                    "else: print(name+' '+versions[name])\n"
+                )
+                for name in ("uv", "ruff", "ty", "node", "rustup"):
+                    binary = binaries / name
+                    binary.write_text(fake)
+                    binary.chmod(0o755)
+                result = subprocess.run(
+                    [sys.executable, "-c", probe[1], str(candidate), str(tooling)],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                    env={**os.environ, "PATH": str(binaries)},
+                )
+                self.assertEqual(result.returncode, 0 if drift == "none" else 1, result.stderr)
+                if drift != "none":
+                    self.assertIn("tool verification failed", result.stderr)
 
 
 class ReleaseContractTests(unittest.TestCase):
@@ -1432,10 +1625,10 @@ class ConsumerContractTests(unittest.TestCase):
     def test_devcontainer_closure_and_ci_use_the_same_canonical_tool_inventory(self) -> None:
         dockerfile = (ROOT / ".devcontainer/Dockerfile").read_text()
         for required in (
-            "COPY .github/automation.json /tmp/quadlet-lens-tooling/.github/automation.json",
-            "COPY scripts/shared-ci.py scripts/install-file-tools.sh /tmp/quadlet-lens-tooling/scripts/",
-            "bash /tmp/quadlet-lens-tooling/scripts/install-file-tools.sh /usr/local/bin",
-            "--destination /usr/local/bin --tools actionlint lychee",
+            "COPY .github/automation.json /opt/quadlet-lens-tooling/.github/automation.json",
+            "COPY scripts/shared-ci.py scripts/install-file-tools.sh /opt/quadlet-lens-tooling/scripts/",
+            "bash /opt/quadlet-lens-tooling/scripts/install-file-tools.sh /usr/local/bin",
+            "--destination /usr/local/bin --tools actionlint lychee --python-tools",
         ):
             self.assertIn(required, dockerfile)
         for obsolete in ("ACTIONLINT_VERSION", "LYCHEE_VERSION", "checksums.txt", "lychee_version"):
@@ -1582,20 +1775,21 @@ class ConsumerContractTests(unittest.TestCase):
         dockerfile = (ROOT / ".devcontainer/Dockerfile").read_text()
         installer = (ROOT / "scripts/install-file-tools.sh").read_text()
         self.assertIn(
-            "COPY .github/automation.json /tmp/quadlet-lens-tooling/.github/automation.json",
+            "COPY .github/automation.json /opt/quadlet-lens-tooling/.github/automation.json",
             dockerfile,
         )
         self.assertIn(
             "COPY scripts/shared-ci.py scripts/install-file-tools.sh "
-            "/tmp/quadlet-lens-tooling/scripts/",
+            "/opt/quadlet-lens-tooling/scripts/",
             dockerfile,
         )
         self.assertIn(
-            "bash /tmp/quadlet-lens-tooling/scripts/install-file-tools.sh /usr/local/bin",
+            "bash /opt/quadlet-lens-tooling/scripts/install-file-tools.sh /usr/local/bin",
             dockerfile,
         )
         self.assertIn('exec python3 "${script_directory}/shared-ci.py" tools', installer)
-        self.assertIn("rm -r /tmp/quadlet-lens-tooling", dockerfile)
+        self.assertNotIn("rm -r /opt/quadlet-lens-tooling", dockerfile)
+        self.assertIn("UV_CACHE_DIR=/opt/quadlet-lens-tooling/uv-cache", dockerfile)
         self.assertEqual(
             path_profiles(".github/automation.json", (b"changed",), POLICY, set()), {"full"}
         )
