@@ -27,12 +27,15 @@ comparisons and first-rollout policy retain complete validation. Main, manual an
 select every deterministic job. The stable `Required CI` verifies selected jobs and planned skips.
 Linux is the validated platform; macOS compatibility has no CI evidence lane.
 
-Ordinary adoption retains the existing deterministic CI inventory and complete local gate.
-Image qualification and updater activation remain separate work in
-[#563](https://github.com/Strukturpiloten/boxferry/issues/563), using fresh GitHub CI evidence with
-standard engine storage. Developer VS Code Dev Containers use existing Podman storage, preferably
-rootless; this gate adds no privileged local setup. Restored direct definitions and mocked source
-checks do not qualify images rebuilt with a changed shared manifest input.
+CI appends native amd64 and arm64 Dev Container qualification while preserving the original
+deterministic jobs and complete local gate. During the approved old-policy transition, a missing
+selector still runs the image job without changing the trusted plan. After adoption, only explicit
+nonselection permits a skip; successful image outcomes require the exact tested-candidate receipt.
+
+The shared caller uses fresh GitHub CI and standard hosted Podman storage. Developer VS Code
+keeps existing Podman storage, preferably rootless, with no local image-validation leaf. Source
+tests and mocked probes do not qualify an image. Actual native, App and updater acceptance remain
+tracked by [#563](https://github.com/Strukturpiloten/boxferry/issues/563).
 
 Local and ordinary CI API checks use trusted development Git history. Release, including
 `validation_only`, checks the canonical published crate and requires the purpose-bound exact

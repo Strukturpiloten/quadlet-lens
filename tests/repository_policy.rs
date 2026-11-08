@@ -259,6 +259,11 @@ fn ci_workflow_uses_trusted_change_plan_and_fail_closed_gate() -> Result<(), Str
         "uses: ./_automation/.github/actions/shared-source",
         "uses: ./_automation/.github/actions/shared-python",
         "shared-dependency-wait.yml@",
+        "shared-devcontainer-validation.yml@",
+        "  devcontainer-validation:",
+        "if: needs.validation-plan.outputs.select_devcontainer_validation != 'false'",
+        "select_devcontainer_validation: ${{ steps.plan.outputs.select_devcontainer_validation }}",
+        "--devcontainer-validation",
     ] {
         if !workflow.contains(required) {
             return Err(format!("CI shared trusted-candidate contract is missing `{required}`"));
@@ -269,7 +274,6 @@ fn ci_workflow_uses_trusted_change_plan_and_fail_closed_gate() -> Result<(), Str
         || workflow.contains("runs-on: macos-")
         || workflow.contains("runs-on: windows-")
         || workflow.contains("scripts/validation-plan.py")
-        || workflow.contains("devcontainer-validation")
     {
         return Err("CI must retain one fail-closed shared aggregate on evidenced Linux runners".to_owned());
     }
@@ -283,10 +287,11 @@ fn ci_workflow_uses_trusted_change_plan_and_fail_closed_gate() -> Result<(), Str
             "dependencies",
             "api",
             "documentation",
-            "lockfile-release-age"
+            "lockfile-release-age",
+            "devcontainer-validation"
         ])
     {
-        return Err("ordinary shared adoption must preserve every original validation job".to_owned());
+        return Err("native image qualification must preserve every original validation job".to_owned());
     }
     Ok(())
 }

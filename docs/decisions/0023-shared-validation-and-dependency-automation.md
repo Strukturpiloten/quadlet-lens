@@ -2,7 +2,7 @@
 
 - Status: accepted
 - Date: 2026-11-03
-- Updated: 2026-11-06
+- Updated: 2026-11-07
 
 ## Context
 
@@ -41,21 +41,25 @@ source/path contract. Future or malformed publication evidence fails closed. Loc
 only QuadletLens-native discovery and local image/tool declarations; discovery never admits a
 new conformance target.
 
-Ordinary adoption retains the existing CI inventory and complete deterministic local gate.
-Draft image qualification jobs, their planner selectors and the local image leaf are not active.
-The direct image, feature, lock and lifecycle definitions retain their prior main-branch form.
-QuadletLens already copies the shared manifest into its image: that existing input advances with
-the ordinary automation source, so the image closure changes and needs fresh qualification.
-There is no second image-only authority and no claim that source adoption qualifies an image.
+Ordinary adoption preserved the existing CI inventory and complete deterministic local gate.
+The CI qualification stage now appends a native Dev Container job using the selected immutable
+source, tested candidate and independently trusted policy. A missing selector runs the job during
+the approved old-policy transition; the original trusted plan stays unchanged. Once the image job
+is in trusted policy, only an explicit false selector permits a skip. The aggregate requires a
+fresh tested-candidate receipt for every successful image job and preserves all prior job checks.
+
+The recipe derives Rust from the candidate toolchain before installing Cargo tools and retains
+the selected shared Python tools and caches for verification. The existing feature graph and
+conventional nonroot VS Code mounts stay unchanged. There is no second image-only source.
 
 Exact late Renovate rules disable only direct image, feature and Dockerfile tool-ARG proposals
 pending [#563](https://github.com/Strukturpiloten/boxferry/issues/563). Their extraction owners remain
 unique; normal package, compiler and shared-tool metadata keep canonical automatic ownership.
-Fresh image qualification belongs in GitHub CI using standard engine storage. Developer VS Code
-Dev Containers use existing Podman storage, preferring rootless operation; no custom private
-store or mandatory privileged local controls are introduced. Source tests and mocked probes
-cannot establish image readiness, and no image build, publication or updater activation is
-part of this adoption.
+Native amd64 and arm64 qualification runs in GitHub CI with standard hosted Podman storage.
+Developer VS Code Dev Containers keep existing Podman storage, preferring rootless operation;
+the complete local gate adds no image executor or privileged setup. Source tests and mocked
+probes do not establish image readiness. Actual native qualification, App smoke and any later
+updater activation require their separate evidence; no updater schedule or publication is enabled.
 
 ## Consequences
 
