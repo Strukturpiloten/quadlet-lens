@@ -17,9 +17,12 @@ import tarfile
 import tempfile
 import textwrap
 import unittest
+from argparse import Namespace
+from dataclasses import replace
 from pathlib import Path
 from unittest.mock import patch
 
+from boxferry_ci.__main__ import _task
 from boxferry_ci.contracts import ContractError
 from boxferry_ci.gate import verify_devcontainer_gate, verify_gate
 from boxferry_ci.planner import Comparison, make_plan, path_profiles
@@ -355,7 +358,12 @@ class NativeImageIntegrationTests(unittest.TestCase):
         )
         self.assertEqual(seed.jobs, ORIGINAL_JOBS)
         self.assertEqual(seed.local_commands, POLICY.local_commands)
-        self.assertEqual(seed.tasks, POLICY.tasks)
+        # Preserve the historical image-policy fixture; MSRV is now explicit but unchanged.
+        self.assertNotIn("msrv", seed.tasks)
+        self.assertEqual(
+            seed.tasks, {name: task for name, task in POLICY.tasks.items() if name != "msrv"}
+        )
+        self.assertEqual(seed.task("msrv"), POLICY.tasks["msrv"])
         for event in ("pull_request", "merge_group"):
             for profile in ("prose", "executable-docs", "full"):
                 with self.subTest(event=event, profile=profile):
@@ -1199,6 +1207,16 @@ class ConsumerContractTests(unittest.TestCase):
             }
             with self.assertRaises(ContractError):
                 verify_gate(plan, needs, POLICY, comparison, expected_plan=mixed)
+
+    def test_explicit_msrv_preserves_selected_shared_fallback(self) -> None:
+        self.assertIn("msrv", POLICY.tasks)
+        configured = POLICY.tasks["msrv"]
+        self.assertEqual(configured.commands, (("cargo", "ci-check"), ("cargo", "ci-policy")))
+        self.assertEqual(configured.timeout_seconds, 900)
+        legacy = replace(
+            POLICY, tasks={name: task for name, task in POLICY.tasks.items() if name != "msrv"}
+        )
+        self.assertEqual(_task(Namespace(task="msrv"), legacy), configured)
 
     def test_rust_and_coverage_tasks_preserve_product_contract(self) -> None:
         calls = POLICY.task("rust-quality").commands
