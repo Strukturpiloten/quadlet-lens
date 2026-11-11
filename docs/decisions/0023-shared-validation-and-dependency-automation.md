@@ -2,7 +2,7 @@
 
 - Status: accepted
 - Date: 2026-11-03
-- Updated: 2026-11-07
+- Updated: 2026-11-11
 
 ## Context
 
@@ -52,9 +52,24 @@ The recipe derives Rust from the candidate toolchain before installing Cargo too
 the selected shared Python tools and caches for verification. The existing feature graph and
 conventional nonroot VS Code mounts stay unchanged. There is no second image-only source.
 
-Exact late Renovate rules disable only direct image, feature and Dockerfile tool-ARG proposals
+The Rust quality and coverage jobs use typed shared tasks with their existing 30-minute budgets.
+Rust quality, coverage and MSRV require explicitly configured trusted tasks before Rust setup;
+missing task definitions fail closed rather than reconstructing legacy aliases or defaults.
+The explicit MSRV task retains its previous two-command order and 900-second internal budget.
+Coverage verifies the candidate Dockerfile cargo-llvm-cov declaration and exact Rust channel
+before any local build. Both local coverage commands retain the actual Cargo home and isolated
+coverage target, using that verified channel. Missing or invalid metadata or executables fail closed.
+The manual feature-qualification caller retains only contents, checks and statuses read so the
+immutable reader can inspect existing evidence. Its main-only guard and App secret binding remain
+unchanged; this does not dispatch or activate an updater.
+
+Exact late Renovate rules disable only direct image, feature and remaining Dockerfile tool-ARG proposals
 pending [#563](https://github.com/Strukturpiloten/boxferry/issues/563). Their extraction owners remain
-unique; normal package, compiler and shared-tool metadata keep canonical automatic ownership.
+unique; cargo-llvm-cov now has one canonical Dockerfile ARG for local/CI/image coverage, outside
+that hold with ordinary 72-hour eligibility and unchanged ungrouped custom-regex updates.
+The shared Rust dependency group remains limited to Cargo package dependencies. Other tool, image, feature
+and fixed-target holds remain. Normal package, compiler and shared-tool metadata keep canonical
+automatic ownership.
 Native amd64 and arm64 qualification runs in GitHub CI with standard hosted Podman storage.
 Developer VS Code Dev Containers keep existing Podman storage, preferring rootless operation;
 the complete local gate adds no image executor or privileged setup. Source tests and mocked

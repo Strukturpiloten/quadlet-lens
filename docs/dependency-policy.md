@@ -62,8 +62,11 @@ eligibility reader does not grant write authority to candidate code. Local custo
 native Podman discovery and local image/tool declarations, with one extraction owner per pin.
 Discovery stays automatic and grouped separately from fixed reviewed conformance targets.
 
-Final exact file/package rules disable direct image, feature and Dockerfile tool-ARG proposals
-until fresh GitHub CI qualification in #563. Existing extraction owners remain unique; this is an
+Final exact file/package rules disable direct image, feature and remaining Dockerfile tool-ARG
+proposals until fresh GitHub CI qualification in #563. The cargo-llvm-cov Dockerfile ARG is the
+canonical local/CI/image coverage version and retains automatic updates with the ordinary
+72-hour age rule; it is the only tool removed from that hold. Its custom-regex update stays
+ungrouped: the shared Rust dependency group applies only to Cargo package dependencies. Existing extraction owners remain unique; this is an
 `enabled: false` hold, not a dashboard or manual-review path. Package dependencies, compiler and
 shared-tool metadata retain their canonical automatic owners even when an existing image COPY
 uses them. Advancing those ordinary inputs invalidates previous image evidence without adding

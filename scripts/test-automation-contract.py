@@ -84,6 +84,48 @@ def require_dependency_service_permissions(workflow: str) -> None:
         raise ValueError("dependency service permissions differ from the exact recovery contract")
 
 
+def require_feature_qualification_read_permissions(workflow: str) -> None:
+    """The manual feature caller grants only the immutable reader's required scopes."""
+    permissions = re.search(r"(?ms)^permissions:\n(.*?)(?=^jobs:)", workflow)
+    if permissions is None:
+        raise ValueError("feature qualification requires explicit workflow permissions")
+    scopes: dict[str, str] = {}
+    for line in permissions[1].splitlines():
+        scope = re.fullmatch(r"  ([a-z-]+): (read|write|none)", line)
+        if scope is None or scope[1] in scopes:
+            raise ValueError("malformed or duplicate feature qualification permission")
+        scopes[scope[1]] = scope[2]
+    if scopes != {"contents": "read", "checks": "read", "statuses": "read"}:
+        raise ValueError("feature qualification requires only contents, checks and statuses read")
+    if re.search(r"(?m)^    permissions:", workflow):
+        raise ValueError("feature qualification job must inherit the reviewed read permissions")
+
+
+def require_feature_qualification_caller(workflow: str, revision: str) -> None:
+    """Keep qualification manual, main-only and bound to the admitted source and App secret."""
+    require_feature_qualification_read_permissions(workflow)
+    trigger = re.search(r"(?ms)^on:\n(.*?)(?=^permissions:)", workflow)
+    if trigger is None or trigger[1] != "  workflow_dispatch:\n":
+        raise ValueError("feature qualification must remain manual-only")
+    job = re.search(r"(?ms)^  qualify:\n(.*?)(?=^  [\w-]+:\n|\Z)", workflow)
+    if job is None:
+        raise ValueError("feature qualification job is missing")
+    expected = {
+        "if": ">-\n"
+        "      github.repository == 'Strukturpiloten/quadlet-lens' &&\n"
+        "      github.ref == 'refs/heads/main' && github.event.repository.default_branch == 'main' &&\n"
+        "      github.event_name == 'workflow_dispatch'",
+        "uses": "Strukturpiloten/boxferry/.github/workflows/shared-devcontainer-updates.yml@"
+        f"{revision} # automation-v1 interface v1",
+        "with": f"\n      automation-sha: {revision}",
+        "secrets": "\n      app-private-key: ${{ secrets.RELEASE_PLZ_APP_PRIVATE_KEY }}",
+    }
+    fields = re.findall(r"(?ms)^    ([\w-]+): ?(.*?)(?=^    [\w-]+:|\Z)", job[1])
+    actual = {key: value.rstrip() for key, value in fields}
+    if len(actual) != len(fields) or actual != expected:
+        raise ValueError("feature qualification differs from the reviewed caller boundary")
+
+
 ORIGINAL_JOBS = (
     "rust",
     "coverage",
@@ -127,6 +169,31 @@ def ordinary_gate_fixture(
     if needs.get("devcontainer-validation", {}).get("result") == "success":
         needs["devcontainer-validation"]["outputs"] = {"candidate_sha": candidate}
     return plan, needs, comparison
+
+
+def require_shared_rust_call(workflow: str, revision: str, job: str, task: str) -> None:
+    """Retain exact caller identity, trusted policy and read-only selected task."""
+    block = re.search(rf"(?ms)^  {re.escape(job)}:\n(.*?)(?=^  [\w-]+:\n|\Z)", workflow)
+    if block is None:
+        raise ValueError(f"missing shared Rust job {job}")
+    expected = {
+        "name": {"rust": "Rust quality", "coverage": "Coverage ratchet", "msrv": "MSRV"}[job],
+        "needs": "validation-plan",
+        "if": f"needs.validation-plan.outputs.select_{job} == 'true'",
+        "permissions": "\n      contents: read",
+        "uses": "Strukturpiloten/boxferry/.github/workflows/shared-rust-ci.yml@"
+        f"{revision} # automation-v1 interface v1",
+        "with": "\n      candidate_sha: ${{ github.sha }}\n"
+        f"      automation_sha: {revision}\n"
+        "      policy_sha: ${{ github.event.pull_request.base.sha || "
+        "github.event.merge_group.base_sha || github.sha }}\n"
+        f"      config_path: scripts/validation-policy.json\n      task: {task}\n"
+        "      require_configured_task: true",
+    }
+    actual = dict(re.findall(r"(?ms)^    ([\w-]+): ?(.*?)(?=^    [\w-]+:|\Z)", block[1]))
+    actual = {key: value.rstrip() for key, value in actual.items()}
+    if actual != expected:
+        raise ValueError(f"{job} differs from the exact shared Rust caller contract")
 
 
 class OrdinaryValidationContractTests(unittest.TestCase):
@@ -1208,6 +1275,197 @@ class ConsumerContractTests(unittest.TestCase):
             with self.assertRaises(ContractError):
                 verify_gate(plan, needs, POLICY, comparison, expected_plan=mixed)
 
+    def test_local_coverage_candidate_metadata_and_executable_selection_fail_closed(self) -> None:
+        from boxferry_ci import cargo_tools
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            candidate = root / "candidate"
+            (candidate / ".devcontainer").mkdir(parents=True)
+            metadata = candidate / ".devcontainer/Dockerfile"
+            metadata.write_text((ROOT / ".devcontainer/Dockerfile").read_text())
+            toolchain = candidate / "rust-toolchain.toml"
+            toolchain.write_text((ROOT / "rust-toolchain.toml").read_text())
+            selected = cargo_tools.select(candidate, "cargo-llvm-cov", require_candidate=True)
+            original_metadata, original_toolchain = metadata.read_text(), toolchain.read_text()
+            for changed in (
+                "FROM example.invalid/base\n",
+                original_metadata.replace("ARG CARGO_LLVM_COV_VERSION=", "ARG OTHER_VERSION="),
+                original_metadata.replace(
+                    f"CARGO_LLVM_COV_VERSION={selected.version}", "CARGO_LLVM_COV_VERSION=latest"
+                ),
+                original_metadata + f"\nARG CARGO_LLVM_COV_VERSION={selected.version}\n",
+            ):
+                with self.subTest(metadata=changed), self.assertRaises(ContractError):
+                    metadata.write_text(changed)
+                    cargo_tools.select(candidate, "cargo-llvm-cov", require_candidate=True)
+            metadata.unlink()
+            with self.assertRaises(ContractError):
+                cargo_tools.select(candidate, "cargo-llvm-cov", require_candidate=True)
+            metadata.write_text(original_metadata)
+            toolchain.write_text('[toolchain]\nchannel="stable"\n')
+            with self.assertRaises(ContractError):
+                cargo_tools.select(candidate, "cargo-llvm-cov", require_candidate=True)
+            toolchain.write_text(original_toolchain)
+            binaries = root / "bin"
+            binaries.mkdir()
+            plugin = binaries / "cargo-llvm-cov"
+            scripts = {
+                "cargo-llvm-cov": f"printf 'cargo-llvm-cov {selected.version}\\n'\n",
+                "cargo": (
+                    'if [ "$1" = --version ]; then\n'
+                    f"printf 'cargo {selected.rust_channel} (fixture)\\n'\n"
+                    f'else shift; exec "{plugin}" "$@"; fi\n'
+                ),
+                "rustc": f"printf 'rustc {selected.rust_channel} (fixture)\\n'\n",
+                "rustup": "exit 0\n",
+            }
+            for name, body in scripts.items():
+                executable = binaries / name
+                executable.write_text(
+                    "#!/bin/sh\nset -eu\n"
+                    f'[ "${{RUSTUP_TOOLCHAIN}}" = "{selected.rust_channel}" ]\n' + body
+                )
+                executable.chmod(0o755)
+            environment = {
+                **os.environ,
+                "PATH": str(binaries),
+                "CARGO_HOME": str(root / "actual-cargo-home"),
+                "RUSTUP_TOOLCHAIN": "stable",
+            }
+            self.assertEqual(cargo_tools.verify(selected, candidate, environment), plugin)
+            compiler = binaries / "rustc"
+            compiler_body = compiler.read_text()
+            compiler.write_text("#!/bin/sh\nprintf 'rustc 0.0.0 (fixture)\\n'\n")
+            with self.assertRaises(ContractError):
+                cargo_tools.verify(selected, candidate, environment)
+            compiler.write_text(compiler_body)
+            plugin.write_text("#!/bin/sh\nprintf 'cargo-llvm-cov 0.0.0\\n'\n")
+            with self.assertRaises(ContractError):
+                cargo_tools.verify(selected, candidate, environment)
+            plugin.write_text("#!/bin/sh\n" + scripts["cargo-llvm-cov"])
+            shadow = Path(environment["CARGO_HOME"]) / "bin/cargo-llvm-cov"
+            shadow.parent.mkdir(parents=True)
+            shadow.write_text(plugin.read_text())
+            shadow.chmod(0o755)
+            with self.assertRaises(ContractError):
+                cargo_tools.verify(selected, candidate, environment)
+            shadow.unlink()
+            (candidate / ".cargo").mkdir()
+            (candidate / ".cargo/config.toml").write_text('[alias]\nllvm-cov="check"\n')
+            with self.assertRaises(ContractError):
+                cargo_tools.verify(selected, candidate, environment)
+
+    def test_feature_qualification_caller_keeps_exact_read_permissions_and_source(self) -> None:
+        workflow = (ROOT / ".github/workflows/devcontainer-feature-qualification.yml").read_text()
+        require_feature_qualification_read_permissions(workflow)
+        for scope in ("contents", "checks", "statuses"):
+            for replacement in ("", f"  {scope}: none\n", f"  {scope}: write\n"):
+                changed = workflow.replace(f"  {scope}: read\n", replacement)
+                with self.subTest(scope=scope, replacement=replacement):
+                    with self.assertRaises(ValueError):
+                        require_feature_qualification_read_permissions(changed)
+        for changed in (
+            workflow.replace("permissions:\n", "permissions: {}\n# removed:\n", 1),
+            workflow.replace("jobs:\n", "  actions: read\njobs:\n", 1),
+            workflow.replace("jobs:\n", "  contents: read\njobs:\n", 1),
+            workflow.replace("  qualify:\n", "  qualify:\n    permissions: {}\n", 1),
+            workflow.replace(
+                "  qualify:\n", "  qualify:\n    permissions:\n      checks: write\n", 1
+            ),
+        ):
+            with self.subTest(workflow=changed), self.assertRaises(ValueError):
+                require_feature_qualification_read_permissions(changed)
+        revision = json.loads((ROOT / ".github/automation.json").read_text())["revision"]
+        require_feature_qualification_caller(workflow, revision)
+        for before, after in (
+            ("  workflow_dispatch:\n", "  push:\n"),
+            ("github.repository == 'Strukturpiloten/quadlet-lens' &&", "true &&"),
+            ("github.ref == 'refs/heads/main'", "github.ref != ''"),
+            ("github.event.repository.default_branch == 'main'", "true"),
+            ("github.event_name == 'workflow_dispatch'", "true"),
+            (f"shared-devcontainer-updates.yml@{revision}", "shared-devcontainer-updates.yml@main"),
+            (f"automation-sha: {revision}", f"automation-sha: {'b' * 40}"),
+            ("# automation-v1 interface v1", "# unreviewed"),
+            ("app-private-key: ${{ secrets.RELEASE_PLZ_APP_PRIVATE_KEY }}", "inherit"),
+            ("    secrets:\n", "    secrets: inherit\n"),
+            ("    with:\n", "    with:\n      apply: true\n"),
+        ):
+            changed = workflow.replace(before, after)
+            self.assertNotEqual(changed, workflow)
+            with self.subTest(changed=before), self.assertRaises(ValueError):
+                require_feature_qualification_caller(changed, revision)
+
+    def test_shared_rust_callers_preserve_identity_selection_and_permissions(self) -> None:
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text()
+        revision = json.loads((ROOT / ".github/automation.json").read_text())["revision"]
+        for job, task in (("rust", "rust-quality"), ("coverage", "coverage"), ("msrv", "msrv")):
+            with self.subTest(job=job):
+                require_shared_rust_call(workflow, revision, job, task)
+                block = re.search(rf"(?ms)^  {job}:\n.*?(?=^  [\w-]+:\n|\Z)", workflow)
+                assert block is not None
+                for before, after in (
+                    (f"task: {task}", "task: unrelated"),
+                    ("require_configured_task: true", "require_configured_task: false"),
+                    ("      require_configured_task: true\n", ""),
+                    ("candidate_sha: ${{ github.sha }}", "candidate_sha: ${{ github.head_ref }}"),
+                    (
+                        "policy_sha: ${{ github.event.pull_request.base.sha || "
+                        "github.event.merge_group.base_sha || github.sha }}",
+                        "policy_sha: ${{ github.sha }}",
+                    ),
+                    (f"automation_sha: {revision}", f"automation_sha: {'b' * 40}"),
+                    ("config_path: scripts/validation-policy.json", "config_path: candidate.json"),
+                    (f"select_{job} == 'true'", f"select_{job} != 'false'"),
+                    ("contents: read", "contents: write"),
+                    ("needs: validation-plan", "needs: unrelated"),
+                    ("# automation-v1 interface v1", "# unreviewed"),
+                ):
+                    with self.subTest(job=job, changed=before), self.assertRaises(ValueError):
+                        changed = block[0].replace(before, after)
+                        self.assertNotEqual(changed, block[0])
+                        require_shared_rust_call(
+                            workflow.replace(block[0], changed), revision, job, task
+                        )
+                with self.assertRaises(ValueError):
+                    require_shared_rust_call(
+                        workflow.replace(block[0], block[0] + "    timeout-minutes: 1\n"),
+                        revision,
+                        job,
+                        task,
+                    )
+
+    def test_shared_rust_selection_requires_explicit_well_formed_tasks(self) -> None:
+        for name in ("rust-quality", "coverage", "msrv"):
+            for arguments in (
+                Namespace(command="check-task", task=name),
+                Namespace(command="run", task=name, require_configured_task=True),
+            ):
+                with self.subTest(task=name, command=arguments.command):
+                    self.assertEqual(_task(arguments, POLICY), POLICY.tasks[name])
+                    missing = replace(
+                        POLICY,
+                        tasks={key: task for key, task in POLICY.tasks.items() if key != name},
+                    )
+                    with self.assertRaisesRegex(ContractError, "not explicitly configured"):
+                        _task(arguments, missing)
+            with tempfile.TemporaryDirectory() as directory:
+                config = Path(directory) / "policy.json"
+                for malformed in (
+                    None,
+                    {},
+                    {"commands": []},
+                    {"commands": [["cargo", "ci-check"]], "timeout_seconds": True},
+                    {"commands": [["cargo", "ci-check"]], "timeout_seconds": 0},
+                    {"commands": [["cargo", "ci-check"]], "unknown": True},
+                ):
+                    policy = json.loads(POLICY.path.read_text())
+                    policy["tasks"][name] = malformed
+                    config.write_text(json.dumps(policy))
+                    with self.subTest(task=name, malformed=malformed):
+                        with self.assertRaises(ContractError):
+                            load_policy(config)
+
     def test_explicit_msrv_preserves_selected_shared_fallback(self) -> None:
         self.assertIn("msrv", POLICY.tasks)
         configured = POLICY.tasks["msrv"]
@@ -1219,25 +1477,53 @@ class ConsumerContractTests(unittest.TestCase):
         self.assertEqual(_task(Namespace(task="msrv"), legacy), configured)
 
     def test_rust_and_coverage_tasks_preserve_product_contract(self) -> None:
-        calls = POLICY.task("rust-quality").commands
-        for alias in (
-            "ci-check",
-            "ci-application",
-            "ci-policy",
-            "ci-clippy",
-            "ci-test",
-            "ci-doctest",
-            "ci-doc",
-            "ci-package",
-        ):
-            self.assertIn(("cargo", alias), calls)
-        coverage = POLICY.task("coverage").commands[-1]
-        for option, expected in (
-            ("--fail-under-regions", "91"),
-            ("--fail-under-functions", "92"),
-            ("--fail-under-lines", "92"),
-        ):
-            self.assertEqual(coverage[coverage.index(option) + 1], expected)
+        rust = POLICY.task("rust-quality")
+        self.assertEqual(
+            rust.commands,
+            (("cargo", "fmt", "--all", "--", "--check"),)
+            + tuple(
+                ("cargo", alias)
+                for alias in (
+                    "ci-check",
+                    "ci-application",
+                    "ci-policy",
+                    "ci-clippy",
+                    "ci-test",
+                    "ci-doctest",
+                    "ci-doc",
+                    "ci-package",
+                )
+            ),
+        )
+        self.assertEqual(rust.timeout_seconds, 1800)
+        coverage = POLICY.task("coverage")
+        self.assertEqual(
+            coverage.commands,
+            (
+                ("cargo", "llvm-cov", "clean", "--locked"),
+                (
+                    "cargo",
+                    "llvm-cov",
+                    "--locked",
+                    "--no-clean",
+                    "--workspace",
+                    "--all-features",
+                    "--all-targets",
+                    "--summary-only",
+                    "--fail-under-regions",
+                    "91",
+                    "--fail-under-functions",
+                    "92",
+                    "--fail-under-lines",
+                    "92",
+                ),
+            ),
+        )
+        self.assertEqual(coverage.timeout_seconds, 1800)
+        self.assertIn("msrv", POLICY.tasks)
+        msrv = POLICY.tasks["msrv"]
+        self.assertEqual(msrv.commands, (("cargo", "ci-check"), ("cargo", "ci-policy")))
+        self.assertEqual(msrv.timeout_seconds, 900)
         for calls in POLICY.local_commands.values():
             for call in calls:
                 self.assertNotIn("ci-generators", call)
@@ -1303,7 +1589,7 @@ class ConsumerContractTests(unittest.TestCase):
             ]
             + [
                 ("custom.regex", "crate", name, ".devcontainer/Dockerfile", "")
-                for name in ("cargo-deny", "cargo-llvm-cov", "cargo-semver-checks", "zizmor")
+                for name in ("cargo-deny", "cargo-semver-checks", "zizmor")
             ]
             + [
                 (
@@ -1384,7 +1670,7 @@ class ConsumerContractTests(unittest.TestCase):
                 "manager": "custom.regex",
                 "datasource": "crate",
                 "packageName": "cargo-llvm-cov",
-                "fileName": ".github/workflows/ci.yml",
+                "fileName": ".devcontainer/Dockerfile",
                 "updateType": "patch",
             },
         ]
@@ -1400,6 +1686,59 @@ class ConsumerContractTests(unittest.TestCase):
                     else "3 days"
                 )
                 self.assertEqual(result["minimumReleaseAge"], expected_age)
+
+    def test_coverage_declaration_has_one_automatic_ungrouped_update_owner(self) -> None:
+        import boxferry_ci
+
+        shared = Path(boxferry_ci.__file__).resolve().parents[2]
+        spec = importlib.util.spec_from_file_location(
+            "coverage_presets", shared / "tests/test_presets.py"
+        )
+        assert spec is not None and spec.loader is not None
+        presets = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(presets)
+        config = presets.consumer_config(ROOT / ".github/renovate.json")
+        extracted = []
+        for filename in (".devcontainer/Dockerfile", ".github/workflows/ci.yml"):
+            source = (ROOT / filename).read_text()
+            for owner in config["customManagers"]:
+                if not presets._matches(filename, owner["managerFilePatterns"], file=True):
+                    continue
+                for pattern in owner["matchStrings"]:
+                    pattern = re.sub(r"\(\?<([A-Za-z][A-Za-z0-9_]*)>", r"(?P<\1>", pattern)
+                    for match in re.finditer(pattern, source):
+                        if match.groupdict().get("depName") == "cargo-llvm-cov":
+                            extracted.append((filename, match.groupdict()["currentValue"]))
+        expected = re.search(
+            r"(?m)^ARG CARGO_LLVM_COV_VERSION=([0-9.]+)$",
+            (ROOT / ".devcontainer/Dockerfile").read_text(),
+        )
+        assert expected is not None
+        self.assertEqual(extracted, [(".devcontainer/Dockerfile", expected[1])])
+        dependency = {
+            "manager": "custom.regex",
+            "datasource": "crate",
+            "packageName": "cargo-llvm-cov",
+            "fileName": ".devcontainer/Dockerfile",
+            "updateType": "patch",
+        }
+        effective = presets.effective(config, dependency)
+        self.assertIsNot(effective.get("enabled"), False)
+        self.assertIsNone(effective.get("groupName"))
+        self.assertEqual(effective["minimumReleaseAge"], "3 days")
+        self.assertFalse(effective["dependencyDashboardApproval"])
+        self.assertTrue(effective["automerge"])
+        held = copy.deepcopy(config)
+        hold = next(
+            rule
+            for rule in held["packageRules"]
+            if rule.get("description", "").startswith("Hold direct Dev Container Cargo tool ARGs")
+        )
+        hold["matchPackageNames"].append("cargo-llvm-cov")
+        prior = presets.effective(held, dependency)
+        self.assertFalse(prior["enabled"])
+        for key in ("groupName", "minimumReleaseAge", "dependencyDashboardApproval", "automerge"):
+            self.assertEqual(prior.get(key), effective.get(key))
 
     def test_shared_age_policy_keeps_exact_whole_lens_release_exceptions(self) -> None:
         import boxferry_ci
