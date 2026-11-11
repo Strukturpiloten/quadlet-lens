@@ -153,6 +153,13 @@ semver_selection="$(env CARGO_HOME="${semver_cargo_home}" CARGO_TARGET_DIR="${se
 semver_rust_channel="$(jq -er '.rust_channel' <<< "${semver_selection}")"
 readonly semver_rust_channel
 
+# Verify coverage in the same Cargo home and working directory used below.
+current_step="Verify exact local Cargo coverage selection"
+coverage_selection="$(python3 scripts/shared-ci.py cargo-tools verify \
+  --repository-root "${repository_root}" --package cargo-llvm-cov --require-candidate)"
+coverage_rust_channel="$(jq -er '.rust_channel' <<< "${coverage_selection}")"
+readonly coverage_rust_channel
+
 if [[ "${format_mode}" == "check" ]]; then
   run_step "Check Rust formatting" cargo fmt --all -- --check
   run_step "Check non-Rust files" bash scripts/check-files.sh --check
@@ -177,8 +184,10 @@ run_step "Verify the release package" cargo package --locked --allow-dirty
 run_step "Test release metadata policy" bash scripts/test-release-metadata.sh
 run_step "Check release metadata and changelog" bash scripts/check-release-metadata.sh --development
 run_step "Clean coverage artifacts" env CARGO_TARGET_DIR="${coverage_target_dir}" \
+  RUSTUP_TOOLCHAIN="${coverage_rust_channel}" \
   cargo llvm-cov clean --locked
 run_step "Enforce coverage ratchets" env CARGO_TARGET_DIR="${coverage_target_dir}" \
+  RUSTUP_TOOLCHAIN="${coverage_rust_channel}" \
   cargo llvm-cov --locked --no-clean --workspace --all-features \
   --all-targets --summary-only --fail-under-regions 91 --fail-under-functions 92 \
   --fail-under-lines 92

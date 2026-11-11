@@ -35,10 +35,17 @@ case "${command_name}:$*" in
   git:ls-files*) printf 'README.md\0' ;;
   jq:-er\ .rust_channel) printf '9.8.7\n' ;;
   jq:*) printf '%s\n' "${CHECK_ALL_TEST_MSRV}" ;;
-  python3:scripts/shared-ci.py\ cargo-tools\ verify*)
+  python3:scripts/shared-ci.py\ cargo-tools\ verify*--package\ cargo-semver-checks)
     [[ "${CARGO_HOME}" == "${CARGO_TARGET_DIR%/cargo-semver-checks-target}/cargo-home" ]]
     [[ "${CARGO_TARGET_DIR}" == */check-all/quadlet-lens/cargo-semver-checks-target ]]
     printf '{"rust_channel":"9.8.7"}\n' ;;
+  python3:scripts/shared-ci.py\ cargo-tools\ verify*--package\ cargo-llvm-cov\ --require-candidate)
+    [[ "${CARGO_HOME}" == "${CHECK_ALL_TEST_CARGO_HOME}" ]]
+    printf '{"rust_channel":"9.8.7"}\n' ;;
+  cargo:llvm-cov*)
+    [[ "${CARGO_HOME}" == "${CHECK_ALL_TEST_CARGO_HOME}" ]]
+    [[ "${CARGO_TARGET_DIR}" == */check-all/quadlet-lens/coverage ]]
+    [[ "${RUSTUP_TOOLCHAIN}" == '9.8.7' ]] ;;
   python3:scripts/shared-ci.py\ run\ --event\ local\ --task\ api-development*)
     [[ "${CARGO_HOME}" == "${CARGO_TARGET_DIR%/cargo-semver-checks-target}/cargo-home" ]]
     [[ "${CARGO_TARGET_DIR}" == */check-all/quadlet-lens/cargo-semver-checks-target ]]
@@ -57,6 +64,8 @@ run_gate() {
   : > "${test_root}/${label}.commands"
   PATH="${test_root}/bin:${PATH}" \
     CHECK_ALL_TEST_LOG="${test_root}/${label}.commands" \
+    CARGO_HOME="${test_root}/ambient-cargo-home" \
+    CHECK_ALL_TEST_CARGO_HOME="${test_root}/ambient-cargo-home" \
     CARGO_TARGET_DIR="${CHECK_ALL_TEST_TARGET_OVERRIDE:-${test_root}/repository/target}" \
     BOXFERRY_SEMVER_RELEASE_TYPE="" PODMAN_LENS_SEMVER_CHECK=0 \
     BOXFERRY_WEBSITE_SOURCE_MODE=local \
@@ -93,6 +102,43 @@ for mode in fix check; do
     printf 'Invalid SemVer selection reached formatting or compatibility.\n' >&2
     exit 1
   fi
+done
+
+coverage_verification="python3 scripts/shared-ci.py cargo-tools verify --repository-root ${test_root}/repository --package cargo-llvm-cov --require-candidate"
+coverage_clean='cargo llvm-cov clean --locked'
+coverage_run='cargo llvm-cov --locked --no-clean --workspace --all-features --all-targets --summary-only --fail-under-regions 91 --fail-under-functions 92 --fail-under-lines 92'
+for mode in default fix check; do
+  assert_contains "${mode}" "${coverage_verification}"
+  assert_contains "${mode}" "${coverage_clean}"
+  assert_contains "${mode}" "${coverage_run}"
+  [[ "$(grep -Fxc -- "${coverage_verification}" "${test_root}/${mode}.commands")" == 1 ]]
+  verification_line="$(grep -Fn -- "${coverage_verification}" "${test_root}/${mode}.commands")"
+  formatting_line="$(grep -n '^cargo fmt' "${test_root}/${mode}.commands")"
+  [[ "${verification_line%%:*}" -lt "${formatting_line%%:*}" ]]
+  clean_line="$(grep -Fn -- "${coverage_clean}" "${test_root}/${mode}.commands")"
+  measurement_line="$(grep -Fn -- "${coverage_run}" "${test_root}/${mode}.commands")"
+  [[ "${clean_line%%:*}" -lt "${measurement_line%%:*}" ]]
+done
+for mode in fix check; do
+  status=0
+  CHECK_ALL_TEST_FAIL_COMMAND="${coverage_verification}" run_gate invalid_coverage "--${mode}" || status=$?
+  [[ "${status}" == 17 ]]
+  [[ "$(tail -n 1 "${test_root}/invalid_coverage.commands")" == "${coverage_verification}" ]]
+  grep -Fq 'Verify exact local Cargo coverage selection' "${test_root}/invalid_coverage.output"
+  if grep -Eq '^cargo (fmt|ci-|llvm-cov)' "${test_root}/invalid_coverage.commands"; then
+    printf 'Invalid coverage selection reached formatting or a build.\n' >&2
+    exit 1
+  fi
+  status=0
+  CHECK_ALL_TEST_FAIL_COMMAND="${coverage_clean}" run_gate coverage_clean_failure "--${mode}" || status=$?
+  [[ "${status}" == 17 ]]
+  [[ "$(tail -n 1 "${test_root}/coverage_clean_failure.commands")" == "${coverage_clean}" ]]
+  grep -Fq 'Clean coverage artifacts' "${test_root}/coverage_clean_failure.output"
+  status=0
+  CHECK_ALL_TEST_FAIL_COMMAND="${coverage_run}" run_gate coverage_measurement_failure "--${mode}" || status=$?
+  [[ "${status}" == 17 ]]
+  [[ "$(tail -n 1 "${test_root}/coverage_measurement_failure.commands")" == "${coverage_run}" ]]
+  grep -Fq 'Enforce coverage ratchets' "${test_root}/coverage_measurement_failure.output"
 done
 
 api_development='python3 scripts/shared-ci.py run --event local --task api-development --report-json target/api-development-task.json'

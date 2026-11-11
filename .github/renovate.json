@@ -141,7 +141,7 @@
       "description": "Hold direct Dev Container Cargo tool ARGs until fresh GitHub CI qualification (#563)",
       "matchManagers": ["custom.regex"],
       "matchDatasources": ["crate"],
-      "matchPackageNames": ["cargo-deny", "cargo-llvm-cov", "cargo-semver-checks", "zizmor"],
+      "matchPackageNames": ["cargo-deny", "cargo-semver-checks", "zizmor"],
       "matchFileNames": [".devcontainer/Dockerfile"],
       "enabled": false
     },

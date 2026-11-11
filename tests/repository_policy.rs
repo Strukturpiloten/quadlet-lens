@@ -174,48 +174,63 @@ fn public_api_compatibility_runs_in_reusable_ci() -> Result<(), String> {
 
 #[test]
 fn coverage_ratchet_runs_in_reusable_ci() -> Result<(), String> {
-    const CLEAN: &str = "cargo llvm-cov clean --locked";
-    const COMMAND: &str = "cargo llvm-cov --locked --no-clean --workspace --all-features --all-targets --summary-only --fail-under-regions 91 --fail-under-functions 92 --fail-under-lines 92";
-
-    let dockerfile = read_repository_file(".devcontainer/Dockerfile")?;
-    let expected_version = pinned_cargo_llvm_cov_version(&dockerfile, ".devcontainer/Dockerfile")?;
-
-    for workflow_name in ["ci.yml"] {
-        let workflow_path = repository_root().join(".github/workflows").join(workflow_name);
-        let workflow = fs::read_to_string(&workflow_path)
-            .map_err(|error| format!("failed to read {}: {error}", workflow_path.display()))?;
-
-        let workflow_version = pinned_cargo_llvm_cov_version(&workflow, workflow_name)?;
-        if workflow_version != expected_version {
-            return Err(format!(
-                "{workflow_name} pins cargo-llvm-cov {workflow_version}, but the Dev Container pins {expected_version}"
-            ));
-        }
-
-        for required in ["rustup component add llvm-tools-preview", CLEAN, COMMAND] {
-            if workflow.matches(required).count() != 1 {
-                return Err(format!(
-                    "{workflow_name} must contain one pinned QuadletLens coverage guard `{required}`"
-                ));
-            }
+    let workflow = read_repository_file(".github/workflows/ci.yml")?;
+    let revision: serde_json::Value =
+        serde_json::from_str(&read_repository_file(".github/automation.json")?).map_err(|error| error.to_string())?;
+    let revision = revision["revision"].as_str().ok_or("missing automation revision")?;
+    let coverage = workflow
+        .split("\n  coverage:\n")
+        .nth(1)
+        .and_then(|job| job.split("\n  msrv:\n").next())
+        .ok_or("missing coverage job")?;
+    for required in [
+        format!("shared-rust-ci.yml@{revision} # automation-v1 interface v1"),
+        format!("automation_sha: {revision}"),
+        "task: coverage".to_owned(),
+        "require_configured_task: true".to_owned(),
+        "candidate_sha: ${{ github.sha }}".to_owned(),
+        "policy_sha: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.sha }}"
+            .to_owned(),
+        "config_path: scripts/validation-policy.json".to_owned(),
+    ] {
+        if coverage.matches(&required).count() != 1 {
+            return Err(format!("coverage must retain one shared task binding `{required}`"));
         }
     }
-
+    if coverage.contains("steps:")
+        || coverage.contains("runs-on:")
+        || workflow.contains("cargo install --locked --version")
+    {
+        return Err("coverage must delegate execution without a duplicate workflow tool declaration".to_owned());
+    }
+    let policy: serde_json::Value = serde_json::from_str(&read_repository_file("scripts/validation-policy.json")?)
+        .map_err(|error| error.to_string())?;
+    if policy["tasks"]["coverage"]
+        != serde_json::json!({
+            "commands": [
+                ["cargo", "llvm-cov", "clean", "--locked"],
+                ["cargo", "llvm-cov", "--locked", "--no-clean", "--workspace", "--all-features", "--all-targets", "--summary-only", "--fail-under-regions", "91", "--fail-under-functions", "92", "--fail-under-lines", "92"]
+            ],
+            "timeout_seconds": 1800
+        })
+    {
+        return Err("coverage task must preserve exact cleanup, measurement, ratchets and budget".to_owned());
+    }
+    pinned_cargo_llvm_cov_version(
+        &read_repository_file(".devcontainer/Dockerfile")?,
+        ".devcontainer/Dockerfile",
+    )?;
     Ok(())
 }
 
 fn pinned_cargo_llvm_cov_version(document: &str, source: &str) -> Result<String, String> {
-    const WORKFLOW_PREFIX: &str = "run: cargo install --locked --version ";
-    const WORKFLOW_SUFFIX: &str = " cargo-llvm-cov";
     const DEVCONTAINER_PREFIX: &str = "ARG CARGO_LLVM_COV_VERSION=";
 
     let versions = document
         .lines()
         .filter_map(|line| {
             let line = line.trim();
-            line.strip_prefix(WORKFLOW_PREFIX)
-                .and_then(|value| value.strip_suffix(WORKFLOW_SUFFIX))
-                .or_else(|| line.strip_prefix(DEVCONTAINER_PREFIX))
+            line.strip_prefix(DEVCONTAINER_PREFIX)
         })
         .collect::<Vec<_>>();
 
@@ -419,14 +434,17 @@ fn real_application_contracts_have_distinct_deterministic_and_generator_gates() 
         }
     }
 
-    for path in ["scripts/check-all.sh", ".github/workflows/ci.yml"] {
-        let contents = read_repository_file(path)?;
-        if contents.matches("cargo ci-application\n").count() != 1 {
-            return Err(format!(
-                "{path} must run deterministic application contracts exactly once"
-            ));
-        }
+    let local = read_repository_file("scripts/check-all.sh")?;
+    if local.matches("cargo ci-application\n").count() != 1 {
+        return Err("local validation must run deterministic application contracts exactly once".to_owned());
     }
+    let workflow = read_repository_file(".github/workflows/ci.yml")?;
+    let automation: serde_json::Value =
+        serde_json::from_str(&read_repository_file(".github/automation.json")?).map_err(|error| error.to_string())?;
+    let revision = automation["revision"].as_str().ok_or("missing automation revision")?;
+    let policy: serde_json::Value = serde_json::from_str(&read_repository_file("scripts/validation-policy.json")?)
+        .map_err(|error| error.to_string())?;
+    validate_hosted_application_contract(&workflow, revision, &policy)?;
     let path = ".github/workflows/generator-matrix.yml";
     let contents = read_repository_file(path)?;
     if contents.matches("cargo ci-application-generators").count() != 1 {
@@ -446,6 +464,102 @@ fn real_application_contracts_have_distinct_deterministic_and_generator_gates() 
     {
         return Err("QuadletLens production dependencies must not include BoxFerry".to_owned());
     }
+    Ok(())
+}
+
+fn validate_hosted_application_contract(
+    workflow: &str,
+    revision: &str,
+    policy: &serde_json::Value,
+) -> Result<(), String> {
+    if workflow.matches("\n  rust:\n").count() != 1 || workflow.contains("cargo ci-application\n") {
+        return Err(
+            "CI must have one shared Rust quality owner without duplicate inline application checks".to_owned(),
+        );
+    }
+    let rust = workflow
+        .split("\n  rust:\n")
+        .nth(1)
+        .and_then(|job| job.split("\n  coverage:\n").next())
+        .ok_or("missing Rust quality job")?;
+    for required in [
+        format!(
+            "    uses: Strukturpiloten/boxferry/.github/workflows/shared-rust-ci.yml@{revision} # automation-v1 interface v1\n"
+        ),
+        format!("      automation_sha: {revision}\n"),
+        "      config_path: scripts/validation-policy.json\n".to_owned(),
+        "      task: rust-quality\n".to_owned(),
+        "      require_configured_task: true\n".to_owned(),
+    ] {
+        if rust
+            .lines()
+            .filter(|line| *line == required.trim_end_matches('\n'))
+            .count()
+            != 1
+        {
+            return Err(format!(
+                "application contracts require the exact configured Rust caller `{required}`"
+            ));
+        }
+    }
+    let commands = policy["tasks"]["rust-quality"]["commands"]
+        .as_array()
+        .ok_or("Rust quality must explicitly configure its application command")?;
+    let application = serde_json::json!(["cargo", "ci-application"]);
+    if commands.iter().filter(|command| *command == &application).count() != 1 {
+        return Err("shared Rust quality must run the exact deterministic application command once".to_owned());
+    }
+    if commands.iter().any(|command| {
+        command.as_array().is_some_and(|argv| {
+            argv.iter()
+                .any(|arg| matches!(arg.as_str(), Some("ci-generators" | "ci-application-generators")))
+        })
+    }) {
+        return Err("native generator commands must remain outside deterministic Rust quality".to_owned());
+    }
+    Ok(())
+}
+
+#[test]
+fn hosted_application_contract_rejects_missing_duplicate_and_native_commands() -> Result<(), String> {
+    let workflow = read_repository_file(".github/workflows/ci.yml")?;
+    let automation: serde_json::Value =
+        serde_json::from_str(&read_repository_file(".github/automation.json")?).map_err(|error| error.to_string())?;
+    let revision = automation["revision"].as_str().ok_or("missing automation revision")?;
+    let policy: serde_json::Value = serde_json::from_str(&read_repository_file("scripts/validation-policy.json")?)
+        .map_err(|error| error.to_string())?;
+    validate_hosted_application_contract(&workflow, revision, &policy)?;
+    for commands in [
+        serde_json::json!([["cargo", "ci-test"]]),
+        serde_json::json!([["cargo", "ci-application", "--ignored"]]),
+        serde_json::json!([["cargo", "ci-application"], ["cargo", "ci-application"]]),
+        serde_json::json!([["cargo", "ci-application"], ["cargo", "ci-generators"]]),
+        serde_json::json!([["cargo", "ci-application"], ["cargo", "ci-application-generators"]]),
+    ] {
+        let mut changed = policy.clone();
+        changed["tasks"]["rust-quality"]["commands"] = commands;
+        assert!(validate_hosted_application_contract(&workflow, revision, &changed).is_err());
+    }
+    let mut missing = policy.clone();
+    missing["tasks"]
+        .as_object_mut()
+        .ok_or("missing tasks")?
+        .remove("rust-quality");
+    assert!(validate_hosted_application_contract(&workflow, revision, &missing).is_err());
+    for (before, after) in [
+        ("task: rust-quality", "task: coverage"),
+        ("require_configured_task: true", "require_configured_task: false"),
+        ("shared-rust-ci.yml@", "unreviewed-rust-ci.yml@"),
+        (
+            "config_path: scripts/validation-policy.json",
+            "config_path: candidate.json",
+        ),
+    ] {
+        let changed = workflow.replacen(before, after, 1);
+        assert_ne!(changed, workflow);
+        assert!(validate_hosted_application_contract(&changed, revision, &policy).is_err());
+    }
+    assert!(validate_hosted_application_contract(&workflow, &"b".repeat(40), &policy).is_err());
     Ok(())
 }
 
