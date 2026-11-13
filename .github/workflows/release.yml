@@ -130,10 +130,10 @@ jobs:
     if: always() && github.repository == 'Strukturpiloten/quadlet-lens'
     permissions:
       contents: read
-    uses: Strukturpiloten/boxferry/.github/workflows/shared-release-validation.yml@264c1ee33544faaa02cedd38d75a0b1d51c36241 # automation-v1 interface v1
+    uses: Strukturpiloten/boxferry/.github/workflows/shared-release-validation.yml@15a4db28a56361352afa135c73406ff8d5fa461a # automation-v1 interface v1
     with:
       candidate_sha: ${{ github.sha }}
-      automation_sha: 264c1ee33544faaa02cedd38d75a0b1d51c36241
+      automation_sha: 15a4db28a56361352afa135c73406ff8d5fa461a
       policy_sha: ${{ github.sha }}
       config_path: .github/release-policy.json
       needs_json: ${{ toJSON(needs) }}
@@ -151,7 +151,7 @@ jobs:
         with:
           repository: Strukturpiloten/boxferry
           # renovate: datasource=github-digest depName=Strukturpiloten/boxferry currentValue=automation-v1
-          ref: 264c1ee33544faaa02cedd38d75a0b1d51c36241
+          ref: 15a4db28a56361352afa135c73406ff8d5fa461a
           path: _automation
           persist-credentials: false
       - name: Bind release candidate and typed policy
@@ -159,7 +159,7 @@ jobs:
         uses: ./_automation/.github/actions/shared-source
         with:
           candidate-sha: ${{ github.sha }}
-          automation-sha: 264c1ee33544faaa02cedd38d75a0b1d51c36241
+          automation-sha: 15a4db28a56361352afa135c73406ff8d5fa461a
           policy-sha: ${{ github.sha }}
           config-path: .github/release-policy.json
       - name: Install locked shared Python tooling
@@ -171,7 +171,7 @@ jobs:
         uses: ./_automation/.github/actions/shared-crate-publish
         with:
           candidate-sha: ${{ github.sha }}
-          automation-sha: 264c1ee33544faaa02cedd38d75a0b1d51c36241
+          automation-sha: 15a4db28a56361352afa135c73406ff8d5fa461a
           release-config: ${{ steps.source.outputs.config }}
           package: quadlet-lens
           validation-sha: ${{ needs.release-gate.outputs.candidate_sha }}
@@ -205,7 +205,7 @@ jobs:
         with:
           repository: Strukturpiloten/boxferry
           # renovate: datasource=github-digest depName=Strukturpiloten/boxferry currentValue=automation-v1
-          ref: 264c1ee33544faaa02cedd38d75a0b1d51c36241
+          ref: 15a4db28a56361352afa135c73406ff8d5fa461a
           path: _automation
           persist-credentials: false
       - name: Bind release candidate and typed policy
@@ -213,7 +213,7 @@ jobs:
         uses: ./_automation/.github/actions/shared-source
         with:
           candidate-sha: ${{ github.sha }}
-          automation-sha: 264c1ee33544faaa02cedd38d75a0b1d51c36241
+          automation-sha: 15a4db28a56361352afa135c73406ff8d5fa461a
           policy-sha: ${{ github.sha }}
           config-path: .github/release-policy.json
       - name: Install locked shared Python tooling
@@ -443,7 +443,7 @@ jobs:
         uses: ./_automation/.github/actions/shared-crate-publish
         with:
           candidate-sha: ${{ github.sha }}
-          automation-sha: 264c1ee33544faaa02cedd38d75a0b1d51c36241
+          automation-sha: 15a4db28a56361352afa135c73406ff8d5fa461a
           release-config: ${{ steps.source.outputs.config }}
           package: quadlet-lens
           validation-sha: ${{ needs.release-gate.outputs.candidate_sha }}
