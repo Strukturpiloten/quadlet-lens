@@ -4,7 +4,7 @@ support_minimum = "5.4.0"
 # each maintained minor's newest patch. Discovery never admits a generator,
 # catalogue capability, or application target automatically.
 # renovate: datasource=github-releases packageName=podman-container-tools/podman depName=podman-upstream
-latest_upstream = "6.1.2"
+latest_upstream = "6.2.0"
 # renovate: datasource=github-releases packageName=podman-container-tools/podman depName=podman-5.4
 latest_5_4 = "5.4.2"
 # renovate: datasource=github-releases packageName=podman-container-tools/podman depName=podman-5.5
@@ -14,11 +14,11 @@ latest_5_6 = "5.6.2"
 # renovate: datasource=github-releases packageName=podman-container-tools/podman depName=podman-5.7
 latest_5_7 = "5.7.1"
 # renovate: datasource=github-releases packageName=podman-container-tools/podman depName=podman-5.8
-latest_5_8 = "5.8.7"
+latest_5_8 = "5.8.10"
 # renovate: datasource=github-releases packageName=podman-container-tools/podman depName=podman-6.0
 latest_6_0 = "6.0.2"
 # renovate: datasource=github-releases packageName=podman-container-tools/podman depName=podman-6.1
-latest_6_1 = "6.1.2"
+latest_6_1 = "6.1.4"
 tracked_current = "6.1.2"
 checked_on = "2026-09-26"
 official_image_maximum = "5.8.2"
