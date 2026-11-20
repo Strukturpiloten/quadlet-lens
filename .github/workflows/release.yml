@@ -41,7 +41,7 @@ jobs:
   release-metadata:
     name: Validate release metadata
     if: github.repository == 'Strukturpiloten/quadlet-lens'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     permissions:
       contents: read
@@ -73,7 +73,7 @@ jobs:
     name: Exact-SHA native generator evidence
     needs: native-generator-validation
     if: always() && github.repository == 'Strukturpiloten/quadlet-lens'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     permissions:
       actions: read
@@ -143,7 +143,7 @@ jobs:
     if: github.repository == 'Strukturpiloten/quadlet-lens'
     permissions:
       contents: read
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     steps:
       - name: Check out immutable shared release automation
@@ -190,7 +190,7 @@ jobs:
       ]
     if: github.repository == 'Strukturpiloten/quadlet-lens' && !inputs.validation_only
     environment: release
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 45
     env:
       RELEASE_GITHUB_API_VERSION: "2026-03-10"
