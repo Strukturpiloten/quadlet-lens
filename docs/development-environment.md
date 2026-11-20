@@ -110,6 +110,9 @@ Repository model defaults and role overrides live in [`.codex/`](../.codex/); pe
 workflow ownership remain defined in [`AGENTS.md`](../AGENTS.md). Reload or start a new trusted
 project session after updating configuration; the primary manager must use `gpt-6-sol` with
 `xhigh` reasoning. Keep any explicit primary-session override aligned with Sol/xhigh.
+Unnamed subagents default to `gpt-6.2-sol` with `medium` reasoning. Follow the task-specific model
+and reasoning choices in [`AGENTS.md`](../AGENTS.md#agent-roles-and-verification) when overriding
+that default.
 
 Use `./scripts/check-all.sh --check` to run the complete gate without formatting repository-owned
 files. The default command (or `--fix`) still formats first. Both modes run the same validation;
