@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import errno
 import hashlib
 import json
 import os
@@ -13,11 +14,43 @@ import subprocess
 import sys
 import time
 from collections.abc import Mapping
+from contextlib import contextmanager
+
+
+class Rejected(ValueError):
+    """A refusal with a fixed message written by this launcher."""
+
+
+class PreparationFailed(Exception):
+    """A preparation stage and a cause safe for hosted logs."""
 
 
 def require(value: bool, message: str) -> None:
     if not value:
-        raise ValueError(message)
+        raise Rejected(message)
+
+
+@contextmanager
+def preparation_stage(stage: str):
+    # Subprocess exceptions can carry command arguments and captured streams.
+    # Parser and I/O exceptions can include input values and host paths.
+    try:
+        yield
+    except Rejected as error:
+        raise PreparationFailed(f"{stage}: {error}") from None
+    except subprocess.TimeoutExpired:
+        raise PreparationFailed(f"{stage}: command timed out") from None
+    except subprocess.CalledProcessError as error:
+        status = error.returncode
+        reason = f"killed by signal {-status}" if status < 0 else f"command exited {status}"
+        raise PreparationFailed(f"{stage}: {reason}") from None
+    except subprocess.SubprocessError:
+        raise PreparationFailed(f"{stage}: subprocess failure") from None
+    except OSError as error:
+        reason = errno.errorcode.get(error.errno or 0, "I/O failure")
+        raise PreparationFailed(f"{stage}: {reason}") from None
+    except (ValueError, KeyError, TypeError, RecursionError):
+        raise PreparationFailed(f"{stage}: invalid or missing data") from None
 
 
 def hosted_environment(environment: Mapping[str, str], release: str) -> None:
@@ -95,13 +128,12 @@ def native_timeout_control() -> dict:
             start_new_session=True,
         )
         raw, _ = process.communicate(timeout=max(0.001, deadline - time.monotonic()))
-        require(
-            not cancelled
-            and time.monotonic() < deadline
-            and process.returncode == 0
-            and len(raw) <= 4096,
-            "native root timeout self-control failed",
-        )
+        require(not cancelled, "root timeout control cancelled")
+        require(time.monotonic() < deadline, "root timeout control exceeded its deadline")
+        status = process.returncode
+        if status is not None and status != 0:
+            raise subprocess.CalledProcessError(status, "root timeout control")
+        require(status == 0 and len(raw) <= 4096, "invalid root timeout control output")
         actual = json.loads(raw)
         require(
             set(actual) == {"schema", "result", "uid", "descendants", "elapsed_ms"}
@@ -171,53 +203,72 @@ def profile(raw: bytes, package: str) -> dict:
 
 
 def prepare(destination: pathlib.Path) -> None:
-    require(
-        destination == pathlib.Path("target/release-evidence/outer-podman.json"),
-        "invalid prerequisite output",
-    )
-    if not pathlib.Path("/usr/bin/podman").is_file():
-        # Ubuntu's signed APT archive owns package versions/integrity. This is
-        # a documented host-prerequisite exception, not an inner generator pin.
-        subprocess.run(
-            [
-                *privileged_timeout_prefix(80),
-                "/bin/sh",
-                "-ceu",
-                "apt-get update && apt-get install --yes --no-install-recommends podman",
-            ],
-            check=True,
-            timeout=85,
-            stdout=subprocess.DEVNULL,
+    with preparation_stage("check evidence destination"):
+        require(
+            destination == pathlib.Path("target/release-evidence/outer-podman.json"),
+            "invalid prerequisite output",
         )
-    raw = subprocess.run(
-        command(["info", "--format", "json"], os.environ),
-        check=True,
-        timeout=12,
-        stdout=subprocess.PIPE,
-    ).stdout
-    package = subprocess.run(
-        ["/usr/bin/dpkg-query", "--show", "--showformat=${Version}", "podman"],
-        check=True,
-        timeout=3,
-        stdout=subprocess.PIPE,
-    ).stdout.decode("ascii")
-    metadata = profile(raw, package)
-    metadata["timeout_self_control"] = native_timeout_control()
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    with destination.open("x", encoding="utf-8") as output:
-        json.dump(metadata, output, sort_keys=True)
-        output.write("\n")
+    with preparation_stage("install Podman prerequisite"):
+        if not pathlib.Path("/usr/bin/podman").is_file():
+            # Ubuntu's signed APT archive owns package versions/integrity. This is
+            # a documented host-prerequisite exception, not an inner generator pin.
+            subprocess.run(
+                [
+                    *privileged_timeout_prefix(80),
+                    "/bin/sh",
+                    "-ceu",
+                    "apt-get update && apt-get install --yes --no-install-recommends podman",
+                ],
+                check=True,
+                timeout=85,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+    with preparation_stage("read rootful Podman info"):
+        raw = subprocess.run(
+            command(["info", "--format", "json"], os.environ),
+            check=True,
+            timeout=12,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+        ).stdout
+    with preparation_stage("read Podman package identity"):
+        package = subprocess.run(
+            ["/usr/bin/dpkg-query", "--show", "--showformat=${Version}", "podman"],
+            check=True,
+            timeout=3,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+        ).stdout.decode("ascii")
+    with preparation_stage("validate rootful Podman profile"):
+        metadata = profile(raw, package)
+    with preparation_stage("verify root timeout control"):
+        metadata["timeout_self_control"] = native_timeout_control()
+    with preparation_stage("write outer Podman evidence"):
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        with destination.open("x", encoding="utf-8") as output:
+            json.dump(metadata, output, sort_keys=True)
+            output.write("\n")
 
 
 def main(arguments: list[str]) -> int:
     try:
-        hosted_environment(os.environ, pathlib.Path("/etc/os-release").read_text(encoding="utf-8"))
         if len(arguments) == 2 and arguments[0] == "prepare":
+            with preparation_stage("check hosted runner"):
+                hosted_environment(
+                    os.environ, pathlib.Path("/etc/os-release").read_text(encoding="utf-8")
+                )
             prepare(pathlib.Path(arguments[1]))
         else:
+            hosted_environment(
+                os.environ, pathlib.Path("/etc/os-release").read_text(encoding="utf-8")
+            )
             argv = command(arguments, os.environ)
             os.execv(argv[0], argv)
         return 0
+    except PreparationFailed as error:
+        print(f"hosted Podman preparation failed at {error}", file=sys.stderr)
+        return 1
     except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError):
         print("hosted Podman prerequisite/operation failed", file=sys.stderr)
         return 1
