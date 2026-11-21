@@ -177,6 +177,7 @@ jobs:
           uv run --locked --project _automation/automation ruff format --check --config pyproject.toml scripts
           uv run --locked --project _automation/automation ty check --project . scripts
           uv run --locked --project _automation/automation python scripts/test-automation-contract.py
+          uv run --locked --project _automation/automation python scripts/test-hosted-generator-podman.py
       - name: Test release metadata policy
         run: bash scripts/test-release-metadata.sh
       - name: Check release metadata and changelog

@@ -3,7 +3,9 @@
 
 import ast
 import copy
+import errno
 import importlib.util
+import io
 import json
 import os
 import pathlib
@@ -12,6 +14,7 @@ import signal
 import subprocess
 import tempfile
 import unittest
+from contextlib import redirect_stderr
 from unittest import mock
 
 SPEC = importlib.util.spec_from_file_location(
@@ -148,59 +151,133 @@ class HostedPodmanTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 HOSTED.profile(json.dumps(value).encode(), "4.9.3+ds1")
 
-    def test_setup_installation_and_failure_are_not_silently_skipped(self):
-        original = pathlib.Path.cwd()
-        with tempfile.TemporaryDirectory(prefix="quadlet-hosted-podman-control-") as scratch:
-            try:
-                os.chdir(scratch)
-                responses = [
-                    subprocess.CompletedProcess([], 0),
+    def preparation_destination(self):
+        scratch = self.enterContext(tempfile.TemporaryDirectory(prefix="quadlet-hosted-podman-"))
+        self.addCleanup(os.chdir, pathlib.Path.cwd())
+        os.chdir(scratch)
+        return pathlib.Path("target/release-evidence/outer-podman.json")
+
+    def test_setup_installation_and_evidence(self):
+        destination = self.preparation_destination()
+        raw = json.dumps(AUTHORED).encode()
+        responses = [
+            subprocess.CompletedProcess([], 0),
+            subprocess.CompletedProcess([], 0, raw),
+            subprocess.CompletedProcess([], 0, b"4.9.3+ds1"),
+        ]
+        diagnostics = io.StringIO()
+        with (
+            mock.patch.object(pathlib.Path, "is_file", return_value=False),
+            mock.patch.object(HOSTED, "hosted_environment"),
+            mock.patch.object(
+                HOSTED, "native_timeout_control", return_value=MOCK_TIMEOUT
+            ) as native,
+            mock.patch.object(HOSTED.subprocess, "run", side_effect=responses) as run,
+            redirect_stderr(diagnostics),
+        ):
+            self.assertEqual(HOSTED.main(["prepare", str(destination)]), 0)
+        self.assertEqual(diagnostics.getvalue(), "")
+        self.assertEqual(
+            json.loads(destination.read_text()),
+            {**HOSTED.profile(raw, "4.9.3+ds1"), "timeout_self_control": MOCK_TIMEOUT},
+        )
+        self.assertEqual(
+            run.call_args_list[0].args[0],
+            [
+                "/usr/bin/sudo",
+                "-n",
+                "/usr/bin/timeout",
+                "--signal=TERM",
+                "--kill-after=2s",
+                "80s",
+                "/bin/sh",
+                "-ceu",
+                "apt-get update && apt-get install --yes --no-install-recommends podman",
+            ],
+        )
+        self.assertEqual([call.kwargs["timeout"] for call in run.call_args_list], [85, 12, 3])
+        for call in run.call_args_list:
+            self.assertTrue(call.kwargs["check"])
+            self.assertEqual(call.kwargs["stderr"], subprocess.DEVNULL)
+        native.assert_called_once_with()
+
+    def test_preparation_failures_report_only_stage_and_safe_cause(self):
+        destination = self.preparation_destination()
+        sensitive = "fixture-private-value"
+        installed = subprocess.CompletedProcess([], 0)
+        info = subprocess.CompletedProcess([], 0, json.dumps(AUTHORED).encode())
+        package = subprocess.CompletedProcess([], 0, b"4.9.3+ds1")
+        cases = (
+            (
+                "install Podman prerequisite: command exited 100",
+                [subprocess.CalledProcessError(100, sensitive, stderr=sensitive)],
+            ),
+            (
+                "read rootful Podman info: command timed out",
+                [installed, subprocess.TimeoutExpired(sensitive, 12, output=sensitive)],
+            ),
+            (
+                "read Podman package identity: killed by signal 9",
+                [installed, info, subprocess.CalledProcessError(-9, sensitive)],
+            ),
+            (
+                "validate rootful Podman profile: invalid or missing data",
+                [installed, subprocess.CompletedProcess([], 0, sensitive.encode()), package],
+            ),
+            (
+                "validate rootful Podman profile: invalid or missing data",
+                [
+                    installed,
+                    subprocess.CompletedProcess([], 0, b"[" * 10_000 + b"0" + b"]" * 10_000),
+                    package,
+                ],
+            ),
+            (
+                "validate rootful Podman profile: Podman package identity is unavailable",
+                [installed, info, subprocess.CompletedProcess([], 0, (sensitive + "!").encode())],
+            ),
+        )
+        for expected, responses in cases:
+            with (
+                self.subTest(expected=expected),
+                mock.patch.object(pathlib.Path, "is_file", return_value=False),
+                mock.patch.object(HOSTED, "hosted_environment"),
+                mock.patch.object(HOSTED, "native_timeout_control") as native,
+                mock.patch.object(HOSTED.subprocess, "run", side_effect=responses) as run,
+                redirect_stderr(io.StringIO()) as diagnostics,
+            ):
+                self.assertEqual(HOSTED.main(["prepare", str(destination)]), 1)
+                self.assertEqual(
+                    diagnostics.getvalue(), f"hosted Podman preparation failed at {expected}\n"
+                )
+                self.assertFalse(destination.exists())
+                self.assertEqual(run.call_count, len(responses))
+                native.assert_not_called()
+
+    def test_prepare_preserves_existing_evidence_on_write_refusal(self):
+        destination = self.preparation_destination()
+        destination.parent.mkdir(parents=True)
+        destination.write_bytes(b"existing evidence")
+        with (
+            mock.patch.object(pathlib.Path, "is_file", return_value=True),
+            mock.patch.object(HOSTED, "hosted_environment"),
+            mock.patch.object(HOSTED, "native_timeout_control", return_value=MOCK_TIMEOUT),
+            mock.patch.object(
+                HOSTED.subprocess,
+                "run",
+                side_effect=[
                     subprocess.CompletedProcess([], 0, json.dumps(AUTHORED).encode()),
                     subprocess.CompletedProcess([], 0, b"4.9.3+ds1"),
-                ]
-                with (
-                    mock.patch.object(pathlib.Path, "is_file", return_value=False),
-                    mock.patch.object(
-                        HOSTED, "native_timeout_control", return_value=MOCK_TIMEOUT
-                    ) as native,
-                    mock.patch.object(HOSTED.subprocess, "run", side_effect=responses) as run,
-                ):
-                    destination = pathlib.Path("target/release-evidence/outer-podman.json")
-                    HOSTED.prepare(destination)
-                    self.assertEqual(json.loads(destination.read_text())["engine"], "podman")
-                    self.assertEqual(
-                        run.call_args_list[0].args[0],
-                        [
-                            "/usr/bin/sudo",
-                            "-n",
-                            "/usr/bin/timeout",
-                            "--signal=TERM",
-                            "--kill-after=2s",
-                            "80s",
-                            "/bin/sh",
-                            "-ceu",
-                            "apt-get update && apt-get install --yes --no-install-recommends podman",
-                        ],
-                    )
-                    self.assertEqual(len(run.call_args_list), 3)
-                    native.assert_called_once_with()
-                    self.assertEqual(
-                        json.loads(destination.read_text())["timeout_self_control"], MOCK_TIMEOUT
-                    )
-                destination.unlink()
-                with (
-                    mock.patch.object(pathlib.Path, "is_file", return_value=False),
-                    mock.patch.object(
-                        HOSTED.subprocess,
-                        "run",
-                        side_effect=subprocess.CalledProcessError(1, "authored"),
-                    ),
-                ):
-                    with self.assertRaises(subprocess.CalledProcessError):
-                        HOSTED.prepare(destination)
-                    self.assertFalse(destination.exists())
-            finally:
-                os.chdir(original)
+                ],
+            ),
+            redirect_stderr(io.StringIO()) as diagnostics,
+        ):
+            self.assertEqual(HOSTED.main(["prepare", str(destination)]), 1)
+        self.assertEqual(
+            diagnostics.getvalue(),
+            "hosted Podman preparation failed at write outer Podman evidence: EEXIST\n",
+        )
+        self.assertEqual(destination.read_bytes(), b"existing evidence")
 
     def test_native_probe_is_mocked_and_uses_the_production_prefix(self):
         controller = pathlib.Path(__file__).with_name("hosted-generator-timeout-control.py")
@@ -234,30 +311,54 @@ class HostedPodmanTests(unittest.TestCase):
         self.assertLessEqual(process.communicate.call_args.kwargs["timeout"], 9)
 
     def test_failed_native_probe_never_publishes_prerequisite_evidence(self):
-        original = pathlib.Path.cwd()
-        with tempfile.TemporaryDirectory(prefix="quadlet-hosted-podman-refusal-") as scratch:
-            try:
-                os.chdir(scratch)
-                with (
-                    mock.patch.object(pathlib.Path, "is_file", return_value=True),
-                    mock.patch.object(
-                        HOSTED.subprocess,
-                        "run",
-                        side_effect=[
-                            subprocess.CompletedProcess([], 0, json.dumps(AUTHORED).encode()),
-                            subprocess.CompletedProcess([], 0, b"4.9.3+ds1"),
-                        ],
-                    ),
-                    mock.patch.object(
-                        HOSTED, "native_timeout_control", side_effect=ValueError("authored refusal")
-                    ),
-                ):
-                    destination = pathlib.Path("target/release-evidence/outer-podman.json")
-                    with self.assertRaises(ValueError):
-                        HOSTED.prepare(destination)
-                    self.assertFalse(destination.exists())
-            finally:
-                os.chdir(original)
+        destination = self.preparation_destination()
+        process = mock.Mock(returncode=1)
+        process.communicate.return_value = (b"fixture-private-output", None)
+        process.poll.return_value = 1
+        with (
+            mock.patch.object(pathlib.Path, "is_file", return_value=True),
+            mock.patch.object(HOSTED, "hosted_environment"),
+            mock.patch.object(HOSTED.signal, "signal"),
+            mock.patch.object(HOSTED.subprocess, "Popen", return_value=process),
+            mock.patch.object(
+                HOSTED.subprocess,
+                "run",
+                side_effect=[
+                    subprocess.CompletedProcess([], 0, json.dumps(AUTHORED).encode()),
+                    subprocess.CompletedProcess([], 0, b"4.9.3+ds1"),
+                ],
+            ),
+            redirect_stderr(io.StringIO()) as diagnostics,
+        ):
+            self.assertEqual(HOSTED.main(["prepare", str(destination)]), 1)
+        self.assertEqual(
+            diagnostics.getvalue(),
+            "hosted Podman preparation failed at verify root timeout control: command exited 1\n",
+        )
+        self.assertFalse(destination.exists())
+        process.stdout.close.assert_called_once()
+        process.wait.assert_not_called()
+
+    def test_prepare_refuses_unreadable_host_identity_without_disclosing_path(self):
+        with (
+            mock.patch.object(
+                pathlib.Path,
+                "read_text",
+                side_effect=PermissionError(
+                    errno.EACCES, "fixture-private-error", "/fixture-private"
+                ),
+            ),
+            mock.patch.object(HOSTED.subprocess, "run") as run,
+            redirect_stderr(io.StringIO()) as diagnostics,
+        ):
+            self.assertEqual(
+                HOSTED.main(["prepare", "target/release-evidence/outer-podman.json"]), 1
+            )
+        self.assertEqual(
+            diagnostics.getvalue(),
+            "hosted Podman preparation failed at check hosted runner: EACCES\n",
+        )
+        run.assert_not_called()
 
     def test_cancelled_native_probe_rejects_even_a_successful_mock_report(self):
         handlers = {}
