@@ -35,6 +35,11 @@ case "${command_name}:$*" in
   git:ls-files*) printf 'README.md\0' ;;
   jq:-er\ .rust_channel) printf '9.8.7\n' ;;
   jq:*) printf '%s\n' "${CHECK_ALL_TEST_MSRV}" ;;
+  python3:scripts/shared-ci.py\ tools\ --destination*--tools\ actionlint)
+    mkdir -p -- "$4"
+    cp -- "${0%/*}/mock" "$4/actionlint" ;;
+  actionlint:*)
+    [[ "${0%/*}" == "${PWD}/target/workflow-lint-tools" ]] ;;
   python3:scripts/shared-ci.py\ cargo-tools\ verify*--package\ cargo-semver-checks)
     [[ "${CARGO_HOME}" == "${CARGO_TARGET_DIR%/cargo-semver-checks-target}/cargo-home" ]]
     [[ "${CARGO_TARGET_DIR}" == */check-all/quadlet-lens/cargo-semver-checks-target ]]
@@ -157,6 +162,16 @@ diff -u "${test_root}/default.commands" "${test_root}/fix.commands"
 assert_contains fix "bash scripts/check-files.sh --fix"
 assert_contains check "bash scripts/check-files.sh --check"
 assert_contains check "python3 scripts/shared-ci.py run --task python-quality"
+actionlint_install="python3 scripts/shared-ci.py tools --destination ${test_root}/repository/target/workflow-lint-tools --tools actionlint"
+for mode in fix check; do
+  assert_contains "${mode}" "${actionlint_install}"
+  assert_contains "${mode}" "actionlint"
+  status=0
+  CHECK_ALL_TEST_FAIL_COMMAND="${actionlint_install}" run_gate lint_install_failure "--${mode}" || status=$?
+  [[ "${status}" == 17 ]]
+  [[ "$(tail -n 1 "${test_root}/lint_install_failure.commands")" == "${actionlint_install}" ]]
+  grep -Fq 'Install pinned Actionlint' "${test_root}/lint_install_failure.output"
+done
 # Ordinary validation retains the existing complete gate without activating image qualification.
 for mode in fix check; do
   if grep -Fq 'devcontainer-local' "${test_root}/${mode}.commands"; then
