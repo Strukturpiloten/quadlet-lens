@@ -42,6 +42,8 @@ cargo ci-doc
 The VS Code complete task runs this gate. Planning and change-aware tasks delegate through
 `scripts/shared-ci.py`; they are development feedback. The shared manifest and repository policy
 retain one implementation for local and hosted selection, typed Python checks and tool ownership.
+The local gate installs the checksum-verified Actionlint selected by the manifest and puts it
+first on `PATH` before linting workflows. Hosted CI uses the same inventory.
 
 SemVer preflight verifies the canonical compiler, exact binary and isolated Cargo home/target
 before formatting or tests. Local API validation uses trusted development history. Release uses

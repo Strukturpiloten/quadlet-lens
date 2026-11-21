@@ -914,7 +914,18 @@ class ReleaseContractTests(unittest.TestCase):
             [publisher.index(hook) for hook in hooks],
             sorted(publisher.index(hook) for hook in hooks),
         )
+        package_step = publisher.split("      - name: Build release package and checksum\n", 1)[
+            1
+        ].split("\n      - name: ", 1)[0]
+        self.assertIn("CRATE: ${{ steps.metadata.outputs.crate }}", package_step)
+        self.assertIn(
+            'uv run --locked --project "${GITHUB_WORKSPACE}/_automation/automation"',
+            package_step,
+        )
+        self.assertIn('python -m boxferry_ci.package_crate "${CRATE}"', package_step)
         self.assertIn("subject-path: source/${{ steps.metadata.outputs.crate }}", publisher)
+        self.assertIn('upload_asset "${CRATE}" "application/gzip"', publisher)
+        self.assertIn('upload_asset "${CRATE}.sha256" "text/plain"', publisher)
         for step in publisher.split("      - name: ")[1:]:
             if "\n        run:" in step:
                 self.assertIn("working-directory: source", step)
@@ -1804,6 +1815,7 @@ class ConsumerContractTests(unittest.TestCase):
             "workflow_run:",
             "workflows: [CI]",
             "types: [requested, completed]",
+            "cache-mode: none",
             "actions: write",
             "checks: read",
             "contents: read",
