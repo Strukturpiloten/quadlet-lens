@@ -883,7 +883,10 @@ fn release_workflow_uses_only_trusted_publishing() -> Result<(), String> {
         "uses: ./_automation/.github/actions/shared-crate-publish",
         "validation-sha: ${{ needs.release-gate.outputs.candidate_sha }}",
         "validation-result: ${{ needs.release-gate.result }}",
-        "validation-only: \"true\"",
+        "shared-release-inventory.yml@",
+        "validation_result: ${{ needs.release-gate.result }}",
+        "validation_sha: ${{ needs.release-gate.outputs.candidate_sha }}",
+        "published_api_candidate_sha: ${{ needs.release-gate.outputs.published_api_candidate_sha }}",
         "validation-only: \"false\"",
         "api_purpose: published",
     ] {
@@ -894,9 +897,9 @@ fn release_workflow_uses_only_trusted_publishing() -> Result<(), String> {
     if workflow
         .matches("uses: ./_automation/.github/actions/shared-crate-publish")
         .count()
-        != 2
+        != 1
     {
-        return Err("Release needs one read-only preparation and one protected publication caller".to_owned());
+        return Err("Release must retain one protected publication caller".to_owned());
     }
     Ok(())
 }

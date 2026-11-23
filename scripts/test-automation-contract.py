@@ -22,6 +22,7 @@ from dataclasses import replace
 from pathlib import Path
 from unittest.mock import patch
 
+import yaml
 from boxferry_ci.__main__ import _task
 from boxferry_ci.contracts import ContractError
 from boxferry_ci.gate import verify_devcontainer_gate, verify_gate
@@ -582,6 +583,32 @@ class NativeImageIntegrationTests(unittest.TestCase):
                     self.assertIn("tool verification failed", result.stderr)
 
 
+def require_shared_release_inventory(workflow: str, revision: str) -> None:
+    """Bind the read-only caller to both actual gate receipts and the complete policy."""
+    job = yaml.load(workflow, Loader=yaml.BaseLoader)["jobs"]["crate-preparation"]
+    expected = {
+        "name": "Read-only crate publication preparation",
+        "needs": "release-gate",
+        "if": "github.repository == 'Strukturpiloten/quadlet-lens'",
+        "permissions": {"contents": "read"},
+        "uses": "Strukturpiloten/boxferry/.github/workflows/shared-release-inventory.yml@"
+        + revision,
+        "with": {
+            "candidate_sha": "${{ github.sha }}",
+            "automation_sha": revision,
+            "policy_sha": "${{ github.sha }}",
+            "config_path": ".github/release-policy.json",
+            "validation_sha": "${{ needs.release-gate.outputs.candidate_sha }}",
+            "validation_result": "${{ needs.release-gate.result }}",
+            "published_api_candidate_sha": (
+                "${{ needs.release-gate.outputs.published_api_candidate_sha }}"
+            ),
+        },
+    }
+    if job != expected:
+        raise ValueError("release inventory must retain the exact read-only reusable caller")
+
+
 class ReleaseContractTests(unittest.TestCase):
     def release_policy(self) -> dict[str, object]:
         from boxferry_ci import release
@@ -875,31 +902,36 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertNotIn("validation_only", preparation)
         self.assertNotIn(": write", preparation)
         self.assertNotIn("environment:", preparation)
-        self.assertIn('validation-only: "true"', preparation)
+        require_shared_release_inventory(release, sha)
         self.assertIn('validation-only: "false"', publisher)
         self.assertIn("!inputs.validation_only", publisher)
         self.assertIn("environment: release", publisher)
         self.assertIn("id-token: write", publisher)
         self.assertIn("crate-preparation,", publisher)
-        for job in (preparation, publisher):
-            for expected in (
-                "uses: ./_automation/.github/actions/shared-crate-publish",
-                "uses: ./_automation/.github/actions/shared-source",
-                "config-path: .github/release-policy.json",
-                "release-config: ${{ steps.source.outputs.config }}",
-                "validation-sha: ${{ needs.release-gate.outputs.candidate_sha }}",
-                "validation-result: ${{ needs.release-gate.result }}",
-                "candidate-sha: ${{ github.sha }}",
-                f"automation-sha: {sha}",
-                "package: quadlet-lens",
-                f"ref: {sha}",
-                "path: _automation",
-                "policy-sha: ${{ github.sha }}",
-            ):
-                self.assertIn(expected, job)
-            self.assertNotIn("bootstrap-token", job)
-            self.assertNotIn("cargo publish", job)
-            self.assertNotIn("crates-io-auth-action", job)
+        for expected in (
+            "uses: ./_automation/.github/actions/shared-crate-publish",
+            "uses: ./_automation/.github/actions/shared-source",
+            "config-path: .github/release-policy.json",
+            "release-config: ${{ steps.source.outputs.config }}",
+            "validation-sha: ${{ needs.release-gate.outputs.candidate_sha }}",
+            "validation-result: ${{ needs.release-gate.result }}",
+            "candidate-sha: ${{ github.sha }}",
+            f"automation-sha: {sha}",
+            "package: quadlet-lens",
+            f"ref: {sha}",
+            "path: _automation",
+            "policy-sha: ${{ github.sha }}",
+        ):
+            self.assertIn(expected, publisher)
+        self.assertNotIn("bootstrap-token", publisher)
+        self.assertNotIn("cargo publish", publisher)
+        self.assertNotIn("crates-io-auth-action", publisher)
+        publication = yaml.load(release, Loader=yaml.BaseLoader)["jobs"]["release"]
+        self.assertEqual(publication["needs"], [*RELEASE_JOBS, "release-gate", "crate-preparation"])
+        self.assertEqual(
+            publication["if"],
+            "github.repository == 'Strukturpiloten/quadlet-lens' && !inputs.validation_only",
+        )
         hooks = [
             "Derive release publication metadata",
             "Build release package and checksum",
@@ -929,6 +961,41 @@ class ReleaseContractTests(unittest.TestCase):
         for step in publisher.split("      - name: ")[1:]:
             if "\n        run:" in step:
                 self.assertIn("working-directory: source", step)
+
+    def test_release_inventory_rejects_receipt_and_boundary_drift(self) -> None:
+        workflow = (ROOT / ".github/workflows/release.yml").read_text()
+        revision = json.loads((ROOT / ".github/automation.json").read_text())["revision"]
+        mutations = (
+            ("validation_result: ${{ needs.release-gate.result }}", "validation_result: success"),
+            (
+                "validation_sha: ${{ needs.release-gate.outputs.candidate_sha }}",
+                "validation_sha: ${{ github.sha }}",
+            ),
+            (
+                "published_api_candidate_sha: ${{ needs.release-gate.outputs.published_api_candidate_sha }}",
+                "published_api_candidate_sha: ${{ needs.release-gate.outputs.candidate_sha }}",
+            ),
+            (
+                "config_path: .github/release-policy.json",
+                "config_path: scripts/validation-policy.json",
+            ),
+            ("needs: release-gate", "needs: deterministic"),
+            ("contents: read", "contents: write"),
+            ("    with:", "    secrets: inherit\n    with:"),
+            ("    with:", "    environment: release\n    with:"),
+            ("    with:", "    steps: []\n    with:"),
+            ("    with:", "    with:\n      package: quadlet-lens"),
+            (
+                "if: github.repository == 'Strukturpiloten/quadlet-lens'",
+                "if: always() && github.repository == 'Strukturpiloten/quadlet-lens'",
+            ),
+        )
+        preparation = workflow_job(workflow, "crate-preparation")
+        for old, new in mutations:
+            with self.subTest(old=old, new=new), self.assertRaises(ValueError):
+                self.assertIn(old, preparation)
+                changed = workflow.replace(preparation, preparation.replace(old, new, 1))
+                require_shared_release_inventory(changed, revision)
 
     def test_native_receipts_follow_checks_cleanup_and_evidence_persistence(self) -> None:
         generators = (ROOT / ".github/workflows/generator-matrix.yml").read_text()
@@ -1843,6 +1910,7 @@ class ConsumerContractTests(unittest.TestCase):
             ("shared-dependency-wait.yml", ".github/workflows/ci.yml"),
             ("shared-rust-semver.yml", ".github/workflows/ci.yml"),
             ("shared-release-validation.yml", ".github/workflows/release.yml"),
+            ("shared-release-inventory.yml", ".github/workflows/release.yml"),
         ):
             result = presets.effective(
                 config,
