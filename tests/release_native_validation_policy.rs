@@ -88,7 +88,7 @@ fn assert_release_validation_contract(release: &str) -> Result<(), String> {
         "validation-result: ${{ needs.release-gate.result }}",
         "candidate_sha: ${{ steps.verified.outputs.candidate_sha }}",
         "name: Read-only crate publication preparation",
-        "validation-only: \"true\"",
+        "uses: Strukturpiloten/boxferry/.github/workflows/shared-release-inventory.yml@",
         "validation-only: \"false\"",
         "!inputs.validation_only",
         "artifact-metadata: write",
