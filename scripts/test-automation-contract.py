@@ -221,7 +221,7 @@ class OrdinaryValidationContractTests(unittest.TestCase):
             "scripts/install-file-tools.sh",
             ".devcontainer/verify-tools.sh",
             ".github/automation.json",
-            "package-lock.json",
+            "scripts/node-tool.sh",
             "rust-toolchain.toml",
             "scripts/validation-policy.json",
             "new-input-shape/unknown",
@@ -416,6 +416,14 @@ def require_shared_release_preparation(workflow: str, revision: str) -> str:
 class NativeImageIntegrationTests(unittest.TestCase):
     """Exercise this owner's actual seed, recipe closure and selected-tool probe."""
 
+    def test_actual_configuration_is_admitted_before_native_build(self) -> None:
+        from boxferry_ci.devcontainer_validation import validate_configuration
+
+        self.assertEqual(
+            validate_configuration(ROOT, "quadlet-lens"),
+            json.loads((ROOT / ".devcontainer/devcontainer.json").read_text()),
+        )
+
     def test_actual_seed_and_adopted_policy_use_fresh_image_receipts(self) -> None:
         shared_source = sys.modules[Policy.__module__].__file__
         assert shared_source is not None
@@ -428,8 +436,19 @@ class NativeImageIntegrationTests(unittest.TestCase):
         self.assertEqual(seed.local_commands, POLICY.local_commands)
         # Preserve the historical image-policy fixture; MSRV is now explicit but unchanged.
         self.assertNotIn("msrv", seed.tasks)
+        current_tasks = dict(POLICY.tasks)
+        python_quality = current_tasks["python-quality"]
+        self.assertIn(("python3", "scripts/test-node-tools.py"), python_quality.commands)
+        current_tasks["python-quality"] = replace(
+            python_quality,
+            commands=tuple(
+                command
+                for command in python_quality.commands
+                if command != ("python3", "scripts/test-node-tools.py")
+            ),
+        )
         self.assertEqual(
-            seed.tasks, {name: task for name, task in POLICY.tasks.items() if name != "msrv"}
+            seed.tasks, {name: task for name, task in current_tasks.items() if name != "msrv"}
         )
         self.assertEqual(seed.task("msrv"), POLICY.tasks["msrv"])
         for event in ("pull_request", "merge_group"):
@@ -481,8 +500,7 @@ class NativeImageIntegrationTests(unittest.TestCase):
                 ".github/automation.json",
                 "scripts/shared-ci.py",
                 "scripts/install-file-tools.sh",
-                "package.json",
-                "package-lock.json",
+                ".github/node-tools.json",
             }
             <= inputs
         )
@@ -529,7 +547,21 @@ class NativeImageIntegrationTests(unittest.TestCase):
             )
         channel = tomllib.loads((ROOT / "rust-toolchain.toml").read_text())["toolchain"]["channel"]
         manifest = json.loads((ROOT / ".github/automation.json").read_text())
-        for drift in ("none", "authority", "node", "compiler"):
+        for drift in (
+            "none",
+            "authority",
+            "node",
+            "compiler",
+            "prettier",
+            "markdownlint",
+            "markdown_help_zero",
+            "markdown_help_failure",
+            "markdown_stderr",
+            "markdown_usage",
+            "markdown_url",
+            "markdown_banner",
+            "prettier_help_failure",
+        ):
             with self.subTest(drift=drift), tempfile.TemporaryDirectory() as temporary:
                 directory = Path(temporary)
                 candidate = directory / "candidate"
@@ -558,6 +590,37 @@ class NativeImageIntegrationTests(unittest.TestCase):
                 (candidate / "rust-toolchain.toml").write_text(
                     (ROOT / "rust-toolchain.toml").read_text()
                 )
+                installation = tooling / "file-tools"
+                installation.mkdir()
+                (installation / "package-lock.json").write_text(
+                    json.dumps(
+                        {
+                            "packages": {
+                                "node_modules/prettier": {"version": "3.10.1"},
+                                "node_modules/markdownlint-cli2": {"version": "0.24.1"},
+                                "node_modules/markdownlint": {"version": "0.42.1"},
+                            }
+                        }
+                    )
+                )
+                python = binaries / "python3"
+                python.write_text(
+                    f"#!{sys.executable}\nimport sys\n"
+                    f"drift={drift!r}\n"
+                    "tool=sys.argv[-2]\n"
+                    "if tool=='prettier':\n"
+                    "    print('0.0.1' if drift=='prettier' else '3.10.1')\n"
+                    "    raise SystemExit(2 if '--help' in sys.argv and drift=='prettier_help_failure' else 0)\n"
+                    "if drift=='markdown_banner' and '--help' in sys.argv: print('unexpected prefix')\n"
+                    "print('bad help' if drift=='markdownlint' else "
+                    "'markdownlint-cli2 v0.24.1 (markdownlint v0.42.1)')\n"
+                    "if '--help' in sys.argv:\n"
+                    "    if drift!='markdown_url': print('https://github.com/DavidAnson/markdownlint-cli2')\n"
+                    "    if drift!='markdown_usage': print('Syntax: markdownlint-cli2 glob0 [glob1] [--help] [--no-globs]')\n"
+                    "    if drift=='markdown_stderr': print('unexpected stderr', file=sys.stderr)\n"
+                    "    raise SystemExit(0 if drift=='markdown_help_zero' else 1 if drift=='markdown_help_failure' else 2)\n"
+                )
+                python.chmod(0o755)
                 fake = (
                     f"#!{sys.executable}\nimport pathlib,sys\n"
                     f"versions={versions!r}\n"
@@ -572,7 +635,13 @@ class NativeImageIntegrationTests(unittest.TestCase):
                     binary.write_text(fake)
                     binary.chmod(0o755)
                 result = subprocess.run(
-                    [sys.executable, "-c", probe[1], str(candidate), str(tooling)],
+                    [
+                        sys.executable,
+                        "-c",
+                        probe[1].replace("/opt/quadlet-lens-file-tools", str(installation)),
+                        str(candidate),
+                        str(tooling),
+                    ],
                     capture_output=True,
                     text=True,
                     check=False,
@@ -2151,10 +2220,10 @@ class ConsumerContractTests(unittest.TestCase):
         checkout = job.index("      - name: Check out immutable shared automation\n")
         python = job.index("uses: ./_automation/.github/actions/shared-python")
         node = job.index("uses: ./_automation/.github/actions/shared-node")
-        npm = job.index("npm ci --ignore-scripts")
+        file_check = job.index("scripts/check-files.sh --check")
         self.assertLess(checkout, python)
         self.assertLess(python, node)
-        self.assertLess(node, npm)
+        self.assertLess(node, file_check)
         self.assertEqual(job.count("uses: ./_automation/.github/actions/shared-python"), 1)
         self.assertEqual(job.count("uses: ./_automation/.github/actions/shared-node"), 1)
         self.assertIn(f"ref: {revision}", job[checkout:python])
@@ -2164,9 +2233,12 @@ class ConsumerContractTests(unittest.TestCase):
         )
         assert block is not None
         self.assertIn(f"automation-sha: {revision}", block[0])
-        self.assertIn("          cache: npm\n", block[0])
-        self.assertIn("          cache-dependency-path: package-lock.json\n", block[0])
-        self.assertTrue((ROOT / "package-lock.json").is_file())
+        self.assertNotIn("npm ci", job)
+        self.assertIn("python scripts/test-node-tools.py", job)
+        self.assertIn("QUADLET_LENS_TEST_NODE_INSTALLATION: selected", job)
+        self.assertNotIn("cache-dependency-path: package-lock.json", block[0])
+        self.assertFalse((ROOT / "package-lock.json").exists())
+        self.assertFalse((ROOT / "package.json").exists())
         self.assertNotRegex(job, r"(?m)^\s*node-version:")
         self.assertNotIn("actions/setup-node@", job)
         self.assertNotIn("# renovate: datasource=node-version depName=node", job)

@@ -41,7 +41,7 @@ preparation are development tools rather than published Rust dependencies.
 
 Their exact sources are:
 
-- `package-lock.json` for Node tools;
+- the producer `package-lock.json` at the revision selected by `.github/automation.json` for Node tools;
 - the canonical `automation/tool-artifacts.json` inventory at the manifest revision for native tools;
 - `.devcontainer/Dockerfile` for container tooling;
 - full commit pins and release comments in GitHub workflows; and

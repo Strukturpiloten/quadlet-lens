@@ -68,8 +68,6 @@ required_tools=(
   hadolint
   jq
   lychee
-  markdownlint-cli2
-  prettier
   python3
   rustup
   shellcheck

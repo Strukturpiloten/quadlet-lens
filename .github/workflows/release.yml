@@ -130,10 +130,10 @@ jobs:
     if: always() && github.repository == 'Strukturpiloten/quadlet-lens'
     permissions:
       contents: read
-    uses: Strukturpiloten/boxferry/.github/workflows/shared-release-validation.yml@25679dee0859cba2bdabb779fed02f6f2f390ca0 # automation-v1 interface v1
+    uses: Strukturpiloten/boxferry/.github/workflows/shared-release-validation.yml@0aece357141870375bb872d5fd258a4e12961850 # automation-v1 interface v1
     with:
       candidate_sha: ${{ github.sha }}
-      automation_sha: 25679dee0859cba2bdabb779fed02f6f2f390ca0
+      automation_sha: 0aece357141870375bb872d5fd258a4e12961850
       policy_sha: ${{ github.sha }}
       config_path: .github/release-policy.json
       needs_json: ${{ toJSON(needs) }}
@@ -143,10 +143,10 @@ jobs:
     if: github.repository == 'Strukturpiloten/quadlet-lens'
     permissions:
       contents: read
-    uses: Strukturpiloten/boxferry/.github/workflows/shared-release-inventory.yml@25679dee0859cba2bdabb779fed02f6f2f390ca0 # automation-v1 interface v1
+    uses: Strukturpiloten/boxferry/.github/workflows/shared-release-inventory.yml@0aece357141870375bb872d5fd258a4e12961850 # automation-v1 interface v1
     with:
       candidate_sha: ${{ github.sha }}
-      automation_sha: 25679dee0859cba2bdabb779fed02f6f2f390ca0
+      automation_sha: 0aece357141870375bb872d5fd258a4e12961850
       policy_sha: ${{ github.sha }}
       config_path: .github/release-policy.json
       validation_sha: ${{ needs.release-gate.outputs.candidate_sha }}
@@ -180,7 +180,7 @@ jobs:
         with:
           repository: Strukturpiloten/boxferry
           # renovate: datasource=github-digest depName=Strukturpiloten/boxferry currentValue=automation-v1
-          ref: 25679dee0859cba2bdabb779fed02f6f2f390ca0
+          ref: 0aece357141870375bb872d5fd258a4e12961850
           path: _automation
           persist-credentials: false
       - name: Bind release candidate and typed policy
@@ -188,7 +188,7 @@ jobs:
         uses: ./_automation/.github/actions/shared-source
         with:
           candidate-sha: ${{ github.sha }}
-          automation-sha: 25679dee0859cba2bdabb779fed02f6f2f390ca0
+          automation-sha: 0aece357141870375bb872d5fd258a4e12961850
           policy-sha: ${{ github.sha }}
           config-path: .github/release-policy.json
       - name: Install locked shared Python tooling
@@ -418,7 +418,7 @@ jobs:
         uses: ./_automation/.github/actions/shared-crate-publish
         with:
           candidate-sha: ${{ github.sha }}
-          automation-sha: 25679dee0859cba2bdabb779fed02f6f2f390ca0
+          automation-sha: 0aece357141870375bb872d5fd258a4e12961850
           release-config: ${{ steps.source.outputs.config }}
           package: quadlet-lens
           validation-sha: ${{ needs.release-gate.outputs.candidate_sha }}

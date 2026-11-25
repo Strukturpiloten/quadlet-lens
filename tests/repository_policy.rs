@@ -657,9 +657,9 @@ fn non_rust_file_quality_is_locked_and_required() -> Result<(), String> {
     for required in [
         "git ls-files --cached --others --exclude-standard",
         "list_existing_files",
-        "markdownlint-cli2 --fix",
-        "prettier --write",
-        "prettier --check",
+        "markdownlint-cli2 --config .markdownlint.json --fix",
+        "prettier --config .prettierrc.json --no-editorconfig --write",
+        "prettier --config .prettierrc.json --no-editorconfig --check",
         "check_yaml_document_markers",
         "tombi format --check --offline",
         "tombi lint --error-on-warnings --offline",
@@ -706,10 +706,10 @@ fn non_rust_file_quality_is_locked_and_required() -> Result<(), String> {
         return Err("only the release-plz-owned CHANGELOG.md may be excluded from Prettier".to_owned());
     }
     for required in [
-        r#"prettier --write --ignore-path .prettierignore --ignore-unknown "${markdown_files[@]}""#,
-        r#"markdownlint-cli2 --fix "${markdown_literals[@]}""#,
-        r#"markdownlint-cli2 "${markdown_literals[@]}""#,
-        r#"prettier --check --ignore-path .prettierignore --ignore-unknown "${markdown_files[@]}""#,
+        r#"prettier --config .prettierrc.json --no-editorconfig --write --ignore-path .prettierignore --ignore-unknown "${markdown_files[@]}""#,
+        r#"markdownlint-cli2 --config .markdownlint.json --fix "${markdown_literals[@]}""#,
+        r#"markdownlint-cli2 --config .markdownlint.json "${markdown_literals[@]}""#,
+        r#"prettier --config .prettierrc.json --no-editorconfig --check --ignore-path .prettierignore --ignore-unknown "${markdown_files[@]}""#,
     ] {
         if !script.contains(required) {
             return Err(format!(
@@ -718,17 +718,28 @@ fn non_rust_file_quality_is_locked_and_required() -> Result<(), String> {
         }
     }
 
-    let lock = read_repository_file("package-lock.json")?;
-    for package in ["markdownlint-cli2", "prettier"] {
-        if !lock.contains(&format!("\"{package}\"")) {
-            return Err(format!("package-lock.json must lock `{package}`"));
+    let selection = read_repository_file(".github/node-tools.json")?;
+    if !selection.contains(r#""source": "automation""#) {
+        return Err("formatter ownership must select the shared automation".to_owned());
+    }
+    for superseded in ["package.json", "package-lock.json"] {
+        if repository_root().join(superseded).exists() {
+            return Err(format!("superseded formatter graph remains: {superseded}"));
+        }
+    }
+    let launcher = read_repository_file("scripts/node-tool.sh")?;
+    for required in [
+        "shared-ci.py\" node-tool --cwd",
+        "/opt/quadlet-lens-file-tools/boxferry-node-tools.py image-node-tool",
+    ] {
+        if !launcher.contains(required) {
+            return Err(format!("shared formatter launcher missing `{required}`"));
         }
     }
 
     for workflow_name in ["ci.yml"] {
         let workflow = read_repository_file(&format!(".github/workflows/{workflow_name}"))?;
         for required in [
-            "npm ci --ignore-scripts",
             r#"tool_dir="${RUNNER_TEMP}/quadlet-lens-tools""#,
             r#"bash scripts/install-file-tools.sh "${tool_dir}""#,
             r#"python3 scripts/shared-ci.py tools --destination "${tool_dir}" --tools actionlint lychee"#,

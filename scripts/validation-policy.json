@@ -92,6 +92,7 @@
         ["ruff", "format", "--check", "--config", "pyproject.toml", "scripts"],
         ["ty", "check", "--project", ".", "scripts"],
         ["python3", "scripts/test-automation-contract.py"],
+        ["python3", "scripts/test-node-tools.py"],
         ["python3", "scripts/test-hosted-generator-podman.py"]
       ],
       "timeout_seconds": 300
