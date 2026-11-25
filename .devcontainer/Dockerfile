@@ -31,14 +31,16 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     cargo "+${rust_channel}" install --locked --version "${ZIZMOR_VERSION}" zizmor
 
 COPY .github/automation.json /opt/quadlet-lens-tooling/.github/automation.json
+COPY .github/node-tools.json /opt/quadlet-lens-tooling/.github/node-tools.json
 COPY scripts/shared-ci.py scripts/install-file-tools.sh /opt/quadlet-lens-tooling/scripts/
-COPY package.json package-lock.json /opt/quadlet-lens-file-tools/
 
-ENV UV_CACHE_DIR=/opt/quadlet-lens-tooling/uv-cache \
+ENV QUADLET_LENS_NODE_TOOLS_ROOT=/opt/quadlet-lens-file-tools \
+    UV_CACHE_DIR=/opt/quadlet-lens-tooling/uv-cache \
     UV_PYTHON_INSTALL_DIR=/opt/quadlet-lens-tooling/python
 
 RUN set -eux; \
-    npm ci --ignore-scripts --prefix /opt/quadlet-lens-file-tools; \
+    python3 /opt/quadlet-lens-tooling/scripts/shared-ci.py node-tool \
+      --cwd /opt/quadlet-lens-tooling --installation-root /opt/quadlet-lens-file-tools --install-only; \
     ln -s /opt/quadlet-lens-file-tools/node_modules/.bin/markdownlint-cli2 \
       /usr/local/bin/markdownlint-cli2; \
     ln -s /opt/quadlet-lens-file-tools/node_modules/.bin/prettier /usr/local/bin/prettier; \

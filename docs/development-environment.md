@@ -42,6 +42,24 @@ cargo ci-doc
 The VS Code complete task runs this gate. Planning and change-aware tasks delegate through
 `scripts/shared-ci.py`; they are development feedback. The shared manifest and repository policy
 retain one implementation for local and hosted selection, typed Python checks and tool ownership.
+File checks run Prettier and markdownlint-cli2 from the selected immutable automation source.
+The producer owns their npm manifest, lock and package integrity; this repository owns file
+selection, `.prettierrc.json`, `.prettierignore` and `.markdownlint.json`. No root npm install is
+needed. For an individual tool, use:
+
+```console
+python3 scripts/shared-ci.py node-tool --cwd "$PWD" prettier --config .prettierrc.json --no-editorconfig --ignore-path .prettierignore --check README.md
+python3 scripts/shared-ci.py node-tool --cwd "$PWD" markdownlint-cli2 --config .markdownlint.json :README.md
+```
+
+The Dev Container retains the selected installation at `/opt/quadlet-lens-file-tools`.
+Its file checks use the protected image launcher without npm, network access or checkout/target
+writes. CLI discovery remains available on the developer and finite probe paths. Startup verifies
+both versions and the exact markdownlint library banner from `--help` against the retained lock.
+Native amd64 and arm64 acceptance must exercise the actual image with a read-only checkout,
+network disabled and a nonroot user; source tests do not replace this evidence. Formatter upgrades
+follow the ordinary grouped automation revision, with no separate formatter source pin.
+
 The local gate installs the checksum-verified Actionlint selected by the manifest and puts it
 first on `PATH` before linting workflows. Hosted CI uses the same inventory.
 

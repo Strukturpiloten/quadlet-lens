@@ -124,6 +124,42 @@ try:
             [name, "--help"], check=True, stdout=subprocess.DEVNULL,
             stderr=subprocess.PIPE, timeout=30,
         )
+    installation = Path("/opt/quadlet-lens-file-tools")
+    locked = json.loads((installation / "package-lock.json").read_text())["packages"]
+    for name in ("prettier", "markdownlint-cli2"):
+        command = [
+            "python3", str(installation / "boxferry-node-tools.py"), "image-node-tool",
+            "--repository-root", str(repository), "--cwd", str(repository), name,
+        ]
+        version = subprocess.run(
+            [*command, "--version"], check=True, capture_output=True, text=True, timeout=30,
+        ).stdout.strip()
+        expected = locked["node_modules/" + name]["version"]
+        if name == "prettier" and version != expected:
+            raise ValueError(f"{name} differs from the retained selected lock")
+        # Keep the real CLI help invocation: markdownlint-cli2 includes its
+        # resolved markdownlint library version in this version-sensitive probe.
+        help_result = subprocess.run(
+            [*command, "--help"], check=False, capture_output=True, text=True, timeout=30,
+        )
+        help_status = 2 if name == "markdownlint-cli2" else 0
+        if help_result.returncode != help_status or help_result.stderr:
+            raise ValueError(f"{name} help status or stderr differs from its CLI contract")
+        if name == "markdownlint-cli2":
+            dependency = "node_modules/markdownlint-cli2/node_modules/markdownlint"
+            library = locked.get(dependency, locked.get("node_modules/markdownlint"))
+            lines = help_result.stdout[:8192].splitlines()
+            banner = next((line for line in lines if line), "")
+            usage = next((line for line in lines if line.startswith(
+                "Syntax: markdownlint-cli2 glob0 [glob1] "
+            )), "")
+            if library is None or (
+                banner != f"markdownlint-cli2 v{expected} (markdownlint v{library['version']})"
+                or "https://github.com/DavidAnson/markdownlint-cli2" not in lines
+                or "[--help]" not in usage
+                or "[--no-globs]" not in usage
+            ):
+                raise ValueError("markdownlint-cli2 help differs from the selected lock")
     channel = tomllib.loads((repository / "rust-toolchain.toml").read_text())["toolchain"]["channel"]
     compiler = subprocess.run(
         ["rustup", "run", channel, "rustc", "--version"], check=True,

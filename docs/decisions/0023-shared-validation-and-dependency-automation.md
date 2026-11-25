@@ -18,6 +18,10 @@ revision. Shared workflow references, checkout inputs and common/Rust Renovate p
 with it in one adoption. Interface-1 references use full lowercase commit SHAs and the exact
 `automation-v1 interface v1` comment; this interface marker makes no release-tag claim.
 
+The producer also owns the locked Prettier/markdownlint-cli2 graph. Consumer file lists, explicit
+configuration, ignores and check/fix semantics remain local. Images retain that same installation
+and its protected offline launcher; they do not acquire packages from a read-only checkout.
+
 The stable loader delegates local planning, task execution, Cargo tool verification and file/Python
 tool installation. Hosted callers use trusted base policy and the exact tested candidate. Missing,
 malformed, unknown and first-rollout policy retains the complete suite. Every original Rust,
